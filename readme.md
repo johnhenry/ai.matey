@@ -65,3 +65,36 @@ const model = await window.ai.languageModel.create();
 const poem = await model.prompt("write a poem");
 console.log(poem);
 ```
+
+## Built for the browser
+
+This package is built for the browser, and can easily be imported via CDN.
+
+```html
+<html>
+    <head>
+    <script type="importmap">
+    {
+        "imports": {
+            "mock.ai": "https://cdn.jsdelivr.net/npm/ai.matey@0.0.1/mock/polyfill-overwrite.mjs"
+        }
+    }
+    </script>
+    </head>
+    <body>
+        <scirpt type="module">
+            import "mock.ai";
+            const model = await window.ai.languageModel.create({
+                        context: "You are an expert in creating poery.",
+                        temperature: 0.7,
+                        topK: 1,
+                        maxTokens: 200,
+                        seed: 1,
+            });
+            const poem = await model.prompt("write a poem");
+            console.log(poem);
+        </script>
+    </body>
+</html>
+```
+

@@ -1,6 +1,6 @@
 {
   "name": "ai.matey",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "main": "./openai/index.mjs",
   "exports": {
     "./mock": "./mock/index.mjs",
