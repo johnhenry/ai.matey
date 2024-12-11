@@ -1,0 +1,18 @@
+{
+  "name": "ai.matey",
+  "version": "0.0.0",
+  "main": "./openai/index.mjs",
+  "exports": {
+    "./mock": "./mock/index.mjs",
+    "./mock/polyfill": "./polyfill.mjs",
+    "./mock/polyfill-ovewrite": "./polyfill-overwrite.mjs",
+    "./openai": "./openai/index.mjs"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": ""
+}
