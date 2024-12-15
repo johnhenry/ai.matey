@@ -1,5 +1,5 @@
 declare module "ai.matey/openai" {
-  interface AIConfig {
+  export interface AIConfig {
     endpoint?: string;
     credentials: {
       apiKey: string;
@@ -7,7 +7,7 @@ declare module "ai.matey/openai" {
     model?: string;
   }
 
-  interface LanguageModel {
+  export interface LanguageModel {
     prompt: <T = string>(
       text: string,
       options: {
@@ -19,7 +19,7 @@ declare module "ai.matey/openai" {
     destroy: () => void;
   }
 
-  class AI {
+  export class AI {
     constructor(config: AIConfig);
     languageModel: {
       create: (config: {
@@ -34,26 +34,26 @@ declare module "ai.matey/openai" {
 }
 
 declare module "ai.matey/mock" {
-  interface AICapabilities {
+  export interface AICapabilities {
     available: string;
     defaultTopK: number;
     maxTopK: number;
     defaultTemperature: number;
   }
 
-  interface ProgressMonitor {
+  export interface ProgressMonitor {
     addEventListener(
       event: "downloadprogress",
       callback: (progress: { loaded: number; total: number }) => void
     ): void;
   }
 
-  interface ConversationMessage {
+  export interface ConversationMessage {
     role: "system" | "user" | "assistant";
     content: string;
   }
 
-  interface SessionOptions {
+  export interface SessionOptions {
     temperature?: number;
     topK?: number;
     systemPrompt?: string;
@@ -62,7 +62,7 @@ declare module "ai.matey/mock" {
     monitor?: (monitor: ProgressMonitor) => void;
   }
 
-  interface AILanguageModelSession {
+  export interface AILanguageModelSession {
     readonly tokensSoFar: number;
     readonly maxTokens: number;
     readonly tokensLeft: number;
@@ -75,12 +75,12 @@ declare module "ai.matey/mock" {
     destroy(): void;
   }
 
-  interface LanguageModel {
+  export interface LanguageModel {
     capabilities(): Promise<AICapabilities>;
     create(options?: SessionOptions): Promise<AILanguageModelSession>;
   }
 
-  interface MockAI {
+  export interface MocAIkAI {
     languageModel: LanguageModel;
   }
 
