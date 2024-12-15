@@ -1,7 +1,8 @@
 {
   "name": "ai.matey",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "main": "./openai/index.mjs",
+  "types": "types/ai.matey.d.ts",
   "exports": {
     "./mock": "./mock/index.mjs",
     "./mock/polyfill": "./polyfill.mjs",
