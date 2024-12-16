@@ -215,7 +215,6 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        width: 24px;
         height: 24px;
         border-radius: 4px;
       }
@@ -545,7 +544,7 @@
 
       <div class="input-group ollama-settings" style="display: none;">
         <label for="ollama-endpoint">Ollama Endpoint</label>
-        <input type="text" id="ollama-endpoint" value="http://localhost:11434" placeholder="http://localhost:11434">
+        <input type="text" id="ollama-endpoint" value="http://localhost:11434/v1/chat/completions" placeholder="http://localhost:11434">
 
         <label for="ollama-model">Ollama Model</label>
         <div class="model-input-group">
@@ -582,7 +581,8 @@
           { id: 'type', type: 'select', label: 'Summary Type', options: [
             { value: 'headline', label: 'Headline' },
             { value: 'tl;dr', label: 'TL;DR' },
-            { value: 'bullet-points', label: 'Bullet Points' }
+            { value: 'teaser', label: 'Teaser' },
+            { value: 'key-points', label: 'Key Points' }
           ]},
           { id: 'length', type: 'select', label: 'Length', options: [
             { value: 'short', label: 'Short' },
@@ -607,9 +607,9 @@
         ],
         rewriter: [
           { id: 'tone', type: 'select', label: 'Tone', options: [
-            { value: 'formal', label: 'Formal' },
-            { value: 'casual', label: 'Casual' },
-            { value: 'neutral', label: 'Neutral' }
+            { value: 'more-formal', label: 'More Formal' },
+            { value: 'more-casual', label: 'More Casual' },
+            { value: 'as-is', label: 'As-Is' }
           ]},
           { id: 'format', type: 'select', label: 'Format', options: [
             { value: 'as-is', label: 'As Is' },
@@ -974,16 +974,57 @@
 
         return pair;
       }
+      /**
+       * Resolves a relative path against a base path, preserving protocols.
+       * @param {string} basePath - The base path to resolve from
+       * @param {string} relativePath - The relative path to resolve
+       * @returns {string} The resolved path
+       */
+      function resolvePath(basePath, relativePath) {
+        // Extract protocol if present
+        let baseProtocol = '';
+        let basePathWithoutProtocol = basePath;
+        
+        const protocolMatch = basePath.match(/^(https?:\/\/)/i);
+        if (protocolMatch) {
+          baseProtocol = protocolMatch[1];
+          basePathWithoutProtocol = basePath.slice(baseProtocol.length);
+        }
+        
+        // Split paths into segments and remove empty segments
+        const baseSegments = basePathWithoutProtocol.split('/').filter(segment => segment.length > 0);
+        const relativeSegments = relativePath.split('/').filter(segment => segment.length > 0);
+        
+        // Start with base path segments
+        const resultSegments = [...baseSegments];
+        
+        // Process each segment of the relative path
+        for (const segment of relativeSegments) {
+          if (segment === '..') {
+            // Go up one directory level if possible
+            if (resultSegments.length > 0) {
+              resultSegments.pop();
+            }
+          } else if (segment !== '.') {
+            // Add the segment if it's not current directory reference
+            resultSegments.push(segment);
+          }
+        }
+        
+        // Join the segments back together with the protocol if it exists
+        return baseProtocol + resultSegments.join('/');
+      }
 
       // Fetch models button handler
       elements.fetchModels.addEventListener('click', async () => {
         try {
           elements.fetchModels.disabled = true;
-          
-          const baseEndpoint = elements.ollamaEndpoint.value;
-          const response = await fetch(`${baseEndpoint}/api/tags`);
-          const data = await response.json();
 
+          const baseEndpoint = elements.ollamaEndpoint.value;
+          // TODO :Fix model loading
+          const path = resolvePath(baseEndpoint, '../../../api/tags')
+          const response = await fetch(path);
+          const data = await response.json();
           if (!data.models) {
             throw new Error('No models found in response');
           }
