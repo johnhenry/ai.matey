@@ -12,8 +12,8 @@ class Session extends Session_ {
   }
 
   #generateSummaryPrompt(text, options = {}) {
-    const type = options.type || this.options.type || "paragraph";
-    const length = options.length || this.options.length || "medium";
+    const type = options.type || this.options.type || "paragraph"; // headline, tl;dr, key-points
+    const length = options.length || this.options.length || "medium"; // short, medium, long
     const context = options.context || "";
     const sharedContext = this.#sharedContext || "";
 
@@ -35,8 +35,8 @@ class Session extends Session_ {
       case "tl;dr":
         prompt += "Provide a TL;DR (Too Long; Didn't Read) summary.";
         break;
-      case "bullet-points":
-        prompt += "List the key points in bullet points.";
+      case "key-points":
+        prompt += "List the key points in bullet format.";
         break;
       default: // paragraph
         prompt += `Write a ${length} summary in paragraph form.`;
