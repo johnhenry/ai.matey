@@ -97,3 +97,7 @@ This package is built for the browser, and can easily be imported via CDN.
     </body>
 </html>
 ```
+
+## Playground/Demo
+
+Check out playground in this repositrory. Run a static sterver (npx live-server .) and navigate to playground.html
