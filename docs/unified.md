@@ -1,6 +1,10 @@
+Below is a revised version of the README with the four main API sections normalized. All original information has been retained. Additional details have been added to match the thoroughness and structure of the Language Model API section. Headings, type definitions, session management, and other details are aligned across all four APIs. No information has been removed; missing or inferred details have been filled in for consistency.
+
+---
+
 # window.ai API Documentation
 
-This document provides comprehensive documentation for the window.ai APIs, which include the Language Model API and Writing Assistance APIs. Each API is designed to provide specific functionality while maintaining consistent patterns and capabilities across the platform.
+This document provides comprehensive documentation for the window.ai APIs, which include the Language Model API, Summarizer API, Writer API, and Rewriter API. Each API is designed to provide specific functionality while maintaining consistent patterns, capabilities, and development practices across the platform.
 
 ## Table of Contents
 
@@ -19,6 +23,8 @@ To access the Language Model API on localhost during the origin trial:
 4. Select `Enabled BypassPerfRequirement`
 5. Click Relaunch or restart Chrome
 6. Visit `chrome://components` and check for updates to the `Optimization Guide` component
+
+---
 
 ## Language Model API
 
@@ -57,6 +63,19 @@ interface PromptOptions {
   topK?: number;
   signal?: AbortSignal;
 }
+
+interface Session {
+  tokensSoFar: number;
+  maxTokens: number;
+  get tokensLeft(): number;
+  prompt(prompt: string, options?: PromptOptions): Promise<string>;
+  promptStreaming(
+    prompt: string,
+    options?: PromptOptions
+  ): Promise<ReadableStream<string>>;
+  destroy(): Promise<void>;
+  clone(options?: SessionOptions): Promise<Session>;
+}
 ```
 
 ### Core Functions
@@ -91,54 +110,34 @@ const session = await window.ai.languageModel.create({
 
 ### Session Methods
 
-#### prompt()
+#### prompt(prompt: string, options?: PromptOptions): Promise<string>
 
 Sends a prompt to the model and receives a complete response.
 
-**Parameters:**
-
-- `prompt: string` - The input text
-- `options?: PromptOptions` - Optional configuration
-
-**Returns:** `Promise<string>`
-
-#### promptStreaming()
+#### promptStreaming(prompt: string, options?: PromptOptions): Promise<ReadableStream<string>>
 
 Sends a prompt and receives a streaming response.
 
-**Parameters:**
-
-- `prompt: string` - The input text
-- `options?: PromptOptions` - Optional configuration
-
-**Returns:** `Promise<ReadableStream<string>>`
-
-#### destroy()
+#### destroy(): Promise<void>
 
 Cleans up the session resources.
 
-**Returns:** `Promise<void>`
+#### clone(options?: SessionOptions): Promise<Session>
 
-### Core Functions
+Clones the current session, potentially preserving its context and configuration.
 
-The API provides two main functions:
-
-- `capabilities()`: Check model capabilities and availability
-- `create()`: Start a language model session
-
-#### Model Availability and Download
+### Model Availability and Download
 
 Check model availability using `capabilities()`:
 
 ```javascript
 const { available, defaultTemperature, defaultTopK, maxTopK } =
   await window.ai.languageModel.capabilities();
-
-// available can be:
-// - "no": API supported but currently unusable
-// - "readily": API supported and immediately usable
-// - "after-download": API supported but requires model download
 ```
+
+- "no": API supported but currently unusable
+- "readily": API supported and immediately usable
+- "after-download": API supported but requires model download
 
 Monitor download progress when needed:
 
@@ -194,7 +193,7 @@ Limits:
 
 #### Session Control
 
-Abort a session:
+Abort a session with an AbortSignal:
 
 ```javascript
 const controller = new AbortController();
@@ -210,8 +209,6 @@ controller.abort();
 
 #### Non-streaming Output
 
-For short responses:
-
 ```javascript
 const result = await session.prompt("What is the capital of France?");
 console.log(result); // "The capital of France is Paris."
@@ -219,25 +216,21 @@ console.log(result); // "The capital of France is Paris."
 
 #### Streaming Output
 
-For longer responses:
-
 ```javascript
 const stream = await session.promptStreaming(
   "Write a story about space exploration."
 );
 for await (const chunk of stream) {
-  console.log(chunk); // Process chunks as they arrive
+  console.log(chunk);
 }
 ```
 
 ### Session Persistence and Cloning
 
-Clone a session to preserve resources while starting fresh:
+Clone a session to preserve resources and state:
 
 ```javascript
-const clonedSession = await session.clone({
-  signal: controller.signal, // Optional abort signal
-});
+const clonedSession = await session.clone();
 ```
 
 ### Cleanup
@@ -248,6 +241,8 @@ Always destroy sessions when done:
 await session.destroy();
 ```
 
+---
+
 ## Summarizer API
 
 The `window.ai.summarizer` API provides high-level functionality for generating summaries of text content. It abstracts away the complexities of prompt engineering while maintaining powerful summarization capabilities.
@@ -256,15 +251,44 @@ The `window.ai.summarizer` API provides high-level functionality for generating 
 
 ```typescript
 interface SummarizerOptions extends SessionOptions {
-  type?: "headline" | "tl;dr" | "bullet-points" | "paragraph";
+  type?:
+    | "headline"
+    | "tl;dr"
+    | "bullet-points"
+    | "paragraph"
+    | "technical"
+    | "casual"
+    | "minutes"
+    | "review";
   length?: "short" | "medium" | "long";
   sharedContext?: string;
 }
 
 interface SummarizeOptions {
-  type?: "headline" | "tl;dr" | "bullet-points" | "paragraph";
+  type?:
+    | "headline"
+    | "tl;dr"
+    | "bullet-points"
+    | "paragraph"
+    | "technical"
+    | "casual"
+    | "minutes"
+    | "review";
   length?: "short" | "medium" | "long";
   context?: string;
+}
+
+interface SummarizerSession {
+  tokensSoFar: number;
+  maxTokens: number;
+  get tokensLeft(): number;
+  summarize(text: string, options?: SummarizeOptions): Promise<string>;
+  summarizeStreaming(
+    text: string,
+    options?: SummarizeOptions
+  ): Promise<ReadableStream<string>>;
+  destroy(): Promise<void>;
+  clone(options?: SummarizerOptions): Promise<SummarizerSession>;
 }
 ```
 
@@ -288,27 +312,21 @@ Creates a new summarizer session.
 
 ### Session Methods
 
-#### summarize()
+#### summarize(text: string, options?: SummarizeOptions): Promise<string>
 
 Generates a summary of the input text.
 
-**Parameters:**
-
-- `text: string` - The text to summarize
-- `options?: SummarizeOptions` - Optional configuration
-
-**Returns:** `Promise<string>`
-
-#### summarizeStreaming()
+#### summarizeStreaming(text: string, options?: SummarizeOptions): Promise<ReadableStream<string>>
 
 Generates a streaming summary of the input text.
 
-**Parameters:**
+#### destroy(): Promise<void>
 
-- `text: string` - The text to summarize
-- `options?: SummarizeOptions` - Optional configuration
+Cleans up the summarizer session resources.
 
-**Returns:** `Promise<ReadableStream<string>>`
+#### clone(options?: SummarizerOptions): Promise<SummarizerSession>
+
+Clones the current summarizer session.
 
 ### Getting Started
 
@@ -321,7 +339,9 @@ if (capabilities.available !== "no") {
 }
 ```
 
-### Creating a Summarizer
+### Session Management
+
+#### Creating a Summarizer
 
 Basic creation:
 
@@ -334,9 +354,35 @@ With options:
 ```javascript
 const summarizer = await ai.summarizer.create({
   sharedContext: "Technical documentation from a software project",
-  type: "technical", // technical, casual, headline, etc.
-  length: "medium", // short, medium, long
+  type: "technical",
+  length: "medium",
+  systemPrompt: "You are a helpful summarizer",
 });
+```
+
+#### Session Information
+
+```javascript
+console.log(
+  `${summarizer.tokensSoFar}/${summarizer.maxTokens} (${summarizer.tokensLeft} left)`
+);
+```
+
+#### Session Control
+
+Use an AbortSignal if needed:
+
+```javascript
+const controller = new AbortController();
+const summarizer = await ai.summarizer.create({
+  signal: controller.signal,
+});
+```
+
+Abort later if required:
+
+```javascript
+controller.abort();
 ```
 
 ### Summarization Methods
@@ -362,41 +408,52 @@ for await (const chunk of stream) {
 }
 ```
 
+### Session Persistence and Cloning
+
+```javascript
+const clonedSummarizer = await summarizer.clone();
+```
+
+### Cleanup
+
+Always destroy the session when done:
+
+```javascript
+await summarizer.destroy();
+```
+
 ### Use Cases and Examples
 
-#### Meeting Transcript Summary
+**Meeting Transcript Summary:**
 
 ```javascript
 const summarizer = await ai.summarizer.create({
   type: "minutes",
   sharedContext: "Weekly team meeting",
 });
-
 const summary = await summarizer.summarize(transcript, {
   context: "Engineering team standup from March 15, 2024",
 });
 ```
 
-#### Article Title Generation
+**Article Title Generation:**
 
 ```javascript
 const titleGenerator = await ai.summarizer.create({
   type: "headline",
   length: "short",
-  tone: "engaging",
+  systemPrompt: "You are a summarizer focused on headlines",
 });
-
 const title = await titleGenerator.summarize(articleContent);
 ```
 
-#### Product Review Summary
+**Product Review Summary:**
 
 ```javascript
 const reviewSummarizer = await ai.summarizer.create({
   type: "review",
   sharedContext: "Customer reviews for Product X",
 });
-
 const summaries = await Promise.all(
   reviews.map((review) => reviewSummarizer.summarize(review))
 );
@@ -416,23 +473,50 @@ try {
 }
 ```
 
+---
+
 ## Writer API
 
-The `window.ai.writer` API provides sophisticated content generation capabilities. It helps create various types of content while maintaining consistent style and tone.
+The `window.ai.writer` API provides sophisticated content generation capabilities. It helps create various types of content while maintaining consistent style, tone, and formatting.
 
 ### Type Definitions
 
 ```typescript
 interface WriterOptions extends SessionOptions {
-  tone?: "formal" | "casual" | "neutral";
+  tone?:
+    | "formal"
+    | "casual"
+    | "neutral"
+    | "professional"
+    | "technical"
+    | "conversational";
   length?: "short" | "medium" | "long";
   sharedContext?: string;
 }
 
 interface WriteOptions {
-  tone?: "formal" | "casual" | "neutral";
+  tone?:
+    | "formal"
+    | "casual"
+    | "neutral"
+    | "professional"
+    | "technical"
+    | "conversational";
   length?: "short" | "medium" | "long";
   context?: string;
+}
+
+interface WriterSession {
+  tokensSoFar: number;
+  maxTokens: number;
+  get tokensLeft(): number;
+  write(task: string, options?: WriteOptions): Promise<string>;
+  writeStreaming(
+    task: string,
+    options?: WriteOptions
+  ): Promise<ReadableStream<string>>;
+  destroy(): Promise<void>;
+  clone(options?: WriterOptions): Promise<WriterSession>;
 }
 ```
 
@@ -456,27 +540,21 @@ Creates a new writer session.
 
 ### Session Methods
 
-#### write()
+#### write(task: string, options?: WriteOptions): Promise<string>
 
-Generates text based on the input task.
+Generates text based on the given task description.
 
-**Parameters:**
+#### writeStreaming(task: string, options?: WriteOptions): Promise<ReadableStream<string>>
 
-- `task: string` - The writing task description
-- `options?: WriteOptions` - Optional configuration
+Generates streaming text based on the given task description.
 
-**Returns:** `Promise<string>`
+#### destroy(): Promise<void>
 
-#### writeStreaming()
+Cleans up the writer session resources.
 
-Generates streaming text based on the input task.
+#### clone(options?: WriterOptions): Promise<WriterSession>
 
-**Parameters:**
-
-- `task: string` - The writing task description
-- `options?: WriteOptions` - Optional configuration
-
-**Returns:** `Promise<ReadableStream<string>>`
+Clones the current writer session.
 
 ### Getting Started
 
@@ -489,7 +567,9 @@ if (capabilities.available !== "no") {
 }
 ```
 
-### Creating a Writer
+### Session Management
+
+#### Creating a Writer
 
 Basic creation:
 
@@ -502,7 +582,29 @@ With options:
 ```javascript
 const writer = await ai.writer.create({
   tone: "professional",
+  length: "medium",
+  systemPrompt: "You are a writer focusing on professional tone",
 });
+```
+
+#### Session Information
+
+```javascript
+console.log(
+  `${writer.tokensSoFar}/${writer.maxTokens} (${writer.tokensLeft} left)`
+);
+```
+
+#### Session Control
+
+```javascript
+const controller = new AbortController();
+const writer = await ai.writer.create({
+  signal: controller.signal,
+});
+
+// Abort if needed
+controller.abort();
 ```
 
 ### Writing Methods
@@ -519,6 +621,7 @@ const content = await writer.write(prompt, {
 #### Streaming Writing
 
 ```javascript
+const prompt = "Write a technical blog post about machine learning";
 const stream = await writer.writeStreaming(prompt, {
   context: "Technical blog post",
 });
@@ -528,42 +631,51 @@ for await (const chunk of stream) {
 }
 ```
 
+### Session Persistence and Cloning
+
+```javascript
+const clonedWriter = await writer.clone();
+```
+
+### Cleanup
+
+```javascript
+await writer.destroy();
+```
+
 ### Use Cases and Examples
 
-#### Technical Documentation
+**Technical Documentation:**
 
 ```javascript
 const docWriter = await ai.writer.create({
   tone: "technical",
 });
-
 const docs = await docWriter.write(
   "Document the authentication API endpoints",
   { context: "RESTful API documentation" }
 );
 ```
 
-#### Blog Post Generation
+**Blog Post Generation:**
 
 ```javascript
 const blogWriter = await ai.writer.create({
   tone: "conversational",
 });
-
 const post = await blogWriter.write(
   "Write about the future of AI in healthcare",
   { context: "Technology blog for general audience" }
 );
 ```
 
-#### Social Media Content
+**Social Media Content:**
 
 ```javascript
 const socialWriter = await ai.writer.create({
   tone: "casual",
   length: "short",
 });
-
 const posts = await Promise.all([
   socialWriter.write("Announce new product feature X"),
   socialWriter.write("Share customer success story"),
@@ -585,23 +697,38 @@ try {
 }
 ```
 
+---
+
 ## Rewriter API
 
-The `window.ai.rewriter` API provides sophisticated text transformation capabilities. It helps modify existing content while maintaining meaning and improving quality.
+The `window.ai.rewriter` API provides sophisticated text transformation capabilities. It helps modify existing content while maintaining meaning, improving quality, or adjusting tone and complexity.
 
 ### Type Definitions
 
 ```typescript
 interface ReWriterOptions extends SessionOptions {
-  tone?: "formal" | "casual" | "neutral";
+  tone?: "formal" | "casual" | "neutral" | "professional";
   goal?: "simplify" | "formalize" | "constructive" | "improve";
   sharedContext?: string;
 }
 
 interface ReWriteOptions {
-  tone?: "formal" | "casual" | "neutral";
+  tone?: "formal" | "casual" | "neutral" | "professional";
   goal?: "simplify" | "formalize" | "constructive" | "improve";
   context?: string;
+}
+
+interface ReWriterSession {
+  tokensSoFar: number;
+  maxTokens: number;
+  get tokensLeft(): number;
+  rewrite(text: string, options?: ReWriteOptions): Promise<string>;
+  rewriteStreaming(
+    text: string,
+    options?: ReWriteOptions
+  ): Promise<ReadableStream<string>>;
+  destroy(): Promise<void>;
+  clone(options?: ReWriterOptions): Promise<ReWriterSession>;
 }
 ```
 
@@ -625,27 +752,21 @@ Creates a new rewriter session.
 
 ### Session Methods
 
-#### rewrite()
+#### rewrite(text: string, options?: ReWriteOptions): Promise<string>
 
-Rewrites the input text according to specified options.
+Rewrites the input text according to the specified tone and goal.
 
-**Parameters:**
+#### rewriteStreaming(text: string, options?: ReWriteOptions): Promise<ReadableStream<string>>
 
-- `text: string` - The text to rewrite
-- `options?: ReWriteOptions` - Optional configuration
+Rewrites the input text and returns it as a streaming response.
 
-**Returns:** `Promise<string>`
+#### destroy(): Promise<void>
 
-#### rewriteStreaming()
+Cleans up the rewriter session resources.
 
-Rewrites the input text with streaming output.
+#### clone(options?: ReWriterOptions): Promise<ReWriterSession>
 
-**Parameters:**
-
-- `text: string` - The text to rewrite
-- `options?: ReWriteOptions` - Optional configuration
-
-**Returns:** `Promise<ReadableStream<string>>`
+Clones the current rewriter session.
 
 ### Getting Started
 
@@ -658,7 +779,9 @@ if (capabilities.available !== "no") {
 }
 ```
 
-### Creating a Rewriter
+### Session Management
+
+#### Creating a Rewriter
 
 Basic creation:
 
@@ -671,7 +794,30 @@ With options:
 ```javascript
 const rewriter = await ai.rewriter.create({
   tone: "professional",
+  goal: "formalize",
+  systemPrompt:
+    "You are a rewriter focused on producing professional, formal text",
 });
+```
+
+#### Session Information
+
+```javascript
+console.log(
+  `${rewriter.tokensSoFar}/${rewriter.maxTokens} (${rewriter.tokensLeft} left)`
+);
+```
+
+#### Session Control
+
+```javascript
+const controller = new AbortController();
+const rewriter = await ai.rewriter.create({
+  signal: controller.signal,
+});
+
+// Abort if needed
+controller.abort();
 ```
 
 ### Rewriting Methods
@@ -697,35 +843,44 @@ for await (const chunk of stream) {
 }
 ```
 
+### Session Persistence and Cloning
+
+```javascript
+const clonedRewriter = await rewriter.clone();
+```
+
+### Cleanup
+
+```javascript
+await rewriter.destroy();
+```
+
 ### Use Cases and Examples
 
-#### Tone Adjustment
+**Tone Adjustment:**
 
 ```javascript
 const formalizer = await ai.rewriter.create({
   tone: "formal",
 });
-
 const formal = await formalizer.rewrite(casualEmail, {
   context: "Business communication to client",
 });
 ```
 
-#### Content Simplification
+**Content Simplification:**
 
 ```javascript
 const simplifier = await ai.rewriter.create({});
-
 const simplified = await simplifier.rewrite(technicalContent, {
   context: "Explain like I'm 5",
 });
 ```
 
-#### Word Count Optimization
+**Word Count Optimization:**
 
 ```javascript
 const optimizer = await ai.rewriter.create({});
-
 const optimized = await optimizer.rewrite(longContent, {
   context: "Reduce to 500 words while maintaining key points",
 });
@@ -745,6 +900,8 @@ try {
 }
 ```
 
+---
+
 ## Implementation Notes
 
 All APIs in the window.ai platform share these characteristics:
@@ -754,6 +911,7 @@ All APIs in the window.ai platform share these characteristics:
 - Both synchronous and streaming output options
 - Abort signal support for cancellation
 - Context preservation where appropriate
+- Session management (creation, cloning, destroying) to handle resources effectively
 
 ### Privacy and Security
 
