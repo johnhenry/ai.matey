@@ -1,13 +1,13 @@
 import { SessionOptions, Session, AIConfig, AILanguageModelCapabilities } from './languageModel';
 
 export interface SummarizerOptions extends SessionOptions {
-  type?: 'headline' | 'tl;dr' | 'bullet-points' | 'paragraph';
+  type?: 'headline' | 'tl;dr' | 'key-points' | 'teaser';
   length?: 'short' | 'medium' | 'long';
   sharedContext?: string;
 }
 
 export interface SummarizeOptions {
-  type?: 'headline' | 'tl;dr' | 'bullet-points' | 'paragraph';
+  type?: 'headline' | 'tl;dr' | 'key-points' | 'teaser';
   length?: 'short' | 'medium' | 'long';
   context?: string;
 }

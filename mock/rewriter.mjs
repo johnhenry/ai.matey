@@ -6,10 +6,10 @@ class MockReWriterSession {
 
   constructor(options = {}) {
     // Add default system prompt for rewriting if not provided
-    const systemPrompt = options.systemPrompt || 
+    const systemPrompt = options.systemPrompt ||
       "You are an expert editor. Provide ONLY the rewritten text without any introductions or explanations.";
     
-    this.#session = new languageModel.create({ ...options, systemPrompt });
+    this.#session = languageModel.create({ ...options, systemPrompt });
   }
 
   #generateMockRewrite(text, tone, goal) {
@@ -60,6 +60,9 @@ class MockReWriterSession {
         controller.close();
       }
     });
+  }
+  destroy() {
+    // No-op for mock implementation
   }
 }
 

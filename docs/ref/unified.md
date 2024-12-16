@@ -254,8 +254,8 @@ interface SummarizerOptions extends SessionOptions {
   type?:
     | "headline"
     | "tl;dr"
-    | "bullet-points"
-    | "paragraph"
+    | "key-points"
+    | "teaser"
     | "technical"
     | "casual"
     | "minutes"
@@ -268,8 +268,8 @@ interface SummarizeOptions {
   type?:
     | "headline"
     | "tl;dr"
-    | "bullet-points"
-    | "paragraph"
+    | "key-points"
+    | "teaser"
     | "technical"
     | "casual"
     | "minutes"

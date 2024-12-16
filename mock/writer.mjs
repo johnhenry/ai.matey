@@ -9,7 +9,7 @@ class MockWriterSession {
     const systemPrompt = options.systemPrompt || 
       "You are a skilled writer. Provide ONLY the requested content without any introductions or conclusions.";
     
-    this.#session = new languageModel.create({ ...options, systemPrompt });
+    this.#session = languageModel.create({ ...options, systemPrompt });
   }
 
   #generateMockContent(task, tone, length) {
@@ -55,6 +55,9 @@ class MockWriterSession {
         controller.close();
       }
     });
+  }
+  destroy() {
+    // No-op for mock implementation
   }
 }
 

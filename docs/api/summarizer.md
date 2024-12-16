@@ -6,13 +6,13 @@ The `window.ai.summarizer` API provides high-level functionality for generating 
 
 ```typescript
 interface SummarizerOptions extends SessionOptions {
-  type?: "headline" | "tl;dr" | "bullet-points";
+  type?: "headline" | "tl;dr" | "key-points" | "teaser";
   length?: "short" | "medium" | "long";
   sharedContext?: string;
 }
 
 interface SummarizeOptions {
-  type?: "headline" | "tl;dr" | "bullet-points";
+  type?: "headline" | "tl;dr" | "key-points" | "teaser";
   length?: "short" | "medium" | "long";
   context?: string;
 }

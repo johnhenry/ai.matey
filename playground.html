@@ -562,8 +562,8 @@
     </div>
 
     <script type="module">
-      import mockAI from "ai.matey/mock";
-      import AI from "ai.matey/openai";
+      import mockAI from "./mock/index.mjs";
+      import AI from "./openai/index.mjs";
 
       const state = {
         implementation: 'mock',
@@ -727,7 +727,7 @@
       // Helper to create AI instance
       async function createInstance(type) {
         if (state.instance) {
-          state.instance.destroy();
+          await state.instance.destroy();
         }
 
         let ai;
@@ -749,6 +749,7 @@
           case 'languageModel':
             return ai.languageModel.create({
               context: settings.context,
+              systemPrompt: settings.systemPrompt,
               temperature: settings.temperature,
               topK: settings.topK,
               maxTokens: settings.maxTokens,
@@ -756,17 +757,26 @@
           case 'summarizer':
             return ai.summarizer.create({
               context: settings.context,
+              type: settings.type,
+              length: settings.length,
               maxTokens: settings.maxTokens,
             });
           case 'writer':
             return ai.writer.create({
               context: settings.context,
+              tone: settings.tone,
+              length: settings.length,
               temperature: settings.temperature,
+              topK: settings.topK,
               maxTokens: settings.maxTokens,
             });
           case 'rewriter':
             return ai.rewriter.create({
               tone: settings.tone,
+              length: settings.length,
+              temperature: settings.temperature,
+              topK: settings.topK,
+              maxTokens: settings.maxTokens,
             });
         }
       }

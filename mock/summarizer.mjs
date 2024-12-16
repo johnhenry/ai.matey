@@ -9,7 +9,7 @@ class MockSummarizerSession {
     const systemPrompt = options.systemPrompt || 
       "You are a highly skilled summarizer. Provide ONLY the summary without any introductions, explanations, or conclusions.";
     
-    this.#session = new languageModel.create({ ...options, systemPrompt });
+    this.#session = languageModel.create({ ...options, systemPrompt });
   }
 
   #generateMockSummary(text, type, length) {
@@ -18,7 +18,7 @@ class MockSummarizerSession {
         return 'Mock: Breaking News About Important Topic';
       case 'tl;dr':
         return 'Mock TL;DR: Key points about the topic in a brief format.';
-      case 'bullet-points':
+      case 'key-points':
         return '• Mock Point 1\n• Mock Point 2\n• Mock Point 3';
       default: // paragraph
         const lengths = {
@@ -31,7 +31,7 @@ class MockSummarizerSession {
   }
 
   async summarize(text, options = {}) {
-    const type = options.type || 'paragraph';
+    const type = options.type || 'teaser';
     const length = options.length || 'medium';
     
     // Use the mock summary instead of actual language model response
@@ -50,6 +50,9 @@ class MockSummarizerSession {
         controller.close();
       }
     });
+  }
+  destroy() {
+    // No-op for mock implementation
   }
 }
 

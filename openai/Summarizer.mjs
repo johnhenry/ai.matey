@@ -12,7 +12,7 @@ class Session extends Session_ {
   }
 
   #generateSummaryPrompt(text, options = {}) {
-    const type = options.type || this.options.type || "paragraph"; // headline, tl;dr, key-points, teaser
+    const type = options.type || this.options.type || "teaser"; // headline, tl;dr, key-points, teaser
     const length = options.length || this.options.length || "medium"; // short, medium, long
     const context = options.context || "";
     const sharedContext = this.#sharedContext || "";
@@ -37,7 +37,7 @@ class Session extends Session_ {
           "Provide a TL;DR (Too Long; Didn't Read) summary. that is no more that two sentences long.";
         break;
       case "key-points":
-        prompt += "List the key points in bullet format.";
+        prompt += "List the key points in bullet (*) format.";
         break;
       case "teaser":
         prompt += "Write a teaser summary that piques interest.";
@@ -51,6 +51,7 @@ class Session extends Session_ {
 
   async summarize(text, options = {}) {
     const prompt = this.#generateSummaryPrompt(text, options);
+    console.log({prompt});
     return this.prompt(prompt);
   }
 
