@@ -519,7 +519,7 @@
     <div class="right-sidebar" id="right-sidebar">
       <div class="implementation-selector">
         <button class="tab-button active" data-impl="mock">Mock AI</button>
-        <button class="tab-button" data-impl="ollama">Ollama</button>
+        <button class="tab-button" data-impl="openai">OpenAI</button>
         <button class="tab-button" data-impl="window">Window AI</button>
       </div>
 
@@ -537,25 +537,25 @@
         <label for="implementation">Implementation</label>
         <select id="implementation">
           <option value="mock">Mock AI</option>
-          <option value="ollama">Ollama</option>
+          <option value="openai">OpenAI</option>
           <option value="window">Window AI</option>
         </select>
       </div>
 
-      <div class="input-group ollama-settings" style="display: none;">
-        <label for="ollama-endpoint">Ollama Endpoint</label>
-        <input type="text" id="ollama-endpoint" value="http://localhost:11434/v1/chat/completions" placeholder="http://localhost:11434">
+      <div class="input-group openai-settings" style="display: none;">
+        <label for="openai-endpoint">OpenAI Endpoint</label>
+        <input type="text" id="openai-endpoint" value="http://localhost:11434/v1/chat/completions" placeholder="http://localhost:11434">
 
-        <label for="ollama-model">Ollama Model</label>
+        <label for="openai-model">OpenAI Model</label>
         <div class="model-input-group">
-          <input type="text" id="ollama-model" value="llama3.2:latest" placeholder="Enter model name">
+          <input type="text" id="openai-model" value="llama3.2:latest" placeholder="Enter model name">
           <button id="fetch-models" class="refresh-button" title="Fetch available models">🔄</button>
         </div>
         <select id="model-list" class="model-list">
           <option value="">Select a model...</option>
         </select>
-        <label for="ollama-api-key">Ollama API Key (optional)</label>
-        <input type="password" id="ollama-api-key" placeholder="Enter API key">
+        <label for="openai-api-key">OpenAI API Key (optional)</label>
+        <input type="password" id="openai-api-key" placeholder="Enter API key">
       </div>
 
       <div id="dynamic-controls"></div>
@@ -629,9 +629,9 @@
         implButtons: document.querySelectorAll('.tab-button'),
         apiType: document.getElementById('api-type'),
         implementation: document.getElementById('implementation'),
-        ollamaEndpoint: document.getElementById('ollama-endpoint'),
-        ollamaModel: document.getElementById('ollama-model'),
-        ollamaApiKey: document.getElementById('ollama-api-key'),
+        openaiEndpoint: document.getElementById('openai-endpoint'),
+        openaiModel: document.getElementById('openai-model'),
+        openaiApiKey: document.getElementById('openai-api-key'),
         fetchModels: document.getElementById('fetch-models'),
         modelList: document.getElementById('model-list'),
         dynamicControls: document.getElementById('dynamic-controls'),
@@ -694,11 +694,11 @@
           button.classList.add('active');
           state.implementation = button.dataset.impl;
           
-          // Show/hide endpoint and model inputs for Ollama
-          const showOllama = state.implementation === 'ollama';
-          elements.ollamaEndpoint.parentNode.style.display = showOllama ? 'block' : 'none';
-          elements.ollamaModel.parentNode.style.display = showOllama ? 'block' : 'none';
-          elements.ollamaApiKey.parentNode.style.display = showOllama ? 'block' : 'none';
+          // Show/hide endpoint and model inputs for OpenAI
+          const showOpenAI = state.implementation === 'openai';
+          elements.openaiEndpoint.parentNode.style.display = showOpenAI ? 'block' : 'none';
+          elements.openaiModel.parentNode.style.display = showOpenAI ? 'block' : 'none';
+          elements.openaiApiKey.parentNode.style.display = showOpenAI ? 'block' : 'none';
         });
       });
 
@@ -733,11 +733,11 @@
         let ai;
         if (state.implementation === 'mock') {
           ai = mockAI;
-        } else if (state.implementation === 'ollama') {
+        } else if (state.implementation === 'openai') {
           ai = new AI({
-            endpoint: elements.ollamaEndpoint.value,
-            credentials: { apiKey: elements.ollamaApiKey.value },
-            model: elements.ollamaModel.value,
+            endpoint: elements.openaiEndpoint.value,
+            credentials: { apiKey: elements.openaiApiKey.value },
+            model: elements.openaiModel.value,
           });
         } else {
           ai = window.ai;
@@ -886,12 +886,12 @@
           runningPairs.add(pair);
           updateRunAllButton();
 
-          // Create new instance with Ollama settings if needed
+          // Create new instance with OpenAI settings if needed
           const implementation = elements.implementation.value;
-          if (implementation === 'ollama') {
-            state.ollamaEndpoint = elements.ollamaEndpoint.value;
-            state.ollamaModel = elements.ollamaModel.value;
-            state.ollamaApiKey = elements.ollamaApiKey.value;
+          if (implementation === 'openai') {
+            state.openaiEndpoint = elements.openaiEndpoint.value;
+            state.openaiModel = elements.openaiModel.value;
+            state.openaiApiKey = elements.openaiApiKey.value;
           }
 
           const type = elements.apiType.value;
@@ -1030,7 +1030,7 @@
         try {
           elements.fetchModels.disabled = true;
 
-          const baseEndpoint = elements.ollamaEndpoint.value;
+          const baseEndpoint = elements.openaiEndpoint.value;
           // TODO :Fix model loading
           const path = resolvePath(baseEndpoint, '../../../api/tags')
           const response = await fetch(path);
@@ -1050,7 +1050,7 @@
 
           // Show model list and update current selection
           elements.modelList.style.display = 'block';
-          elements.modelList.value = elements.ollamaModel.value;
+          elements.modelList.value = elements.openaiModel.value;
 
         } catch (error) {
           console.error('Error fetching models:', error);
@@ -1063,14 +1063,14 @@
       // Model list change handler
       elements.modelList.addEventListener('change', () => {
         if (elements.modelList.value) {
-          elements.ollamaModel.value = elements.modelList.value;
+          elements.openaiModel.value = elements.modelList.value;
         }
       });
 
-      // Show/hide Ollama settings based on implementation
+      // Show/hide OpenAI settings based on implementation
       elements.implementation.addEventListener('change', () => {
-        const ollamaSettings = document.querySelector('.ollama-settings');
-        ollamaSettings.style.display = elements.implementation.value === 'ollama' ? 'block' : 'none';
+        const openaiSettings = document.querySelector('.openai-settings');
+        openaiSettings.style.display = elements.implementation.value === 'openai' ? 'block' : 'none';
       });
 
       // Add sidebar toggle functionality
@@ -1082,11 +1082,11 @@
         sidebarToggle.classList.toggle('collapsed');
       });
 
-      // Show/hide Ollama controls on init
-      const showOllama = state.implementation === 'ollama';
-      elements.ollamaEndpoint.parentNode.style.display = showOllama ? 'block' : 'none';
-      elements.ollamaModel.parentNode.style.display = showOllama ? 'block' : 'none';
-      elements.ollamaApiKey.parentNode.style.display = showOllama ? 'block' : 'none';
+      // Show/hide OpenAI controls on init
+      const showOpenAI = state.implementation === 'openai';
+      elements.openaiEndpoint.parentNode.style.display = showOpenAI ? 'block' : 'none';
+      elements.openaiModel.parentNode.style.display = showOpenAI ? 'block' : 'none';
+      elements.openaiApiKey.parentNode.style.display = showOpenAI ? 'block' : 'none';
     </script>
   </body>
 </html>
