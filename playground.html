@@ -128,17 +128,129 @@
       .content-area {
         flex: 1;
         padding: var(--spacing-md);
-        display: grid;
-        grid-template-columns: 1fr 1fr;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
         gap: var(--spacing-md);
-        min-height: 0;
+      }
+
+      .io-container {
+        display: flex;
+        gap: var(--spacing-md);
       }
 
       .input-area, .output-area {
+        flex: 1;
         display: flex;
         flex-direction: column;
         gap: var(--spacing-md);
         min-height: 0;
+        background: #1d1d1d;
+        border-radius: 4px;
+        border: 1px solid var(--border-color);
+      }
+
+      .io-header {
+        display: flex;
+        align-items: center;
+        padding: var(--spacing-sm) var(--spacing-md);
+        background: #2d2d2d;
+        border-bottom: 1px solid var(--border-color);
+        border-radius: 4px 4px 0 0;
+      }
+
+      .io-header h3 {
+        margin: 0;
+        font-size: 0.9rem;
+        font-weight: 500;
+        color: #9ca3af;
+        flex: 1;
+      }
+
+      .io-header-actions {
+        display: flex;
+        gap: var(--spacing-sm);
+      }
+
+      .run-button {
+        background: #2563eb;
+        color: white;
+        border: none;
+        padding: var(--spacing-xs) var(--spacing-sm);
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.8rem;
+        transition: all 0.2s ease;
+      }
+
+      .run-button:hover {
+        background: #1d4ed8;
+      }
+
+      .run-button.running {
+        background: #dc2626;
+      }
+
+      .run-button.running:hover {
+        background: #b91c1c;
+      }
+
+      .io-pair.running .input-area,
+      .io-pair.running .output-area {
+        border-color: #2563eb;
+      }
+
+      .status.running {
+        color: #2563eb;
+        font-weight: 500;
+      }
+
+      .io-header button {
+        background: transparent;
+        border: none;
+        color: #9ca3af;
+        cursor: pointer;
+        padding: var(--spacing-xs);
+        font-size: 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 24px;
+        height: 24px;
+        border-radius: 4px;
+      }
+
+      .io-header button:hover {
+        background: #3d3d3d;
+      }
+
+      .io-content {
+        padding: var(--spacing-md);
+        display: flex;
+        flex-direction: column;
+        gap: var(--spacing-md);
+        transition: height 0.3s ease;
+      }
+
+      .io-content.collapsed {
+        display: none;
+      }
+
+      .add-io-pair {
+        align-self: center;
+        background: #2d2d2d;
+        border: 1px dashed var(--border-color);
+        color: #9ca3af;
+        padding: var(--spacing-sm) var(--spacing-md);
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.9rem;
+        transition: all 0.2s ease;
+      }
+
+      .add-io-pair:hover {
+        background: #3d3d3d;
+        border-color: #4d4d4d;
       }
 
       textarea {
@@ -203,6 +315,7 @@
 
       input[type="text"],
       input[type="number"],
+      input[type="password"],
       select {
         width: 100%;
         padding: var(--spacing-sm);
@@ -267,6 +380,97 @@
         opacity: 0.7;
         cursor: not-allowed;
       }
+
+      #stop {
+        background: #dc2626;
+      }
+
+      #stop:hover {
+        background: #b91c1c;
+      }
+
+      #run:disabled, #stop:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      textarea:disabled {
+        opacity: 0.7;
+        cursor: not-allowed;
+      }
+
+      .run-all-button {
+        background: #2563eb;
+        color: white;
+        border: none;
+        padding: var(--spacing-sm) var(--spacing-md);
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.9rem;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-sm);
+      }
+
+      .run-all-button:hover {
+        background: #1d4ed8;
+      }
+
+      .run-all-button.running {
+        background: #dc2626;
+      }
+
+      .run-all-button.running:hover {
+        background: #b91c1c;
+      }
+
+      .model-input-group {
+        display: flex;
+        gap: var(--spacing-sm);
+        align-items: flex-start;
+      }
+
+      .model-input-group input {
+        flex: 1;
+      }
+
+      .refresh-button {
+        background: transparent;
+        border: none;
+        color: #9ca3af;
+        cursor: pointer;
+        padding: var(--spacing-xs);
+        font-size: 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 28px;
+        border-radius: 4px;
+        transition: all 0.2s ease;
+      }
+
+      .refresh-button:hover {
+        background: #3d3d3d;
+        color: white;
+      }
+
+      .refresh-button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      .model-list {
+        width: 100%;
+        margin-top: var(--spacing-sm);
+        padding: var(--spacing-xs);
+        background: #2d2d2d;
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        color: #9ca3af;
+        display: none;
+      }
     </style>
   </head>
   <body>
@@ -274,18 +478,41 @@
       <div class="header">
         <h1>AI.Matey Playground</h1>
         <div class="header-actions">
-          <button id="run">Run</button>
+          <button id="run" class="run-all-button">
+            <span class="button-text">Run All</span>
+            <span class="count"></span>
+          </button>
         </div>
       </div>
 
-      <div class="content-area">
-        <div class="input-area">
-          <textarea id="input" placeholder="Enter your prompt here...">Write a poem about space travel</textarea>
-          <div class="status" id="status">Ready</div>
+      <div class="content-area" id="content-area">
+        <div class="io-pair">
+          <div class="io-container">
+            <div class="input-area">
+              <div class="io-header">
+                <h3>Input #1</h3>
+                <div class="io-header-actions">
+                  <button class="run-button" title="Run/Stop">Run</button>
+                  <button class="collapse-btn" title="Toggle collapse">−</button>
+                </div>
+              </div>
+              <div class="io-content">
+                <textarea class="prompt-input" placeholder="Enter your prompt here...">Write a poem about space travel</textarea>
+                <div class="status">Ready</div>
+              </div>
+            </div>
+            <div class="output-area">
+              <div class="io-header">
+                <h3>Output #1</h3>
+                <button class="collapse-btn" title="Toggle collapse">−</button>
+              </div>
+              <div class="io-content">
+                <pre class="output">Results will appear here...</pre>
+              </div>
+            </div>
+          </div>
         </div>
-        <div class="output-area">
-          <pre class="output" id="output">Results will appear here...</pre>
-        </div>
+        <button class="add-io-pair" id="add-pair">+ Add Input/Output Pair</button>
       </div>
       <button class="sidebar-toggle" id="sidebar-toggle"></button>
     </div>
@@ -307,20 +534,29 @@
         </select>
       </div>
 
-      <div id="endpoint-group" class="input-group">
-        <label for="endpoint">Endpoint</label>
-        <input type="text" id="endpoint" value="http://localhost:11434/v1/chat/completions">
+      <div class="input-group">
+        <label for="implementation">Implementation</label>
+        <select id="implementation">
+          <option value="mock">Mock AI</option>
+          <option value="ollama">Ollama</option>
+          <option value="window">Window AI</option>
+        </select>
       </div>
 
-      <div id="model-group" class="input-group">
-        <label for="model">Model</label>
-        <div style="display: flex; gap: var(--spacing-sm);">
-          <input type="text" id="model" value="llama3.2:latest" style="flex-grow: 1;">
-          <button id="fetch-models" title="Fetch available models">🔄</button>
+      <div class="input-group ollama-settings" style="display: none;">
+        <label for="ollama-endpoint">Ollama Endpoint</label>
+        <input type="text" id="ollama-endpoint" value="http://localhost:11434" placeholder="http://localhost:11434">
+
+        <label for="ollama-model">Ollama Model</label>
+        <div class="model-input-group">
+          <input type="text" id="ollama-model" value="llama3.2:latest" placeholder="Enter model name">
+          <button id="fetch-models" class="refresh-button" title="Fetch available models">🔄</button>
         </div>
-        <select id="model-list" style="display: none; margin-top: var(--spacing-sm);">
+        <select id="model-list" class="model-list">
           <option value="">Select a model...</option>
         </select>
+        <label for="ollama-api-key">Ollama API Key (optional)</label>
+        <input type="password" id="ollama-api-key" placeholder="Enter API key">
       </div>
 
       <div id="dynamic-controls"></div>
@@ -392,18 +628,21 @@
       const elements = {
         implButtons: document.querySelectorAll('.tab-button'),
         apiType: document.getElementById('api-type'),
-        endpoint: document.getElementById('endpoint'),
-        endpointGroup: document.getElementById('endpoint-group'),
-        model: document.getElementById('model'),
-        modelGroup: document.getElementById('model-group'),
-        modelList: document.getElementById('model-list'),
+        implementation: document.getElementById('implementation'),
+        ollamaEndpoint: document.getElementById('ollama-endpoint'),
+        ollamaModel: document.getElementById('ollama-model'),
+        ollamaApiKey: document.getElementById('ollama-api-key'),
         fetchModels: document.getElementById('fetch-models'),
+        modelList: document.getElementById('model-list'),
         dynamicControls: document.getElementById('dynamic-controls'),
-        input: document.getElementById('input'),
-        output: document.getElementById('output'),
-        status: document.getElementById('status'),
-        runButton: document.getElementById('run')
+        contentArea: document.getElementById('content-area'),
+        addPair: document.getElementById('add-pair'),
+        runAllButton: document.getElementById('run')
       };
+
+      let currentPairId = 1;
+      let abortController = null;
+      let runningPairs = new Set();
 
       function updateDynamicControls(type) {
         const controls = CONTROLS_BY_TYPE[type];
@@ -457,8 +696,9 @@
           
           // Show/hide endpoint and model inputs for Ollama
           const showOllama = state.implementation === 'ollama';
-          elements.endpointGroup.style.display = showOllama ? 'block' : 'none';
-          elements.modelGroup.style.display = showOllama ? 'block' : 'none';
+          elements.ollamaEndpoint.parentNode.style.display = showOllama ? 'block' : 'none';
+          elements.ollamaModel.parentNode.style.display = showOllama ? 'block' : 'none';
+          elements.ollamaApiKey.parentNode.style.display = showOllama ? 'block' : 'none';
         });
       });
 
@@ -486,15 +726,18 @@
 
       // Helper to create AI instance
       async function createInstance(type) {
+        if (state.instance) {
+          state.instance.destroy();
+        }
+
         let ai;
-        
         if (state.implementation === 'mock') {
           ai = mockAI;
         } else if (state.implementation === 'ollama') {
           ai = new AI({
-            endpoint: elements.endpoint.value,
-            credentials: { apiKey: '123' },
-            model: elements.model.value,
+            endpoint: elements.ollamaEndpoint.value,
+            credentials: { apiKey: elements.ollamaApiKey.value },
+            model: elements.ollamaModel.value,
           });
         } else {
           ai = window.ai;
@@ -528,60 +771,219 @@
         }
       }
 
-      // Run button handler
-      elements.runButton.addEventListener('click', async () => {
-        try {
-          elements.status.textContent = 'Processing...';
-          elements.status.classList.remove('error');
-          elements.runButton.disabled = true;
+      // Add new input/output pair
+      elements.addPair.addEventListener('click', () => {
+        currentPairId++;
+        const newPair = createIoPair(currentPairId);
+        elements.contentArea.insertBefore(newPair, elements.addPair);
+        setupCollapsibleHandlers(newPair);
+      });
 
-          // Cleanup previous instance
-          if (state.instance) {
-            state.instance.destroy();
+      // Setup collapse handlers for a container
+      function setupCollapsibleHandlers(container) {
+        container.querySelectorAll('.collapse-btn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const content = btn.closest('.input-area, .output-area').querySelector('.io-content');
+            content.classList.toggle('collapsed');
+            btn.textContent = content.classList.contains('collapsed') ? '+' : '−';
+          });
+        });
+      }
+
+      // Setup initial collapse handlers
+      setupCollapsibleHandlers(elements.contentArea);
+
+      // Disable/enable all inputs
+      function setInputsDisabled(disabled) {
+        document.querySelectorAll('textarea, button, select, input').forEach(el => {
+          if (el.id !== 'stop') {
+            el.disabled = disabled;
+          }
+        });
+        elements.stopButton.disabled = !disabled;
+      }
+
+      // Run all button handler
+      elements.runAllButton.addEventListener('click', async () => {
+        const isRunning = elements.runAllButton.classList.contains('running');
+        
+        if (isRunning) {
+          // Stop all running pairs
+          if (abortController) {
+            abortController.abort();
+          }
+          return;
+        }
+
+        try {
+          const pairs = elements.contentArea.querySelectorAll('.io-pair');
+          let runningCount = 0;
+
+          elements.runAllButton.classList.add('running');
+          elements.runAllButton.querySelector('.button-text').textContent = 'Stop All';
+          
+          abortController = new AbortController();
+
+          for (const pair of pairs) {
+            if (!pair.classList.contains('running')) {
+              runningCount++;
+              elements.runAllButton.querySelector('.count').textContent = `(${runningCount})`;
+              await handleRun(pair);
+              runningCount--;
+              elements.runAllButton.querySelector('.count').textContent = runningCount ? `(${runningCount})` : '';
+            }
+          }
+        } finally {
+          elements.runAllButton.classList.remove('running');
+          elements.runAllButton.querySelector('.button-text').textContent = 'Run All';
+          elements.runAllButton.querySelector('.count').textContent = '';
+          abortController = null;
+        }
+      });
+
+      // Handle individual pair running
+      async function handleRun(pair) {
+        const runButton = pair.querySelector('.run-button');
+        const input = pair.querySelector('.prompt-input');
+        const output = pair.querySelector('.output');
+        const status = pair.querySelector('.status');
+
+        if (runButton.classList.contains('running')) {
+          // Stop running
+          if (abortController) {
+            abortController.abort();
+            runButton.textContent = 'Run';
+            runButton.classList.remove('running');
+            pair.classList.remove('running');
+            status.classList.remove('running');
+            runningPairs.delete(pair);
+            updateRunAllButton();
+            return;
+          }
+        }
+
+        try {
+          if (!input.value.trim()) return;
+
+          // Set up running state
+          abortController = new AbortController();
+          runButton.textContent = 'Stop';
+          runButton.classList.add('running');
+          pair.classList.add('running');
+          status.classList.add('running');
+          status.textContent = 'Processing...';
+          status.classList.remove('error');
+          runningPairs.add(pair);
+          updateRunAllButton();
+
+          // Create new instance with Ollama settings if needed
+          const implementation = elements.implementation.value;
+          if (implementation === 'ollama') {
+            state.ollamaEndpoint = elements.ollamaEndpoint.value;
+            state.ollamaModel = elements.ollamaModel.value;
+            state.ollamaApiKey = elements.ollamaApiKey.value;
           }
 
-          // Create new instance
           const type = elements.apiType.value;
           state.instance = await createInstance(type);
 
-          // Run the appropriate method
+          // Run with abort signal
           let result;
           switch (type) {
             case 'languageModel':
-              result = await state.instance.prompt(elements.input.value);
+              result = await state.instance.prompt(input.value, { signal: abortController.signal });
               break;
             case 'summarizer':
-              result = await state.instance.summarize(elements.input.value);
+              result = await state.instance.summarize(input.value, { signal: abortController.signal });
               break;
             case 'writer':
-              result = await state.instance.write(elements.input.value);
+              result = await state.instance.write(input.value, { signal: abortController.signal });
               break;
             case 'rewriter':
-              result = await state.instance.rewrite(elements.input.value);
+              result = await state.instance.rewrite(input.value, { signal: abortController.signal });
               break;
           }
 
-          elements.output.textContent = result;
-          elements.status.textContent = 'Complete';
+          output.textContent = result;
+          status.textContent = 'Complete';
         } catch (error) {
-          elements.status.textContent = `Error: ${error.message}`;
-          elements.status.classList.add('error');
-          elements.output.textContent = '';
+          if (error.name === 'AbortError') {
+            status.textContent = 'Stopped';
+          } else {
+            status.textContent = `Error: ${error.message}`;
+            status.classList.add('error');
+          }
+          output.textContent = '';
         } finally {
-          elements.runButton.disabled = false;
+          runButton.textContent = 'Run';
+          runButton.classList.remove('running');
+          pair.classList.remove('running');
+          status.classList.remove('running');
+          runningPairs.delete(pair);
+          updateRunAllButton();
+          abortController = null;
         }
-      });
+      }
+
+      function updateRunAllButton() {
+        const runningCount = runningPairs.size;
+        if (runningCount > 0) {
+          elements.runAllButton.classList.add('running');
+          elements.runAllButton.querySelector('.button-text').textContent = 'Stop All';
+          elements.runAllButton.querySelector('.count').textContent = `(${runningCount})`;
+        } else {
+          elements.runAllButton.classList.remove('running');
+          elements.runAllButton.querySelector('.button-text').textContent = 'Run All';
+          elements.runAllButton.querySelector('.count').textContent = '';
+        }
+      }
+
+      function createIoPair(id) {
+        const pair = document.createElement('div');
+        pair.className = 'io-pair';
+        pair.innerHTML = `
+          <div class="io-container">
+            <div class="input-area">
+              <div class="io-header">
+                <h3>Input #${id}</h3>
+                <div class="io-header-actions">
+                  <button class="run-button" title="Run/Stop">Run</button>
+                  <button class="collapse-btn" title="Toggle collapse">−</button>
+                </div>
+              </div>
+              <div class="io-content">
+                <textarea class="prompt-input" placeholder="Enter your prompt here..."></textarea>
+                <div class="status">Ready</div>
+              </div>
+            </div>
+            <div class="output-area">
+              <div class="io-header">
+                <h3>Output #${id}</h3>
+                <button class="collapse-btn" title="Toggle collapse">−</button>
+              </div>
+              <div class="io-content">
+                <pre class="output">Results will appear here...</pre>
+              </div>
+            </div>
+          </div>
+        `;
+
+        // Set up run button handler
+        const runButton = pair.querySelector('.run-button');
+        runButton.addEventListener('click', () => handleRun(pair));
+
+        return pair;
+      }
 
       // Fetch models button handler
       elements.fetchModels.addEventListener('click', async () => {
         try {
           elements.fetchModels.disabled = true;
-          elements.status.textContent = 'Fetching available models...';
           
-          const baseEndpoint = elements.endpoint.value.split('/v1/')[0];
+          const baseEndpoint = elements.ollamaEndpoint.value;
           const response = await fetch(`${baseEndpoint}/api/tags`);
           const data = await response.json();
-          
+
           if (!data.models) {
             throw new Error('No models found in response');
           }
@@ -597,12 +999,11 @@
 
           // Show model list and update current selection
           elements.modelList.style.display = 'block';
-          elements.modelList.value = elements.model.value;
+          elements.modelList.value = elements.ollamaModel.value;
 
-          elements.status.textContent = `Found ${data.models.length} models`;
         } catch (error) {
-          elements.status.textContent = `Error fetching models: ${error.message}`;
-          elements.status.classList.add('error');
+          console.error('Error fetching models:', error);
+          alert(`Error fetching models: ${error.message}`);
         } finally {
           elements.fetchModels.disabled = false;
         }
@@ -611,15 +1012,14 @@
       // Model list change handler
       elements.modelList.addEventListener('change', () => {
         if (elements.modelList.value) {
-          elements.model.value = elements.modelList.value;
+          elements.ollamaModel.value = elements.modelList.value;
         }
       });
 
-      // Cleanup on unload
-      window.addEventListener('unload', () => {
-        if (state.instance) {
-          state.instance.destroy();
-        }
+      // Show/hide Ollama settings based on implementation
+      elements.implementation.addEventListener('change', () => {
+        const ollamaSettings = document.querySelector('.ollama-settings');
+        ollamaSettings.style.display = elements.implementation.value === 'ollama' ? 'block' : 'none';
       });
 
       // Add sidebar toggle functionality
@@ -633,8 +1033,9 @@
 
       // Show/hide Ollama controls on init
       const showOllama = state.implementation === 'ollama';
-      elements.endpointGroup.style.display = showOllama ? 'block' : 'none';
-      elements.modelGroup.style.display = showOllama ? 'block' : 'none';
+      elements.ollamaEndpoint.parentNode.style.display = showOllama ? 'block' : 'none';
+      elements.ollamaModel.parentNode.style.display = showOllama ? 'block' : 'none';
+      elements.ollamaApiKey.parentNode.style.display = showOllama ? 'block' : 'none';
     </script>
   </body>
 </html>
