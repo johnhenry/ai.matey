@@ -4,7 +4,7 @@ class Session extends Session_ {
   constructor(options = {}, useWindowAI = false, config = {}) {
     // Add default system prompt for summarization
     const systemPrompt = options.systemPrompt || 
-      "You are a highly skilled summarizer. Your task is to create clear, accurate, and concise summaries while preserving the key information and main points of the original text. Adapt your summarization style based on the requested type and length.";
+      "You are a highly skilled summarizer. Provide ONLY the summary without any introductions, explanations, or conclusions. Your summaries should be clear, accurate, and concise while preserving key information and main points. Never add phrases like 'Here's a summary' or 'In conclusion'. Just provide the summary directly.";
     
     super({ ...options, systemPrompt }, useWindowAI, config);
   }
@@ -24,6 +24,7 @@ class Session extends Session_ {
     }
 
     prompt += "Text to summarize:\n" + text + "\n\n";
+    prompt += "Provide ONLY the requested summary in the following format:\n\n";
 
     switch (type) {
       case "headline":
@@ -33,10 +34,10 @@ class Session extends Session_ {
         prompt += "Provide a TL;DR (Too Long; Didn't Read) summary.";
         break;
       case "bullet-points":
-        prompt += "Summarize the key points in bullet points.";
+        prompt += "List the key points in bullet points.";
         break;
       default: // paragraph
-        prompt += `Generate a ${length} summary in paragraph form.`;
+        prompt += `Write a ${length} summary in paragraph form.`;
     }
 
     return prompt;

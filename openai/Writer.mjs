@@ -4,7 +4,7 @@ class Session extends Session_ {
   constructor(options = {}, useWindowAI = false, config = {}) {
     // Add default system prompt for writing
     const systemPrompt = options.systemPrompt || 
-      "You are a skilled writer with expertise in various writing styles and tones. Your task is to create high-quality, engaging content that matches the requested tone and length while maintaining clarity and effectiveness. You excel at adapting your writing style to different contexts and purposes.";
+      "You are a skilled writer. Provide ONLY the requested content without any introductions, explanations, or conclusions. Never add phrases like 'Here's what I wrote' or 'I hope this helps'. Never explain your writing choices. Just provide the content directly in the requested tone and length.";
     
     super({ ...options, systemPrompt }, useWindowAI, config);
   }
@@ -23,8 +23,8 @@ class Session extends Session_ {
       prompt += `Additional context: ${context}\n\n`;
     }
 
-    prompt += `Task: ${task}\n\n`;
-    prompt += `Please write in a ${tone} tone and aim for ${length} length.`;
+    prompt += `Writing task: ${task}\n\n`;
+    prompt += `Write the content in a ${tone} tone, aiming for ${length} length. Provide ONLY the content with no additional commentary.`;
 
     return prompt;
   }

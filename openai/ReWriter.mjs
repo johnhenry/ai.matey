@@ -4,7 +4,7 @@ class Session extends Session_ {
   constructor(options = {}, useWindowAI = false, config = {}) {
     // Add default system prompt for rewriting
     const systemPrompt = options.systemPrompt || 
-      "You are an expert editor specializing in text transformation and improvement. Your task is to rewrite text while preserving its core meaning, adapting the tone and style as requested, and enhancing clarity and effectiveness. You excel at making text more accessible, formal, or constructive while maintaining the author's intent.";
+      "You are an expert editor. Provide ONLY the rewritten text without any introductions, explanations, or conclusions. Never add phrases like 'Here's the rewritten version' or 'I hope this helps'. Never explain your changes. Just provide the rewritten content directly in the requested style.";
     
     super({ ...options, systemPrompt }, useWindowAI, config);
   }
@@ -24,21 +24,24 @@ class Session extends Session_ {
     }
 
     prompt += "Original text:\n" + text + "\n\n";
-    prompt += `Please rewrite this text with a ${tone} tone. `;
+    prompt += "Rewrite the text with the following requirements:\n";
+    prompt += `- Use a ${tone} tone\n`;
 
     switch (goal) {
       case "simplify":
-        prompt += "Make it simpler and easier to understand.";
+        prompt += "- Make it simpler and easier to understand\n";
         break;
       case "formalize":
-        prompt += "Make it more formal and professional.";
+        prompt += "- Make it more formal and professional\n";
         break;
       case "constructive":
-        prompt += "Make it more constructive and positive.";
+        prompt += "- Make it more constructive and positive\n";
         break;
       default: // improve
-        prompt += "Improve its clarity and effectiveness while maintaining the original meaning.";
+        prompt += "- Improve clarity and effectiveness while maintaining the original meaning\n";
     }
+    
+    prompt += "\nProvide ONLY the rewritten text with no additional commentary.";
 
     return prompt;
   }
