@@ -12,7 +12,7 @@ class Session extends Session_ {
   }
 
   #generateSummaryPrompt(text, options = {}) {
-    const type = options.type || this.options.type || "paragraph"; // headline, tl;dr, key-points
+    const type = options.type || this.options.type || "paragraph"; // headline, tl;dr, key-points, teaser
     const length = options.length || this.options.length || "medium"; // short, medium, long
     const context = options.context || "";
     const sharedContext = this.#sharedContext || "";
@@ -33,10 +33,14 @@ class Session extends Session_ {
         prompt += "Generate a concise headline that captures the main point.";
         break;
       case "tl;dr":
-        prompt += "Provide a TL;DR (Too Long; Didn't Read) summary.";
+        prompt +=
+          "Provide a TL;DR (Too Long; Didn't Read) summary. that is no more that two sentences long.";
         break;
       case "key-points":
         prompt += "List the key points in bullet format.";
+        break;
+      case "teaser":
+        prompt += "Write a teaser summary that piques interest.";
         break;
       default: // paragraph
         prompt += `Write a ${length} summary in paragraph form.`;
