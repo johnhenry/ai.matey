@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>AI.Matey Playground</title>
+    <script type="importmap">
+      {
+        "imports": {
+          "ai.matey/openai": "https://cdn.jsdelivr.net/npm/ai.matey@0.0.1/openai/index.mjs",
+          "ai.matey/mock": "https://cdn.jsdelivr.net/npm/ai.matey@0.0.1/mock/index.mjs",
+          "ai.matey/mock/polyfill": "https://cdn.jsdelivr.net/npm/ai.matey@0.0.1/mock/polyfill.mjs"
+        }
+      }
+    </script>
+    <style>
+      :root {
+        --primary-color: #2563eb;
+        --secondary-color: #1e40af;
+        --background-color: #f8fafc;
+        --text-color: #1e293b;
+        --border-color: #e2e8f0;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        margin: 0;
+        padding: 20px;
+        background-color: var(--background-color);
+        color: var(--text-color);
+      }
+
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+
+      .header {
+        text-align: center;
+        margin-bottom: 2rem;
+      }
+
+      .controls {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 1rem;
+        margin-bottom: 2rem;
+      }
+
+      .card {
+        background: white;
+        border-radius: 8px;
+        padding: 1.5rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      }
+
+      .implementation-selector {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 1rem;
+      }
+
+      .tab-button {
+        padding: 0.5rem 1rem;
+        border: none;
+        background: var(--border-color);
+        border-radius: 4px;
+        cursor: pointer;
+        transition: background-color 0.2s;
+      }
+
+      .tab-button.active {
+        background: var(--primary-color);
+        color: white;
+      }
+
+      .input-group {
+        margin-bottom: 1rem;
+      }
+
+      label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+      }
+
+      input[type="text"],
+      input[type="number"],
+      textarea,
+      select {
+        width: 100%;
+        padding: 0.5rem;
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        margin-bottom: 0.5rem;
+      }
+
+      textarea {
+        min-height: 100px;
+        resize: vertical;
+      }
+
+      button {
+        background: var(--primary-color);
+        color: white;
+        border: none;
+        padding: 0.5rem 1rem;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: background-color 0.2s;
+      }
+
+      button:hover {
+        background: var(--secondary-color);
+      }
+
+      .output {
+        white-space: pre-wrap;
+        background: #1a1a1a;
+        color: #ffffff;
+        padding: 1rem;
+        border-radius: 4px;
+        overflow-x: auto;
+      }
+
+      .error {
+        color: #dc2626;
+        margin-top: 0.5rem;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>AI.Matey Playground</h1>
+        <p>Test different AI implementations and features</p>
+      </div>
+
+      <div class="controls card">
+        <div class="implementation-selector">
+          <button class="tab-button active" data-impl="mock">Mock AI</button>
+          <button class="tab-button" data-impl="ollama">Ollama</button>
+          <button class="tab-button" data-impl="window">Window AI</button>
+        </div>
+
+        <div class="input-group">
+          <label for="api-type">API Type</label>
+          <select id="api-type">
+            <option value="languageModel">Language Model</option>
+            <option value="summarizer">Summarizer</option>
+            <option value="writer">Writer</option>
+            <option value="rewriter">Rewriter</option>
+          </select>
+        </div>
+
+        <div class="input-group">
+          <label for="endpoint">Endpoint (for Ollama)</label>
+          <input type="text" id="endpoint" value="http://localhost:11434/v1/chat/completions">
+        </div>
+
+        <div class="input-group">
+          <label for="model">Model Name (for Ollama)</label>
+          <div style="display: flex; gap: 0.5rem;">
+            <input type="text" id="model" value="llama3.2:latest" style="flex-grow: 1;">
+            <button id="fetch-models" title="Fetch available models">🔄</button>
+          </div>
+          <select id="model-list" style="display: none; margin-top: 0.5rem;">
+            <option value="">Select a model...</option>
+          </select>
+        </div>
+
+        <div class="input-group">
+          <label for="context">Context</label>
+          <input type="text" id="context" value="You are an expert assistant.">
+        </div>
+
+        <div class="input-group">
+          <label for="temperature">Temperature</label>
+          <input type="number" id="temperature" value="0.7" min="0" max="1" step="0.1">
+        </div>
+
+        <div class="input-group">
+          <label for="top-k">Top K</label>
+          <input type="number" id="top-k" value="1" min="1" step="1">
+        </div>
+
+        <div class="input-group">
+          <label for="max-tokens">Max Tokens</label>
+          <input type="number" id="max-tokens" value="200" min="1">
+        </div>
+
+        <div class="input-group">
+          <label for="seed">Seed</label>
+          <input type="number" id="seed" value="1" min="1">
+        </div>
+
+        <div class="input-group">
+          <label for="tone">Tone (for Rewriter)</label>
+          <select id="tone">
+            <option value="as-is">As-is</option>
+            <option value="more-formal">More Formal</option>
+            <option value="more-casual">More Casual</option>
+          </select>
+        </div>
+
+        <div class="input-group">
+          <label for="input">Input Text</label>
+          <textarea id="input">Write a poem about space travel</textarea>
+        </div>
+
+        <button id="run">Run</button>
+      </div>
+
+      <div class="card">
+        <h3>Output</h3>
+        <pre class="output" id="output">Results will appear here...</pre>
+      </div>
+    </div>
+
+    <script type="module">
+      import mockAI from "ai.matey/mock";
+      import AI from "ai.matey/openai";
+
+      const state = {
+        implementation: 'mock',
+        instance: null,
+      };
+
+      // UI Elements
+      const elements = {
+        implButtons: document.querySelectorAll('.tab-button'),
+        apiType: document.getElementById('api-type'),
+        endpoint: document.getElementById('endpoint'),
+        model: document.getElementById('model'),
+        modelList: document.getElementById('model-list'),
+        fetchModels: document.getElementById('fetch-models'),
+        context: document.getElementById('context'),
+        temperature: document.getElementById('temperature'),
+        topK: document.getElementById('top-k'),
+        maxTokens: document.getElementById('max-tokens'),
+        seed: document.getElementById('seed'),
+        tone: document.getElementById('tone'),
+        input: document.getElementById('input'),
+        output: document.getElementById('output'),
+        runButton: document.getElementById('run'),
+      };
+
+      // Implementation switching
+      elements.implButtons.forEach(button => {
+        button.addEventListener('click', () => {
+          elements.implButtons.forEach(b => b.classList.remove('active'));
+          button.classList.add('active');
+          state.implementation = button.dataset.impl;
+        });
+      });
+
+      // Helper to get current settings
+      function getSettings() {
+        return {
+          context: elements.context.value,
+          temperature: parseFloat(elements.temperature.value),
+          topK: parseInt(elements.topK.value),
+          maxTokens: parseInt(elements.maxTokens.value),
+          seed: parseInt(elements.seed.value),
+          tone: elements.tone.value,
+        };
+      }
+
+      // Helper to create AI instance
+      async function createInstance(type) {
+        let ai;
+        
+        if (state.implementation === 'mock') {
+          ai = mockAI;
+        } else if (state.implementation === 'ollama') {
+          ai = new AI({
+            endpoint: elements.endpoint.value,
+            credentials: { apiKey: '123' },
+            model: elements.model.value,
+          });
+        } else {
+          ai = window.ai;
+        }
+
+        const settings = getSettings();
+        
+        switch (type) {
+          case 'languageModel':
+            return ai.languageModel.create({
+              context: settings.context,
+              temperature: settings.temperature,
+              topK: settings.topK,
+              maxTokens: settings.maxTokens,
+              seed: settings.seed,
+            });
+          case 'summarizer':
+            return ai.summarizer.create({
+              context: settings.context,
+              maxTokens: settings.maxTokens,
+              seed: settings.seed,
+            });
+          case 'writer':
+            return ai.writer.create({
+              context: settings.context,
+              temperature: settings.temperature,
+              maxTokens: settings.maxTokens,
+              seed: settings.seed,
+            });
+          case 'rewriter':
+            return ai.rewriter.create({
+              tone: settings.tone,
+            });
+        }
+      }
+
+      // Run button handler
+      elements.runButton.addEventListener('click', async () => {
+        try {
+          elements.output.textContent = 'Processing...';
+          elements.runButton.disabled = true;
+
+          // Cleanup previous instance
+          if (state.instance) {
+            state.instance.destroy();
+          }
+
+          // Create new instance
+          const type = elements.apiType.value;
+          state.instance = await createInstance(type);
+
+          // Run the appropriate method
+          let result;
+          switch (type) {
+            case 'languageModel':
+              result = await state.instance.prompt(elements.input.value);
+              break;
+            case 'summarizer':
+              result = await state.instance.summarize(elements.input.value);
+              break;
+            case 'writer':
+              result = await state.instance.write(elements.input.value);
+              break;
+            case 'rewriter':
+              result = await state.instance.rewrite(elements.input.value);
+              break;
+          }
+
+          elements.output.textContent = result;
+        } catch (error) {
+          elements.output.textContent = `Error: ${error.message}`;
+          elements.output.classList.add('error');
+        } finally {
+          elements.runButton.disabled = false;
+        }
+      });
+
+      // Fetch models button handler
+      elements.fetchModels.addEventListener('click', async () => {
+        try {
+          elements.fetchModels.disabled = true;
+          elements.output.textContent = 'Fetching available models...';
+          
+          const baseEndpoint = elements.endpoint.value.split('/v1/')[0];
+          const response = await fetch(`${baseEndpoint}/api/tags`);
+          const data = await response.json();
+          
+          if (!data.models) {
+            throw new Error('No models found in response');
+          }
+
+          // Clear and populate model list
+          elements.modelList.innerHTML = '<option value="">Select a model...</option>';
+          data.models.forEach(model => {
+            const option = document.createElement('option');
+            option.value = model.name;
+            option.textContent = `${model.name} (${model.size})`;
+            elements.modelList.appendChild(option);
+          });
+
+          // Show model list and update current selection
+          elements.modelList.style.display = 'block';
+          elements.modelList.value = elements.model.value;
+
+          elements.output.textContent = `Found ${data.models.length} models`;
+        } catch (error) {
+          elements.output.textContent = `Error fetching models: ${error.message}`;
+          elements.output.classList.add('error');
+        } finally {
+          elements.fetchModels.disabled = false;
+        }
+      });
+
+      // Model list change handler
+      elements.modelList.addEventListener('change', () => {
+        if (elements.modelList.value) {
+          elements.model.value = elements.modelList.value;
+        }
+      });
+
+      // Cleanup on unload
+      window.addEventListener('unload', () => {
+        if (state.instance) {
+          state.instance.destroy();
+        }
+      });
+    </script>
+  </body>
+</html>
