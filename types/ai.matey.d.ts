@@ -80,7 +80,7 @@ declare module "ai.matey/mock" {
     create(options?: SessionOptions): Promise<AILanguageModelSession>;
   }
 
-  export interface MocAIkAI {
+  export interface MockAI {
     languageModel: LanguageModel;
   }
 
