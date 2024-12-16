@@ -1,6 +1,6 @@
 # ai.matey
 
-<img src="./logo.png" alt="AI.Matey Logo" style="width:256px; height:256px">
+<img src="https://raw.githubusercontent.com/johnhenry/ai.matey/main/logo.png" alt="AI.Matey Logo" style="width:256px; height:256px">
 
 > [!TIP]
 > ai.matey works well with [ai.captain](https://www.npmjs.com/package/ai.captain)
@@ -43,14 +43,14 @@ import ai from "ai.matey/mock";
 #### Via CDN
 
 ```javascript
-import ai from "https://cdn.jsdelivr.net/npm/ai.matey@0.0.8/mock/index.mjs";
+import ai from "https://cdn.jsdelivr.net/npm/ai.matey@0.0.9/mock/index.mjs";
 //...
 ```
 
 OR
 
 ```javascript
-import ai from "https://ga.jspm.io/npm:ai.matey@0.0.8/mock/index.mjs";
+import ai from "https://ga.jspm.io/npm:ai.matey@0.0.9/mock/index.mjs";
 //...
 ```
 
@@ -110,7 +110,7 @@ const ai = new AI(/* options */);
 #### Via CDN
 
 ```javascript
-import ai from "https://cdn.jsdelivr.net/npm/ai.matey@0.0.8/openai/index.mjs";
+import ai from "https://cdn.jsdelivr.net/npm/ai.matey@0.0.9/openai/index.mjs";
 const ai = new AI(/* options */);
 
 //...
@@ -119,7 +119,7 @@ const ai = new AI(/* options */);
 OR
 
 ```javascript
-import AI from "https://ga.jspm.io/npm:ai.matey@0.0.8/openai/index.mjs";
+import AI from "https://ga.jspm.io/npm:ai.matey@0.0.9/openai/index.mjs";
 const ai = new AI(/* options */);
 //...
 ```
