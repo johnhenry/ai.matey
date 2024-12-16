@@ -4,10 +4,20 @@
   "main": "./openai/index.mjs",
   "types": "types/ai.matey.d.ts",
   "exports": {
-    "./mock": "./mock/index.mjs",
+    "./mock": {
+      "types": "./types/ai.matey.d.ts",
+      "default": "./mock/index.mjs"
+    },
     "./mock/polyfill": "./polyfill.mjs",
     "./mock/polyfill-ovewrite": "./polyfill-overwrite.mjs",
-    "./openai": "./openai/index.mjs"
+    "./openai": {
+      "types": "./types/ai.matey.d.ts",
+      "default": "./openai/index.mjs"
+    },
+    "./types/languageModel": "./types/languageModel.d.ts",
+    "./types/summarizer": "./types/summarizer.d.ts",
+    "./types/writer": "./types/writer.d.ts",
+    "./types/rewriter": "./types/rewriter.d.ts"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"

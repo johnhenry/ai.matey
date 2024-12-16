@@ -35,7 +35,7 @@ declare module "ai.matey/openai" {
 
 declare module "ai.matey/mock" {
   export interface AICapabilities {
-    available: string;
+    available: 'no' | 'readily' | 'after-download';
     defaultTopK: number;
     maxTopK: number;
     defaultTemperature: number;
@@ -80,8 +80,80 @@ declare module "ai.matey/mock" {
     create(options?: SessionOptions): Promise<AILanguageModelSession>;
   }
 
+  // Summarizer Types
+  export interface SummarizerOptions extends SessionOptions {
+    type?: 'headline' | 'tl;dr' | 'bullet-points' | 'paragraph';
+    length?: 'short' | 'medium' | 'long';
+    sharedContext?: string;
+  }
+
+  export interface SummarizeOptions {
+    type?: 'headline' | 'tl;dr' | 'bullet-points' | 'paragraph';
+    length?: 'short' | 'medium' | 'long';
+    context?: string;
+  }
+
+  export interface SummarizerSession extends AILanguageModelSession {
+    summarize(text: string, options?: SummarizeOptions): Promise<string>;
+    summarizeStreaming(text: string, options?: SummarizeOptions): Promise<ReadableStream>;
+  }
+
+  export interface Summarizer {
+    capabilities(): Promise<AICapabilities>;
+    create(options?: SummarizerOptions): Promise<SummarizerSession>;
+  }
+
+  // Writer Types
+  export interface WriterOptions extends SessionOptions {
+    tone?: 'formal' | 'casual' | 'neutral';
+    length?: 'short' | 'medium' | 'long';
+    sharedContext?: string;
+  }
+
+  export interface WriteOptions {
+    tone?: 'formal' | 'casual' | 'neutral';
+    length?: 'short' | 'medium' | 'long';
+    context?: string;
+  }
+
+  export interface WriterSession extends AILanguageModelSession {
+    write(task: string, options?: WriteOptions): Promise<string>;
+    writeStreaming(task: string, options?: WriteOptions): Promise<ReadableStream>;
+  }
+
+  export interface Writer {
+    capabilities(): Promise<AICapabilities>;
+    create(options?: WriterOptions): Promise<WriterSession>;
+  }
+
+  // ReWriter Types
+  export interface ReWriterOptions extends SessionOptions {
+    tone?: 'formal' | 'casual' | 'neutral';
+    goal?: 'simplify' | 'formalize' | 'constructive' | 'improve';
+    sharedContext?: string;
+  }
+
+  export interface ReWriteOptions {
+    tone?: 'formal' | 'casual' | 'neutral';
+    goal?: 'simplify' | 'formalize' | 'constructive' | 'improve';
+    context?: string;
+  }
+
+  export interface ReWriterSession extends AILanguageModelSession {
+    rewrite(text: string, options?: ReWriteOptions): Promise<string>;
+    rewriteStreaming(text: string, options?: ReWriteOptions): Promise<ReadableStream>;
+  }
+
+  export interface ReWriter {
+    capabilities(): Promise<AICapabilities>;
+    create(options?: ReWriterOptions): Promise<ReWriterSession>;
+  }
+
   export interface MockAI {
     languageModel: LanguageModel;
+    summarizer: Summarizer;
+    writer: Writer;
+    rewriter: ReWriter;
   }
 
   const ai: MockAI;
