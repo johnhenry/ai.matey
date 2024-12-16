@@ -14,17 +14,19 @@ class Session {
 
     // Use OpenAI-compatible endpoint
     const response = await fetch(this.config.endpoint, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${this.config.credentials.apiKey}`,
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${this.config.credentials.apiKey}`,
       },
       body: JSON.stringify({
         model: this.config.model,
         messages: [
-          ...(this.options.systemPrompt ? [{ role: 'system', content: this.options.systemPrompt }] : []),
+          ...(this.options.systemPrompt
+            ? [{ role: "system", content: this.options.systemPrompt }]
+            : []),
           ...(this.options.initialPrompts || []),
-          { role: 'user', content: prompt }
+          { role: "user", content: prompt },
         ],
         temperature: options.temperature ?? this.options.temperature,
         top_k: options.topK ?? this.options.topK,
@@ -43,17 +45,19 @@ class Session {
 
     // Use OpenAI-compatible endpoint with streaming
     const response = await fetch(this.config.endpoint, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${this.config.credentials.apiKey}`,
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${this.config.credentials.apiKey}`,
       },
       body: JSON.stringify({
         model: this.config.model,
         messages: [
-          ...(this.options.systemPrompt ? [{ role: 'system', content: this.options.systemPrompt }] : []),
+          ...(this.options.systemPrompt
+            ? [{ role: "system", content: this.options.systemPrompt }]
+            : []),
           ...(this.options.initialPrompts || []),
-          { role: 'user', content: prompt }
+          { role: "user", content: prompt },
         ],
         temperature: options.temperature ?? this.options.temperature,
         top_k: options.topK ?? this.options.topK,
@@ -72,6 +76,12 @@ class Session {
     // For OpenAI endpoints, no explicit cleanup needed
   }
 }
+const Capabilities = {
+  available: "readily",
+  defaultTopK: 3,
+  maxTopK: 8,
+  defaultTemperature: 1.0,
+};
 
 class LanguageModel {
   constructor(config = {}) {
@@ -83,14 +93,8 @@ class LanguageModel {
     if (this.useWindowAI) {
       return await window.ai.languageModel.capabilities();
     }
-
     // For OpenAI endpoints, return default capabilities
-    return {
-      available: 'readily',
-      defaultTopK: 3,
-      maxTopK: 8,
-      defaultTemperature: 1.0
-    };
+    return Capabilities;
   }
 
   async create(options = {}) {
@@ -98,5 +102,5 @@ class LanguageModel {
   }
 }
 
-export { LanguageModel };
+export { LanguageModel, Session, Capabilities };
 export default LanguageModel;
