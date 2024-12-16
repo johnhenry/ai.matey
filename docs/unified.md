@@ -9,13 +9,7 @@ This document provides comprehensive documentation for the window.ai APIs, which
 3. [Writer API (window.ai.writer)](#writer-api)
 4. [Rewriter API (window.ai.rewriter)](#rewriter-api)
 
-## Language Model API
-
-The `window.ai.languageModel` API provides direct access to Chrome's built-in AI capabilities, specifically the Gemini Nano model. This low-level API allows for direct interaction with the language model for custom AI applications.
-
-### Getting Started
-
-#### Add Support to Localhost
+## Add Support to Localhost
 
 To access the Language Model API on localhost during the origin trial:
 
@@ -25,6 +19,105 @@ To access the Language Model API on localhost during the origin trial:
 4. Select `Enabled BypassPerfRequirement`
 5. Click Relaunch or restart Chrome
 6. Visit `chrome://components` and check for updates to the `Optimization Guide` component
+
+## Language Model API
+
+The `window.ai.languageModel` API provides direct access to Chrome's built-in AI capabilities, specifically the Gemini Nano model. This low-level API allows for direct interaction with the language model for custom AI applications.
+
+### Type Definitions
+
+```typescript
+interface AIConfig {
+  endpoint?: string;
+  credentials?: {
+    apiKey: string;
+    [key: string]: any;
+  };
+  model?: string;
+}
+
+interface AILanguageModelCapabilities {
+  available: "no" | "readily" | "after-download";
+  defaultTopK: number;
+  maxTopK: number;
+  defaultTemperature: number;
+}
+
+interface SessionOptions {
+  temperature?: number; // Controls randomness in responses
+  topK?: number; // Controls diversity of responses
+  signal?: AbortSignal; // For cancelling operations
+  systemPrompt?: string;
+  initialPrompts?: Array<{ role: string; content: string }>;
+  monitor?: (monitor: EventTarget) => void;
+}
+
+interface PromptOptions {
+  temperature?: number;
+  topK?: number;
+  signal?: AbortSignal;
+}
+```
+
+### Core Functions
+
+#### capabilities()
+
+Returns information about model availability and parameters.
+
+**Returns:** `Promise<AILanguageModelCapabilities>`
+
+```typescript
+const capabilities = await window.ai.languageModel.capabilities();
+```
+
+#### create()
+
+Creates a new language model session.
+
+**Parameters:**
+
+- `options?: SessionOptions` - Configuration for the session
+
+**Returns:** `Promise<Session>`
+
+```typescript
+const session = await window.ai.languageModel.create({
+  temperature: 0.7,
+  topK: 40,
+  systemPrompt: "You are a helpful assistant",
+});
+```
+
+### Session Methods
+
+#### prompt()
+
+Sends a prompt to the model and receives a complete response.
+
+**Parameters:**
+
+- `prompt: string` - The input text
+- `options?: PromptOptions` - Optional configuration
+
+**Returns:** `Promise<string>`
+
+#### promptStreaming()
+
+Sends a prompt and receives a streaming response.
+
+**Parameters:**
+
+- `prompt: string` - The input text
+- `options?: PromptOptions` - Optional configuration
+
+**Returns:** `Promise<ReadableStream<string>>`
+
+#### destroy()
+
+Cleans up the session resources.
+
+**Returns:** `Promise<void>`
 
 ### Core Functions
 
@@ -38,7 +131,7 @@ The API provides two main functions:
 Check model availability using `capabilities()`:
 
 ```javascript
-const { available, defaultTemperature, defaultTopK, maxTopK } = 
+const { available, defaultTemperature, defaultTopK, maxTopK } =
   await window.ai.languageModel.capabilities();
 
 // available can be:
@@ -79,8 +172,8 @@ const session = await window.ai.languageModel.create({
   initialPrompts: [
     { role: "system", content: "Previous context here" },
     { role: "user", content: "Previous user message" },
-    { role: "assistant", content: "Previous response" }
-  ]
+    { role: "assistant", content: "Previous response" },
+  ],
 });
 ```
 
@@ -89,10 +182,13 @@ const session = await window.ai.languageModel.create({
 Monitor token usage:
 
 ```javascript
-console.log(`${session.tokensSoFar}/${session.maxTokens} (${session.tokensLeft} left)`);
+console.log(
+  `${session.tokensSoFar}/${session.maxTokens} (${session.tokensLeft} left)`
+);
 ```
 
 Limits:
+
 - Per prompt: 1,024 tokens
 - Session context: 4,096 tokens
 
@@ -103,7 +199,7 @@ Abort a session:
 ```javascript
 const controller = new AbortController();
 const session = await window.ai.languageModel.create({
-  signal: controller.signal
+  signal: controller.signal,
 });
 
 // Later, to abort:
@@ -126,7 +222,9 @@ console.log(result); // "The capital of France is Paris."
 For longer responses:
 
 ```javascript
-const stream = await session.promptStreaming("Write a story about space exploration.");
+const stream = await session.promptStreaming(
+  "Write a story about space exploration."
+);
 for await (const chunk of stream) {
   console.log(chunk); // Process chunks as they arrive
 }
@@ -138,7 +236,7 @@ Clone a session to preserve resources while starting fresh:
 
 ```javascript
 const clonedSession = await session.clone({
-  signal: controller.signal // Optional abort signal
+  signal: controller.signal, // Optional abort signal
 });
 ```
 
@@ -154,12 +252,63 @@ await session.destroy();
 
 The `window.ai.summarizer` API provides high-level functionality for generating summaries of text content. It abstracts away the complexities of prompt engineering while maintaining powerful summarization capabilities.
 
+### Type Definitions
+
+```typescript
+interface SummarizerOptions extends SessionOptions {
+  type?: "headline" | "tl;dr" | "bullet-points" | "paragraph";
+  length?: "short" | "medium" | "long";
+  sharedContext?: string;
+}
+
+interface SummarizeOptions {
+  type?: "headline" | "tl;dr" | "bullet-points" | "paragraph";
+  length?: "short" | "medium" | "long";
+  context?: string;
+}
+```
+
 ### Core Functions
 
-The API provides two main functions:
+#### capabilities()
 
-- `capabilities()`: Check summarizer availability and features
-- `create()`: Create a new summarizer instance
+Returns information about summarizer availability and parameters.
+
+**Returns:** `Promise<AILanguageModelCapabilities>`
+
+#### create()
+
+Creates a new summarizer session.
+
+**Parameters:**
+
+- `options?: SummarizerOptions` - Configuration for the summarizer
+
+**Returns:** `Promise<SummarizerSession>`
+
+### Session Methods
+
+#### summarize()
+
+Generates a summary of the input text.
+
+**Parameters:**
+
+- `text: string` - The text to summarize
+- `options?: SummarizeOptions` - Optional configuration
+
+**Returns:** `Promise<string>`
+
+#### summarizeStreaming()
+
+Generates a streaming summary of the input text.
+
+**Parameters:**
+
+- `text: string` - The text to summarize
+- `options?: SummarizeOptions` - Optional configuration
+
+**Returns:** `Promise<ReadableStream<string>>`
 
 ### Getting Started
 
@@ -197,7 +346,7 @@ const summarizer = await ai.summarizer.create({
 ```javascript
 const text = "Long article content here...";
 const summary = await summarizer.summarize(text, {
-  context: "This is a research paper from 2024"
+  context: "This is a research paper from 2024",
 });
 ```
 
@@ -205,7 +354,7 @@ const summary = await summarizer.summarize(text, {
 
 ```javascript
 const stream = await summarizer.summarizeStreaming(text, {
-  context: "Breaking news article from today"
+  context: "Breaking news article from today",
 });
 
 for await (const chunk of stream) {
@@ -220,11 +369,11 @@ for await (const chunk of stream) {
 ```javascript
 const summarizer = await ai.summarizer.create({
   type: "minutes",
-  sharedContext: "Weekly team meeting"
+  sharedContext: "Weekly team meeting",
 });
 
 const summary = await summarizer.summarize(transcript, {
-  context: "Engineering team standup from March 15, 2024"
+  context: "Engineering team standup from March 15, 2024",
 });
 ```
 
@@ -234,7 +383,7 @@ const summary = await summarizer.summarize(transcript, {
 const titleGenerator = await ai.summarizer.create({
   type: "headline",
   length: "short",
-  tone: "engaging"
+  tone: "engaging",
 });
 
 const title = await titleGenerator.summarize(articleContent);
@@ -245,11 +394,11 @@ const title = await titleGenerator.summarize(articleContent);
 ```javascript
 const reviewSummarizer = await ai.summarizer.create({
   type: "review",
-  sharedContext: "Customer reviews for Product X"
+  sharedContext: "Customer reviews for Product X",
 });
 
 const summaries = await Promise.all(
-  reviews.map(review => reviewSummarizer.summarize(review))
+  reviews.map((review) => reviewSummarizer.summarize(review))
 );
 ```
 
@@ -271,12 +420,63 @@ try {
 
 The `window.ai.writer` API provides sophisticated content generation capabilities. It helps create various types of content while maintaining consistent style and tone.
 
+### Type Definitions
+
+```typescript
+interface WriterOptions extends SessionOptions {
+  tone?: "formal" | "casual" | "neutral";
+  length?: "short" | "medium" | "long";
+  sharedContext?: string;
+}
+
+interface WriteOptions {
+  tone?: "formal" | "casual" | "neutral";
+  length?: "short" | "medium" | "long";
+  context?: string;
+}
+```
+
 ### Core Functions
 
-The API provides two main functions:
+#### capabilities()
 
-- `capabilities()`: Check writer availability and features
-- `create()`: Create a new writer instance
+Returns information about writer availability and parameters.
+
+**Returns:** `Promise<AILanguageModelCapabilities>`
+
+#### create()
+
+Creates a new writer session.
+
+**Parameters:**
+
+- `options?: WriterOptions` - Configuration for the writer
+
+**Returns:** `Promise<WriterSession>`
+
+### Session Methods
+
+#### write()
+
+Generates text based on the input task.
+
+**Parameters:**
+
+- `task: string` - The writing task description
+- `options?: WriteOptions` - Optional configuration
+
+**Returns:** `Promise<string>`
+
+#### writeStreaming()
+
+Generates streaming text based on the input task.
+
+**Parameters:**
+
+- `task: string` - The writing task description
+- `options?: WriteOptions` - Optional configuration
+
+**Returns:** `Promise<ReadableStream<string>>`
 
 ### Getting Started
 
@@ -312,7 +512,7 @@ const writer = await ai.writer.create({
 ```javascript
 const prompt = "Write a product description for a new smartphone";
 const content = await writer.write(prompt, {
-  context: "High-end smartphone market, targeting tech enthusiasts"
+  context: "High-end smartphone market, targeting tech enthusiasts",
 });
 ```
 
@@ -320,7 +520,7 @@ const content = await writer.write(prompt, {
 
 ```javascript
 const stream = await writer.writeStreaming(prompt, {
-  context: "Technical blog post"
+  context: "Technical blog post",
 });
 
 for await (const chunk of stream) {
@@ -361,13 +561,13 @@ const post = await blogWriter.write(
 ```javascript
 const socialWriter = await ai.writer.create({
   tone: "casual",
-  length: "short"
+  length: "short",
 });
 
 const posts = await Promise.all([
   socialWriter.write("Announce new product feature X"),
   socialWriter.write("Share customer success story"),
-  socialWriter.write("Promote upcoming webinar")
+  socialWriter.write("Promote upcoming webinar"),
 ]);
 ```
 
@@ -389,12 +589,63 @@ try {
 
 The `window.ai.rewriter` API provides sophisticated text transformation capabilities. It helps modify existing content while maintaining meaning and improving quality.
 
+### Type Definitions
+
+```typescript
+interface ReWriterOptions extends SessionOptions {
+  tone?: "formal" | "casual" | "neutral";
+  goal?: "simplify" | "formalize" | "constructive" | "improve";
+  sharedContext?: string;
+}
+
+interface ReWriteOptions {
+  tone?: "formal" | "casual" | "neutral";
+  goal?: "simplify" | "formalize" | "constructive" | "improve";
+  context?: string;
+}
+```
+
 ### Core Functions
 
-The API provides two main functions:
+#### capabilities()
 
-- `capabilities()`: Check rewriter availability and features
-- `create()`: Create a new rewriter instance
+Returns information about rewriter availability and parameters.
+
+**Returns:** `Promise<AILanguageModelCapabilities>`
+
+#### create()
+
+Creates a new rewriter session.
+
+**Parameters:**
+
+- `options?: ReWriterOptions` - Configuration for the rewriter
+
+**Returns:** `Promise<ReWriterSession>`
+
+### Session Methods
+
+#### rewrite()
+
+Rewrites the input text according to specified options.
+
+**Parameters:**
+
+- `text: string` - The text to rewrite
+- `options?: ReWriteOptions` - Optional configuration
+
+**Returns:** `Promise<string>`
+
+#### rewriteStreaming()
+
+Rewrites the input text with streaming output.
+
+**Parameters:**
+
+- `text: string` - The text to rewrite
+- `options?: ReWriteOptions` - Optional configuration
+
+**Returns:** `Promise<ReadableStream<string>>`
 
 ### Getting Started
 
@@ -430,7 +681,7 @@ const rewriter = await ai.rewriter.create({
 ```javascript
 const text = "Original content here...";
 const rewritten = await rewriter.rewrite(text, {
-  context: "Make more formal for business audience"
+  context: "Make more formal for business audience",
 });
 ```
 
@@ -438,7 +689,7 @@ const rewritten = await rewriter.rewrite(text, {
 
 ```javascript
 const stream = await rewriter.rewriteStreaming(text, {
-  context: "Simplify for general audience"
+  context: "Simplify for general audience",
 });
 
 for await (const chunk of stream) {
@@ -455,22 +706,19 @@ const formalizer = await ai.rewriter.create({
   tone: "formal",
 });
 
-const formal = await formalizer.rewrite(
-  casualEmail,
-  { context: "Business communication to client" }
-);
+const formal = await formalizer.rewrite(casualEmail, {
+  context: "Business communication to client",
+});
 ```
 
 #### Content Simplification
 
 ```javascript
-const simplifier = await ai.rewriter.create({
-});
+const simplifier = await ai.rewriter.create({});
 
-const simplified = await simplifier.rewrite(
-  technicalContent,
-  { context: "Explain like I'm 5" }
-);
+const simplified = await simplifier.rewrite(technicalContent, {
+  context: "Explain like I'm 5",
+});
 ```
 
 #### Word Count Optimization
@@ -478,10 +726,9 @@ const simplified = await simplifier.rewrite(
 ```javascript
 const optimizer = await ai.rewriter.create({});
 
-const optimized = await optimizer.rewrite(
-  longContent,
-  { context: "Reduce to 500 words while maintaining key points" }
-);
+const optimized = await optimizer.rewrite(longContent, {
+  context: "Reduce to 500 words while maintaining key points",
+});
 ```
 
 ### Error Handling

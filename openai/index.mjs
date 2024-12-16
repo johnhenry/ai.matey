@@ -27,7 +27,7 @@ const AI = class {
   }
 };
 
-export { AI, LanguageModel, Summarizer, Writer, Rewriter };
+export { AI, LanguageModel, Summarizer, Writer, ReWriter };
 /**
  * The default export of the AI module, a class representing an AI model.
  * @class

@@ -1,19 +1,21 @@
 import { Session as Session_, Capabilities } from "./LanguageModel.mjs";
 
 class Session extends Session_ {
+  #sharedContext = "";
   constructor(options = {}, useWindowAI = false, config = {}) {
     // Add default system prompt for summarization
-    const systemPrompt = options.systemPrompt || 
+    const systemPrompt =
+      options.systemPrompt ||
       "You are a highly skilled summarizer. Provide ONLY the summary without any introductions, explanations, or conclusions. Your summaries should be clear, accurate, and concise while preserving key information and main points. Never add phrases like 'Here's a summary' or 'In conclusion'. Just provide the summary directly.";
-    
     super({ ...options, systemPrompt }, useWindowAI, config);
+    this.#sharedContext = options.sharedContext;
   }
 
   #generateSummaryPrompt(text, options = {}) {
     const type = options.type || this.options.type || "paragraph";
     const length = options.length || this.options.length || "medium";
     const context = options.context || "";
-    const sharedContext = this.options.sharedContext || "";
+    const sharedContext = this.#sharedContext || "";
 
     let prompt = "";
     if (sharedContext) {
