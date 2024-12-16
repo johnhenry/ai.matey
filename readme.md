@@ -1,23 +1,60 @@
 # ai.matey
 
-This package provides four main things:
+<img src="./logo.png" alt="AI.Matey Logo" style="width:256px; height:256px">
 
-- Documentation for the [Chrome AI API](https://developer.chrome.com/docs/extensions/ai) (./docs)
-- A mock implementation of the Chrome AI API to be used for testing (./mock)
-- An Open AI compatible client with a matching API (./openai)
-- (And maybe more in the future?)
+> [!TIP]
+> ai.matey works well with [ai.captain](https://www.npmjs.com/package/ai.captain)
+
+## Docs, Mocks, and a Knockoff
+
+To help work with chrome's experimental [window.ai API](https://developer.chrome.com/docs/ai/built-in-apis) this package provides:
+
+- **Documentation** for the window.ai API [here](https://github.com/johnhenry/ai.matey/blob/main/docs/api.md)
+
+- A **mock implementation** of window.ai and it's sub-modules that can be used for testing.
+
+- An **Open AI API-compatible client** that mirrors window.ai. It can be used as a drop-in replacement for the window.ai object if it is not available or not working.
 
 ## Documentation: Chrome AI API
 
-Documentation for the Chrome AI API is provide [here](docs/api.md).
+Documentation for the window.ai API is provided here: [https://github.com/johnhenry/ai.matey/blob/main/docs/api.md](https://github.com/johnhenry/ai.matey/blob/main/docs/api.md)
 
 - Main sources:
   - https://developer.chrome.com/docs/extensions/ai/prompt-api#model_capabilities
   - https://github.com/webmachinelearning/writing-assistance-apis/blob/main/README.md
 
-## Mock
+## Mock Implementation
+
+### Installation and usage
 
 To use the mock implementation, import the mock from `ai.matey/mock`;
+
+#### Via NPM
+
+```bash
+npm install ai.matey
+```
+
+```javascript
+import ai from "ai.matey/mock";
+//...
+```
+
+#### Via CDN
+
+```javascript
+import ai from "https://cdn.jsdelivr.net/npm/ai.matey@0.0.8/mock/index.mjs";
+//...
+```
+
+OR
+
+```javascript
+import ai from "https://ga.jspm.io/npm:ai.matey@0.0.8/mock/index.mjs";
+//...
+```
+
+### Example
 
 ```javascript
 import * as ai from "ai.matey/mock";
@@ -52,6 +89,43 @@ console.log(poem);
 
 Use the OpenAI compatible client standalone, or as a drop-in replacement for window.ai
 
+Note, that unlike with the mock implementation, the OpenAI client requires instantiation.
+
+### Installation and usage
+
+To use the mock implementation, import the mock from `ai.matey/openai`;
+
+#### Via NPM
+
+```bash
+npm install ai.matey
+```
+
+```javascript
+import AI from "ai.matey/openai";
+const ai = new AI(/* options */);
+//...
+```
+
+#### Via CDN
+
+```javascript
+import ai from "https://cdn.jsdelivr.net/npm/ai.matey@0.0.8/openai/index.mjs";
+const ai = new AI(/* options */);
+
+//...
+```
+
+OR
+
+```javascript
+import AI from "https://ga.jspm.io/npm:ai.matey@0.0.8/openai/index.mjs";
+const ai = new AI(/* options */);
+//...
+```
+
+### Example
+
 ```javascript
 import AI from "ai.matey/openai";
 window.ai = new AI({
@@ -64,38 +138,6 @@ window.ai = new AI({
 const model = await window.ai.languageModel.create();
 const poem = await model.prompt("write a poem");
 console.log(poem);
-```
-
-## Built for the browser
-
-This package is built for the browser, and can easily be imported via CDN.
-
-```html
-<html>
-    <head>
-    <script type="importmap">
-    {
-        "imports": {
-            "mock.ai": "https://cdn.jsdelivr.net/npm/ai.matey@0.0.1/mock/polyfill-overwrite.mjs"
-        }
-    }
-    </script>
-    </head>
-    <body>
-        <scirpt type="module">
-            import "mock.ai";
-            const model = await window.ai.languageModel.create({
-                        context: "You are an expert in creating poery.",
-                        temperature: 0.7,
-                        topK: 1,
-                        maxTokens: 200,
-                        seed: 1,
-            });
-            const poem = await model.prompt("write a poem");
-            console.log(poem);
-        </script>
-    </body>
-</html>
 ```
 
 ## Playground/Demo
