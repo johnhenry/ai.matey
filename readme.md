@@ -43,14 +43,14 @@ import ai from "ai.matey/mock";
 #### Via CDN
 
 ```javascript
-import * as ai from "https://cdn.jsdelivr.net/npm/ai.matey@0.0.13/mock/index.mjs";
+import * as ai from "https://cdn.jsdelivr.net/npm/ai.matey@0.0.14/mock/index.mjs";
 //...
 ```
 
 OR
 
 ```javascript
-import * as ai from "https://ga.jspm.io/npm:ai.matey@0.0.13/mock/index.mjs";
+import * as ai from "https://ga.jspm.io/npm:ai.matey@0.0.14/mock/index.mjs";
 //...
 ```
 
@@ -110,7 +110,7 @@ const ai = new AI(/* options */);
 #### Via CDN
 
 ```javascript
-import AI from "https://cdn.jsdelivr.net/npm/ai.matey@0.0.13/openai/index.mjs";
+import AI from "https://cdn.jsdelivr.net/npm/ai.matey@0.0.14/openai/index.mjs";
 const ai = new AI(/* options */);
 
 //...
@@ -119,7 +119,7 @@ const ai = new AI(/* options */);
 OR
 
 ```javascript
-import AI from "https://ga.jspm.io/npm:ai.matey@0.0.13/openai/index.mjs";
+import AI from "https://ga.jspm.io/npm:ai.matey@0.0.14/openai/index.mjs";
 const ai = new AI(/* options */);
 //...
 ```
