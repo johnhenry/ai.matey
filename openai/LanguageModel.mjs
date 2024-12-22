@@ -68,21 +68,37 @@ class Session {
     return (async function* () {
       const decoder = new TextDecoder();
       for await (const chunk of response.body) {
-        const text = decoder.decode(chunk);
-        // Extract the JSON data after "data: "
-        const jsonStr = text.replace('data: ', '').trim();
-        // Return if it's the `[DONE]` message
-        if (jsonStr ==='[DONE]') {
-          return;
-        };
-        try {
-          const data = JSON.parse(jsonStr);
-          // Get the content if it exists in the delta
-          const {content} = 'delta' in data.choices[0] ? data.choices[0].delta : data.choices[0];
-          yield content
-        } catch (e) {
-          // Handle any JSON parsing errors
-          throw new Error('Failed to parse JSON stream: ' + e?.message);
+        const text = decoder.decode(new Uint8Array(chunk));
+        // Split into separate messages
+        const messages = text.split("\n");
+
+        for (const message of messages) {
+          // Skip empty messages
+          if (!message.trim()) continue;
+
+          // Extract the JSON data after "data: "
+          const jsonStr = message.replace("data: ", "").trim();
+          // Return if it's the `[DONE]` message
+          if (jsonStr === "[DONE]") {
+            return;
+          }
+
+          try {
+            const data = JSON.parse(jsonStr);
+            // Get the content if it exists in the delta
+            const { content } =
+              "delta" in data.choices[0]
+                ? data.choices[0].delta
+                : data.choices[0];
+            if (content) {
+              yield content;
+            }
+          } catch (e) {
+            // Skip parsing errors for empty or incomplete messages
+            if (message.trim() && !message.includes("data: ")) {
+              throw new Error("Failed to parse JSON stream: " + e?.message);
+            }
+          }
         }
       }
     })();
