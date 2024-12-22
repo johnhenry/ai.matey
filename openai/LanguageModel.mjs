@@ -68,7 +68,7 @@ class Session {
     return (async function* () {
       const decoder = new TextDecoder();
       for await (const chunk of response.body) {
-        const text = decoder.decode(chunk);
+        const text = decoder.decode(new Uint8Array(chunk));
         // Extract the JSON data after "data: "
         const jsonStr = text.replace('data: ', '').trim();
         // Return if it's the `[DONE]` message
