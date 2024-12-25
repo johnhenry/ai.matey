@@ -1,6 +1,6 @@
 {
   "name": "ai.matey",
-  "version": "0.0.14",
+  "version": "0.0.15",
   "main": "./openai/index.mjs",
   "types": "types/ai.matey.d.ts",
   "exports": {
@@ -14,6 +14,10 @@
     "./openai": {
       "types": "./types/ai.matey.d.ts",
       "default": "./openai/index.mjs"
+    },
+    "./gemini": {
+      "types": "./types/ai.matey.d.ts",
+      "default": "./gemini/index.mjs"
     },
     "./types/languageModel": "./types/languageModel.d.ts",
     "./types/summarizer": "./types/summarizer.d.ts",

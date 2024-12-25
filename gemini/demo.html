@@ -1,0 +1,35 @@
+<!DOCTYPE>
+<html>
+    <head>
+        <title>AI.Matey Playground</title>
+
+    </head>
+    <body>
+        <div id="content-area"></div>
+        <script type="module">
+            import Gemini from "./index.mjs";
+            const ai = new Gemini({
+  endpoint: "https://generativelanguage.googleapis.com",
+  credentials: {
+    apiKey: "AIzaSyBgS9ag3lpfDwc7jiP9oINAKFgqcTc9Ecc"
+  }
+});
+
+// Use the language model
+const model = await ai.languageModel.create();
+const response = await model.prompt("Tell me a story");
+console.log(response);
+
+// Use the writer
+const writer = await ai.writer.create();
+const text = await writer.write("Write a blog post about AI", { tone: "casual" });
+console.log(text);
+
+// Use the summarizer
+const summarizer = await ai.summarizer.create();
+const summary = await summarizer.summarize(text, { type: "tl;dr" });
+console.log(summary);
+
+        </script>
+    </body>
+</html>

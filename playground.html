@@ -5,9 +5,9 @@
     <script type="importmap">
       {
         "imports": {
-          "ai.matey/openai": "https://cdn.jsdelivr.net/npm/ai.matey@0.0.1/openai/index.mjs",
-          "ai.matey/mock": "https://cdn.jsdelivr.net/npm/ai.matey@0.0.1/mock/index.mjs",
-          "ai.matey/mock/polyfill": "https://cdn.jsdelivr.net/npm/ai.matey@0.0.1/mock/polyfill.mjs"
+          "ai.matey/openai": "https://cdn.jsdelivr.net/npm/ai.matey@0.0.15/openai/index.mjs",
+          "ai.matey/mock": "https://cdn.jsdelivr.net/npm/ai.matey@0.0.15/mock/index.mjs",
+          "ai.matey/mock/polyfill": "https://cdn.jsdelivr.net/npm/ai.matey@0.0.15/mock/polyfill.mjs"
         }
       }
     </script>
@@ -563,7 +563,7 @@
 
     <script type="module">
       import mockAI from "./mock/index.mjs";
-      import AI from "./openai/index.mjs";
+      import OpenAI from "./openai/index.mjs";
 
       const state = {
         implementation: 'mock',
@@ -734,7 +734,7 @@
         if (state.implementation === 'mock') {
           ai = mockAI;
         } else if (state.implementation === 'openai') {
-          ai = new AI({
+          ai = new OpenAI({
             endpoint: elements.openaiEndpoint.value,
             credentials: { apiKey: elements.openaiApiKey.value },
             model: elements.openaiModel.value,

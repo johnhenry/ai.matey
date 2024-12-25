@@ -33,6 +33,41 @@ declare module "ai.matey/openai" {
   export default AI;
 }
 
+declare module "ai.matey/gemini" {
+  export interface AIConfig {
+    endpoint?: string;
+    credentials: {
+      apiKey: string;
+    };
+    model?: string;
+  }
+
+  export interface LanguageModel {
+    prompt: <T = string>(
+      text: string,
+      options: {
+        signal: AbortSignal;
+        max_tokens?: number;
+        stop_sequences?: string[];
+      }
+    ) => Promise<T>;
+    destroy: () => void;
+  }
+
+  export class AI {
+    constructor(config: AIConfig);
+    languageModel: {
+      create: (config: {
+        temperature?: number;
+        topK?: number;
+        systemPrompt?: string;
+      }) => Promise<LanguageModel>;
+    };
+  }
+
+  export default AI;
+}
+
 declare module "ai.matey/mock" {
   export interface AICapabilities {
     available: 'no' | 'readily' | 'after-download';

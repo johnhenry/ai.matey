@@ -13,7 +13,7 @@ To help work with chrome's experimental [window.ai API](https://developer.chrome
 
 - A **mock implementation** of window.ai and it's sub-modules that can be used for testing.
 
-- An **Open AI API-compatible client** that mirrors window.ai. It can be used as a drop-in replacement for the window.ai object if it is not available or not working.
+- An **API-compatible clients** that mirrors window.ai. It can be used as a drop-in replacement for the window.ai backed by popular AI Services like *OPENAI*/*OLLAMA* and *GOOGLE GEMINI*.
 
 ## Documentation: Chrome AI API
 
@@ -43,14 +43,14 @@ import ai from "ai.matey/mock";
 #### Via CDN
 
 ```javascript
-import * as ai from "https://cdn.jsdelivr.net/npm/ai.matey@0.0.14/mock/index.mjs";
+import * as ai from "https://cdn.jsdelivr.net/npm/ai.matey@0.0.15/mock/index.mjs";
 //...
 ```
 
 OR
 
 ```javascript
-import * as ai from "https://ga.jspm.io/npm:ai.matey@0.0.14/mock/index.mjs";
+import * as ai from "https://ga.jspm.io/npm:ai.matey@0.0.15/mock/index.mjs";
 //...
 ```
 
@@ -85,21 +85,26 @@ const poem = await model.prompt("write a poem");
 console.log(poem);
 ```
 
-## OpenAI Compatible Client
+## API Compatible Client
 
 Use the OpenAI compatible client standalone, or as a drop-in replacement for window.ai
 
 Note, that unlike with the mock implementation, the OpenAI client requires instantiation.
 
-### Installation and usage
-
-To use the mock implementation, import the mock from `ai.matey/openai`;
+### Installation
 
 #### Via NPM
 
 ```bash
 npm install ai.matey
 ```
+
+To use the a client, import the mock from `ai.matey/<implementation name>`;
+
+- `import AI from "ai.matey/openai"`
+- `import AI from "ai.matey/gemini"`  
+
+##### Example
 
 ```javascript
 import AI from "ai.matey/openai";
@@ -109,8 +114,10 @@ const ai = new AI(/* options */);
 
 #### Via CDN
 
+You can also import the clients directly from the CDN
+
 ```javascript
-import AI from "https://cdn.jsdelivr.net/npm/ai.matey@0.0.14/openai/index.mjs";
+import AI from "https://cdn.jsdelivr.net/npm/ai.matey@0.0.15/openai/index.mjs";
 const ai = new AI(/* options */);
 
 //...
@@ -119,16 +126,20 @@ const ai = new AI(/* options */);
 OR
 
 ```javascript
-import AI from "https://ga.jspm.io/npm:ai.matey@0.0.14/openai/index.mjs";
+import AI from "https://ga.jspm.io/npm:ai.matey@0.0.15/openai/index.mjs";
 const ai = new AI(/* options */);
 //...
 ```
+
+## Usage
+
+Create an instance of the client using via the costructor.
 
 ### Example
 
 ```javascript
 import AI from "ai.matey/openai";
-window.ai = new AI({
+const ai = new AI({
   endpoint: "http://localhost:11434/v1/chat/completions",
   credentials: {
     apiKey: "123",
