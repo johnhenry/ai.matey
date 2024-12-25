@@ -72,7 +72,6 @@ const create = (Session_, Capabilities) => {
 
     async rewriteStreaming(text, options = {}) {
       const prompt = this.#generateRewritePrompt(text, options);
-      console.log(prompt);
       return this.promptStreaming(prompt);
     }
   }

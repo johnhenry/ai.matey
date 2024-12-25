@@ -51,7 +51,6 @@ const create = (Session_, Capabilities) => {
 
     async summarize(text, options = {}) {
       const prompt = this.#generateSummaryPrompt(text, options);
-      console.log({prompt});
       return this.prompt(prompt);
     }
 

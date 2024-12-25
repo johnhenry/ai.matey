@@ -12,29 +12,32 @@ class Session {
       return response;
     }
 
-    // Use OpenAI-compatible endpoint
-    const response = await fetch(this.config.endpoint, {
+    // Use Anthropic API endpoint
+    const response = await fetch(`${this.config.endpoint}/v1/messages`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${this.config.credentials.apiKey}`,
+        "x-api-key": this.config.credentials.apiKey,
+        "anthropic-version": "2023-06-01",
+        "anthropic-dangerous-direct-browser-access": "true"
       },
       body: JSON.stringify({
-        model: this.config.model,
+        model: this.config.model || "claude-3-opus-20240229",
+        system: this.options.systemPrompt,
         messages: [
-          ...(this.options.systemPrompt
-            ? [{ role: "system", content: this.options.systemPrompt }]
-            : []),
-          ...(this.options.initialPrompts || []),
-          { role: "user", content: prompt },
+          ...(this.options.initialPrompts || []).filter(msg => msg.role === "user" || msg.role === "assistant"),
+          { role: "user", content: prompt }
         ],
-        temperature: options.temperature ?? this.options.temperature,
-        top_k: options.topK ?? this.options.topK,
+        temperature: options.temperature ?? this.options.temperature ?? 1.0,
+        max_tokens: options.maxTokens ?? this.options.maxTokens ?? 4096,
       }),
     });
 
     const data = await response.json();
-    return data.choices[0].message.content;
+    if (data.error) {
+      throw new Error(`Anthropic API Error: ${data.error.message}`);
+    }
+    return data.content[0].text;
   }
 
   async promptStreaming(prompt, options = {}) {
@@ -43,25 +46,25 @@ class Session {
       return session.promptStreaming(prompt, options);
     }
 
-    // Use OpenAI-compatible endpoint with streaming
-    const response = await fetch(this.config.endpoint, {
+    // Use Anthropic API endpoint with streaming
+    const response = await fetch(`${this.config.endpoint}/v1/messages`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${this.config.credentials.apiKey}`,
+        "x-api-key": this.config.credentials.apiKey,
+        "anthropic-version": "2023-06-01",
+        "anthropic-dangerous-direct-browser-access": "true"
       },
       body: JSON.stringify({
-        model: this.config.model,
+        model: this.config.model || "claude-3-opus-20240229",
+        system: this.options.systemPrompt,
         messages: [
-          ...(this.options.systemPrompt
-            ? [{ role: "system", content: this.options.systemPrompt }]
-            : []),
-          ...(this.options.initialPrompts || []),
-          { role: "user", content: prompt },
+          ...(this.options.initialPrompts || []).filter(msg => msg.role === "user" || msg.role === "assistant"),
+          { role: "user", content: prompt }
         ],
-        temperature: options.temperature ?? this.options.temperature,
-        top_k: options.topK ?? this.options.topK,
-        stream: true,
+        temperature: options.temperature ?? this.options.temperature ?? 1.0,
+        max_tokens: options.maxTokens ?? this.options.maxTokens ?? 4096,
+        stream: true
       }),
     });
 
@@ -78,18 +81,13 @@ class Session {
 
           // Extract the JSON data after "data: "
           const jsonStr = message.replace("data: ", "").trim();
-          // Return if it's the `[DONE]` message
           if (jsonStr === "[DONE]") {
             return;
           }
 
           try {
             const data = JSON.parse(jsonStr);
-            // Get the content if it exists in the delta
-            const { content } =
-              "delta" in data.choices[0]
-                ? data.choices[0].delta
-                : data.choices[0];
+            const content = data.content?.[0]?.text;
             if (content) {
               yield content;
             }
@@ -109,19 +107,23 @@ class Session {
       const session = await window.ai.languageModel.create(this.options);
       await session.destroy();
     }
-    // For OpenAI endpoints, no explicit cleanup needed
+    // For Anthropic API endpoints, no explicit cleanup needed
   }
 }
+
 const Capabilities = {
   available: "readily",
-  defaultTopK: 3,
-  maxTopK: 8,
   defaultTemperature: 1.0,
+  maxTemperature: 2.0,
+  defaultMaxTokens: 4096,
+  maxMaxTokens: 4096
 };
 
 class LanguageModel {
   constructor(config = {}) {
-    this.config = config;
+    this.config = {
+      endpoint: "https://api.anthropic.com",
+      ...config};
     this.useWindowAI = Object.keys(config).length === 0;
   }
 
@@ -129,7 +131,7 @@ class LanguageModel {
     if (this.useWindowAI) {
       return await window.ai.languageModel.capabilities();
     }
-    // For OpenAI endpoints, return default capabilities
+    // For Anthropic API endpoints, return default capabilities
     return Capabilities;
   }
 
