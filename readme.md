@@ -115,7 +115,7 @@ To use the a client, import the mock from `ai.matey/<implementation name>`;
 
 ```javascript
 import AI from "ai.matey/ollama";
-// Instantiat w/ options
+// Instantiate w/ options
 const ai = new AI(/* options */);
 //...
 ```
