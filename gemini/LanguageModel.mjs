@@ -13,29 +13,41 @@ class Session {
     }
 
     // Use Gemini API endpoint
-    const response = await fetch(`${this.config.endpoint}/v1beta/models/gemini-1.5-flash:generateContent?key=${this.config.credentials.apiKey}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        contents: [
-          {
-            parts: [
-              ...(this.options.systemPrompt ? [{ text: this.options.systemPrompt }] : []),
-              ...(this.options.initialPrompts || []).map(p => ({ text: p.content })),
-              { text: prompt }
-            ]
-          }
-        ],
-        generationConfig: {
-          temperature: options.temperature ?? this.options.temperature ?? 1.0,
-          topK: options.topK ?? this.options.topK ?? 10,
-          topP: options.topP ?? this.options.topP ?? 0.8,
-          maxOutputTokens: options.maxOutputTokens ?? this.options.maxOutputTokens ?? 800,
-        }
-      }),
-    });
+    const response = await fetch(
+      `${
+        this.config.endpoint
+      }/v1beta/models/gemini-1.5-flash:generateContent?key=${
+        this.config.credentials?.apiKey || ""
+      }`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [
+                ...(this.options.systemPrompt
+                  ? [{ text: this.options.systemPrompt }]
+                  : []),
+                ...(this.options.initialPrompts || []).map((p) => ({
+                  text: p.content,
+                })),
+                { text: prompt },
+              ],
+            },
+          ],
+          generationConfig: {
+            temperature: options.temperature ?? this.options.temperature ?? 1.0,
+            topK: options.topK ?? this.options.topK ?? 10,
+            topP: options.topP ?? this.options.topP ?? 0.8,
+            maxOutputTokens:
+              options.maxOutputTokens ?? this.options.maxOutputTokens ?? 800,
+          },
+        }),
+      }
+    );
 
     const data = await response.json();
     if (data.error) {
@@ -51,29 +63,41 @@ class Session {
     }
 
     // Use Gemini API endpoint with streaming
-    const response = await fetch(`${this.config.endpoint}/v1beta/models/gemini-1.5-flash:streamGenerateContent?alt=sse&key=${this.config.credentials.apiKey}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        contents: [
-          {
-            parts: [
-              ...(this.options.systemPrompt ? [{ text: this.options.systemPrompt }] : []),
-              ...(this.options.initialPrompts || []).map(p => ({ text: p.content })),
-              { text: prompt }
-            ]
-          }
-        ],
-        generationConfig: {
-          temperature: options.temperature ?? this.options.temperature ?? 1.0,
-          topK: options.topK ?? this.options.topK ?? 10,
-          topP: options.topP ?? this.options.topP ?? 0.8,
-          maxOutputTokens: options.maxOutputTokens ?? this.options.maxOutputTokens ?? 800,
-        }
-      }),
-    });
+    const response = await fetch(
+      `${
+        this.config.endpoint
+      }/v1beta/models/gemini-1.5-flash:streamGenerateContent?alt=sse&key=${
+        this.config.credentials?.apiKey || ""
+      }`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [
+                ...(this.options.systemPrompt
+                  ? [{ text: this.options.systemPrompt }]
+                  : []),
+                ...(this.options.initialPrompts || []).map((p) => ({
+                  text: p.content,
+                })),
+                { text: prompt },
+              ],
+            },
+          ],
+          generationConfig: {
+            temperature: options.temperature ?? this.options.temperature ?? 1.0,
+            topK: options.topK ?? this.options.topK ?? 10,
+            topP: options.topP ?? this.options.topP ?? 0.8,
+            maxOutputTokens:
+              options.maxOutputTokens ?? this.options.maxOutputTokens ?? 800,
+          },
+        }),
+      }
+    );
 
     return (async function* () {
       const decoder = new TextDecoder();
@@ -128,8 +152,7 @@ const Capabilities = {
 class LanguageModel {
   constructor(config = {}) {
     this.config = {
-      endpoint: "https://generativelanguage.googleapis.com",
-      ...config
+      ...config,
     };
     this.useWindowAI = Object.keys(config).length === 0;
   }

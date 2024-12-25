@@ -13,25 +13,28 @@ class Session {
     }
 
     // Use OpenAI-compatible endpoint
-    const response = await fetch(this.config.endpoint, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${this.config.credentials.apiKey}`,
-      },
-      body: JSON.stringify({
-        model: this.config.model,
-        messages: [
-          ...(this.options.systemPrompt
-            ? [{ role: "system", content: this.options.systemPrompt }]
-            : []),
-          ...(this.options.initialPrompts || []),
-          { role: "user", content: prompt },
-        ],
-        temperature: options.temperature ?? this.options.temperature,
-        top_k: options.topK ?? this.options.topK,
-      }),
-    });
+    const response = await fetch(
+      `${this.config.endpoint}/v1/chat/completions`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${this.config.credentials?.apiKey || ""}`,
+        },
+        body: JSON.stringify({
+          model: this.config.model,
+          messages: [
+            ...(this.options.systemPrompt
+              ? [{ role: "system", content: this.options.systemPrompt }]
+              : []),
+            ...(this.options.initialPrompts || []),
+            { role: "user", content: prompt },
+          ],
+          temperature: options.temperature ?? this.options.temperature,
+          top_k: options.topK ?? this.options.topK,
+        }),
+      }
+    );
 
     const data = await response.json();
     return data.choices[0].message.content;
@@ -44,26 +47,29 @@ class Session {
     }
 
     // Use OpenAI-compatible endpoint with streaming
-    const response = await fetch(this.config.endpoint, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${this.config.credentials.apiKey}`,
-      },
-      body: JSON.stringify({
-        model: this.config.model,
-        messages: [
-          ...(this.options.systemPrompt
-            ? [{ role: "system", content: this.options.systemPrompt }]
-            : []),
-          ...(this.options.initialPrompts || []),
-          { role: "user", content: prompt },
-        ],
-        temperature: options.temperature ?? this.options.temperature,
-        top_k: options.topK ?? this.options.topK,
-        stream: true,
-      }),
-    });
+    const response = await fetch(
+      `${this.config.endpoint}/v1/chat/completions`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${this.config.credentials?.apiKey || ""}`,
+        },
+        body: JSON.stringify({
+          model: this.config.model,
+          messages: [
+            ...(this.options.systemPrompt
+              ? [{ role: "system", content: this.options.systemPrompt }]
+              : []),
+            ...(this.options.initialPrompts || []),
+            { role: "user", content: prompt },
+          ],
+          temperature: options.temperature ?? this.options.temperature,
+          top_k: options.topK ?? this.options.topK,
+          stream: true,
+        }),
+      }
+    );
 
     return (async function* () {
       const decoder = new TextDecoder();

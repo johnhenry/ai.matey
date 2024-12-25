@@ -17,16 +17,18 @@ class Session {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "x-api-key": this.config.credentials.apiKey,
+        "x-api-key": this.config.credentials?.apiKey || "",
         "anthropic-version": "2023-06-01",
-        "anthropic-dangerous-direct-browser-access": "true"
+        "anthropic-dangerous-direct-browser-access": "true",
       },
       body: JSON.stringify({
         model: this.config.model || "claude-3-opus-20240229",
         system: this.options.systemPrompt,
         messages: [
-          ...(this.options.initialPrompts || []).filter(msg => msg.role === "user" || msg.role === "assistant"),
-          { role: "user", content: prompt }
+          ...(this.options.initialPrompts || []).filter(
+            (msg) => msg.role === "user" || msg.role === "assistant"
+          ),
+          { role: "user", content: prompt },
         ],
         temperature: options.temperature ?? this.options.temperature ?? 1.0,
         max_tokens: options.maxTokens ?? this.options.maxTokens ?? 4096,
@@ -51,20 +53,22 @@ class Session {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "x-api-key": this.config.credentials.apiKey,
+        "x-api-key": this.config.credentials?.apiKey || "",
         "anthropic-version": "2023-06-01",
-        "anthropic-dangerous-direct-browser-access": "true"
+        "anthropic-dangerous-direct-browser-access": "true",
       },
       body: JSON.stringify({
         model: this.config.model || "claude-3-opus-20240229",
         system: this.options.systemPrompt,
         messages: [
-          ...(this.options.initialPrompts || []).filter(msg => msg.role === "user" || msg.role === "assistant"),
-          { role: "user", content: prompt }
+          ...(this.options.initialPrompts || []).filter(
+            (msg) => msg.role === "user" || msg.role === "assistant"
+          ),
+          { role: "user", content: prompt },
         ],
         temperature: options.temperature ?? this.options.temperature ?? 1.0,
         max_tokens: options.maxTokens ?? this.options.maxTokens ?? 4096,
-        stream: true
+        stream: true,
       }),
     });
 
@@ -116,14 +120,14 @@ const Capabilities = {
   defaultTemperature: 1.0,
   maxTemperature: 2.0,
   defaultMaxTokens: 4096,
-  maxMaxTokens: 4096
+  maxMaxTokens: 4096,
 };
 
 class LanguageModel {
   constructor(config = {}) {
     this.config = {
-      endpoint: "https://api.anthropic.com",
-      ...config};
+      ...config,
+    };
     this.useWindowAI = Object.keys(config).length === 0;
   }
 

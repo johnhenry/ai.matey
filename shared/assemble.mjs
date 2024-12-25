@@ -1,20 +1,25 @@
 import createSummarizer from "./Summarizer.mjs";
 import createWriter from "./Writer.mjs";
 import createReWriter from "./ReWriter.mjs";
-const assemble = (Session, Capabilities, LanguageModel) => {
+const assemble = (Session, Capabilities, LanguageModel, initialConfig = {}) => {
   const { Summarizer } = createSummarizer(Session, Capabilities);
-  const {Writer} = createWriter(Session, Capabilities);
-  const {ReWriter} = createReWriter(Session, Capabilities);
+  const { Writer } = createWriter(Session, Capabilities);
+  const { ReWriter } = createReWriter(Session, Capabilities);
   const AI = class {
     #languageModel;
     #summarizer;
     #writer;
     #rewriter;
+    #config;
     constructor(config) {
-      this.#languageModel = new LanguageModel(config);
-      this.#summarizer = new Summarizer(config);
-      this.#writer = new Writer(config);
-      this.#rewriter = new ReWriter(config);
+      this.#config = {
+        ...initialConfig,
+        ...config,
+      };
+      this.#languageModel = new LanguageModel(this.#config);
+      this.#summarizer = new Summarizer(this.#config);
+      this.#writer = new Writer(this.#config);
+      this.#rewriter = new ReWriter(this.#config);
     }
     get languageModel() {
       return this.#languageModel;

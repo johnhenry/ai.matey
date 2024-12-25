@@ -13,7 +13,12 @@ To help work with chrome's experimental [window.ai API](https://developer.chrome
 
 - A **mock implementation** of window.ai and it's sub-modules that can be used for testing.
 
-- An **API-compatible clients** that mirrors window.ai. It can be used as a drop-in replacement for the window.ai backed by popular AI Services like *OPENAI*/*OLLAMA* and *GOOGLE GEMINI*.
+- Multiple **API-compatible clients** that mirror window.ai. They can be used as drop-in replacements for the window.ai, - but backed by popular AI Services:
+
+- _ollama_
+- _openai_
+- _gemini_
+- _anthropic_
 
 ## Documentation: Chrome AI API
 
@@ -43,14 +48,14 @@ import ai from "ai.matey/mock";
 #### Via CDN
 
 ```javascript
-import * as ai from "https://cdn.jsdelivr.net/npm/ai.matey@0.0.16/mock/index.mjs";
+import * as ai from "https://cdn.jsdelivr.net/npm/ai.matey@0.0.17/mock/index.mjs";
 //...
 ```
 
 OR
 
 ```javascript
-import * as ai from "https://ga.jspm.io/npm:ai.matey@0.0.16/mock/index.mjs";
+import * as ai from "https://ga.jspm.io/npm:ai.matey@0.0.17/mock/index.mjs";
 //...
 ```
 
@@ -85,11 +90,11 @@ const poem = await model.prompt("write a poem");
 console.log(poem);
 ```
 
-## API Compatible Client
+## API Compatible Clients
 
 Use the OpenAI compatible client standalone, or as a drop-in replacement for window.ai
 
-Note, that unlike with the mock implementation, the OpenAI client requires instantiation.
+Note, that unlike with the mock implementation, these require instantiation.
 
 ### Installation
 
@@ -101,13 +106,16 @@ npm install ai.matey
 
 To use the a client, import the mock from `ai.matey/<implementation name>`;
 
+- `import AI from "ai.matey/ollama"`
 - `import AI from "ai.matey/openai"`
-- `import AI from "ai.matey/gemini"`  
+- `import AI from "ai.matey/gemini"`
+- `import AI from "ai.matey/anthropic"`
 
 ##### Example
 
 ```javascript
-import AI from "ai.matey/openai";
+import AI from "ai.matey/ollama";
+// Instantiat w/ options
 const ai = new AI(/* options */);
 //...
 ```
@@ -117,7 +125,7 @@ const ai = new AI(/* options */);
 You can also import the clients directly from the CDN
 
 ```javascript
-import AI from "https://cdn.jsdelivr.net/npm/ai.matey@0.0.16/openai/index.mjs";
+import AI from "https://cdn.jsdelivr.net/npm/ai.matey@0.0.17/ollama/index.mjs";
 const ai = new AI(/* options */);
 
 //...
@@ -126,7 +134,7 @@ const ai = new AI(/* options */);
 OR
 
 ```javascript
-import AI from "https://ga.jspm.io/npm:ai.matey@0.0.16/openai/index.mjs";
+import AI from "https://ga.jspm.io/npm:ai.matey@0.0.17/ollama/index.mjs";
 const ai = new AI(/* options */);
 //...
 ```

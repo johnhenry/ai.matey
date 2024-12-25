@@ -33,7 +33,76 @@ declare module "ai.matey/openai" {
   export default AI;
 }
 
+declare module "ai.matey/ollama" {
+  export interface AIConfig {
+    endpoint?: string;
+    credentials: {
+      apiKey: string;
+    };
+    model?: string;
+  }
+
+  export interface LanguageModel {
+    prompt: <T = string>(
+      text: string,
+      options: {
+        signal: AbortSignal;
+        max_tokens?: number;
+        stop_sequences?: string[];
+      }
+    ) => Promise<T>;
+    destroy: () => void;
+  }
+
+  export class AI {
+    constructor(config: AIConfig);
+    languageModel: {
+      create: (config: {
+        temperature?: number;
+        topK?: number;
+        systemPrompt?: string;
+      }) => Promise<LanguageModel>;
+    };
+  }
+
+  export default AI;
+}
 declare module "ai.matey/gemini" {
+  export interface AIConfig {
+    endpoint?: string;
+    credentials: {
+      apiKey: string;
+    };
+    model?: string;
+  }
+
+  export interface LanguageModel {
+    prompt: <T = string>(
+      text: string,
+      options: {
+        signal: AbortSignal;
+        max_tokens?: number;
+        stop_sequences?: string[];
+      }
+    ) => Promise<T>;
+    destroy: () => void;
+  }
+
+  export class AI {
+    constructor(config: AIConfig);
+    languageModel: {
+      create: (config: {
+        temperature?: number;
+        topK?: number;
+        systemPrompt?: string;
+      }) => Promise<LanguageModel>;
+    };
+  }
+
+  export default AI;
+}
+
+declare module "ai.matey/anthropic" {
   export interface AIConfig {
     endpoint?: string;
     credentials: {
@@ -70,7 +139,7 @@ declare module "ai.matey/gemini" {
 
 declare module "ai.matey/mock" {
   export interface AICapabilities {
-    available: 'no' | 'readily' | 'after-download';
+    available: "no" | "readily" | "after-download";
     defaultTopK: number;
     maxTopK: number;
     defaultTemperature: number;
@@ -117,20 +186,23 @@ declare module "ai.matey/mock" {
 
   // Summarizer Types
   export interface SummarizerOptions extends SessionOptions {
-    type?: 'headline' | 'tl;dr' | 'key-points' | 'teaser';
-    length?: 'short' | 'medium' | 'long';
+    type?: "headline" | "tl;dr" | "key-points" | "teaser";
+    length?: "short" | "medium" | "long";
     sharedContext?: string;
   }
 
   export interface SummarizeOptions {
-    type?: 'headline' | 'tl;dr' | 'key-points' | 'teaser';
-    length?: 'short' | 'medium' | 'long';
+    type?: "headline" | "tl;dr" | "key-points" | "teaser";
+    length?: "short" | "medium" | "long";
     context?: string;
   }
 
   export interface SummarizerSession extends AILanguageModelSession {
     summarize(text: string, options?: SummarizeOptions): Promise<string>;
-    summarizeStreaming(text: string, options?: SummarizeOptions): Promise<ReadableStream>;
+    summarizeStreaming(
+      text: string,
+      options?: SummarizeOptions
+    ): Promise<ReadableStream>;
   }
 
   export interface Summarizer {
@@ -140,20 +212,23 @@ declare module "ai.matey/mock" {
 
   // Writer Types
   export interface WriterOptions extends SessionOptions {
-    tone?: 'formal' | 'casual' | 'neutral';
-    length?: 'short' | 'medium' | 'long';
+    tone?: "formal" | "casual" | "neutral";
+    length?: "short" | "medium" | "long";
     sharedContext?: string;
   }
 
   export interface WriteOptions {
-    tone?: 'formal' | 'casual' | 'neutral';
-    length?: 'short' | 'medium' | 'long';
+    tone?: "formal" | "casual" | "neutral";
+    length?: "short" | "medium" | "long";
     context?: string;
   }
 
   export interface WriterSession extends AILanguageModelSession {
     write(task: string, options?: WriteOptions): Promise<string>;
-    writeStreaming(task: string, options?: WriteOptions): Promise<ReadableStream>;
+    writeStreaming(
+      task: string,
+      options?: WriteOptions
+    ): Promise<ReadableStream>;
   }
 
   export interface Writer {
@@ -163,20 +238,23 @@ declare module "ai.matey/mock" {
 
   // ReWriter Types
   export interface ReWriterOptions extends SessionOptions {
-    tone?: 'formal' | 'casual' | 'neutral';
-    goal?: 'simplify' | 'formalize' | 'constructive' | 'improve';
+    tone?: "formal" | "casual" | "neutral";
+    goal?: "simplify" | "formalize" | "constructive" | "improve";
     sharedContext?: string;
   }
 
   export interface ReWriteOptions {
-    tone?: 'formal' | 'casual' | 'neutral';
-    goal?: 'simplify' | 'formalize' | 'constructive' | 'improve';
+    tone?: "formal" | "casual" | "neutral";
+    goal?: "simplify" | "formalize" | "constructive" | "improve";
     context?: string;
   }
 
   export interface ReWriterSession extends AILanguageModelSession {
     rewrite(text: string, options?: ReWriteOptions): Promise<string>;
-    rewriteStreaming(text: string, options?: ReWriteOptions): Promise<ReadableStream>;
+    rewriteStreaming(
+      text: string,
+      options?: ReWriteOptions
+    ): Promise<ReadableStream>;
   }
 
   export interface ReWriter {

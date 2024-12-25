@@ -1,6 +1,6 @@
 {
   "name": "ai.matey",
-  "version": "0.0.16",
+  "version": "0.0.17",
   "main": "./openai/index.mjs",
   "types": "types/ai.matey.d.ts",
   "exports": {
@@ -15,9 +15,17 @@
       "types": "./types/ai.matey.d.ts",
       "default": "./openai/index.mjs"
     },
+    "./ollama/ollama": {
+      "types": "./types/ai.matey.d.ts",
+      "default": "./ollama/index.mjs"
+    },
     "./gemini": {
       "types": "./types/ai.matey.d.ts",
       "default": "./gemini/index.mjs"
+    },
+    "./anthropic": {
+      "types": "./types/ai.matey.d.ts",
+      "default": "./anthropic/index.mjs"
     },
     "./types/languageModel": "./types/languageModel.d.ts",
     "./types/summarizer": "./types/summarizer.d.ts",

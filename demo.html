@@ -1,0 +1,73 @@
+<!DOCTYPE >
+<html>
+  <head>
+    <title>AI.Matey Playground</title>
+  </head>
+  <body>
+    <div id="content-area"></div>
+    <script type="module">
+      // import Ollama from "./openai/ollama.mjs";
+      import OpenAI from "./openai/index.mjs";
+      import Gemini from "./gemini/index.mjs";
+      import Anthropic from "./anthropic/index.mjs";
+      const ENV = await fetch("web.env.local.json")
+        .then((response) => response.json())
+        .catch((e) => {
+          console.error(
+            "Error loading environment variables from web.env.local.json",
+            e
+          );
+          return {};
+        });
+      const ais = {
+        // ollama: new Ollama(),
+      };
+      for (const [key, value] of Object.entries(ENV)) {
+        if (key === "OPEN_AI_API_KEY") {
+          ais.OPENAI = new OpenAI({
+            credentials: {
+              apiKey: value,
+            },
+          });
+        } else if (key === "GEMINI_API_KEY") {
+          ais.GEMINI = new Gemini({
+            credentials: {
+              apiKey: value,
+            },
+          });
+        } else if (key === "ANTHROPIC_API_KEY") {
+          ais.ANTHROPIC = new Anthropic({
+            credentials: {
+              apiKey: value,
+            },
+          });
+        }
+      }
+      for (const [name, ai] of Object.entries(ais)) {
+        try {
+          console.log(`Using ${name}`);
+          // Use the language model
+          const model = await ai.languageModel.create();
+          const response = await model.prompt("Tell me a story");
+          console.log(response);
+
+          // Use the writer
+          const writer = await ai.writer.create();
+          const text = await writer.write("Write a blog post about AI", {
+            tone: "casual",
+          });
+          console.log(text);
+
+          // Use the summarizer
+          const summarizer = await ai.summarizer.create();
+          const summary = await summarizer.summarize(text, { type: "tl;dr" });
+          console.log(summary);
+        } catch (e) {
+          console.error(`Error using ${name}:${e.message}`);
+        } finally {
+          console.log(`Finished using ${name}`);
+        }
+      }
+    </script>
+  </body>
+</html>

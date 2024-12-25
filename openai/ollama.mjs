@@ -5,8 +5,8 @@ const { AI, Summarizer, Writer, ReWriter } = assemble(
   Capabilities,
   LanguageModel,
   {
-    endpoint: "https://api.anthropic.com",
-    model: "claude-3-5-haiku-latest",
+    endpoint: "http://localhost:11434",
+    model: "llama3.2:latest",
   }
 );
 export { AI, LanguageModel, Summarizer, Writer, ReWriter };
