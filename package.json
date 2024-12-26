@@ -1,6 +1,6 @@
 {
   "name": "ai.matey",
-  "version": "0.0.17",
+  "version": "0.0.18",
   "main": "./openai/index.mjs",
   "types": "types/ai.matey.d.ts",
   "exports": {
@@ -15,9 +15,13 @@
       "types": "./types/ai.matey.d.ts",
       "default": "./openai/index.mjs"
     },
-    "./ollama/ollama": {
+    "./ollama/": {
       "types": "./types/ai.matey.d.ts",
       "default": "./ollama/index.mjs"
+    },
+    "./mistral/": {
+      "types": "./types/ai.matey.d.ts",
+      "default": "./mistral/index.mjs"
     },
     "./gemini": {
       "types": "./types/ai.matey.d.ts",

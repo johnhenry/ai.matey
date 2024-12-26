@@ -15,10 +15,13 @@ To help work with chrome's experimental [window.ai API](https://developer.chrome
 
 - Multiple **API-compatible clients** that mirror window.ai. They can be used as drop-in replacements for the window.ai, - but backed by popular AI Services:
 
-- _ollama_
-- _openai_
-- _gemini_
-- _anthropic_
+  - _openai_
+  - _gemini_
+  - _anthropic_
+  - _ollama_ [^1]
+  - _mistral_ [^1]
+
+[^1]: _ollama_ and _mistral_ are implemented atop the _openai_ api, but with default endpoints pointing to their respective service URLs.
 
 ## Documentation: Chrome AI API
 
@@ -48,14 +51,14 @@ import ai from "ai.matey/mock";
 #### Via CDN
 
 ```javascript
-import * as ai from "https://cdn.jsdelivr.net/npm/ai.matey@0.0.17/mock/index.mjs";
+import * as ai from "https://cdn.jsdelivr.net/npm/ai.matey@0.0.18/mock/index.mjs";
 //...
 ```
 
 OR
 
 ```javascript
-import * as ai from "https://ga.jspm.io/npm:ai.matey@0.0.17/mock/index.mjs";
+import * as ai from "https://ga.jspm.io/npm:ai.matey@0.0.18/mock/index.mjs";
 //...
 ```
 
@@ -106,10 +109,11 @@ npm install ai.matey
 
 To use the a client, import the mock from `ai.matey/<implementation name>`;
 
-- `import AI from "ai.matey/ollama"`
-- `import AI from "ai.matey/openai"`
-- `import AI from "ai.matey/gemini"`
-- `import AI from "ai.matey/anthropic"`
+- `import AI from "ai.matey/ollama";`
+- `import AI from "ai.matey/openai";`
+- `import AI from "ai.matey/gemini";`
+- `import AI from "ai.matey/anthropic";`
+- `import AI from "ai.matey/mistral";`
 
 ##### Example
 
@@ -125,7 +129,7 @@ const ai = new AI(/* options */);
 You can also import the clients directly from the CDN
 
 ```javascript
-import AI from "https://cdn.jsdelivr.net/npm/ai.matey@0.0.17/ollama/index.mjs";
+import AI from "https://cdn.jsdelivr.net/npm/ai.matey@0.0.18/ollama/index.mjs";
 const ai = new AI(/* options */);
 
 //...
@@ -134,7 +138,7 @@ const ai = new AI(/* options */);
 OR
 
 ```javascript
-import AI from "https://ga.jspm.io/npm:ai.matey@0.0.17/ollama/index.mjs";
+import AI from "https://ga.jspm.io/npm:ai.matey@0.0.18/ollama/index.mjs";
 const ai = new AI(/* options */);
 //...
 ```

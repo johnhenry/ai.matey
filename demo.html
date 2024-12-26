@@ -6,10 +6,11 @@
   <body>
     <div id="content-area"></div>
     <script type="module">
-      // import Ollama from "./openai/ollama.mjs";
+      import Ollama from "./openai/ollama.mjs";
       import OpenAI from "./openai/index.mjs";
       import Gemini from "./gemini/index.mjs";
       import Anthropic from "./anthropic/index.mjs";
+      import Mistral from "./mistral/index.mjs";
       const ENV = await fetch("web.env.local.json")
         .then((response) => response.json())
         .catch((e) => {
@@ -19,28 +20,44 @@
           );
           return {};
         });
-      const ais = {
-        // ollama: new Ollama(),
-      };
+      const ais = {};
       for (const [key, value] of Object.entries(ENV)) {
-        if (key === "OPEN_AI_API_KEY") {
-          ais.OPENAI = new OpenAI({
-            credentials: {
-              apiKey: value,
-            },
-          });
-        } else if (key === "GEMINI_API_KEY") {
-          ais.GEMINI = new Gemini({
-            credentials: {
-              apiKey: value,
-            },
-          });
-        } else if (key === "ANTHROPIC_API_KEY") {
-          ais.ANTHROPIC = new Anthropic({
-            credentials: {
-              apiKey: value,
-            },
-          });
+        switch (key) {
+          // case "OLLAMA_API_KEY":
+          //   ais.OPENAI = new Ollama({
+          //     credentials: {
+          //       apiKey: value,
+          //     },
+          //   });
+          //   break;
+          // case "OPEN_AI_API_KEY":
+          //   ais.OPENAI = new OpenAI({
+          //     credentials: {
+          //       apiKey: value,
+          //     },
+          //   });
+          //   break;
+          // case "GEMINI_API_KEY":
+          //   ais.GEMINI = new Gemini({
+          //     credentials: {
+          //       apiKey: value,
+          //     },
+          //   });
+          //   break;
+          // case "ANTHROPIC_API_KEY":
+          //   ais.ANTHROPIC = new Anthropic({
+          //     credentials: {
+          //       apiKey: value,
+          //     },
+          //   });
+          //   break;
+          case "MISTRAL_API_KEY":
+            ais.MISTRAL = new Mistral({
+              credentials: {
+                apiKey: value,
+              },
+            });
+            break;
         }
       }
       for (const [name, ai] of Object.entries(ais)) {
