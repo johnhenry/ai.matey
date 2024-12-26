@@ -23,34 +23,34 @@
       const ais = {};
       for (const [key, value] of Object.entries(ENV)) {
         switch (key) {
-          // case "OLLAMA_API_KEY":
-          //   ais.OPENAI = new Ollama({
-          //     credentials: {
-          //       apiKey: value,
-          //     },
-          //   });
-          //   break;
-          // case "OPEN_AI_API_KEY":
-          //   ais.OPENAI = new OpenAI({
-          //     credentials: {
-          //       apiKey: value,
-          //     },
-          //   });
-          //   break;
-          // case "GEMINI_API_KEY":
-          //   ais.GEMINI = new Gemini({
-          //     credentials: {
-          //       apiKey: value,
-          //     },
-          //   });
-          //   break;
-          // case "ANTHROPIC_API_KEY":
-          //   ais.ANTHROPIC = new Anthropic({
-          //     credentials: {
-          //       apiKey: value,
-          //     },
-          //   });
-          //   break;
+          case "OLLAMA_API_KEY":
+            ais.OLLAMA = new Ollama({
+              credentials: {
+                apiKey: value,
+              },
+            });
+            break;
+          case "OPEN_AI_API_KEY":
+            ais.OPENAI = new OpenAI({
+              credentials: {
+                apiKey: value,
+              },
+            });
+            break;
+          case "GEMINI_API_KEY":
+            ais.GEMINI = new Gemini({
+              credentials: {
+                apiKey: value,
+              },
+            });
+            break;
+          case "ANTHROPIC_API_KEY":
+            ais.ANTHROPIC = new Anthropic({
+              credentials: {
+                apiKey: value,
+              },
+            });
+            break;
           case "MISTRAL_API_KEY":
             ais.MISTRAL = new Mistral({
               credentials: {
@@ -60,6 +60,9 @@
             break;
         }
       }
+      // if (window.ai) {
+      //   ais.CHROME = window.ai;
+      // }
       for (const [name, ai] of Object.entries(ais)) {
         try {
           console.log(`Using ${name}`);
