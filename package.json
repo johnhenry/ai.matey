@@ -23,6 +23,10 @@
       "types": "./types/ai.matey.d.ts",
       "default": "./mistral/index.mjs"
     },
+    "./groq/": {
+      "types": "./types/ai.matey.d.ts",
+      "default": "./groq/index.mjs"
+    },
     "./gemini": {
       "types": "./types/ai.matey.d.ts",
       "default": "./gemini/index.mjs"

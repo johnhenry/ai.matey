@@ -20,8 +20,9 @@ To help work with chrome's experimental [window.ai API](https://developer.chrome
   - _anthropic_
   - _ollama_ [^1]
   - _mistral_ [^1]
+  - _groq_ [^1]
 
-[^1]: _ollama_ and _mistral_ are implemented atop the _openai_ api, but with default endpoints pointing to their respective service URLs.
+[^1]: These are implemented atop the _openai_ api, but with default endpoints pointing to their respective service URLs.
 
 ## Documentation: Chrome AI API
 
@@ -114,6 +115,7 @@ To use the a client, import the mock from `ai.matey/<implementation name>`;
 - `import AI from "ai.matey/gemini";`
 - `import AI from "ai.matey/anthropic";`
 - `import AI from "ai.matey/mistral";`
+- `import AI from "ai.matey/groq";`
 
 ##### Example
 

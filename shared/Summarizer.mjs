@@ -1,5 +1,4 @@
 const create = (Session_, Capabilities) => {
-
   class Session extends Session_ {
     #sharedContext = "";
     constructor(options = {}, useWindowAI = false, config = {}) {
@@ -26,7 +25,8 @@ const create = (Session_, Capabilities) => {
       }
 
       prompt += "Text to summarize:\n" + text + "\n\n";
-      prompt += "Provide ONLY the requested summary in the following format:\n\n";
+      prompt +=
+        "Provide ONLY the requested summary in the following format:\n\n";
 
       switch (type) {
         case "headline":
@@ -41,6 +41,10 @@ const create = (Session_, Capabilities) => {
           break;
         case "teaser":
           prompt += "Write a teaser summary that piques interest.";
+          break;
+        case "table":
+          prompt +=
+            "Create a table summarizing the information using markdown.";
           break;
         default: // paragraph
           prompt += `Write a ${length} summary in paragraph form.`;
@@ -80,5 +84,5 @@ const create = (Session_, Capabilities) => {
   }
 
   return { Session, Summarizer };
-}
+};
 export default create;

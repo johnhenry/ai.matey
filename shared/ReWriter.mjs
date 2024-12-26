@@ -1,5 +1,4 @@
 const create = (Session_, Capabilities) => {
-
   class Session extends Session_ {
     #sharedContext = "";
     constructor(options = {}, useWindowAI = false, config = {}) {
@@ -34,13 +33,18 @@ const create = (Session_, Capabilities) => {
         case "markdown":
           prompt += "- Provide the rewritten text in markdown format\n";
           break;
+        case "proofread":
+          prompt +=
+            "- Provide the rewritten text in the same format as the original; but fix spelling and grammatical error.\n";
+          break;
         default: // as-is
           prompt +=
             "- Provide the rewritten text in the same format as the original\n";
       }
       switch (length) {
         case "shorter":
-          prompt += "- Make it shorter while maintaining the original meaning\n";
+          prompt +=
+            "- Make it shorter while maintaining the original meaning\n";
           break;
         case "longer":
           prompt += "- Make it longer while maintaining the original meaning\n";
@@ -95,5 +99,5 @@ const create = (Session_, Capabilities) => {
     }
   }
   return { Session, ReWriter };
-}
+};
 export default create;
