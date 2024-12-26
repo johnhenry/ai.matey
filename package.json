@@ -1,6 +1,6 @@
 {
   "name": "ai.matey",
-  "version": "0.0.19",
+  "version": "0.0.20",
   "main": "./openai/index.mjs",
   "types": "types/ai.matey.d.ts",
   "exports": {
