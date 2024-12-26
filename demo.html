@@ -12,11 +12,12 @@
       import Anthropic from "./anthropic/index.mjs";
       import Mistral from "./mistral/index.mjs";
       import Groq from "./groq/index.mjs";
-      const ENV = await fetch("web.env.local.json")
-        .then((response) => response.json())
+
+      const ENV = await import("./web.env.local.mjs")
+        .then((response) => response.default)
         .catch((e) => {
           console.error(
-            "Error loading environment variables from web.env.local.json",
+            "Error loading environment variables from web.env.local.mjs:",
             e
           );
           return {};

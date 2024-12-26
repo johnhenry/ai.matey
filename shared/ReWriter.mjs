@@ -25,46 +25,46 @@ const create = (Session_, Capabilities) => {
       }
 
       prompt += "Original text:\n" + text + "\n\n";
-      prompt += "Rewrite the text with the following requirements:\n";
+      prompt += "Rewrite the text with the following requirements:";
       switch (format) {
         case "plain-text":
-          prompt += "- Provide the rewritten text in plain text\n";
+          prompt += "- Provide the rewritten text in plain text";
           break;
         case "markdown":
-          prompt += "- Provide the rewritten text in markdown format\n";
+          prompt += "- Provide the rewritten text in markdown format";
           break;
         case "proofread":
           prompt +=
-            "- Provide the rewritten text in the same format as the original; but fix spelling and grammatical error.\n";
+            "- Provide the rewritten exactly as the original; but fix errors in spelling, grammar, and punctuation";
           break;
         default: // as-is
           prompt +=
-            "- Provide the rewritten text in the same format as the original\n";
+            "- Provide the rewritten text in the same format as the original";
       }
       switch (length) {
         case "shorter":
           prompt +=
-            "- Make it shorter while maintaining the original meaning\n";
+            "- Make it shorter while maintaining the original meaning";
           break;
         case "longer":
-          prompt += "- Make it longer while maintaining the original meaning\n";
+          prompt += "- Make it longer while maintaining the original meaning";
           break;
         default: // as-is
-          prompt += "- Keep the length as-is\n";
+          prompt += "- Keep the length as-is";
       }
       switch (tone) {
         case "more-formal":
-          prompt += "- Use a more formal tone\n";
+          prompt += "- Use a more formal tone";
           break;
         case "more-casual":
-          prompt += "- Use a more casual tone\n";
+          prompt += "- Use a more casual tone";
           break;
         default: // as-is
-          prompt += "- Keep the tone as-is\n";
+          prompt += "- Keep the tone as-is";
       }
 
       prompt +=
-        "\nProvide ONLY the rewritten text with no additional commentary.";
+        "\n\nProvide ONLY the rewritten text with no additional commentary.";
 
       return prompt;
     }

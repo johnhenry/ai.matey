@@ -2,15 +2,6 @@
 <html>
   <head>
     <title>AI.Matey Playground</title>
-    <script type="importmap">
-      {
-        "imports": {
-          "ai.matey/openai": "https://cdn.jsdelivr.net/npm/ai.matey@0.0.16/openai/index.mjs",
-          "ai.matey/mock": "https://cdn.jsdelivr.net/npm/ai.matey@0.0.16/mock/index.mjs",
-          "ai.matey/mock/polyfill": "https://cdn.jsdelivr.net/npm/ai.matey@0.0.16/mock/polyfill.mjs"
-        }
-      }
-    </script>
     <style>
       * {
         box-sizing: border-box;
@@ -595,7 +586,7 @@ Write a poem about space travel</textarea
 
     <script type="module">
       import mockAI from "./mock/index.mjs";
-      import OpenAI from "ai.matey/openai";
+      import OpenAI from "./ollama/index.mjs";
 
       const state = {
         implementation: "mock",

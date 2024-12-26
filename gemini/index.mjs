@@ -6,7 +6,7 @@ const { AI, Summarizer, Writer, ReWriter } = assemble(
   LanguageModel,
   {
     endpoint: "https://generativelanguage.googleapis.com",
-    model: "llama3.2:latest",
+    model: "gemini-2.0-flash-exp",
   }
 );
 export { AI, LanguageModel, Summarizer, Writer, ReWriter };

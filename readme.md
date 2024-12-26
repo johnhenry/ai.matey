@@ -5,22 +5,21 @@
 > [!TIP]
 > ai.matey works well with [ai.captain](https://www.npmjs.com/package/ai.captain)
 
-## Docs, Mocks, and a Knockoff
-
 To help work with chrome's experimental [window.ai API](https://developer.chrome.com/docs/ai/built-in-apis) this package provides:
 
 - **Documentation** for the window.ai API [here](https://github.com/johnhenry/ai.matey/blob/main/docs/api.md)
 
 - A **mock implementation** of window.ai and it's sub-modules that can be used for testing.
 
-- Multiple **API-compatible clients** that mirror window.ai. They can be used as drop-in replacements for the window.ai, - but backed by popular AI Services:
-
+- Multiple **API-Compatible clients** that mirror `window.ai`.
   - _openai_
   - _gemini_
   - _anthropic_
   - _ollama_ [^1]
   - _mistral_ [^1]
   - _groq_ [^1]
+
+They can be used as drop-in replacements for `window.ai` or as standalone clients.
 
 [^1]: These are implemented atop the _openai_ api, but with default endpoints pointing to their respective service URLs.
 
@@ -52,21 +51,14 @@ import ai from "ai.matey/mock";
 #### Via CDN
 
 ```javascript
-import * as ai from "https://cdn.jsdelivr.net/npm/ai.matey@0.0.18/mock/index.mjs";
-//...
-```
-
-OR
-
-```javascript
-import * as ai from "https://ga.jspm.io/npm:ai.matey@0.0.18/mock/index.mjs";
-//...
+import ai from "https://cdn.jsdelivr.net/npm/ai.matey@0.0.19/mock/index.mjs";
+// OR "https://ga.jspm.io/npm:ai.matey@0.0.19/mock/index.mjs"
 ```
 
 ### Example
 
 ```javascript
-import * as ai from "ai.matey/mock";
+import ai from "ai.matey/mock";
 const model = await ai.languageModel.create();
 const poem = await model.prompt("write a poem");
 console.log(poem);
@@ -110,61 +102,69 @@ npm install ai.matey
 
 To use the a client, import the mock from `ai.matey/<implementation name>`;
 
-- `import AI from "ai.matey/ollama";`
-- `import AI from "ai.matey/openai";`
-- `import AI from "ai.matey/gemini";`
-- `import AI from "ai.matey/anthropic";`
-- `import AI from "ai.matey/mistral";`
-- `import AI from "ai.matey/groq";`
-
-##### Example
-
-```javascript
-import AI from "ai.matey/ollama";
-// Instantiate w/ options
-const ai = new AI(/* options */);
-//...
-```
+- `import Ollama from "ai.matey/ollama";`
+- `import OpenAI from "ai.matey/openai";`
+- `import Gemini from "ai.matey/gemini";`
+- `import Anthropic from "ai.matey/anthropic";`
+- `import Mistral from "ai.matey/mistral";`
+- `import Groq from "ai.matey/groq";`
 
 #### Via CDN
 
-You can also import the clients directly from the CDN
+Import the clients directly from the CDN
 
 ```javascript
-import AI from "https://cdn.jsdelivr.net/npm/ai.matey@0.0.18/ollama/index.mjs";
-const ai = new AI(/* options */);
-
-//...
+import Ollama from "https://cdn.jsdelivr.net/npm/ai.matey@0.0.19/ollama/index.mjs";
+// OR "https://ga.jspm.io/npm:ai.matey@0.0.19/ollama/index.mjs"
+const ai = new Ollama();
 ```
 
-OR
+### Usage
+
+Each client is pre-configured with a default endpoint and model that can be overwritten.
+
+
+| Client    | Default Endpoint                          | Default Model          |
+| --------- | ----------------------------------------- | ---------------------- |
+| Ollama    | http://localhost:11434                    | llama3.2:latest        |
+| OpenAI    | https://api.openai.com                    | gpt-4o-mini            |
+| Gemini    | https://generativelanguage.googleapis.com | gemini-2.0-flash-exp   |
+| Anthropic | https://api.anthropic.com                 | claude-3-opus-20240229 |
+| Mistral   | https://api.mistral.ai                    | mistral-small-latest   |
+| Groq      | https://api.groq.com/openai               | llama3-8b-8192         |
+
+Except for the Ollama, you must provide a `credentials` object with a valid `apiKey` property in the constructor's settings object.
 
 ```javascript
-import AI from "https://ga.jspm.io/npm:ai.matey@0.0.18/ollama/index.mjs";
-const ai = new AI(/* options */);
-//...
-```
-
-## Usage
-
-Create an instance of the client using via the costructor.
-
-### Example
-
-```javascript
-import AI from "ai.matey/openai";
-const ai = new AI({
-  endpoint: "http://localhost:11434/v1/chat/completions",
+import Client from "ai.matey/<client name>";
+const ai = new Client({
+  endpoint: "<endpoint>", // optional
+  model: "<model>", // optional
   credentials: {
-    apiKey: "123",
+    apiKey: "<api key>", // required, except for Ollama client
   },
-  model: "llama3.2:latest",
 });
-const model = await window.ai.languageModel.create();
+```
+
+#### Example: Ollama
+
+```javascript
+import Ollama from "ai.matey/ollama";
+// Instantiate w/ options
+const ai = new Ollama();
+// use the newly created `ai` object as you would `window.ai`
+const model = await ai.languageModel.create();
 const poem = await model.prompt("write a poem");
 console.log(poem);
 ```
 
+##### Example: OpenAI
+
+```javascript
+import OpenAI from "ai.matey/openai";
+const ai = new OpenAI({ credentials: { apiKey: "<OPEN_AI_API_KEY>" } }); // use default endpoing
+```
+
 ## Playground/Demo
 
-Check out playground in this repositrory. Run a static sterver (npx live-server .) and navigate to playground.html
+Check out the playground in this repositrory. Run a static sterver (`npx live-server .`) and navigate to playground.html
