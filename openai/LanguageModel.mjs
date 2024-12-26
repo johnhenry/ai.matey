@@ -54,6 +54,7 @@ class Session {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${this.config.credentials?.apiKey || ""}`,
+          "Accept": "text/event-stream",
         },
         body: JSON.stringify({
           model: this.config.model,
@@ -71,41 +72,49 @@ class Session {
       }
     );
 
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`HTTP error! status: ${response.status}, body: ${error}`);
+    }
+
     return (async function* () {
-      const decoder = new TextDecoder();
-      for await (const chunk of response.body) {
-        const text = decoder.decode(new Uint8Array(chunk));
-        // Split into separate messages
-        const messages = text.split("\n");
+      const reader = response.body
+        .pipeThrough(new TextDecoderStream())
+        .getReader();
 
-        for (const message of messages) {
-          // Skip empty messages
-          if (!message.trim()) continue;
+      let buffer = "";
+      
+      try {
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          
+          buffer += value;
+          const lines = buffer.split("\n");
+          buffer = lines.pop() || ""; // Keep the last incomplete line in buffer
 
-          // Extract the JSON data after "data: "
-          const jsonStr = message.replace("data: ", "").trim();
-          // Return if it's the `[DONE]` message
-          if (jsonStr === "[DONE]") {
-            return;
-          }
-
-          try {
-            const data = JSON.parse(jsonStr);
-            // Get the content if it exists in the delta
-            const { content } =
-              "delta" in data.choices[0]
-                ? data.choices[0].delta
-                : data.choices[0];
-            if (content) {
-              yield content;
-            }
-          } catch (e) {
-            // Skip parsing errors for empty or incomplete messages
-            if (message.trim() && !message.includes("data: ")) {
-              throw new Error("Failed to parse JSON stream: " + e?.message);
+          for (const line of lines) {
+            const trimmedLine = line.trim();
+            if (!trimmedLine || trimmedLine === "data: [DONE]") continue;
+            
+            if (trimmedLine.startsWith("data: ")) {
+              try {
+                const jsonStr = trimmedLine.slice(6); // Remove "data: " prefix
+                const data = JSON.parse(jsonStr);
+                if (data.choices?.[0]?.delta?.content) {
+                  yield data.choices[0].delta.content;
+                } else if (data.choices?.[0]?.message?.content) {
+                  yield data.choices[0].message.content;
+                }
+              } catch (error) {
+                console.error("Failed to parse SSE message:", trimmedLine);
+                console.error("Parse error:", error);
+              }
             }
           }
         }
+      } finally {
+        reader.releaseLock();
       }
     })();
   }

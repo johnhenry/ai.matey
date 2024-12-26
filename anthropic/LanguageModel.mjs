@@ -56,6 +56,7 @@ class Session {
         "x-api-key": this.config.credentials?.apiKey || "",
         "anthropic-version": "2023-06-01",
         "anthropic-dangerous-direct-browser-access": "true",
+        "Accept": "text/event-stream",
       },
       body: JSON.stringify({
         model: this.config.model || "claude-3-opus-20240229",
@@ -72,36 +73,80 @@ class Session {
       }),
     });
 
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`HTTP error! status: ${response.status}, body: ${error}`);
+    }
+
     return (async function* () {
-      const decoder = new TextDecoder();
-      for await (const chunk of response.body) {
-        const text = decoder.decode(new Uint8Array(chunk));
-        // Split into separate messages
-        const messages = text.split("\n");
+      const reader = response.body
+        .pipeThrough(new TextDecoderStream())
+        .getReader();
 
-        for (const message of messages) {
-          // Skip empty messages
-          if (!message.trim()) continue;
+      let buffer = "";
+      let currentEvent = null;
+      
+      try {
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          
+          buffer += value;
+          const lines = buffer.split("\n");
+          buffer = lines.pop() || ""; // Keep the last incomplete line in buffer
 
-          // Extract the JSON data after "data: "
-          const jsonStr = message.replace("data: ", "").trim();
-          if (jsonStr === "[DONE]") {
-            return;
-          }
+          for (const line of lines) {
+            const trimmedLine = line.trim();
+            if (!trimmedLine) continue;
 
-          try {
-            const data = JSON.parse(jsonStr);
-            const content = data.content?.[0]?.text;
-            if (content) {
-              yield content;
+            if (trimmedLine.startsWith("event: ")) {
+              currentEvent = trimmedLine.slice(7);
+              continue;
             }
-          } catch (e) {
-            // Skip parsing errors for empty or incomplete messages
-            if (message.trim() && !message.includes("data: ")) {
-              throw new Error("Failed to parse JSON stream: " + e?.message);
+
+            if (trimmedLine.startsWith("data: ")) {
+              const data = trimmedLine.slice(6);
+              
+              if (data === "[DONE]") {
+                return;
+              }
+
+              try {
+                const parsed = JSON.parse(data);
+                
+                // Handle different event types
+                switch (currentEvent) {
+                  case "message_start":
+                    // Message started, nothing to yield yet
+                    break;
+                  case "content_block_start":
+                    // Content block started, nothing to yield yet
+                    break;
+                  case "content_block_delta":
+                    if (parsed.delta?.text) {
+                      yield parsed.delta.text;
+                    }
+                    break;
+                  case "message_delta":
+                    if (parsed.delta?.content?.[0]?.text) {
+                      yield parsed.delta.content[0].text;
+                    }
+                    break;
+                  default:
+                    // For any other event, try to extract content if available
+                    if (parsed.content?.[0]?.text) {
+                      yield parsed.content[0].text;
+                    }
+                }
+              } catch (error) {
+                console.error("Failed to parse SSE message:", trimmedLine);
+                console.error("Parse error:", error);
+              }
             }
           }
         }
+      } finally {
+        reader.releaseLock();
       }
     })();
   }
