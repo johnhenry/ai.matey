@@ -1,4 +1,6 @@
-const create = (Session_, Capabilities) => {
+import capabilities from "./capabilities.mjs";
+
+const create = (Session_) => {
   class Session extends Session_ {
     #sharedContext = "";
   
@@ -48,16 +50,8 @@ const create = (Session_, Capabilities) => {
     constructor(config = {}) {
       this.config = config;
       this.useWindowAI = Object.keys(config).length === 0;
+      this.capabilities = capabilities.bind(this);
     }
-  
-    async capabilities() {
-      if (this.useWindowAI) {
-        return await window.ai.languageModel.capabilities();
-      }
-      // For OpenAI endpoints, return default capabilities
-      return Capabilities;
-    }
-  
     async create(options = {}) {
       return new Session(options, this.useWindowAI, this.config);
     }

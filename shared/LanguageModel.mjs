@@ -1,16 +1,10 @@
-
-const create = (Session, Capabilities) => {
+import capabilities from "./capabilities.mjs";
+const create = (Session) => {
   class LanguageModel {
     constructor(config = {}) {
       this.config = config;
       this.useWindowAI = Object.keys(config).length === 0;
-    }
-    async capabilities() {
-      if (this.useWindowAI) {
-        return await window.ai.languageModel.capabilities();
-      }
-      // For OpenAI endpoints, return default capabilities
-      return Capabilities;
+      this.capabilities = capabilities.bind(this);
     }
     async create(options = {}) {
       return new Session(options, this.useWindowAI, this.config);
