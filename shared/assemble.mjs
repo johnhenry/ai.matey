@@ -1,7 +1,17 @@
+import createLanguageModel from "./LanguageModel.mjs";
 import createSummarizer from "./Summarizer.mjs";
 import createWriter from "./Writer.mjs";
 import createReWriter from "./ReWriter.mjs";
-const assemble = (Session, Capabilities, LanguageModel, initialConfig = {}) => {
+// TODO: Should Capabilities be different per model?
+const Capabilities = {
+  available: "readily",
+  defaultTopK: 3,
+  maxTopK: 8,
+  defaultTemperature: 1.0,
+};
+const assemble = (Session, initialConfig = {}) => {
+  const { LanguageModel } = createLanguageModel(
+    Session, Capabilities);
   const { Summarizer } = createSummarizer(Session, Capabilities);
   const { Writer } = createWriter(Session, Capabilities);
   const { ReWriter } = createReWriter(Session, Capabilities);

@@ -1,13 +1,9 @@
-import { LanguageModel, Session, Capabilities } from "./LanguageModel.mjs";
 import { assemble } from "../shared/assemble.mjs";
-const { AI, Summarizer, Writer, ReWriter } = assemble(
+import Session from "./Session.mjs";
+import config from "./config.mjs";
+const { LanguageModel, AI, Summarizer, Writer, ReWriter } = assemble(
   Session,
-  Capabilities,
-  LanguageModel,
-  {
-    endpoint: "https://generativelanguage.googleapis.com",
-    model: "gemini-2.0-flash-exp",
-  }
+  config
 );
 export { AI, LanguageModel, Summarizer, Writer, ReWriter };
 export default AI;

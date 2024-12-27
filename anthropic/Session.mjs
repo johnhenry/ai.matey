@@ -113,7 +113,7 @@ class Session {
 
               try {
                 const parsed = JSON.parse(data);
-                
+
                 // Handle different event types
                 switch (currentEvent) {
                   case "message_start":
@@ -160,34 +160,4 @@ class Session {
   }
 }
 
-const Capabilities = {
-  available: "readily",
-  defaultTemperature: 1.0,
-  maxTemperature: 2.0,
-  defaultMaxTokens: 4096,
-  maxMaxTokens: 4096,
-};
-
-class LanguageModel {
-  constructor(config = {}) {
-    this.config = {
-      ...config,
-    };
-    this.useWindowAI = Object.keys(config).length === 0;
-  }
-
-  async capabilities() {
-    if (this.useWindowAI) {
-      return await window.ai.languageModel.capabilities();
-    }
-    // For Anthropic API endpoints, return default capabilities
-    return Capabilities;
-  }
-
-  async create(options = {}) {
-    return new Session(options, this.useWindowAI, this.config);
-  }
-}
-
-export { LanguageModel, Session, Capabilities };
-export default LanguageModel;
+export default Session;

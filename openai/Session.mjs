@@ -127,31 +127,4 @@ class Session {
     // For OpenAI endpoints, no explicit cleanup needed
   }
 }
-const Capabilities = {
-  available: "readily",
-  defaultTopK: 3,
-  maxTopK: 8,
-  defaultTemperature: 1.0,
-};
-
-class LanguageModel {
-  constructor(config = {}) {
-    this.config = config;
-    this.useWindowAI = Object.keys(config).length === 0;
-  }
-
-  async capabilities() {
-    if (this.useWindowAI) {
-      return await window.ai.languageModel.capabilities();
-    }
-    // For OpenAI endpoints, return default capabilities
-    return Capabilities;
-  }
-
-  async create(options = {}) {
-    return new Session(options, this.useWindowAI, this.config);
-  }
-}
-
-export { LanguageModel, Session, Capabilities };
-export default LanguageModel;
+export default Session;

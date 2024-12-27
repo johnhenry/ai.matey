@@ -1,4 +1,4 @@
-import Ollama from "./openai/ollama.mjs";
+import Ollama from "./ollama/index.mjs";
 import OpenAI from "./openai/index.mjs";
 import Gemini from "./gemini/index.mjs";
 import Anthropic from "./anthropic/index.mjs";
