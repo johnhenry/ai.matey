@@ -4,6 +4,7 @@ import Gemini from "./gemini/index.mjs";
 import Anthropic from "./anthropic/index.mjs";
 import Mistral from "./mistral/index.mjs";
 import Groq from "./groq/index.mjs";
+import Nvidia from "./nvidia/index.mjs";
 
 const ENV = await import("./web.env.local.mjs")
   .then((response) => response.default)
@@ -14,19 +15,13 @@ const ENV = await import("./web.env.local.mjs")
     );
     return {};
   });
+console.log(ENV);
 const ais = {};
 for (const [key, value] of Object.entries(ENV)) {
   if (value === null) {
     continue;
   }
   switch (key) {
-    case "OLLAMA_API_KEY":
-      ais.OLLAMA = new Ollama({
-        credentials: {
-          apiKey: value,
-        },
-      });
-      break;
     case "OPEN_AI_API_KEY":
       ais.OPENAI = new OpenAI({
         credentials: {
@@ -57,6 +52,20 @@ for (const [key, value] of Object.entries(ENV)) {
       break;
     case "GROQ_API_KEY":
       ais.GROQ = new Groq({
+        credentials: {
+          apiKey: value,
+        },
+      });
+      break;
+    case "NVIDIA_API_KEY":
+      ais.NVIDIA = new Nvidia({
+        credentials: {
+          apiKey: value,
+        },
+      });
+      break;
+    case "OLLAMA_API_KEY":
+      ais.OLLAMA = new Ollama({
         credentials: {
           apiKey: value,
         },

@@ -1,6 +1,6 @@
 import { assemble } from "../shared/assemble.mjs";
 import Session from "../openai/Session.mjs";
-import { ollama as config } from "../openai/configs.mjs";
+import { nvidia as config } from "../openai/configs.mjs";
 const { LanguageModel, AI, Summarizer, Writer, ReWriter } = assemble(
   Session,
   config
