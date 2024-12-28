@@ -15,7 +15,6 @@ const ENV = await import("./web.env.local.mjs")
     );
     return {};
   });
-console.log(ENV);
 const ais = {};
 for (const [key, value] of Object.entries(ENV)) {
   if (value === null) {

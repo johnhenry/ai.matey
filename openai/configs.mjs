@@ -11,6 +11,6 @@ export const groq = {
     model: "llama3-8b-8192",
 };
 export const nvidia = {
-    endpoint: "https://integrate.api.nvidia.com/v1",
+    endpoint: "https://integrate.api.nvidia.com",
     model: "meta/llama-3.1-8b-instruct",
 };

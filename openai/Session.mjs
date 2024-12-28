@@ -11,16 +11,19 @@ class Session {
       const response = await session.prompt(prompt, options);
       return response;
     }
+    // Determine authentication header based on endpoint
+    const headers = {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${this.config.credentials?.apiKey || ""}`,
+      'Accept': 'application/json',
+    };
 
     // Use OpenAI-compatible endpoint
     const response = await fetch(
       `${this.config.endpoint}/v1/chat/completions`,
       {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${this.config.credentials?.apiKey || ""}`,
-        },
+        headers,
         body: JSON.stringify({
           model: this.config.model,
           messages: [
@@ -35,9 +38,17 @@ class Session {
         }),
       }
     );
-
-    const data = await response.json();
-    return data.choices[0].message.content;
+    if (!response.ok) {
+      const error = await response.text();
+      console.error("Error body:", error);
+      throw new Error(`HTTP error! status: ${response.status}, body: ${error}`);
+    }
+    try {
+      const data = await response.json();
+      return data.choices[0].message.content;
+    } catch (error) {
+      throw error;
+    }
   }
 
   async promptStreaming(prompt, options = {}) {
@@ -46,16 +57,19 @@ class Session {
       return session.promptStreaming(prompt, options);
     }
 
+    // Determine authentication header based on endpoint
+    const headers = {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${this.config.credentials?.apiKey || ""}`,
+      'Accept': 'text/event-stream',
+    };
+
     // Use OpenAI-compatible endpoint with streaming
     const response = await fetch(
       `${this.config.endpoint}/v1/chat/completions`,
       {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${this.config.credentials?.apiKey || ""}`,
-          "Accept": "text/event-stream",
-        },
+        headers,
         body: JSON.stringify({
           model: this.config.model,
           messages: [
@@ -107,9 +121,10 @@ class Session {
                   yield data.choices[0].message.content;
                 }
               } catch (error) {
-                console.error("Failed to parse SSE message:", trimmedLine);
                 console.error("Parse error:", error);
               }
+            } else {
+              console.warn("Unexpected line format:", trimmedLine);
             }
           }
         }
