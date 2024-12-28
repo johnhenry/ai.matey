@@ -18,6 +18,8 @@ To help work with chrome's experimental [window.ai API](https://developer.chrome
   - _ollama_ [^1]
   - _mistral_ [^1]
   - _groq_ [^1]
+  - _nvidia_ [^1]
+
 
 They can be used as drop-in replacements for `window.ai` or as standalone clients.
 
@@ -51,8 +53,8 @@ import ai from "ai.matey/mock";
 #### Via CDN
 
 ```javascript
-import ai from "https://cdn.jsdelivr.net/npm/ai.matey@0.0.20/mock/index.mjs";
-// OR "https://ga.jspm.io/npm:ai.matey@0.0.20/mock/index.mjs"
+import ai from "https://cdn.jsdelivr.net/npm/ai.matey@0.0.21/mock/index.mjs";
+// OR "https://ga.jspm.io/npm:ai.matey@0.0.21/mock/index.mjs"
 ```
 
 ### Example
@@ -108,14 +110,15 @@ To use the a client, import the mock from `ai.matey/<implementation name>`;
 - `import Anthropic from "ai.matey/anthropic";`
 - `import Mistral from "ai.matey/mistral";`
 - `import Groq from "ai.matey/groq";`
+- `import Nvidia from "ai.matey/nvidia";`
 
 #### Via CDN
 
 Import the clients directly from the CDN
 
 ```javascript
-import Ollama from "https://cdn.jsdelivr.net/npm/ai.matey@0.0.20/ollama/index.mjs";
-// OR "https://ga.jspm.io/npm:ai.matey@0.0.20/ollama/index.mjs"
+import Ollama from "https://cdn.jsdelivr.net/npm/ai.matey@0.0.21/ollama/index.mjs";
+// OR "https://ga.jspm.io/npm:ai.matey@0.0.21/ollama/index.mjs"
 const ai = new Ollama();
 ```
 
@@ -124,14 +127,15 @@ const ai = new Ollama();
 Each client is pre-configured with a default endpoint and model that can be overwritten.
 
 
-| Client    | Default Endpoint                          | Default Model          |
-| --------- | ----------------------------------------- | ---------------------- |
-| Ollama    | http://localhost:11434                    | llama3.2:latest        |
-| OpenAI    | https://api.openai.com                    | gpt-4o-mini            |
-| Gemini    | https://generativelanguage.googleapis.com | gemini-2.0-flash-exp   |
-| Anthropic | https://api.anthropic.com                 | claude-3-opus-20240229 |
-| Mistral   | https://api.mistral.ai                    | mistral-small-latest   |
-| Groq      | https://api.groq.com/openai               | llama3-8b-8192         |
+| Client    | Default Endpoint                          | Default Model              |
+| --------- | ----------------------------------------- | -------------------------- |
+| Ollama    | http://localhost:11434                    | llama3.2:latest            |
+| OpenAI    | https://api.openai.com                    | gpt-4o-mini                |
+| Gemini    | https://generativelanguage.googleapis.com | gemini-2.0-flash-exp       |
+| Anthropic | https://api.anthropic.com                 | claude-3-opus-20240229     |
+| Mistral   | https://api.mistral.ai                    | mistral-small-latest       |
+| Groq      | https://api.groq.com/openai               | llama3-8b-8192             |
+| Nvidia    | https://integrate.api.nvidia.com          | meta/llama-3.1-8b-instruct |
 
 Except for the Ollama, you must provide a `credentials` object with a valid `apiKey` property in the constructor's settings object.
 
