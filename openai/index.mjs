@@ -1,6 +1,6 @@
 import { assemble } from "../shared/assemble.mjs";
 import Session from "./Session.mjs";
-import config from "./config.mjs";
+import config from "./configs.mjs";
 const { LanguageModel, AI, Summarizer, Writer, ReWriter } = assemble(
   Session,
   config

@@ -14,3 +14,7 @@ export const nvidia = {
     endpoint: "https://integrate.api.nvidia.com",
     model: "meta/llama-3.1-8b-instruct",
 };
+export default {
+    endpoint: "https://api.openai.com",
+    model: "gpt-4o-mini",
+}
