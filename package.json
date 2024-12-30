@@ -15,19 +15,19 @@
       "types": "./types/ai.matey.d.ts",
       "default": "./openai/index.mjs"
     },
-    "./ollama/": {
+    "./ollama": {
       "types": "./types/ai.matey.d.ts",
       "default": "./ollama/index.mjs"
     },
-    "./mistral/": {
+    "./mistral": {
       "types": "./types/ai.matey.d.ts",
       "default": "./mistral/index.mjs"
     },
-    "./groq/": {
+    "./groq": {
       "types": "./types/ai.matey.d.ts",
       "default": "./groq/index.mjs"
     },
-    "./nvidia/": {
+    "./nvidia": {
       "types": "./types/ai.matey.d.ts",
       "default": "./groq/index.mjs"
     },
