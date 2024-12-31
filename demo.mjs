@@ -5,7 +5,7 @@ import Anthropic from "./anthropic/index.mjs";
 import Mistral from "./mistral/index.mjs";
 import Groq from "./groq/index.mjs";
 import Nvidia from "./nvidia/index.mjs";
-
+import HuggingFace from "./huggingface/index.mjs";
 const ENV = await import("./web.env.local.mjs")
   .then((response) => response.default)
   .catch((e) => {
@@ -63,6 +63,12 @@ for (const [key, value] of Object.entries(ENV)) {
         },
       });
       break;
+    case "HUGGINGFACE_API_KEY":
+      ais.HUGGINGFACE_API_KEY = new HuggingFace({
+        credentials: {
+          apiKey: value,
+        },
+      });
     case "OLLAMA_API_KEY":
       ais.OLLAMA = new Ollama({
         credentials: {

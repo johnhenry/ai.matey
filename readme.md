@@ -15,11 +15,11 @@ To help work with chrome's experimental [window.ai API](https://developer.chrome
   - _openai_
   - _gemini_
   - _anthropic_
+  - _huggingface_
   - _ollama_ [^1]
   - _mistral_ [^1]
   - _groq_ [^1]
   - _nvidia_ [^1]
-
 
 They can be used as drop-in replacements for `window.ai` or as standalone clients.
 
@@ -53,8 +53,8 @@ import ai from "ai.matey/mock";
 #### Via CDN
 
 ```javascript
-import ai from "https://cdn.jsdelivr.net/npm/ai.matey@0.0.22/mock/index.mjs";
-// OR "https://ga.jspm.io/npm:ai.matey@0.0.22/mock/index.mjs"
+import ai from "https://cdn.jsdelivr.net/npm/ai.matey@0.0.23/mock/index.mjs";
+// OR "https://ga.jspm.io/npm:ai.matey@0.0.23/mock/index.mjs"
 ```
 
 ### Example
@@ -111,14 +111,15 @@ To use the a client, import the mock from `ai.matey/<implementation name>`;
 - `import Mistral from "ai.matey/mistral";`
 - `import Groq from "ai.matey/groq";`
 - `import Nvidia from "ai.matey/nvidia";`
+- `import Huggingface from "ai.matey/huggingface";`
 
 #### Via CDN
 
 Import the clients directly from the CDN
 
 ```javascript
-import Ollama from "https://cdn.jsdelivr.net/npm/ai.matey@0.0.22/ollama/index.mjs";
-// OR "https://ga.jspm.io/npm:ai.matey@0.0.22/ollama/index.mjs"
+import Ollama from "https://cdn.jsdelivr.net/npm/ai.matey@0.0.23/ollama/index.mjs";
+// OR "https://ga.jspm.io/npm:ai.matey@0.0.23/ollama/index.mjs"
 const ai = new Ollama();
 ```
 

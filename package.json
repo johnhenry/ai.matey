@@ -31,6 +31,10 @@
       "types": "./types/ai.matey.d.ts",
       "default": "./groq/index.mjs"
     },
+    "./huggingface": {
+      "types": "./types/ai.matey.d.ts",
+      "default": "./huggingface/index.mjs"
+    },
     "./gemini": {
       "types": "./types/ai.matey.d.ts",
       "default": "./gemini/index.mjs"
