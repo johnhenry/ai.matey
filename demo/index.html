@@ -1,0 +1,42 @@
+<!DOCTYPE >
+<html>
+  <head>
+    <title>AI.Matey Playground</title>
+  </head>
+  <style>
+    main {
+      font-family: Arial, Helvetica, sans-serif;
+      > * {
+        padding: 0.5rem;
+      }
+      > :nth-child(5n + 1) {
+        font-weight: bold;
+        font-size: 2rem;
+        color: black;
+      }
+      > :nth-child(5n + 2) {
+        color: darkslategray;
+      }
+      > :nth-child(5n + 3) {
+        color: grey;
+      }
+      > :nth-child(5n + 4) {
+        color: darkgrey;
+      }
+      > :nth-child(5n + 5) {
+        color: lightgrey;
+      }
+    }
+  </style>
+  <body>
+    <main id="content-area"></main>
+    <script type="module">
+      import iterator from "./iterator.mjs";
+      for await (const value of iterator) {
+        const div = document.createElement("div");
+        div.textContent = value;
+        document.getElementById("content-area").appendChild(div);
+      }
+    </script>
+  </body>
+</html>
