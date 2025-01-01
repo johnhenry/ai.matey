@@ -145,7 +145,14 @@ export interface LanguageModel {
   destroy: () => void;
 }
 
-export class AI {
+export interface ai {
+  languageModel: LanguageModel;
+  summarizer: Summarizer;
+  writer: Writer;
+  rewriter: ReWriter;
+}
+
+export class AI implements ai{
   constructor(config: AIConfig);
   languageModel: LanguageModel;
   summarizer: Summarizer;
@@ -153,12 +160,7 @@ export class AI {
   rewriter: ReWriter;
 }
 
-export interface ai {
-  languageModel: LanguageModel;
-  summarizer: Summarizer;
-  writer: Writer;
-  rewriter: ReWriter;
-}
+
 declare module "ai.matey/gemini" {
   export default AI;
 }
