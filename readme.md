@@ -51,8 +51,8 @@ import ai from "ai.matey/mock";
 #### Via CDN
 
 ```javascript
-import ai from "https://cdn.jsdelivr.net/npm/ai.matey@0.0.23/mock/index.mjs";
-// OR "https://ga.jspm.io/npm:ai.matey@0.0.23/mock/index.mjs"
+import ai from "https://cdn.jsdelivr.net/npm/ai.matey@0.0.24/mock/index.mjs";
+// OR "https://ga.jspm.io/npm:ai.matey@0.0.24/mock/index.mjs"
 ```
 
 ### Example
@@ -116,8 +116,8 @@ To use the a client, import the mock from `ai.matey/<implementation name>`;
 Import the clients directly from the CDN
 
 ```javascript
-import Ollama from "https://cdn.jsdelivr.net/npm/ai.matey@0.0.23/ollama/index.mjs";
-// OR "https://ga.jspm.io/npm:ai.matey@0.0.23/ollama/index.mjs"
+import Ollama from "https://cdn.jsdelivr.net/npm/ai.matey@0.0.24/ollama/index.mjs";
+// OR "https://ga.jspm.io/npm:ai.matey@0.0.24/ollama/index.mjs"
 const ai = new Ollama();
 ```
 
