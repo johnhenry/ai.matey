@@ -136,7 +136,6 @@ Each client is pre-configured with a default endpoint and model that can be over
 | Groq        | https://api.groq.com/openai               | llama3-8b-8192                              |
 | Nvidia      | https://integrate.api.nvidia.com          | meta/llama-3.1-8b-instruct                  |
 
-
 Except for the Ollama, you must provide a `credentials` object with a valid `apiKey` property in the constructor's settings object.
 
 ```javascript
@@ -167,6 +166,18 @@ console.log(poem);
 ```javascript
 import OpenAI from "ai.matey/openai";
 const ai = new OpenAI({ credentials: { apiKey: "<OPEN_AI_API_KEY>" } }); // use default endpoing
+```
+
+##### Example: createClient
+
+The library also provides a `createClient` function that can be used to create
+any of the clients via name.
+
+```javascript
+import createClient from "ai.matey";
+const ai = createClient("openai", {
+  credentials: { apiKey: "<OPEN_AI_API_KEY>" },
+}); // use default endpoing
 ```
 
 ## Playground/Demo

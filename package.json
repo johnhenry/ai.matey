@@ -4,7 +4,7 @@
   "main": "./openai/index.mjs",
   "types": "types/ai.matey.d.ts",
   "exports": {
-    ".": "./openai/index.mjs",
+    ".": "./index.mjs",
     "./mock": {
       "types": "./types/ai.matey.d.ts",
       "default": "./mock/index.mjs"

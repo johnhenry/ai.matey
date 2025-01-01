@@ -1,12 +1,5 @@
-import Ollama from "./ollama/index.mjs";
-import OpenAI from "./openai/index.mjs";
-import Gemini from "./gemini/index.mjs";
-import Anthropic from "./anthropic/index.mjs";
-import Mistral from "./mistral/index.mjs";
-import Groq from "./groq/index.mjs";
-import Nvidia from "./nvidia/index.mjs";
-import HuggingFace from "./huggingface/index.mjs";
-const ENV = await import("./web.env.local.mjs")
+import createClient from "./index.mjs";
+const { api_keys } = await import("./web.env.local.mjs")
   .then((response) => response.default)
   .catch((e) => {
     console.error(
@@ -16,66 +9,14 @@ const ENV = await import("./web.env.local.mjs")
     return {};
   });
 const ais = {};
-for (const [key, value] of Object.entries(ENV)) {
+for (const [name, value] of Object.entries(api_keys)) {
   if (value === null) {
     continue;
   }
-  switch (key) {
-    case "OPEN_AI_API_KEY":
-      ais.OPENAI = new OpenAI({
-        credentials: {
-          apiKey: value,
-        },
-      });
-      break;
-    case "GEMINI_API_KEY":
-      ais.GEMINI = new Gemini({
-        credentials: {
-          apiKey: value,
-        },
-      });
-      break;
-    case "ANTHROPIC_API_KEY":
-      ais.ANTHROPIC = new Anthropic({
-        credentials: {
-          apiKey: value,
-        },
-      });
-      break;
-    case "MISTRAL_API_KEY":
-      ais.MISTRAL = new Mistral({
-        credentials: {
-          apiKey: value,
-        },
-      });
-      break;
-    case "GROQ_API_KEY":
-      ais.GROQ = new Groq({
-        credentials: {
-          apiKey: value,
-        },
-      });
-      break;
-    case "NVIDIA_API_KEY":
-      ais.NVIDIA = new Nvidia({
-        credentials: {
-          apiKey: value,
-        },
-      });
-      break;
-    case "HUGGINGFACE_API_KEY":
-      ais.HUGGINGFACE_API_KEY = new HuggingFace({
-        credentials: {
-          apiKey: value,
-        },
-      });
-    case "OLLAMA_API_KEY":
-      ais.OLLAMA = new Ollama({
-        credentials: {
-          apiKey: value,
-        },
-      });
-      break;
+  try {
+    ais[name] = createClient(name, { credentials: { apiKey: value } });
+  } catch (e) {
+    console.error(`Error creating client ${name}: ${e.message}`);
   }
 }
 // if (window.ai) {
@@ -101,7 +42,6 @@ for (const [name, ai] of Object.entries(ais)) {
     const summarizer = await ai.summarizer.create();
     const summary = await summarizer.summarize(text, { type: "table" });
     console.log(summary);
-
   } catch (e) {
     console.error(`Error using ${name}:${e.message}`);
   } finally {

@@ -1,3 +1,27 @@
+declare module "ai.matey" {
+  export default function createClient(
+    string:
+      | "openai"
+      | "ollama"
+      | "gemini"
+      | "anthropic"
+      | "mistral"
+      | "groq"
+      | "nvidia"
+      | "huggingface",
+    config: {
+      endpoint?: string;
+      credentials: {
+        apiKey: string;
+      };
+      model?: string;
+    },
+    options?: {
+      model?: string;
+    }
+  ): any;
+}
+
 declare module "ai.matey/openai" {
   export interface AIConfig {
     endpoint?: string;
@@ -242,7 +266,6 @@ declare module "ai.matey/nvidia" {
   export default AI;
 }
 
-
 declare module "ai.matey/huggingface" {
   export interface AIConfig {
     endpoint?: string;
@@ -277,7 +300,6 @@ declare module "ai.matey/huggingface" {
 
   export default AI;
 }
-
 
 declare module "ai.matey/mock" {
   export interface AICapabilities {
