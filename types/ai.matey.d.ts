@@ -128,6 +128,7 @@ export interface AIConfig {
   endpoint?: string;
   credentials: {
     apiKey: string;
+    [key: string]: any;
   };
   model?: string;
 }

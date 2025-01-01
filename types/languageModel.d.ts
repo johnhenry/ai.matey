@@ -1,27 +1,7 @@
-export interface AIConfig {
-  endpoint?: string;
-  credentials?: {
-    apiKey: string;
-    [key: string]: any;
-  };
-  model?: string;
-}
-
-export interface AILanguageModelCapabilities {
-  available: 'no' | 'readily' | 'after-download';
-  defaultTopK: number;
-  maxTopK: number;
-  defaultTemperature: number;
-}
-
-export interface SessionOptions {
-  temperature?: number;
-  topK?: number;
-  signal?: AbortSignal;
-  systemPrompt?: string;
-  initialPrompts?: Array<{ role: string; content: string }>;
-  monitor?: (monitor: EventTarget) => void;
-}
+export { AIConfig } from './ai.matey';
+export { AICapabilities } from './ai.matey';
+export { SessionOptions } from './ai.matey';
+export { AILanguageModelSession } from './ai.matey';
 
 export interface PromptOptions {
   temperature?: number;
@@ -29,15 +9,19 @@ export interface PromptOptions {
   signal?: AbortSignal;
 }
 
-export declare class Session {
+export declare class Session implements AILanguageModelSession {
   constructor(options?: SessionOptions, useWindowAI?: boolean, config?: AIConfig);
-  prompt(prompt: string, options?: PromptOptions): Promise<string>;
-  promptStreaming(prompt: string, options?: PromptOptions): Promise<ReadableStream<string>>;
-  destroy(): Promise<void>;
+  readonly tokensSoFar: number;
+  readonly maxTokens: number;
+  readonly tokensLeft: number;
+  prompt(text: string, options?: PromptOptions): Promise<string>;
+  promptStreaming(text: string, options?: PromptOptions): Promise<ReadableStream<string>>;
+  clone(options?: { signal?: AbortSignal }): Promise<AILanguageModelSession>;
+  destroy(): void;
 }
 
 export declare class LanguageModel {
   constructor(config?: AIConfig);
-  capabilities(): Promise<AILanguageModelCapabilities>;
+  capabilities(): Promise<AICapabilities>;
   create(options?: SessionOptions): Promise<Session>;
 }
