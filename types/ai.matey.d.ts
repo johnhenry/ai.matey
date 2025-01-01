@@ -1,3 +1,13 @@
+// Base Types
+export interface AIConfig {
+  endpoint?: string;
+  credentials: {
+    apiKey: string;
+    [key: string]: any;
+  };
+  model?: string;
+}
+
 export interface AICapabilities {
   available: "no" | "readily" | "after-download";
   defaultTopK: number;
@@ -17,6 +27,7 @@ export interface ConversationMessage {
   content: string;
 }
 
+// Session Types
 export interface SessionOptions {
   temperature?: number;
   topK?: number;
@@ -24,6 +35,12 @@ export interface SessionOptions {
   signal?: AbortSignal;
   initialPrompts?: ConversationMessage[];
   monitor?: (monitor: ProgressMonitor) => void;
+}
+
+export interface PromptOptions {
+  temperature?: number;
+  topK?: number;
+  signal?: AbortSignal;
 }
 
 export interface AILanguageModelSession {
@@ -39,35 +56,21 @@ export interface AILanguageModelSession {
   destroy(): void;
 }
 
+export declare class Session implements AILanguageModelSession {
+  constructor(options?: SessionOptions, useWindowAI?: boolean, config?: AIConfig);
+  readonly tokensSoFar: number;
+  readonly maxTokens: number;
+  readonly tokensLeft: number;
+  prompt(text: string, options?: PromptOptions): Promise<string>;
+  promptStreaming(text: string, options?: PromptOptions): Promise<ReadableStream<string>>;
+  clone(options?: { signal?: AbortSignal }): Promise<AILanguageModelSession>;
+  destroy(): void;
+}
+
+// Language Model Types
 export interface LanguageModel {
   capabilities(): Promise<AICapabilities>;
   create(options?: SessionOptions): Promise<AILanguageModelSession>;
-}
-
-// Summarizer Types
-export interface SummarizerOptions extends SessionOptions {
-  type?: "headline" | "tl;dr" | "key-points" | "teaser";
-  length?: "short" | "medium" | "long";
-  sharedContext?: string;
-}
-
-export interface SummarizeOptions {
-  type?: "headline" | "tl;dr" | "key-points" | "teaser";
-  length?: "short" | "medium" | "long";
-  context?: string;
-}
-
-export interface SummarizerSession extends AILanguageModelSession {
-  summarize(text: string, options?: SummarizeOptions): Promise<string>;
-  summarizeStreaming(
-    text: string,
-    options?: SummarizeOptions
-  ): Promise<ReadableStream>;
-}
-
-export interface Summarizer {
-  capabilities(): Promise<AICapabilities>;
-  create(options?: SummarizerOptions): Promise<SummarizerSession>;
 }
 
 // Writer Types
@@ -83,12 +86,10 @@ export interface WriteOptions {
   context?: string;
 }
 
-export interface WriterSession extends AILanguageModelSession {
+export declare class WriterSession extends Session {
+  constructor(options?: WriterOptions, useWindowAI?: boolean, config?: AIConfig);
   write(task: string, options?: WriteOptions): Promise<string>;
-  writeStreaming(
-    task: string,
-    options?: WriteOptions
-  ): Promise<ReadableStream>;
+  writeStreaming(task: string, options?: WriteOptions): Promise<ReadableStream<string>>;
 }
 
 export interface Writer {
@@ -109,12 +110,10 @@ export interface ReWriteOptions {
   context?: string;
 }
 
-export interface ReWriterSession extends AILanguageModelSession {
+export declare class ReWriterSession extends Session {
+  constructor(options?: ReWriterOptions, useWindowAI?: boolean, config?: AIConfig);
   rewrite(text: string, options?: ReWriteOptions): Promise<string>;
-  rewriteStreaming(
-    text: string,
-    options?: ReWriteOptions
-  ): Promise<ReadableStream>;
+  rewriteStreaming(text: string, options?: ReWriteOptions): Promise<ReadableStream<string>>;
 }
 
 export interface ReWriter {
@@ -122,29 +121,31 @@ export interface ReWriter {
   create(options?: ReWriterOptions): Promise<ReWriterSession>;
 }
 
-//
-
-export interface AIConfig {
-  endpoint?: string;
-  credentials: {
-    apiKey: string;
-    [key: string]: any;
-  };
-  model?: string;
+// Summarizer Types
+export interface SummarizerOptions extends SessionOptions {
+  type?: "headline" | "tl;dr" | "key-points" | "teaser";
+  length?: "short" | "medium" | "long";
+  sharedContext?: string;
 }
 
-export interface LanguageModel {
-  prompt: <T = string>(
-    text: string,
-    options: {
-      signal: AbortSignal;
-      max_tokens?: number;
-      stop_sequences?: string[];
-    }
-  ) => Promise<T>;
-  destroy: () => void;
+export interface SummarizeOptions {
+  type?: "headline" | "tl;dr" | "key-points" | "teaser";
+  length?: "short" | "medium" | "long";
+  context?: string;
 }
 
+export declare class SummarizerSession extends Session {
+  constructor(options?: SummarizerOptions, useWindowAI?: boolean, config?: AIConfig);
+  summarize(text: string, options?: SummarizeOptions): Promise<string>;
+  summarizeStreaming(text: string, options?: SummarizeOptions): Promise<ReadableStream<string>>;
+}
+
+export interface Summarizer {
+  capabilities(): Promise<AICapabilities>;
+  create(options?: SummarizerOptions): Promise<SummarizerSession>;
+}
+
+// Main AI Interface and Class
 export interface ai {
   languageModel: LanguageModel;
   summarizer: Summarizer;
@@ -152,7 +153,7 @@ export interface ai {
   rewriter: ReWriter;
 }
 
-export class AI implements ai{
+export class AI implements ai {
   constructor(config: AIConfig);
   languageModel: LanguageModel;
   summarizer: Summarizer;
@@ -160,7 +161,7 @@ export class AI implements ai{
   rewriter: ReWriter;
 }
 
-
+// Module Declarations
 declare module "ai.matey/gemini" {
   export default AI;
 }
@@ -170,7 +171,6 @@ declare module "ai.matey/anthropic" {
 declare module "ai.matey/huggingface" {
   export default AI;
 }
-
 declare module "ai.matey/openai" {
   export default AI;
 }
