@@ -160,36 +160,54 @@ export class AI implements ai {
   writer: Writer;
   rewriter: ReWriter;
 }
-
 // Module Declarations
+
+export class Gemini implements AI {}
+export class Anthropic implements AI {}
+export class HuggingFace implements AI {}
+export class OpenAI implements AI {}
+export class Ollama implements AI {}
+export class Mistral implements AI {}
+export class Groq implements AI {}
+export class NVIDIA implements AI {}
+
 declare module "ai.matey/gemini" {
-  export default AI;
+  export default Gemini;
 }
 declare module "ai.matey/anthropic" {
-  export default AI;
+  export default Anthropic;
 }
 declare module "ai.matey/huggingface" {
-  export default AI;
+  export default HuggingFace;
 }
 declare module "ai.matey/openai" {
-  export default AI;
+  export default OpenAI;
 }
 declare module "ai.matey/ollama" {
-  export default AI;
+  export default Ollama;
 }
 declare module "ai.matey/mistral" {
-  export default AI;
+  export default Mistral;
 }
 declare module "ai.matey/groq" {
-  export default AI;
+  export default Groq;
 }
 declare module "ai.matey/nvidia" {
-  export default AI;
+  export default NVIDIA;
 }
-declare module "ai.matey/mock" {
-  export default ai;
-}
+
 declare module "ai.matey" {
+  export {
+    Gemini,
+    Anthropic,
+    HuggingFace,
+    Mistral,
+    NVIDIA,
+    Ollama,
+    OpenAI,
+    Groq,
+    createClient };
+  export
   export default function createClient(
     string:
       | "openai"
@@ -209,3 +227,11 @@ declare module "ai.matey" {
     }
   ): AI;
 }
+
+declare module "ai.matey/mock" {
+  export default ai;
+}
+
+declare module "ai.matey/mock-polyfill" {}
+
+declare module "ai.matey/mock-polyfill-overwrite" {}

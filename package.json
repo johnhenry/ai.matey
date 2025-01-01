@@ -8,12 +8,18 @@
       "types": "./types/ai.matey.d.ts",
       "default": "./index.mjs"
     },
-    "./mock": {
+    "./gemini": {
       "types": "./types/ai.matey.d.ts",
-      "default": "./mock/index.mjs"
+      "default": "./gemini/index.mjs"
     },
-    "./mock/polyfill": "./polyfill.mjs",
-    "./mock/polyfill-ovewrite": "./polyfill-overwrite.mjs",
+    "./anthropic": {
+      "types": "./types/ai.matey.d.ts",
+      "default": "./anthropic/index.mjs"
+    },
+    "./huggingface": {
+      "types": "./types/ai.matey.d.ts",
+      "default": "./huggingface/index.mjs"
+    },
     "./openai": {
       "types": "./types/ai.matey.d.ts",
       "default": "./openai/index.mjs"
@@ -34,22 +40,16 @@
       "types": "./types/ai.matey.d.ts",
       "default": "./groq/index.mjs"
     },
-    "./huggingface": {
+    "./mock": {
       "types": "./types/ai.matey.d.ts",
-      "default": "./huggingface/index.mjs"
+      "default": "./mock/index.mjs"
     },
-    "./gemini": {
-      "types": "./types/ai.matey.d.ts",
-      "default": "./gemini/index.mjs"
-    },
-    "./anthropic": {
-      "types": "./types/ai.matey.d.ts",
-      "default": "./anthropic/index.mjs"
-    },
-    "./types/languageModel": "./types/languageModel.d.ts",
-    "./types/summarizer": "./types/summarizer.d.ts",
-    "./types/writer": "./types/writer.d.ts",
-    "./types/rewriter": "./types/rewriter.d.ts"
+    "./mock/polyfill": "./polyfill.mjs",
+    "./mock/polyfill-ovewrite": "./polyfill-overwrite.mjs",
+    "./types/languageModel": "./types/ai.matey.d.ts",
+    "./types/summarizer": "./types/ai.matey.d.ts",
+    "./types/writer": "./types/ai.matey.d.ts",
+    "./types/rewriter": "./types/ai.matey.d.ts"
   },
   "repository": {
     "type": "git",
