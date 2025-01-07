@@ -1,20 +1,8 @@
-import createLanguageModel from "./LanguageModel.mjs";
-import createSummarizer from "./Summarizer.mjs";
-import createWriter from "./Writer.mjs";
-import createReWriter from "./ReWriter.mjs";
-// TODO: Should Capabilities be different per model?
-const Capabilities = {
-  available: "readily",
-  defaultTopK: 3,
-  maxTopK: 8,
-  defaultTemperature: 1.0,
-};
+import LanguageModel from "./LanguageModel.mjs";
+import Summarizer from "./Summarizer.mjs";
+import Writer from "./Writer.mjs";
+import ReWriter from "./ReWriter.mjs";
 const assemble = (Session, initialConfig = {}) => {
-  const { LanguageModel } = createLanguageModel(
-    Session, Capabilities);
-  const { Summarizer } = createSummarizer(Session, Capabilities);
-  const { Writer } = createWriter(Session, Capabilities);
-  const { ReWriter } = createReWriter(Session, Capabilities);
   const AI = class {
     #languageModel;
     #summarizer;
@@ -26,10 +14,10 @@ const assemble = (Session, initialConfig = {}) => {
         ...initialConfig,
         ...config,
       };
-      this.#languageModel = new LanguageModel(this.#config);
-      this.#summarizer = new Summarizer(this.#config);
-      this.#writer = new Writer(this.#config);
-      this.#rewriter = new ReWriter(this.#config);
+      this.#languageModel = new LanguageModel(Session, this);
+      this.#summarizer = new Summarizer(Session, this);
+      this.#writer = new Writer(Session, this);
+      this.#rewriter = new ReWriter(Session, this);
     }
     get languageModel() {
       return this.#languageModel;
@@ -43,8 +31,11 @@ const assemble = (Session, initialConfig = {}) => {
     get rewriter() {
       return this.#rewriter;
     }
+    get config() {
+      return this.#config;
+    }
   };
-  return { AI, LanguageModel, Summarizer, Writer, ReWriter };
+  return AI;
 };
 export { assemble };
 export default assemble;

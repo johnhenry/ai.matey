@@ -57,7 +57,7 @@ export interface AILanguageModelSession {
 }
 
 export declare class Session implements AILanguageModelSession {
-  constructor(options?: SessionOptions, useWindowAI?: boolean, config?: AIConfig);
+  constructor(options?: SessionOptions, config?: AIConfig);
   readonly tokensSoFar: number;
   readonly maxTokens: number;
   readonly tokensLeft: number;
@@ -87,7 +87,7 @@ export interface WriteOptions {
 }
 
 export declare class WriterSession extends Session {
-  constructor(options?: WriterOptions, useWindowAI?: boolean, config?: AIConfig);
+  constructor(options?: WriterOptions, config?: AIConfig);
   write(task: string, options?: WriteOptions): Promise<string>;
   writeStreaming(task: string, options?: WriteOptions): Promise<ReadableStream<string>>;
 }
@@ -111,7 +111,7 @@ export interface ReWriteOptions {
 }
 
 export declare class ReWriterSession extends Session {
-  constructor(options?: ReWriterOptions, useWindowAI?: boolean, config?: AIConfig);
+  constructor(options?: ReWriterOptions, config?: AIConfig);
   rewrite(text: string, options?: ReWriteOptions): Promise<string>;
   rewriteStreaming(text: string, options?: ReWriteOptions): Promise<ReadableStream<string>>;
 }
@@ -135,7 +135,7 @@ export interface SummarizeOptions {
 }
 
 export declare class SummarizerSession extends Session {
-  constructor(options?: SummarizerOptions, useWindowAI?: boolean, config?: AIConfig);
+  constructor(options?: SummarizerOptions, config?: AIConfig);
   summarize(text: string, options?: SummarizeOptions): Promise<string>;
   summarizeStreaming(text: string, options?: SummarizeOptions): Promise<ReadableStream<string>>;
 }

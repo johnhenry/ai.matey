@@ -1,23 +1,13 @@
-class Session {
-  constructor(options = {}, useWindowAI = false, config = {}) {
-    this.options = options;
-    this.useWindowAI = useWindowAI;
-    this.config = config;
-  }
-
+import SharedSession from "../shared/Session.mjs";
+class Session extends SharedSession {
   async prompt(prompt, options = {}) {
-    if (this.useWindowAI) {
-      const session = await window.ai.languageModel.create(this.options);
-      const response = await session.prompt(prompt, options);
-      return response;
-    }
     // Determine authentication header based on endpoint
     const headers = {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${this.config.credentials?.apiKey || ""}`,
       'Accept': 'application/json',
     };
-
+    options.temperature = options.temperature ?? this.ai.languageModel._capabilities.defaultTemperature;
     // Use OpenAI-compatible endpoint
     const response = await fetch(
       `${this.config.endpoint}/v1/chat/completions`,
@@ -33,8 +23,7 @@ class Session {
             ...(this.options.initialPrompts || []),
             { role: "user", content: prompt },
           ],
-          temperature: options.temperature ?? this.options.temperature,
-          top_k: options.topK ?? this.options.topK,
+          ...options,
         }),
       }
     );
@@ -52,18 +41,13 @@ class Session {
   }
 
   async promptStreaming(prompt, options = {}) {
-    if (this.useWindowAI) {
-      const session = await window.ai.languageModel.create(this.options);
-      return session.promptStreaming(prompt, options);
-    }
-
     // Determine authentication header based on endpoint
     const headers = {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${this.config.credentials?.apiKey || ""}`,
       'Accept': 'text/event-stream',
     };
-
+    options.temperature = options.temperature ?? this.ai.languageModel._capabilities.defaultTemperature;
     // Use OpenAI-compatible endpoint with streaming
     const response = await fetch(
       `${this.config.endpoint}/v1/chat/completions`,
@@ -79,8 +63,7 @@ class Session {
             ...(this.options.initialPrompts || []),
             { role: "user", content: prompt },
           ],
-          temperature: options.temperature ?? this.options.temperature,
-          top_k: options.topK ?? this.options.topK,
+          ...options,
           stream: true,
         }),
       }
@@ -135,11 +118,8 @@ class Session {
   }
 
   async destroy() {
-    if (this.useWindowAI) {
-      const session = await window.ai.languageModel.create(this.options);
-      await session.destroy();
-    }
     // For OpenAI endpoints, no explicit cleanup needed
   }
+
 }
 export default Session;

@@ -1,18 +1,10 @@
-class Session {
-  constructor(options = {}, useWindowAI = false, config = {}) {
-    this.options = options;
-    this.useWindowAI = useWindowAI;
-    this.config = config;
-  }
+import SharedSession from "../shared/Session.mjs";
+class Session extends SharedSession {
 
   async prompt(prompt, options = {}) {
-    if (this.useWindowAI) {
-      const session = await window.ai.languageModel.create(this.options);
-      const response = await session.prompt(prompt, options);
-      return response;
-    }
-
     // Use Anthropic API endpoint
+    options.temperature = options.temperature ?? this.ai.languageModel._capabilities.defaultTemperature;
+    options.max_tokens = options.maxTokens ?? this.ai.languageModel._capabilities.maxTokens ?? 4096;
     const response = await fetch(`${this.config.endpoint}/v1/messages`, {
       method: "POST",
       headers: {
@@ -30,8 +22,7 @@ class Session {
           ),
           { role: "user", content: prompt },
         ],
-        temperature: options.temperature ?? this.options.temperature ?? 1.0,
-        max_tokens: options.maxTokens ?? this.options.maxTokens ?? 4096,
+        ...options
       }),
     });
 
@@ -43,12 +34,9 @@ class Session {
   }
 
   async promptStreaming(prompt, options = {}) {
-    if (this.useWindowAI) {
-      const session = await window.ai.languageModel.create(this.options);
-      return session.promptStreaming(prompt, options);
-    }
-
     // Use Anthropic API endpoint with streaming
+    options.temperature = options.temperature ?? this.ai.languageModel._capabilities.defaultTemperature;
+    options.max_tokens = options.maxTokens ?? this.ai.languageModel._capabilities.maxTokens;
     const response = await fetch(`${this.config.endpoint}/v1/messages`, {
       method: "POST",
       headers: {
@@ -67,8 +55,7 @@ class Session {
           ),
           { role: "user", content: prompt },
         ],
-        temperature: options.temperature ?? this.options.temperature ?? 1.0,
-        max_tokens: options.maxTokens ?? this.options.maxTokens ?? 4096,
+        ...options,
         stream: true,
       }),
     });
@@ -149,14 +136,6 @@ class Session {
         reader.releaseLock();
       }
     })();
-  }
-
-  async destroy() {
-    if (this.useWindowAI) {
-      const session = await window.ai.languageModel.create(this.options);
-      await session.destroy();
-    }
-    // For Anthropic API endpoints, no explicit cleanup needed
   }
 }
 

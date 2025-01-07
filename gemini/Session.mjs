@@ -1,18 +1,12 @@
-class Session {
-  constructor(options = {}, useWindowAI = false, config = {}) {
-    this.options = options;
-    this.useWindowAI = useWindowAI;
-    this.config = config;
-  }
+import SharedSession from "../shared/Session.mjs";
+class Session extends SharedSession {
 
   async prompt(prompt, options = {}) {
-    if (this.useWindowAI) {
-      const session = await window.ai.languageModel.create(this.options);
-      const response = await session.prompt(prompt, options);
-      return response;
-    }
-
     // Use Gemini API endpoint
+    options.temperature = options.temperature ?? this.ai.languageModel._capabilities.defaultTemperature;
+    options.topK = options.topK ?? this.ai.languageModel._capabilities.defaultTopK;
+    options.topP = options.topP ?? this.ai.languageModel._capabilities.topP;
+    options.maxOutputTokens = options.maxTokens ?? this.ai.languageModel._capabilities.maxTokens;
     const response = await fetch(
       `${
         this.config.endpoint
@@ -38,13 +32,7 @@ class Session {
               ],
             },
           ],
-          generationConfig: {
-            temperature: options.temperature ?? this.options.temperature ?? 1.0,
-            topK: options.topK ?? this.options.topK ?? 10,
-            topP: options.topP ?? this.options.topP ?? 0.8,
-            maxOutputTokens:
-              options.maxOutputTokens ?? this.options.maxOutputTokens ?? 800,
-          },
+          generationConfig: options,
         }),
       }
     );
@@ -57,12 +45,11 @@ class Session {
   }
 
   async promptStreaming(prompt, options = {}) {
-    if (this.useWindowAI) {
-      const session = await window.ai.languageModel.create(this.options);
-      return session.promptStreaming(prompt, options);
-    }
-
     // Use Gemini API endpoint with streaming
+    options.temperature = options.temperature ?? this.ai.languageModel._capabilities.defaultTemperature;
+    options.topK = options.topK ?? this.ai.languageModel._capabilities.defaultTopK;
+    options.topP = options.topP ?? this.ai.languageModel._capabilities.topP;
+    options.maxOutputTokens = options.maxTokens ?? this.ai.languageModel._capabilities.maxTokens;
     const response = await fetch(
       `${
         this.config.endpoint
@@ -88,13 +75,7 @@ class Session {
               ],
             },
           ],
-          generationConfig: {
-            temperature: options.temperature ?? this.options.temperature ?? 1.0,
-            topK: options.topK ?? this.options.topK ?? 10,
-            topP: options.topP ?? this.options.topP ?? 0.8,
-            maxOutputTokens:
-              options.maxOutputTokens ?? this.options.maxOutputTokens ?? 800,
-          },
+          generationConfig: options,
         }),
       }
     );
@@ -131,14 +112,6 @@ class Session {
         }
       }
     })();
-  }
-
-  async destroy() {
-    if (this.useWindowAI) {
-      const session = await window.ai.languageModel.create(this.options);
-      await session.destroy();
-    }
-    // For Gemini endpoints, no explicit cleanup needed
   }
 }
 export default Session;

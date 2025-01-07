@@ -100,17 +100,6 @@ Note, that unlike with the mock implementation, these require instantiation.
 npm install ai.matey
 ```
 
-To use the a client, import the mock from `ai.matey/<implementation name>`;
-
-- `import Gemini from "ai.matey/gemini";`
-- `import Anthropic from "ai.matey/anthropic";`
-- `import Huggingface from "ai.matey/huggingface";`
-- `import OpenAI from "ai.matey/openai";`
-- `import Ollama from "ai.matey/ollama";`
-- `import Mistral from "ai.matey/mistral";`
-- `import Groq from "ai.matey/groq";`
-- `import Nvidia from "ai.matey/nvidia";`
-
 #### Via CDN
 
 Import the clients directly from the CDN
@@ -123,18 +112,20 @@ const ai = new Ollama();
 
 ### Usage
 
+To use the a client, import the mock from `ai.matey/<client name>`;
+
 Each client is pre-configured with a default endpoint and model that can be overwritten.
 
-| Client      | Default Endpoint                          | Default Model                               |
-| ----------- | ----------------------------------------- | ------------------------------------------- |
-| OpenAI      | https://api.openai.com                    | gpt-4o-mini                                 |
-| Gemini      | https://generativelanguage.googleapis.com | gemini-2.0-flash-exp                        |
-| Anthropic   | https://api.anthropic.com                 | claude-3-opus-20240229                      |
-| HuggingFace | https://api-inference.huggingface.co      | models/mistralai/Mixtral-8x7B-Instruct-v0.1 |
-| Ollama      | http://localhost:11434                    | llama3.2:latest                             |
-| Mistral     | https://api.mistral.ai                    | mistral-small-latest                        |
-| Groq        | https://api.groq.com/openai               | llama3-8b-8192                              |
-| Nvidia      | https://integrate.api.nvidia.com          | meta/llama-3.1-8b-instruct                  |
+| Client      | Default Endpoint                          | Default Model                        | OpenAI API | CORS Compatible |
+| ----------- | ----------------------------------------- | ------------------------------------ | ---------- | --------------- |
+| gemini      | https://generativelanguage.googleapis.com | gemini-2.0-flash-exp                 | x          | ✅              |
+| anthropic   | https://api.anthropic.com                 | claude-3-opus-20240229               | x          | ✅              |
+| huggingface | https://api-inference.huggingface.co      | mistralai/Mixtral-8x7B-Instruct-v0.1 | x          | ✅              |
+| openai      | https://api.openai.com                    | gpt-4o-mini                          | ✅         | ✅              |
+| ollama      | http://localhost:11434                    | llama3.2:latest                      | ✅         | ✅              |
+| mistral     | https://api.mistral.ai                    | mistral-small-latest                 | ✅         | ✅              |
+| groq        | https://api.groq.com/openai               | llama3-8b-8192                       | ✅         | ✅              |
+| nvidia      | https://integrate.api.nvidia.com          | meta/llama-3.1-8b-instruct           | ✅         | x               |
 
 Except for the Ollama, you must provide a `credentials` object with a valid `apiKey` property in the constructor's settings object.
 
