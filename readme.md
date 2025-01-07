@@ -12,14 +12,6 @@ To help work with chrome's experimental [window.ai API](https://developer.chrome
 - A **mock implementation** of window.ai and it's sub-modules that can be used for testing.
 
 - Multiple **API-Compatible clients** that mirror `window.ai`.
-  - _gemini_
-  - _anthropic_
-  - _huggingface_
-  - _openai_
-    - _ollama_
-    - _mistral_
-    - _groq_
-    - _nvidia_
 
 They can be used as drop-in replacements for `window.ai` or as standalone clients.
 
@@ -37,6 +29,13 @@ Documentation for the window.ai API is provided here: [https://github.com/johnhe
 
 To use the mock implementation, import the mock from `ai.matey/mock`;
 
+#### Via CDN
+
+```javascript
+import ai from "https://cdn.jsdelivr.net/npm/ai.matey@0.0.28/mock/index.mjs";
+// OR "https://ga.jspm.io/npm:ai.matey@0.0.28/mock/index.mjs"
+```
+
 #### Via NPM
 
 ```bash
@@ -46,13 +45,6 @@ npm install ai.matey
 ```javascript
 import ai from "ai.matey/mock";
 //...
-```
-
-#### Via CDN
-
-```javascript
-import ai from "https://cdn.jsdelivr.net/npm/ai.matey@0.0.26/mock/index.mjs";
-// OR "https://ga.jspm.io/npm:ai.matey@0.0.26/mock/index.mjs"
 ```
 
 ### Example
@@ -94,20 +86,24 @@ Note, that unlike with the mock implementation, these require instantiation.
 
 ### Installation
 
+#### Via CDN
+
+Import the clients directly from the CDN
+
+```javascript
+import Ollama from "https://cdn.jsdelivr.net/npm/ai.matey@0.0.28/ollama/index.mjs";
+// OR "https://ga.jspm.io/npm:ai.matey@0.0.28/ollama/index.mjs"
+const ai = new Ollama();
+```
+
 #### Via NPM
 
 ```bash
 npm install ai.matey
 ```
 
-#### Via CDN
-
-Import the clients directly from the CDN
-
 ```javascript
-import Ollama from "https://cdn.jsdelivr.net/npm/ai.matey@0.0.26/ollama/index.mjs";
-// OR "https://ga.jspm.io/npm:ai.matey@0.0.26/ollama/index.mjs"
-const ai = new Ollama();
+import Ollama from "ai.matey/ollama";
 ```
 
 ### Usage
@@ -170,6 +166,17 @@ const ai = createClient("openai", {
   credentials: { apiKey: "<OPEN_AI_API_KEY>" },
 }); // use default endpoing
 ```
+
+### Differences
+
+The are some differences between the client implmentations and the base `window.ai` object.
+
+- The `window.ai` object is a singleton, while the clients are not.
+
+- `ai.<module>.create()` takes additional options:
+  - `maxHistorySize` - the maximum number of messages to keep in the conversation history.
+    - defaults to `0`
+    - `-1` denotes no limit
 
 ## Playground/Demo
 
