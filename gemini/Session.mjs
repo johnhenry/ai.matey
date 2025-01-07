@@ -1,12 +1,28 @@
 import SharedSession from "../shared/Session.mjs";
-class Session extends SharedSession {
 
+class Session extends SharedSession {
   async prompt(prompt, options = {}) {
-    // Use Gemini API endpoint
     options.temperature = options.temperature ?? this.ai.languageModel._capabilities.defaultTemperature;
     options.topK = options.topK ?? this.ai.languageModel._capabilities.defaultTopK;
     options.topP = options.topP ?? this.ai.languageModel._capabilities.topP;
     options.maxOutputTokens = options.maxTokens ?? this.ai.languageModel._capabilities.maxTokens;
+
+    // Convert conversation history to Gemini format
+    const history = this._getConversationHistory().map(msg => ({
+      text: `${msg.role}: ${msg.content}`
+    }));
+
+    const parts = [
+      ...(this.options.systemPrompt
+        ? [{ text: this.options.systemPrompt }]
+        : []),
+      ...(this.options.initialPrompts || []).map((p) => ({
+        text: p.content,
+      })),
+      ...history,
+      { text: prompt },
+    ];
+
     const response = await fetch(
       `${
         this.config.endpoint
@@ -19,19 +35,7 @@ class Session extends SharedSession {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          contents: [
-            {
-              parts: [
-                ...(this.options.systemPrompt
-                  ? [{ text: this.options.systemPrompt }]
-                  : []),
-                ...(this.options.initialPrompts || []).map((p) => ({
-                  text: p.content,
-                })),
-                { text: prompt },
-              ],
-            },
-          ],
+          contents: [{ parts }],
           generationConfig: options,
         }),
       }
@@ -41,15 +45,34 @@ class Session extends SharedSession {
     if (data.error) {
       throw new Error(`Gemini API Error: ${data.error.message}`);
     }
-    return data.candidates[0].content.parts[0].text;
+
+    const assistantResponse = data.candidates[0].content.parts[0].text;
+    this._addToHistory(prompt, assistantResponse);
+    return assistantResponse;
   }
 
   async promptStreaming(prompt, options = {}) {
-    // Use Gemini API endpoint with streaming
     options.temperature = options.temperature ?? this.ai.languageModel._capabilities.defaultTemperature;
     options.topK = options.topK ?? this.ai.languageModel._capabilities.defaultTopK;
     options.topP = options.topP ?? this.ai.languageModel._capabilities.topP;
     options.maxOutputTokens = options.maxTokens ?? this.ai.languageModel._capabilities.maxTokens;
+
+    // Convert conversation history to Gemini format
+    const history = this._getConversationHistory().map(msg => ({
+      text: `${msg.role}: ${msg.content}`
+    }));
+
+    const parts = [
+      ...(this.options.systemPrompt
+        ? [{ text: this.options.systemPrompt }]
+        : []),
+      ...(this.options.initialPrompts || []).map((p) => ({
+        text: p.content,
+      })),
+      ...history,
+      { text: prompt },
+    ];
+
     const response = await fetch(
       `${
         this.config.endpoint
@@ -62,23 +85,14 @@ class Session extends SharedSession {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          contents: [
-            {
-              parts: [
-                ...(this.options.systemPrompt
-                  ? [{ text: this.options.systemPrompt }]
-                  : []),
-                ...(this.options.initialPrompts || []).map((p) => ({
-                  text: p.content,
-                })),
-                { text: prompt },
-              ],
-            },
-          ],
+          contents: [{ parts }],
           generationConfig: options,
         }),
       }
     );
+
+    const responseChunks = [];
+    const self = this;
 
     return (async function* () {
       const decoder = new TextDecoder();
@@ -94,6 +108,7 @@ class Session extends SharedSession {
           // Extract the JSON data after "data: "
           const jsonStr = message.replace("data: ", "").trim();
           if (jsonStr === "[DONE]") {
+            self._addToHistory(prompt, responseChunks.join(''));
             return;
           }
 
@@ -101,6 +116,7 @@ class Session extends SharedSession {
             const data = JSON.parse(jsonStr);
             const content = data.candidates[0]?.content?.parts[0]?.text;
             if (content) {
+              responseChunks.push(content);
               yield content;
             }
           } catch (e) {
@@ -112,6 +128,15 @@ class Session extends SharedSession {
         }
       }
     })();
+  }
+
+  clone() {
+    const clonedSession = new Session(this.options, this.ai);
+    return clonedSession;
+  }
+
+  destroy() {
+    // No need to clear conversation history as it's now shared
   }
 }
 export default Session;

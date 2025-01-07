@@ -1,14 +1,23 @@
 import SharedSession from "../shared/Session.mjs";
+
 class Session extends SharedSession {
   async prompt(prompt, options = {}) {
-    // Determine authentication header based on endpoint
     const headers = {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${this.config.credentials?.apiKey || ""}`,
       'Accept': 'application/json',
     };
     options.temperature = options.temperature ?? this.ai.languageModel._capabilities.defaultTemperature;
-    // Use OpenAI-compatible endpoint
+    
+    const messages = [
+      ...(this.options.systemPrompt
+        ? [{ role: "system", content: this.options.systemPrompt }]
+        : []),
+      ...(this.options.initialPrompts || []),
+      ...this._getConversationHistory(),
+      { role: "user", content: prompt },
+    ];
+
     const response = await fetch(
       `${this.config.endpoint}/v1/chat/completions`,
       {
@@ -16,13 +25,7 @@ class Session extends SharedSession {
         headers,
         body: JSON.stringify({
           model: this.config.model,
-          messages: [
-            ...(this.options.systemPrompt
-              ? [{ role: "system", content: this.options.systemPrompt }]
-              : []),
-            ...(this.options.initialPrompts || []),
-            { role: "user", content: prompt },
-          ],
+          messages,
           ...options,
         }),
       }
@@ -34,21 +37,31 @@ class Session extends SharedSession {
     }
     try {
       const data = await response.json();
-      return data.choices[0].message.content;
+      const assistantResponse = data.choices[0].message.content;
+      this._addToHistory(prompt, assistantResponse);
+      return assistantResponse;
     } catch (error) {
       throw error;
     }
   }
 
   async promptStreaming(prompt, options = {}) {
-    // Determine authentication header based on endpoint
     const headers = {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${this.config.credentials?.apiKey || ""}`,
       'Accept': 'text/event-stream',
     };
     options.temperature = options.temperature ?? this.ai.languageModel._capabilities.defaultTemperature;
-    // Use OpenAI-compatible endpoint with streaming
+    
+    const messages = [
+      ...(this.options.systemPrompt
+        ? [{ role: "system", content: this.options.systemPrompt }]
+        : []),
+      ...(this.options.initialPrompts || []),
+      ...this._getConversationHistory(),
+      { role: "user", content: prompt },
+    ];
+
     const response = await fetch(
       `${this.config.endpoint}/v1/chat/completions`,
       {
@@ -56,13 +69,7 @@ class Session extends SharedSession {
         headers,
         body: JSON.stringify({
           model: this.config.model,
-          messages: [
-            ...(this.options.systemPrompt
-              ? [{ role: "system", content: this.options.systemPrompt }]
-              : []),
-            ...(this.options.initialPrompts || []),
-            { role: "user", content: prompt },
-          ],
+          messages,
           ...options,
           stream: true,
         }),
@@ -74,6 +81,9 @@ class Session extends SharedSession {
       throw new Error(`HTTP error! status: ${response.status}, body: ${error}`);
     }
 
+    const responseChunks = [];
+    const self = this;
+
     return (async function* () {
       const reader = response.body
         .pipeThrough(new TextDecoderStream())
@@ -84,11 +94,15 @@ class Session extends SharedSession {
       try {
         while (true) {
           const { value, done } = await reader.read();
-          if (done) break;
+          if (done) {
+            // Update conversation history with complete response
+            self._addToHistory(prompt, responseChunks.join(''));
+            break;
+          }
           
           buffer += value;
           const lines = buffer.split("\n");
-          buffer = lines.pop() || ""; // Keep the last incomplete line in buffer
+          buffer = lines.pop() || "";
 
           for (const line of lines) {
             const trimmedLine = line.trim();
@@ -96,12 +110,16 @@ class Session extends SharedSession {
             
             if (trimmedLine.startsWith("data: ")) {
               try {
-                const jsonStr = trimmedLine.slice(6); // Remove "data: " prefix
+                const jsonStr = trimmedLine.slice(6);
                 const data = JSON.parse(jsonStr);
                 if (data.choices?.[0]?.delta?.content) {
-                  yield data.choices[0].delta.content;
+                  const content = data.choices[0].delta.content;
+                  responseChunks.push(content);
+                  yield content;
                 } else if (data.choices?.[0]?.message?.content) {
-                  yield data.choices[0].message.content;
+                  const content = data.choices[0].message.content;
+                  responseChunks.push(content);
+                  yield content;
                 }
               } catch (error) {
                 console.error("Parse error:", error);
@@ -117,9 +135,15 @@ class Session extends SharedSession {
     })();
   }
 
-  async destroy() {
-    // For OpenAI endpoints, no explicit cleanup needed
+  clone() {
+    const clonedSession = new Session(this.options, this.ai);
+    clonedSession._setConversationHistory([...this._getConversationHistory()]);
+    return clonedSession;
   }
 
+  destroy() {
+    this._setConversationHistory([]);
+  }
 }
+
 export default Session;
