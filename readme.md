@@ -178,6 +178,8 @@ The are some differences between the client implmentations and the base `window.
     - defaults to `0`
     - `-1` denotes no limit
 
+- `<model>.chat()` simulates OpenAI chat.completions.create [requests]() and [responses]()
+
 ## Playground/Demo
 
 Check out the playground in this repositrory. Run a static sterver (`npx live-server .`) and navigate to playground.html

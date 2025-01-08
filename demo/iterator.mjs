@@ -15,9 +15,9 @@ export default (async function* () {
       // Use the language model
       const ai = createClient(name, { credentials: { apiKey } });
       const model = await ai.languageModel.create();
+
       const response = await model.prompt("Tell me a story");
       yield response;
-
       // Use the writer
       const writer = await ai.writer.create();
       const text = await writer.write("Write a blog post about AI", {

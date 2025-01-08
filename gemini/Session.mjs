@@ -129,14 +129,6 @@ class Session extends SharedSession {
       }
     })();
   }
-
-  clone() {
-    const clonedSession = new Session(this.options, this.ai);
-    return clonedSession;
-  }
-
-  destroy() {
-    // No need to clear conversation history as it's now shared
-  }
 }
 export default Session;
+
