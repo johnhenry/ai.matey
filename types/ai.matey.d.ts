@@ -1,3 +1,60 @@
+
+// Open AI Chat Types
+type OpenAIChatInput = SessionOptions & {
+  messages: Array<{
+    role: "user" | "assistant" | "system";
+    content: string;
+  }>;
+  stream: boolean;
+};
+type OpenAIChatAsyncResponse = {
+  id: string;
+  object: string;
+  created: number;
+  choices: Array<{
+    index: number;
+    message: {
+      role: "user" | "assistant" | "system";
+      content: string;
+    };
+    finish_reason: string;
+  }>;
+  usage: {
+    prompt_tokens: number;
+    completion_tokens: number;
+    total_tokens: number;
+    completion_tokens_details: string,
+    prompt_tokens_details: {
+      audio_tokens: Array<string>,
+      cached_tokens: number
+    },
+    cache_creation_input_tokens: number,
+    cache_read_input_tokens: number
+  };
+};
+type OpenAIChatStreamingResponseChunk = {
+  id: string;
+  created: number;
+  model: string;
+  endpoint: string;
+  object: string;
+  system_fingerprint: null;
+  choices: Array<{
+    finish_reason: null;
+    index: number;
+    delta: {
+      content: string;
+      role: "assistant";
+      function_call: null;
+      tool_calls: null;
+      audio: null;
+    };
+    logprobs: null;
+  }>;
+}
+type OpenAIChatStreamingResponse = AsyncIterable<OpenAIChatStreamingResponseChunk>;
+type OpenAIChatResponse = OpenAIChatAsyncResponse | OpenAIChatStreamingResponse;
+type ChatFunction = (input: OpenAIChatInput) => Promise<OpenAIChatResponse>;
 // Base Types
 export interface AIConfig {
   endpoint?: string;
@@ -54,6 +111,7 @@ export interface AILanguageModelSession {
   ): Promise<ReadableStream>;
   clone(options?: { signal?: AbortSignal }): Promise<AILanguageModelSession>;
   destroy(): void;
+  chat: ChatFunction;
 }
 
 export declare class Session implements AILanguageModelSession {
@@ -65,6 +123,7 @@ export declare class Session implements AILanguageModelSession {
   promptStreaming(text: string, options?: PromptOptions): Promise<ReadableStream<string>>;
   clone(options?: { signal?: AbortSignal }): Promise<AILanguageModelSession>;
   destroy(): void;
+  chat: ChatFunction;
 }
 
 // Language Model Types
@@ -207,7 +266,6 @@ declare module "ai.matey" {
     OpenAI,
     Groq,
     createClient };
-  export
   export default function createClient(
     string:
       | "openai"
@@ -230,6 +288,11 @@ declare module "ai.matey" {
 
 declare module "ai.matey/mock" {
   export default ai;
+}
+
+
+declare module "ai.matey/window.ai.chat" {
+  export default ChatFunction;
 }
 
 declare module "ai.matey/mock-polyfill" {}

@@ -49,7 +49,11 @@
     "./types/languageModel": "./types/ai.matey.d.ts",
     "./types/summarizer": "./types/ai.matey.d.ts",
     "./types/writer": "./types/ai.matey.d.ts",
-    "./types/rewriter": "./types/ai.matey.d.ts"
+    "./types/rewriter": "./types/ai.matey.d.ts",
+    "./window.ai.chat": {
+      "types": "./types/ai.matey.d.ts",
+      "default": "./window.ai.chat/index.mjs"
+    }
   },
   "repository": {
     "type": "git",

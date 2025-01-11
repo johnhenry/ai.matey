@@ -34,4 +34,5 @@ export {
   Nvidia,
   HuggingFace,
   createClient,
+  clients,
 };

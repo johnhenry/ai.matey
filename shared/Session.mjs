@@ -82,7 +82,7 @@ class Session {
           }
         }
       }
-      
+
       return Math.max(1, tokenCount);
     }
 
@@ -193,8 +193,12 @@ class Session {
       clonedSession._setConversationHistory([...this._getConversationHistory()]);
       return clonedSession;
     }
-    prompt() {
-      throw new Error("Abstract method not implemented");
+    async prompt(...rest) {
+      const output = [];
+      for (const message of await this.promptStreaming(...rest)) {
+        output.push(message);
+      }
+      return output.join("");
     }
     promptStreaming() {
       throw new Error("Abstract method not implemented");

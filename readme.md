@@ -32,8 +32,8 @@ To use the mock implementation, import the mock from `ai.matey/mock`;
 #### Via CDN
 
 ```javascript
-import ai from "https://cdn.jsdelivr.net/npm/ai.matey@0.0.30/mock/index.mjs";
-// OR "https://ga.jspm.io/npm:ai.matey@0.0.30/mock/index.mjs"
+import ai from "https://cdn.jsdelivr.net/npm/ai.matey@0.0.31/mock/index.mjs";
+// OR "https://ga.jspm.io/npm:ai.matey@0.0.31/mock/index.mjs"
 ```
 
 #### Via NPM
@@ -91,8 +91,8 @@ Note, that unlike with the mock implementation, these require instantiation.
 Import the clients directly from the CDN
 
 ```javascript
-import Ollama from "https://cdn.jsdelivr.net/npm/ai.matey@0.0.30/ollama/index.mjs";
-// OR "https://ga.jspm.io/npm:ai.matey@0.0.30/ollama/index.mjs"
+import Ollama from "https://cdn.jsdelivr.net/npm/ai.matey@0.0.31/ollama/index.mjs";
+// OR "https://ga.jspm.io/npm:ai.matey@0.0.31/ollama/index.mjs"
 const ai = new Ollama();
 ```
 
@@ -179,6 +179,7 @@ The are some differences between the client implmentations and the base `window.
     - `-1` denotes no limit
 
 - `<model>.chat()` simulates OpenAI chat.completions.create [requests]() and [responses]()
+  - There's also a `ai.matey/window.ai.chat` that implements this chat interface atop `window.ai`
 
 ## Playground/Demo
 
