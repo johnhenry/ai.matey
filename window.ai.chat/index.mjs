@@ -137,7 +137,8 @@ const chat = async ({messages, stream, ...options}) =>{
             };
         }
     }catch(e){
-
+        console.error(e);
+        throw e;
     }finally{
         await model.destroy();
     }
