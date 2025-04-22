@@ -2,16 +2,29 @@ import SharedSession from "../shared/Session.mjs";
 
 class Session extends SharedSession {
   async prompt(prompt, options = {}) {
-    options.temperature = options.temperature ?? this.ai.languageModel._capabilities.defaultTemperature;
-    options.max_tokens = options.maxTokens ?? this.ai.languageModel._capabilities.maxTokens ?? 4096;
-    
-    const messages = [
+    options.temperature =
+      options.temperature ??
+      this.ai.languageModel._capabilities.defaultTemperature;
+    options.max_tokens =
+      options.maxTokens ??
+      this.ai.languageModel._capabilities.maxTokens ??
+      4096;
+
+    const protoMessages = [
       ...(this.options.initialPrompts || []).filter(
         (msg) => msg.role === "user" || msg.role === "assistant"
       ),
       ...this._getConversationHistory(),
       { role: "user", content: prompt },
     ];
+    // messages cannot have the role "system"
+    const systemPrompts = protoMessages
+      .filter((msg) => msg.role === "system")
+      .map(({ content }) => content);
+    if (this.options.systemPrompt) {
+      systemPrompts.unshift(this.options.systemPrompt);
+    }
+    const messages = protoMessages.filter((msg) => msg.role !== "system");
 
     const response = await fetch(`${this.config.endpoint}/v1/messages`, {
       method: "POST",
@@ -23,9 +36,9 @@ class Session extends SharedSession {
       },
       body: JSON.stringify({
         model: this.config.model || "claude-3-opus-20240229",
-        system: this.options.systemPrompt,
+        system: systemPrompts.join("\n"),
         messages,
-        ...options
+        ...options,
       }),
     });
 
@@ -33,16 +46,19 @@ class Session extends SharedSession {
     if (data.error) {
       throw new Error(`Anthropic API Error: ${data.error.message}`);
     }
-    
+
     const assistantResponse = data.content[0].text;
     this._addToHistory(prompt, assistantResponse);
     return assistantResponse;
   }
 
   async promptStreaming(prompt, options = {}) {
-    options.temperature = options.temperature ?? this.ai.languageModel._capabilities.defaultTemperature;
-    options.max_tokens = options.maxTokens ?? this.ai.languageModel._capabilities.maxTokens;
-    
+    options.temperature =
+      options.temperature ??
+      this.ai.languageModel._capabilities.defaultTemperature;
+    options.max_tokens =
+      options.maxTokens ?? this.ai.languageModel._capabilities.maxTokens;
+
     const messages = [
       ...(this.options.initialPrompts || []).filter(
         (msg) => msg.role === "user" || msg.role === "assistant"
@@ -58,7 +74,7 @@ class Session extends SharedSession {
         "x-api-key": this.config.credentials?.apiKey || "",
         "anthropic-version": "2023-06-01",
         "anthropic-dangerous-direct-browser-access": "true",
-        "Accept": "text/event-stream",
+        Accept: "text/event-stream",
       },
       body: JSON.stringify({
         model: this.config.model || "claude-3-opus-20240229",
@@ -84,12 +100,12 @@ class Session extends SharedSession {
 
       let buffer = "";
       let currentEvent = null;
-      
+
       try {
         while (true) {
           const { value, done } = await reader.read();
           if (done) break;
-          
+
           buffer += value;
           const lines = buffer.split("\n");
           buffer = lines.pop() || "";
@@ -105,9 +121,9 @@ class Session extends SharedSession {
 
             if (trimmedLine.startsWith("data: ")) {
               const data = trimmedLine.slice(6);
-              
+
               if (data === "[DONE]") {
-                self._addToHistory(prompt, responseChunks.join(''));
+                self._addToHistory(prompt, responseChunks.join(""));
                 return;
               }
 

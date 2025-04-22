@@ -32,8 +32,8 @@ To use the mock implementation, import the mock from `ai.matey/mock`;
 #### Via CDN
 
 ```javascript
-import ai from "https://cdn.jsdelivr.net/npm/ai.matey@0.0.32/mock/index.mjs";
-// OR "https://ga.jspm.io/npm:ai.matey@0.0.32/mock/index.mjs"
+import ai from "https://cdn.jsdelivr.net/npm/ai.matey@0.0.33/mock/index.mjs";
+// OR "https://ga.jspm.io/npm:ai.matey@0.0.33/mock/index.mjs"
 ```
 
 #### Via NPM
@@ -91,8 +91,8 @@ Note, that unlike with the mock implementation, these require instantiation.
 Import the clients directly from the CDN
 
 ```javascript
-import Ollama from "https://cdn.jsdelivr.net/npm/ai.matey@0.0.32/ollama/index.mjs";
-// OR "https://ga.jspm.io/npm:ai.matey@0.0.32/ollama/index.mjs"
+import Ollama from "https://cdn.jsdelivr.net/npm/ai.matey@0.0.33/ollama/index.mjs";
+// OR "https://ga.jspm.io/npm:ai.matey@0.0.33/ollama/index.mjs"
 const ai = new Ollama();
 ```
 
@@ -174,6 +174,7 @@ The are some differences between the client implmentations and the base `window.
 - The `window.ai` object is a singleton, while the clients are not.
 
 - `ai.<module>.create()` takes additional options:
+
   - `maxHistorySize` - the maximum number of messages to keep in the conversation history.
     - defaults to `0`
     - `-1` denotes no limit
