@@ -1,7 +1,7 @@
 {
   "name": "ai.matey",
   "version": "0.0.36",
-  "main": "./openai/index.mjs",
+  "main": "./index.mjs",
   "types": "types/ai.matey.d.ts",
   "exports": {
     ".": {
@@ -39,6 +39,10 @@
     "./nvidia": {
       "types": "./types/ai.matey.d.ts",
       "default": "./groq/index.mjs"
+    },
+    "./lmstudio": {
+      "types": "./types/ai.matey.d.ts",
+      "default": "./lmstudio/index.mjs"
     },
     "./mock": {
       "types": "./types/ai.matey.d.ts",

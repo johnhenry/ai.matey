@@ -32,8 +32,8 @@ To use the mock implementation, import the mock from `ai.matey/mock`;
 #### Via CDN
 
 ```javascript
-import ai from "https://cdn.jsdelivr.net/npm/ai.matey@0.0.36/mock/index.mjs";
-// OR "https://ga.jspm.io/npm:ai.matey@0.0.36/mock/index.mjs"
+import ai from "https://cdn.jsdelivr.net/npm/ai.matey@0.0.37/mock/index.mjs";
+// OR "https://ga.jspm.io/npm:ai.matey@0.0.37/mock/index.mjs"
 ```
 
 #### Via NPM
@@ -91,8 +91,8 @@ Note, that unlike with the mock implementation, these require instantiation.
 Import the clients directly from the CDN
 
 ```javascript
-import Ollama from "https://cdn.jsdelivr.net/npm/ai.matey@0.0.36/ollama/index.mjs";
-// OR "https://ga.jspm.io/npm:ai.matey@0.0.36/ollama/index.mjs"
+import Ollama from "https://cdn.jsdelivr.net/npm/ai.matey@0.0.37/ollama/index.mjs";
+// OR "https://ga.jspm.io/npm:ai.matey@0.0.37/ollama/index.mjs"
 const ai = new Ollama();
 ```
 
@@ -122,6 +122,7 @@ Each client is pre-configured with a default endpoint and model that can be over
 | mistral     | https://api.mistral.ai                    | mistral-small-latest                 | ✅         | ✅              |
 | groq        | https://api.groq.com/openai               | llama3-8b-8192                       | ✅         | ✅              |
 | nvidia      | https://integrate.api.nvidia.com          | meta/llama-3.1-8b-instruct           | ✅         | x               |
+| lmstudio    | http://localhost:1234                     | gemma-3-1b-it                        | ✅         | ?               |
 
 Except for the Ollama, you must provide a `credentials` object with a valid `apiKey` property in the constructor's settings object.
 

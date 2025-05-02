@@ -6,6 +6,7 @@ import Mistral from "./mistral/index.mjs";
 import Groq from "./groq/index.mjs";
 import Nvidia from "./nvidia/index.mjs";
 import HuggingFace from "./huggingface/index.mjs";
+import lmstudio from "./lmstudio/index.mjs";
 const clients = {
   ollama: Ollama,
   openai: OpenAI,
@@ -15,6 +16,7 @@ const clients = {
   groq: Groq,
   nvidia: Nvidia,
   huggingface: HuggingFace,
+  lmstudio: lmstudio,
 };
 const createClient = (name = "ollama", ...rest) => {
   const Client = clients[name?.toLowerCase()];

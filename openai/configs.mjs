@@ -2,6 +2,10 @@ export const ollama = {
   endpoint: "http://localhost:11434",
   model: "llama3.2:latest",
 };
+export const lmstudio = {
+  endpoint: "http://localhost:1234",
+  model: "gemma-3-1b-it",
+};
 export const mistral = {
   endpoint: "https://api.mistral.ai",
   model: "mistral-small-latest",

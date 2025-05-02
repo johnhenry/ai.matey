@@ -1,4 +1,3 @@
-
 // Open AI Chat Types
 type OpenAIChatInput = SessionOptions & {
   messages: Array<{
@@ -23,13 +22,13 @@ type OpenAIChatAsyncResponse = {
     prompt_tokens: number;
     completion_tokens: number;
     total_tokens: number;
-    completion_tokens_details: string,
+    completion_tokens_details: string;
     prompt_tokens_details: {
-      audio_tokens: Array<string>,
-      cached_tokens: number
-    },
-    cache_creation_input_tokens: number,
-    cache_read_input_tokens: number
+      audio_tokens: Array<string>;
+      cached_tokens: number;
+    };
+    cache_creation_input_tokens: number;
+    cache_read_input_tokens: number;
   };
 };
 type OpenAIChatStreamingResponseChunk = {
@@ -51,8 +50,9 @@ type OpenAIChatStreamingResponseChunk = {
     };
     logprobs: null;
   }>;
-}
-type OpenAIChatStreamingResponse = AsyncIterable<OpenAIChatStreamingResponseChunk>;
+};
+type OpenAIChatStreamingResponse =
+  AsyncIterable<OpenAIChatStreamingResponseChunk>;
 type OpenAIChatResponse = OpenAIChatAsyncResponse | OpenAIChatStreamingResponse;
 type ChatFunction = (input: OpenAIChatInput) => Promise<OpenAIChatResponse>;
 // Base Types
@@ -120,7 +120,10 @@ export declare class Session implements AILanguageModelSession {
   readonly maxTokens: number;
   readonly tokensLeft: number;
   prompt(text: string, options?: PromptOptions): Promise<string>;
-  promptStreaming(text: string, options?: PromptOptions): Promise<ReadableStream<string>>;
+  promptStreaming(
+    text: string,
+    options?: PromptOptions
+  ): Promise<ReadableStream<string>>;
   clone(options?: { signal?: AbortSignal }): Promise<AILanguageModelSession>;
   destroy(): void;
   chat: ChatFunction;
@@ -148,7 +151,10 @@ export interface WriteOptions {
 export declare class WriterSession extends Session {
   constructor(options?: WriterOptions, config?: AIConfig);
   write(task: string, options?: WriteOptions): Promise<string>;
-  writeStreaming(task: string, options?: WriteOptions): Promise<ReadableStream<string>>;
+  writeStreaming(
+    task: string,
+    options?: WriteOptions
+  ): Promise<ReadableStream<string>>;
 }
 
 export interface Writer {
@@ -172,7 +178,10 @@ export interface ReWriteOptions {
 export declare class ReWriterSession extends Session {
   constructor(options?: ReWriterOptions, config?: AIConfig);
   rewrite(text: string, options?: ReWriteOptions): Promise<string>;
-  rewriteStreaming(text: string, options?: ReWriteOptions): Promise<ReadableStream<string>>;
+  rewriteStreaming(
+    text: string,
+    options?: ReWriteOptions
+  ): Promise<ReadableStream<string>>;
 }
 
 export interface ReWriter {
@@ -196,7 +205,10 @@ export interface SummarizeOptions {
 export declare class SummarizerSession extends Session {
   constructor(options?: SummarizerOptions, config?: AIConfig);
   summarize(text: string, options?: SummarizeOptions): Promise<string>;
-  summarizeStreaming(text: string, options?: SummarizeOptions): Promise<ReadableStream<string>>;
+  summarizeStreaming(
+    text: string,
+    options?: SummarizeOptions
+  ): Promise<ReadableStream<string>>;
 }
 
 export interface Summarizer {
@@ -218,6 +230,7 @@ export class AI implements ai {
   summarizer: Summarizer;
   writer: Writer;
   rewriter: ReWriter;
+  modelFetcher: null | (() => Promise<string[]>);
 }
 // Module Declarations
 
@@ -229,6 +242,7 @@ export class Ollama implements AI {}
 export class Mistral implements AI {}
 export class Groq implements AI {}
 export class NVIDIA implements AI {}
+export class LMStudio implements AI {}
 
 declare module "ai.matey/gemini" {
   export default Gemini;
@@ -254,6 +268,9 @@ declare module "ai.matey/groq" {
 declare module "ai.matey/nvidia" {
   export default NVIDIA;
 }
+declare module "ai.matey/lmstudio" {
+  export default LMStudio;
+}
 
 declare module "ai.matey" {
   export {
@@ -265,7 +282,9 @@ declare module "ai.matey" {
     Ollama,
     OpenAI,
     Groq,
-    createClient };
+    LMStudio,
+    createClient,
+  };
   export default function createClient(
     string:
       | "openai"
@@ -275,7 +294,8 @@ declare module "ai.matey" {
       | "mistral"
       | "groq"
       | "nvidia"
-      | "huggingface",
+      | "huggingface"
+      | "lmstudio",
     config: {
       endpoint?: string;
       credentials: {
@@ -289,7 +309,6 @@ declare module "ai.matey" {
 declare module "ai.matey/mock" {
   export default ai;
 }
-
 
 declare module "ai.matey/window.ai.chat" {
   export default ChatFunction;
