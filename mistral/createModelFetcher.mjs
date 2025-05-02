@@ -38,6 +38,6 @@ export default (config) => async () => {
   } catch (error) {
     console.error("Error fetching Mistral models:", error);
     // If API fails, return default models
-    return [];
+    throw error;
   }
 };

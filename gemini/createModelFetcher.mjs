@@ -39,6 +39,6 @@ export default (config) => async () => {
   } catch (error) {
     console.error("Error fetching Gemini models:", error);
     // If API fails, return some default models
-    return ["gemini-1.0-pro", "gemini-1.5-pro", "gemini-1.5-flash"];
+    throw error;
   }
 };

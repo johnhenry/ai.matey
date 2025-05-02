@@ -40,6 +40,6 @@ export default (config) => async () => {
   } catch (error) {
     console.error("Error fetching Hugging Face models:", error);
     // If API fails, return some default models that we know are available
-    return [];
+    throw error;
   }
 };

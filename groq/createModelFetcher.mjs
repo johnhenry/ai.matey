@@ -38,6 +38,6 @@ export default (config) => async () => {
   } catch (error) {
     console.error("Error fetching Groq models:", error);
     // If API fails, return default models
-    return ["llama2-70b-4096", "mixtral-8x7b-32768", "gemma-7b-it"];
+    throw error;
   }
 };
