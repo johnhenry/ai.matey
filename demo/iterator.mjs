@@ -14,20 +14,25 @@ export default (async function* () {
       yield `${name}`;
       // Use the language model
       const ai = createClient(name, { credentials: { apiKey } });
-      const model = await ai.languageModel.create();
-
-      const response = await model.prompt("Tell me a story");
-      yield response;
-      // Use the writer
-      const writer = await ai.writer.create();
-      const text = await writer.write("Write a blog post about AI", {
-        tone: "casual",
-      });
-      yield text;
-      // Use the summarizer
-      const summarizer = await ai.summarizer.create();
-      const summary = await summarizer.summarize(text, { type: "table" });
-      yield summary;
+      if (ai.modelFetcher) {
+        yield `Models:`;
+        yield ai.modelFetcher();
+      } else {
+        yield "Model fetcher not available.";
+      }
+      // const model = await ai.languageModel.create();
+      // const response = await model.prompt("Tell me a story");
+      // yield response;
+      // // Use the writer
+      // const writer = await ai.writer.create();
+      // const text = await writer.write("Write a blog post about AI", {
+      //   tone: "casual",
+      // });
+      // yield text;
+      // // Use the summarizer
+      // const summarizer = await ai.summarizer.create();
+      // const summary = await summarizer.summarize(text, { type: "table" });
+      // yield summary;
     } catch (e) {
       console.error(`Error using ${name}:${e.message}`);
     } finally {
