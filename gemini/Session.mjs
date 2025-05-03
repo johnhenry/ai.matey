@@ -1,15 +1,19 @@
 import SharedSession from "../shared/Session.mjs";
-
+import ensureAsyncIterable from "../util/ensure-async-iterator.mjs";
 class Session extends SharedSession {
   async prompt(prompt, options = {}) {
-    options.temperature = options.temperature ?? this.ai.languageModel._capabilities.defaultTemperature;
-    options.topK = options.topK ?? this.ai.languageModel._capabilities.defaultTopK;
+    options.temperature =
+      options.temperature ??
+      this.ai.languageModel._capabilities.defaultTemperature;
+    options.topK =
+      options.topK ?? this.ai.languageModel._capabilities.defaultTopK;
     options.topP = options.topP ?? this.ai.languageModel._capabilities.topP;
-    options.maxOutputTokens = options.maxTokens ?? this.ai.languageModel._capabilities.maxTokens;
+    options.maxOutputTokens =
+      options.maxTokens ?? this.ai.languageModel._capabilities.maxTokens;
 
     // Convert conversation history to Gemini format
-    const history = this._getConversationHistory().map(msg => ({
-      text: `${msg.role}: ${msg.content}`
+    const history = this._getConversationHistory().map((msg) => ({
+      text: `${msg.role}: ${msg.content}`,
     }));
 
     const parts = [
@@ -52,14 +56,18 @@ class Session extends SharedSession {
   }
 
   async promptStreaming(prompt, options = {}) {
-    options.temperature = options.temperature ?? this.ai.languageModel._capabilities.defaultTemperature;
-    options.topK = options.topK ?? this.ai.languageModel._capabilities.defaultTopK;
+    options.temperature =
+      options.temperature ??
+      this.ai.languageModel._capabilities.defaultTemperature;
+    options.topK =
+      options.topK ?? this.ai.languageModel._capabilities.defaultTopK;
     options.topP = options.topP ?? this.ai.languageModel._capabilities.topP;
-    options.maxOutputTokens = options.maxTokens ?? this.ai.languageModel._capabilities.maxTokens;
+    options.maxOutputTokens =
+      options.maxTokens ?? this.ai.languageModel._capabilities.maxTokens;
 
     // Convert conversation history to Gemini format
-    const history = this._getConversationHistory().map(msg => ({
-      text: `${msg.role}: ${msg.content}`
+    const history = this._getConversationHistory().map((msg) => ({
+      text: `${msg.role}: ${msg.content}`,
     }));
 
     const parts = [
@@ -93,10 +101,10 @@ class Session extends SharedSession {
 
     const responseChunks = [];
     const self = this;
-
+    console.log("Streaming response started...");
     return (async function* () {
       const decoder = new TextDecoder();
-      for await (const chunk of response.body) {
+      for await (const chunk of ensureAsyncIterable(response.body)) {
         const text = decoder.decode(new Uint8Array(chunk));
         // Split into separate messages
         const messages = text.split("\n");
@@ -108,7 +116,7 @@ class Session extends SharedSession {
           // Extract the JSON data after "data: "
           const jsonStr = message.replace("data: ", "").trim();
           if (jsonStr === "[DONE]") {
-            self._addToHistory(prompt, responseChunks.join(''));
+            self._addToHistory(prompt, responseChunks.join(""));
             return;
           }
 
@@ -131,4 +139,3 @@ class Session extends SharedSession {
   }
 }
 export default Session;
-
