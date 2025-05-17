@@ -112,6 +112,12 @@ export interface AILanguageModelSession {
   clone(options?: { signal?: AbortSignal }): Promise<AILanguageModelSession>;
   destroy(): void;
   chat: ChatFunction;
+  $: {
+    [methodName: string]: (...args: any[]) => Promise<any>;
+  };
+  $$: {
+    [methodName: string]: (...args: any[]) => AsyncIterable<any>;
+  };
 }
 
 export declare class Session implements AILanguageModelSession {

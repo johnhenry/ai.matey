@@ -3,12 +3,14 @@ import SharedSession from "../shared/Session.mjs";
 class Session extends SharedSession {
   async prompt(prompt, options = {}) {
     const headers = {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${this.config.credentials?.apiKey || ""}`,
-      'Accept': 'application/json',
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${this.config.credentials?.apiKey || ""}`,
+      Accept: "application/json",
     };
-    options.temperature = options.temperature ?? this.ai.languageModel._capabilities.defaultTemperature;
-    
+    options.temperature =
+      options.temperature ??
+      this.ai.languageModel._capabilities.defaultTemperature;
+
     const messages = [
       ...(this.options.systemPrompt
         ? [{ role: "system", content: this.options.systemPrompt }]
@@ -47,12 +49,14 @@ class Session extends SharedSession {
 
   async promptStreaming(prompt, options = {}) {
     const headers = {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${this.config.credentials?.apiKey || ""}`,
-      'Accept': 'text/event-stream',
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${this.config.credentials?.apiKey || ""}`,
+      Accept: "text/event-stream",
     };
-    options.temperature = options.temperature ?? this.ai.languageModel._capabilities.defaultTemperature;
-    
+    options.temperature =
+      options.temperature ??
+      this.ai.languageModel._capabilities.defaultTemperature;
+
     const messages = [
       ...(this.options.systemPrompt
         ? [{ role: "system", content: this.options.systemPrompt }]
@@ -90,16 +94,16 @@ class Session extends SharedSession {
         .getReader();
 
       let buffer = "";
-      
+
       try {
         while (true) {
           const { value, done } = await reader.read();
           if (done) {
             // Update conversation history with complete response
-            self._addToHistory(prompt, responseChunks.join(''));
+            self._addToHistory(prompt, responseChunks.join(""));
             break;
           }
-          
+
           buffer += value;
           const lines = buffer.split("\n");
           buffer = lines.pop() || "";
@@ -107,7 +111,7 @@ class Session extends SharedSession {
           for (const line of lines) {
             const trimmedLine = line.trim();
             if (!trimmedLine || trimmedLine === "data: [DONE]") continue;
-            
+
             if (trimmedLine.startsWith("data: ")) {
               try {
                 const jsonStr = trimmedLine.slice(6);

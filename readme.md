@@ -32,8 +32,8 @@ To use the mock implementation, import the mock from `ai.matey/mock`;
 #### Via CDN
 
 ```javascript
-import ai from "https://cdn.jsdelivr.net/npm/ai.matey@0.0.38/mock/index.mjs";
-// OR "https://ga.jspm.io/npm:ai.matey@0.0.38/mock/index.mjs"
+import ai from "https://cdn.jsdelivr.net/npm/ai.matey@0.0.39/mock/index.mjs";
+// OR "https://ga.jspm.io/npm:ai.matey@0.0.39/mock/index.mjs"
 ```
 
 #### Via NPM
@@ -91,8 +91,8 @@ Note, that unlike with the mock implementation, these require instantiation.
 Import the clients directly from the CDN
 
 ```javascript
-import Ollama from "https://cdn.jsdelivr.net/npm/ai.matey@0.0.38/ollama/index.mjs";
-// OR "https://ga.jspm.io/npm:ai.matey@0.0.38/ollama/index.mjs"
+import Ollama from "https://cdn.jsdelivr.net/npm/ai.matey@0.0.39/ollama/index.mjs";
+// OR "https://ga.jspm.io/npm:ai.matey@0.0.39/ollama/index.mjs"
 const ai = new Ollama();
 ```
 
@@ -180,8 +180,16 @@ The are some differences between the client implmentations and the base `window.
     - defaults to `0`
     - `-1` denotes no limit
 
-- `<model>.chat()` simulates OpenAI chat.completions.create [requests]() and [responses]()
+- `<model>.chat()` simulates OpenAI chat.completions.create [requests](https://platform.openai.com/docs/api-reference/chat) and [responses](https://platform.openai.com/docs/api-reference/responses)
+
   - There's also a `ai.matey/window.ai.chat` that implements this chat interface atop `window.ai`
+
+- `<model>.$` and `<model>.$$` are proxies used to invoke the anymethod pattern where any method can be used to query model.
+
+  - methods called on `$` are asynchronous -- returning a promise fulfilled with the result
+    - e.g. `const poem = await model.$.write_a_poem()`
+  - methods called on `$$` are streaming -- returning an async iterator yielding the result
+    - e.g. `for await (const chunk of model.$$.write_a_poem()) { console.log(chunk); }`
 
 ## Playground/Demo
 
