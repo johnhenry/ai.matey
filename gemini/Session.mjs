@@ -55,7 +55,7 @@ class Session extends SharedSession {
     return assistantResponse;
   }
 
-  async promptStreaming(prompt, options = {}) {
+  async *promptStreaming(prompt, options = {}) {
     options.temperature =
       options.temperature ??
       this.ai.languageModel._capabilities.defaultTemperature;
@@ -100,42 +100,38 @@ class Session extends SharedSession {
     );
 
     const responseChunks = [];
-    const self = this;
-    console.log("Streaming response started...");
-    return (async function* () {
-      const decoder = new TextDecoder();
-      for await (const chunk of ensureAsyncIterable(response.body)) {
-        const text = decoder.decode(new Uint8Array(chunk));
-        // Split into separate messages
-        const messages = text.split("\n");
+    const decoder = new TextDecoder();
+    for await (const chunk of ensureAsyncIterable(response.body)) {
+      const text = decoder.decode(new Uint8Array(chunk));
+      // Split into separate messages
+      const messages = text.split("\n");
 
-        for (const message of messages) {
-          // Skip empty messages
-          if (!message.trim()) continue;
+      for (const message of messages) {
+        // Skip empty messages
+        if (!message.trim()) continue;
 
-          // Extract the JSON data after "data: "
-          const jsonStr = message.replace("data: ", "").trim();
-          if (jsonStr === "[DONE]") {
-            self._addToHistory(prompt, responseChunks.join(""));
-            return;
+        // Extract the JSON data after "data: "
+        const jsonStr = message.replace("data: ", "").trim();
+        if (jsonStr === "[DONE]") {
+          self._addToHistory(prompt, responseChunks.join(""));
+          return;
+        }
+
+        try {
+          const data = JSON.parse(jsonStr);
+          const content = data.candidates[0]?.content?.parts[0]?.text;
+          if (content) {
+            responseChunks.push(content);
+            yield content;
           }
-
-          try {
-            const data = JSON.parse(jsonStr);
-            const content = data.candidates[0]?.content?.parts[0]?.text;
-            if (content) {
-              responseChunks.push(content);
-              yield content;
-            }
-          } catch (e) {
-            // Skip parsing errors for empty or incomplete messages
-            if (message.trim() && !message.includes("data: ")) {
-              throw new Error("Failed to parse JSON stream: " + e?.message);
-            }
+        } catch (e) {
+          // Skip parsing errors for empty or incomplete messages
+          if (message.trim() && !message.includes("data: ")) {
+            throw new Error("Failed to parse JSON stream: " + e?.message);
           }
         }
       }
-    })();
+    }
   }
 }
 export default Session;

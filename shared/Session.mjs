@@ -40,7 +40,7 @@ class Session {
     this.#$$ = new Proxy(this, {
       get(target, prop) {
         return async function* (...args) {
-          for await (const message of await this.promptStreaming.call(
+          for await (const message of this.promptStreaming.call(
             target,
             methodPrompt(prop, args)
           )) {
@@ -170,7 +170,7 @@ class Session {
     const id = `${Math.random().toString(36).slice(2)}`;
     const created = Math.floor(Date.now() / 1000);
     if (stream) {
-      const streamer = await this.promptStreaming(lastMessage.content, options);
+      const streamer = this.promptStreaming(lastMessage.content, options);
       // Transform the stream to emit properly formatted chunks
       return async function* () {
         for await (const chunk of streamer) {
@@ -254,12 +254,12 @@ class Session {
   }
   async prompt(...rest) {
     const output = [];
-    for (const message of await this.promptStreaming(...rest)) {
+    for await (const message of this.promptStreaming(...rest)) {
       output.push(message);
     }
     return output.join("");
   }
-  promptStreaming() {
+  async *promptStreaming() {
     throw new Error("Abstract method not implemented");
   }
   get config() {

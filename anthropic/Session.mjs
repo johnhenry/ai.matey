@@ -52,7 +52,7 @@ class Session extends SharedSession {
     return assistantResponse;
   }
 
-  async promptStreaming(prompt, options = {}) {
+  async *promptStreaming(prompt, options = {}) {
     options.temperature =
       options.temperature ??
       this.ai.languageModel._capabilities.defaultTemperature;
@@ -91,79 +91,76 @@ class Session extends SharedSession {
     }
 
     const responseChunks = [];
-    const self = this;
 
-    return (async function* () {
-      const reader = response.body
-        .pipeThrough(new TextDecoderStream())
-        .getReader();
+    const reader = response.body
+      .pipeThrough(new TextDecoderStream())
+      .getReader();
 
-      let buffer = "";
-      let currentEvent = null;
+    let buffer = "";
+    let currentEvent = null;
 
-      try {
-        while (true) {
-          const { value, done } = await reader.read();
-          if (done) break;
+    try {
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
 
-          buffer += value;
-          const lines = buffer.split("\n");
-          buffer = lines.pop() || "";
+        buffer += value;
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
 
-          for (const line of lines) {
-            const trimmedLine = line.trim();
-            if (!trimmedLine) continue;
+        for (const line of lines) {
+          const trimmedLine = line.trim();
+          if (!trimmedLine) continue;
 
-            if (trimmedLine.startsWith("event: ")) {
-              currentEvent = trimmedLine.slice(7);
-              continue;
+          if (trimmedLine.startsWith("event: ")) {
+            currentEvent = trimmedLine.slice(7);
+            continue;
+          }
+
+          if (trimmedLine.startsWith("data: ")) {
+            const data = trimmedLine.slice(6);
+
+            if (data === "[DONE]") {
+              this._addToHistory(prompt, responseChunks.join(""));
+              return;
             }
 
-            if (trimmedLine.startsWith("data: ")) {
-              const data = trimmedLine.slice(6);
+            try {
+              const parsed = JSON.parse(data);
 
-              if (data === "[DONE]") {
-                self._addToHistory(prompt, responseChunks.join(""));
-                return;
+              switch (currentEvent) {
+                case "message_start":
+                  break;
+                case "content_block_start":
+                  break;
+                case "content_block_delta":
+                  if (parsed.delta?.text) {
+                    responseChunks.push(parsed.delta.text);
+                    yield parsed.delta.text;
+                  }
+                  break;
+                case "message_delta":
+                  if (parsed.delta?.content?.[0]?.text) {
+                    responseChunks.push(parsed.delta.content[0].text);
+                    yield parsed.delta.content[0].text;
+                  }
+                  break;
+                default:
+                  if (parsed.content?.[0]?.text) {
+                    responseChunks.push(parsed.content[0].text);
+                    yield parsed.content[0].text;
+                  }
               }
-
-              try {
-                const parsed = JSON.parse(data);
-
-                switch (currentEvent) {
-                  case "message_start":
-                    break;
-                  case "content_block_start":
-                    break;
-                  case "content_block_delta":
-                    if (parsed.delta?.text) {
-                      responseChunks.push(parsed.delta.text);
-                      yield parsed.delta.text;
-                    }
-                    break;
-                  case "message_delta":
-                    if (parsed.delta?.content?.[0]?.text) {
-                      responseChunks.push(parsed.delta.content[0].text);
-                      yield parsed.delta.content[0].text;
-                    }
-                    break;
-                  default:
-                    if (parsed.content?.[0]?.text) {
-                      responseChunks.push(parsed.content[0].text);
-                      yield parsed.content[0].text;
-                    }
-                }
-              } catch (error) {
-                console.error("Failed to parse SSE message:", trimmedLine);
-                console.error("Parse error:", error);
-              }
+            } catch (error) {
+              console.error("Failed to parse SSE message:", trimmedLine);
+              console.error("Parse error:", error);
             }
           }
         }
-      } finally {
-        reader.releaseLock();
       }
-    })();
+    } finally {
+      reader.releaseLock();
+    }
   }
 }
 

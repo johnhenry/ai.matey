@@ -3,12 +3,15 @@ import SharedSession from "../shared/Session.mjs";
 class Session extends SharedSession {
   async prompt(prompt, options = {}) {
     const headers = {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${this.config.credentials?.apiKey || ""}`,
-      'Accept': 'application/json',
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${this.config.credentials?.apiKey || ""}`,
+      Accept: "application/json",
     };
-    options.temperature = options.temperature ?? this.ai.languageModel._capabilities.defaultTemperature;
-    options.top_k = options.topK ?? this.ai.languageModel._capabilities.defaultTopK;
+    options.temperature =
+      options.temperature ??
+      this.ai.languageModel._capabilities.defaultTemperature;
+    options.top_k =
+      options.topK ?? this.ai.languageModel._capabilities.defaultTopK;
 
     const messages = [
       ...(this.options.systemPrompt
@@ -47,14 +50,17 @@ class Session extends SharedSession {
     }
   }
 
-  async promptStreaming(prompt, options = {}) {
+  async *promptStreaming(prompt, options = {}) {
     const headers = {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${this.config.credentials?.apiKey || ""}`,
-      'Accept': 'text/event-stream',
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${this.config.credentials?.apiKey || ""}`,
+      Accept: "text/event-stream",
     };
-    options.temperature = options.temperature ?? this.ai.languageModel._capabilities.defaultTemperature;
-    options.top_k = options.topK ?? this.ai.languageModel._capabilities.defaultTopK;
+    options.temperature =
+      options.temperature ??
+      this.ai.languageModel._capabilities.defaultTemperature;
+    options.top_k =
+      options.topK ?? this.ai.languageModel._capabilities.defaultTopK;
 
     const messages = [
       ...(this.options.systemPrompt
@@ -84,52 +90,48 @@ class Session extends SharedSession {
     }
 
     const responseChunks = [];
-    const self = this;
+    const reader = response.body
+      .pipeThrough(new TextDecoderStream())
+      .getReader();
 
-    return (async function* () {
-      const reader = response.body
-        .pipeThrough(new TextDecoderStream())
-        .getReader();
+    let buffer = "";
 
-      let buffer = "";
+    try {
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) {
+          this._addToHistory(prompt, responseChunks.join(""));
+          break;
+        }
 
-      try {
-        while (true) {
-          const { value, done } = await reader.read();
-          if (done) {
-            self._addToHistory(prompt, responseChunks.join(''));
-            break;
-          }
+        buffer += value;
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
 
-          buffer += value;
-          const lines = buffer.split("\n");
-          buffer = lines.pop() || "";
-
-          for (const line of lines) {
-            if (line.trim() === "") continue;
-            if (line.startsWith("data: ")) {
-              const data = line.slice(6);
-              if (data === "[DONE]") {
-                self._addToHistory(prompt, responseChunks.join(''));
-                return;
+        for (const line of lines) {
+          if (line.trim() === "") continue;
+          if (line.startsWith("data: ")) {
+            const data = line.slice(6);
+            if (data === "[DONE]") {
+              this._addToHistory(prompt, responseChunks.join(""));
+              return;
+            }
+            try {
+              const parsed = JSON.parse(data);
+              if (parsed?.choices?.[0]?.delta?.content) {
+                const content = parsed.choices[0].delta.content;
+                responseChunks.push(content);
+                yield content;
               }
-              try {
-                const parsed = JSON.parse(data);
-                if (parsed?.choices?.[0]?.delta?.content) {
-                  const content = parsed.choices[0].delta.content;
-                  responseChunks.push(content);
-                  yield content;
-                }
-              } catch (e) {
-                console.error("Error parsing SSE data:", e);
-              }
+            } catch (e) {
+              console.error("Error parsing SSE data:", e);
             }
           }
         }
-      } finally {
-        reader.releaseLock();
       }
-    })();
+    } finally {
+      reader.releaseLock();
+    }
   }
 }
 

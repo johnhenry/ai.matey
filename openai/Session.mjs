@@ -47,7 +47,7 @@ class Session extends SharedSession {
     }
   }
 
-  async promptStreaming(prompt, options = {}) {
+  async *promptStreaming(prompt, options = {}) {
     const headers = {
       "Content-Type": "application/json",
       Authorization: `Bearer ${this.config.credentials?.apiKey || ""}`,
@@ -86,57 +86,54 @@ class Session extends SharedSession {
     }
 
     const responseChunks = [];
-    const self = this;
 
-    return (async function* () {
-      const reader = response.body
-        .pipeThrough(new TextDecoderStream())
-        .getReader();
+    const reader = response.body
+      .pipeThrough(new TextDecoderStream())
+      .getReader();
 
-      let buffer = "";
+    let buffer = "";
 
-      try {
-        while (true) {
-          const { value, done } = await reader.read();
-          if (done) {
-            // Update conversation history with complete response
-            self._addToHistory(prompt, responseChunks.join(""));
-            break;
-          }
+    try {
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) {
+          // Update conversation history with complete response
+          this._addToHistory(prompt, responseChunks.join(""));
+          break;
+        }
 
-          buffer += value;
-          const lines = buffer.split("\n");
-          buffer = lines.pop() || "";
+        buffer += value;
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
 
-          for (const line of lines) {
-            const trimmedLine = line.trim();
-            if (!trimmedLine || trimmedLine === "data: [DONE]") continue;
+        for (const line of lines) {
+          const trimmedLine = line.trim();
+          if (!trimmedLine || trimmedLine === "data: [DONE]") continue;
 
-            if (trimmedLine.startsWith("data: ")) {
-              try {
-                const jsonStr = trimmedLine.slice(6);
-                const data = JSON.parse(jsonStr);
-                if (data.choices?.[0]?.delta?.content) {
-                  const content = data.choices[0].delta.content;
-                  responseChunks.push(content);
-                  yield content;
-                } else if (data.choices?.[0]?.message?.content) {
-                  const content = data.choices[0].message.content;
-                  responseChunks.push(content);
-                  yield content;
-                }
-              } catch (error) {
-                console.error("Parse error:", error);
+          if (trimmedLine.startsWith("data: ")) {
+            try {
+              const jsonStr = trimmedLine.slice(6);
+              const data = JSON.parse(jsonStr);
+              if (data.choices?.[0]?.delta?.content) {
+                const content = data.choices[0].delta.content;
+                responseChunks.push(content);
+                yield content;
+              } else if (data.choices?.[0]?.message?.content) {
+                const content = data.choices[0].message.content;
+                responseChunks.push(content);
+                yield content;
               }
-            } else {
-              console.warn("Unexpected line format:", trimmedLine);
+            } catch (error) {
+              console.error("Parse error:", error);
             }
+          } else {
+            console.warn("Unexpected line format:", trimmedLine);
           }
         }
-      } finally {
-        reader.releaseLock();
       }
-    })();
+    } finally {
+      reader.releaseLock();
+    }
   }
 }
 
