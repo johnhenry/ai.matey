@@ -10,7 +10,7 @@ const methodPrompt = (prop, args) => {
   )}"${
     list ? list : "."
   }\nTreat the name as a command or question and respond with the most reasonable result in a JSON-serializable format (preferably a string, anumber, or a boolean; but null, array, object, etc. are also acceptable).Avoid unnecessary wrapping — if the output would be a singleton object (e.g. { "result": 5 }), return just the value (e.g. 5).\nOnly return the output value. Do not add explanations, headers, or formatting outside of the result.`.trim();
-}; //stringsa, infera, roundsa = null
+};
 class Session {
   #ai;
   #options;
