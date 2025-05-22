@@ -1,16 +1,17 @@
 export default (config) => async () => {
   const { endpoint } = config;
-  const { apiKey } = config.credentials || {};
+  const { apiKey } = config.credentials || {}; // Safely access apiKey
+
   try {
     // Validate API key
     if (!apiKey) {
       throw new Error("Qwen API key is required");
     }
 
-    // Fetch models from the Qwen API
-    // Construct the full URL to the Qwen API models endpoint
+    // Construct the models URL
     const url = `${endpoint}/v1/models`;
 
+    // Make a GET request with headers
     const response = await fetch(url, {
       method: "GET",
       headers: {
@@ -19,15 +20,14 @@ export default (config) => async () => {
       },
     });
 
-    // Check if the request was successful
+    // Handle unsuccessful request
     if (!response.ok) {
-      // Try to parse the error response, but default to statusText if parsing fails or error format is unexpected
       let errorDetails = response.statusText;
       try {
         const error = await response.json();
         if (error && error.error && error.error.message) {
           errorDetails = error.error.message;
-        } else if (error && error.message) { // Some APIs might return error directly in message
+        } else if (error && error.message) { 
           errorDetails = error.message;
         }
       } catch (e) {
@@ -37,24 +37,32 @@ export default (config) => async () => {
       throw new Error(`Qwen API error: ${errorDetails}`);
     }
 
-    // Parse the response
+    // Parse successful JSON response
     const data = await response.json();
 
-    // Filter for chat models only
-    // This filtering logic is an educated guess and might need adjustment
-    // based on actual Qwen API model naming conventions.
+    // Filter and map models
+    // Ensure data.data exists and is an array before trying to filter/map
+    if (!data || !Array.isArray(data.data)) {
+        console.warn("Qwen API response format unexpected: 'data' array not found or not an array.", data);
+        return []; // Return empty if format is not as expected
+    }
+    
     const chatModels = data.data
-      .filter((model) => model.id.toLowerCase().includes("qwen") || model.id.toLowerCase().includes("chat"))
-      .filter((model) => !model.id.toLowerCase().includes("instruct"))
-      .filter((model) => !model.id.toLowerCase().includes("-vision")) // often vision models have this
-      .filter((model) => !model.id.toLowerCase().includes("embedding"))
-      .filter((model) => !model.id.toLowerCase().includes("search"))
+      .filter((model) => {
+        if (!model || typeof model.id !== 'string') return false;
+        const modelIdLower = model.id.toLowerCase();
+        return (modelIdLower.includes("qwen") || modelIdLower.includes("chat")) &&
+               !modelIdLower.includes("instruct") &&
+               !modelIdLower.includes("vision") && 
+               !modelIdLower.includes("embedding") &&
+               !modelIdLower.includes("search");
+      })
       .map((model) => model.id);
 
-    // Return the list of models
     return chatModels;
   } catch (error) {
-    console.error("Error fetching Qwen models:", error.message); // Log only message to avoid verbose object logging
-    throw error; // Re-throw the original error for further handling upstream
+    // Log and re-throw error
+    console.error("Error fetching Qwen models:", error.message); // Log only message
+    throw error; // Re-throw the original error
   }
 };
