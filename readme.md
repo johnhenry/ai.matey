@@ -114,17 +114,20 @@ Each client is pre-configured with a default endpoint and model that can be over
 
 | Client      | Default Endpoint                          | Default Model                        | OpenAI API | CORS Compatible |
 | ----------- | ----------------------------------------- | ------------------------------------ | ---------- | --------------- |
-| gemini      | https://generativelanguage.googleapis.com | gemini-2.0-flash-exp                 | x          | ✅              |
 | anthropic   | https://api.anthropic.com                 | claude-3-opus-20240229               | x          | ✅              |
-| huggingface | https://api-inference.huggingface.co      | mistralai/Mixtral-8x7B-Instruct-v0.1 | x          | ✅              |
-| openai      | https://api.openai.com                    | gpt-4o-mini                          | ✅         | ✅              |
-| ollama      | http://localhost:11434                    | llama3.2:latest                      | ✅         | ✅              |
-| mistral     | https://api.mistral.ai                    | mistral-small-latest                 | ✅         | ✅              |
+| deepseek    | https://api.deepseek.com                  | deepseek-chat                        | ✅         | ?               |
+| gemini      | https://generativelanguage.googleapis.com | gemini-2.0-flash-exp                 | x          | ✅              |
 | groq        | https://api.groq.com/openai               | llama3-8b-8192                       | ✅         | ✅              |
-| nvidia      | https://integrate.api.nvidia.com          | meta/llama-3.1-8b-instruct           | ✅         | x               |
+| huggingface | https://api-inference.huggingface.co      | mistralai/Mixtral-8x7B-Instruct-v0.1 | x          | ✅              |
 | lmstudio    | http://localhost:1234                     | gemma-3-1b-it                        | ✅         | ?               |
+| mistral     | https://api.mistral.ai                    | mistral-small-latest                 | ✅         | ✅              |
+| nvidia      | https://integrate.api.nvidia.com          | meta/llama-3.1-8b-instruct           | ✅         | x               |
+| ollama      | http://localhost:11434                    | llama3.2:latest                      | ✅         | ✅              |
+| openai      | https://api.openai.com                    | gpt-4o-mini                          | ✅         | ✅              |
+| qwen        | https://api.qwen.com/v1                   | qwen-turbo                           | ✅         | ?               |
 
-Except for the Ollama, you must provide a `credentials` object with a valid `apiKey` property in the constructor's settings object.
+Note: For Qwen, the endpoint and model are placeholders and may need to be configured by the user. 
+Except for Ollama, you must provide a `credentials` object with a valid `apiKey` property in the constructor's settings object. This now also applies to Qwen and DeepSeek.
 
 ```javascript
 import Client from "ai.matey/<client name>";

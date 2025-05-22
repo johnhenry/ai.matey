@@ -1,22 +1,27 @@
-import Ollama from "./ollama/index.mjs";
-import OpenAI from "./openai/index.mjs";
-import Gemini from "./gemini/index.mjs";
 import Anthropic from "./anthropic/index.mjs";
-import Mistral from "./mistral/index.mjs";
+import DeepSeek from "./deepseek/index.mjs"; // Added
+import Gemini from "./gemini/index.mjs";
 import Groq from "./groq/index.mjs";
-import Nvidia from "./nvidia/index.mjs";
 import HuggingFace from "./huggingface/index.mjs";
 import lmstudio from "./lmstudio/index.mjs";
+import Mistral from "./mistral/index.mjs";
+import Nvidia from "./nvidia/index.mjs";
+import Ollama from "./ollama/index.mjs";
+import OpenAI from "./openai/index.mjs";
+import Qwen from "./qwen/index.mjs"; // Added
+
 const clients = {
-  ollama: Ollama,
-  openai: OpenAI,
-  gemini: Gemini,
   anthropic: Anthropic,
-  mistral: Mistral,
+  deepseek: DeepSeek, // Added
+  gemini: Gemini,
   groq: Groq,
-  nvidia: Nvidia,
   huggingface: HuggingFace,
   lmstudio: lmstudio,
+  mistral: Mistral,
+  nvidia: Nvidia,
+  ollama: Ollama,
+  openai: OpenAI,
+  qwen: Qwen, // Added
 };
 const createClient = (name = "ollama", ...rest) => {
   const Client = clients[name?.toLowerCase()];
@@ -27,14 +32,17 @@ const createClient = (name = "ollama", ...rest) => {
 };
 export default createClient;
 export {
+  Anthropic,
+  DeepSeek, // Added
+  Gemini,
+  Groq,
+  HuggingFace,
+  lmstudio,
+  Mistral,
+  Nvidia,
   Ollama,
   OpenAI,
-  Gemini,
-  Anthropic,
-  Mistral,
-  Groq,
-  Nvidia,
-  HuggingFace,
+  Qwen, // Added
   createClient,
   clients,
 };

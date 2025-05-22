@@ -1,43 +1,16 @@
-export default (config) => async () => {
-  const { endpoint } = config;
-  const { apiKey } = config.credentials || {};
-  try {
-    // Validate API key
-    if (!apiKey) {
-      throw new Error("Groq API key is required");
-    }
+import createGenericModelFetcher from '../../shared/createGenericModelFetcher.mjs';
 
-    // Fetch models from the Groq API
-    const url = `${endpoint}/v1/models`;
+// Specific configuration for Groq
+const groqOptions = {
+  providerName: 'Groq',
+  modelsPath: '/v1/models',
+  modelIdExtractor: (model) => model.id,
+  responseDataPath: 'data', // Access models via response.data
+  // No specific modelFilterPredicate needed if Groq returns only usable models
+  // or if we want to list all of them. The default predicate is `() => true`.
+};
 
-    const response = await fetch(url, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-    });
-
-    // Check if the request was successful
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(
-        `Groq API error: ${error.error?.message || response.statusText}`
-      );
-    }
-
-    // Parse the response
-    const data = await response.json();
-
-    // Extract model names from the Groq API response
-    // The API typically returns a data object with a 'data' array of models
-    const models = data.data.map((model) => model.id);
-
-    // Return the list of models
-    return models;
-  } catch (error) {
-    console.error("Error fetching Groq models:", error);
-    // If API fails, return default models
-    throw error;
-  }
+export default (providerConfig) => {
+  // providerConfig will be passed from the assemble function, containing endpoint & credentials
+  return createGenericModelFetcher(providerConfig, groqOptions);
 };
