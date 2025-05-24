@@ -137,7 +137,7 @@ class Session extends SharedSession {
     };
     
     const response = await fetch(
-      `${this.config.endpoint}/v1beta/models/${this.config.model || 'gemini-1.5-flash-latest'}:streamGenerateContent?alt=sse&key=${this.config.credentials?.apiKey || ""}`,
+      `${this.config.endpoint}/v1beta/models/${this.config.model ?? 'gemini-1.5-flash-latest'}:streamGenerateContent?alt=sse&key=${this.config.credentials?.apiKey || ""}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },

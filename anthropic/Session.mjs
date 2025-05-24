@@ -183,9 +183,10 @@ class Session extends SharedSession {
       .getReader();
 
     let buffer = "";
-    let currentEvent = null;
+    let currentEvent = null; // Initialized to store the current SSE event type.
 
     try {
+      // Primary stream reading loop.
       while (true) {
         const { value, done } = await reader.read();
         if (done) break;
@@ -198,17 +199,18 @@ class Session extends SharedSession {
           const trimmedLine = line.trim();
           if (!trimmedLine) continue;
 
-          if (trimmedLine.startsWith("event:")) { // Ensure matching "event:" exactly
-            currentEvent = trimmedLine.substring(6).trim(); // More robust: get text after "event:"
-            continue;
+          if (trimmedLine.startsWith("event:")) { 
+            // When an "event:" line is encountered, update currentEvent with the event name.
+            currentEvent = trimmedLine.substring(6).trim(); 
+            continue; // Continue to process the next line, which should be the data for this event.
           }
 
-          if (trimmedLine.startsWith("data:")) { // Ensure matching "data:" exactly
-            const data = trimmedLine.substring(5).trim(); // More robust: get text after "data:"
+          if (trimmedLine.startsWith("data:")) { 
+            const data = trimmedLine.substring(5).trim(); 
             
-            // Note: The actual "message_stop" event itself doesn't carry data that needs parsing here for content.
-            // Its occurrence (setting currentEvent to "message_stop") is the signal.
-            // Parsing of data happens for other events like content_block_delta.
+            // Note: The "message_stop" event itself doesn't carry data that needs parsing for content.
+            // Its occurrence (which sets currentEvent to "message_stop") is the primary signal.
+            // Data parsing below is for events like content_block_delta.
 
             try {
               const parsed = JSON.parse(data);
@@ -243,21 +245,29 @@ class Session extends SharedSession {
           }
         } // End for (const line of lines)
 
-        // After processing all lines in the current chunk, check if message_stop was received.
+        // After processing all lines in the current data chunk from the stream,
+        // check if the last event processed was "message_stop".
         if (currentEvent === "message_stop") {
-          break; // Exit the while(true) loop, history will be updated in finally.
+          // Anthropic's "message_stop" event explicitly signals the end of all content generation for this message.
+          // Break the loop to stop processing further events from the stream.
+          // History will be updated in the 'finally' block.
+          break; 
         }
-      } // End while (true)
+      } // End while (true) loop for reading stream.
     } finally {
       reader.releaseLock();
-      // Consolidated history update: This runs once the stream is fully processed or message_stop caused a break.
-      if (responseChunks.length > 0 || currentEvent === "message_stop") { // Ensure history updates even for empty responses if message_stop occurred
+      // Consolidated history update. This block executes once the stream processing loop
+      // has terminated, either by the stream ending naturally (done: true from reader.read())
+      // or by an explicit 'break' statement (e.g., upon receiving a "message_stop" event).
+      if (responseChunks.length > 0 || currentEvent === "message_stop") { 
+        // Update history if any response chunks were received, or if a "message_stop" event
+        // was the reason for termination (even if the response was empty).
         const assistantResponseText = responseChunks.join("");
         if (typeof input === "string") {
           this._addToHistory(input, assistantResponseText);
         } else if (Array.isArray(input)) {
           this._setConversationHistory([
-            ...workingMessages, // These are the messages before the current assistant's response
+            ...workingMessages, // `workingMessages` holds the conversation state before this assistant's response.
             { role: "assistant", content: assistantResponseText },
           ]);
         }

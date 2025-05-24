@@ -37,7 +37,10 @@ class Session extends SharedSession {
     const headers = {
       "Content-Type": "application/json",
       Authorization: `Bearer ${this.config.credentials?.apiKey || ""}`,
-      Accept: "text/event-stream", // Changed for streaming
+      // The `promptStreaming` method always makes a streaming request to the OpenAI API
+      // (body includes `stream: true`), so "text/event-stream" is the correct Accept header.
+      // The non-streaming `prompt()` method (defined in SharedSession) consumes this stream.
+      Accept: "text/event-stream",
     };
     options.temperature =
       options.temperature ??
