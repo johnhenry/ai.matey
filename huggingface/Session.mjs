@@ -21,33 +21,6 @@ function base64ToDataURI(base64String, mimeType = "image/jpeg") {
   return `data:${mimeType};base64,${base64String}`;
 }
 
-// Deep copy utility
-function deepCopy(obj) {
-    if (obj === null || typeof obj !== 'object') {
-        return obj;
-    }
-    if (obj instanceof Date) {
-        return new Date(obj);
-    }
-    if (obj instanceof Array) {
-        const copy = [];
-        for (let i = 0; i < obj.length; i++) {
-            copy[i] = deepCopy(obj[i]);
-        }
-        return copy;
-    }
-    if (obj instanceof Object) {
-        const copy = {};
-        for (const key in obj) {
-            if (obj.hasOwnProperty(key)) {
-                copy[key] = deepCopy(obj[key]);
-            }
-        }
-        return copy;
-    }
-    throw new Error("Unable to copy obj! Its type isn't supported.");
-}
-
 
 class Session extends SharedSession {
   async prompt(input, options = {}) {
@@ -94,24 +67,24 @@ class Session extends SharedSession {
     // 2. User/Assistant Prompts from initialPrompts (non-system)
     (this.options.initialPrompts || []).forEach(msg => {
       if (msg.role !== "system") {
-        historyInputMessages_before_hf_transform.push(deepCopy(msg));
-        hfMessages.push(deepCopy(msg)); 
+        historyInputMessages_before_hf_transform.push(structuredClone(msg));
+        hfMessages.push(structuredClone(msg)); 
       }
     });
     
     // 3. Conversation History
     const conversationHistory = this._getConversationHistory();
-    historyInputMessages_before_hf_transform.push(...deepCopy(conversationHistory));
-    hfMessages.push(...deepCopy(conversationHistory));
+    historyInputMessages_before_hf_transform.push(...structuredClone(conversationHistory));
+    hfMessages.push(...structuredClone(conversationHistory));
 
     // 4. Current Input
     if (typeof input === "string") {
       const userMessage = { role: "user", content: input };
-      historyInputMessages_before_hf_transform.push(deepCopy(userMessage));
-      hfMessages.push(deepCopy(userMessage)); 
+      historyInputMessages_before_hf_transform.push(structuredClone(userMessage));
+      hfMessages.push(structuredClone(userMessage)); 
     } else if (Array.isArray(input)) { // LanguageModelMessage[]
-      historyInputMessages_before_hf_transform.push(...deepCopy(input));
-      hfMessages.push(...deepCopy(input)); 
+      historyInputMessages_before_hf_transform.push(...structuredClone(input));
+      hfMessages.push(...structuredClone(input)); 
     } else {
       throw new Error("Invalid input type for promptStreaming. Must be string or array.");
     }

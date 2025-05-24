@@ -144,7 +144,7 @@ class Session extends SharedSession {
       messages: processedOpenAIMessages,
       temperature: options.temperature, // Ensure temperature is passed
       // any other options from `options` should be spread if they are valid OpenAI params
-      ...(options.maxTokens && {max_tokens: options.maxTokens}), // Example: mapping maxTokens
+      ...(options.maxTokens != null ? { max_tokens: options.maxTokens } : {}),
       stream: true,
     };
     // Remove undefined options to avoid issues with OpenAI API

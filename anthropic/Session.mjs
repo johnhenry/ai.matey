@@ -198,30 +198,17 @@ class Session extends SharedSession {
           const trimmedLine = line.trim();
           if (!trimmedLine) continue;
 
-          if (trimmedLine.startsWith("event: ")) {
-            currentEvent = trimmedLine.slice(7);
+          if (trimmedLine.startsWith("event:")) { // Ensure matching "event:" exactly
+            currentEvent = trimmedLine.substring(6).trim(); // More robust: get text after "event:"
             continue;
           }
 
-          if (trimmedLine.startsWith("data: ")) {
-            const data = trimmedLine.slice(6);
-
-            // Correctly check for the "message_stop" event for Anthropic
-            if (currentEvent === "message_stop") {
-              const assistantResponseText = responseChunks.join("");
-              if (typeof input === "string") {
-                this._addToHistory(input, assistantResponseText);
-              } else if (Array.isArray(input)) {
-                // `workingMessages` at this point contains:
-                // initialPrompts (non-system) + _getConversationHistory() + input (array from user)
-                // This is the complete history *before* the assistant's response.
-                this._setConversationHistory([
-                  ...workingMessages,
-                  { role: "assistant", content: assistantResponseText },
-                ]);
-              }
-              return; // End of stream processing
-            }
+          if (trimmedLine.startsWith("data:")) { // Ensure matching "data:" exactly
+            const data = trimmedLine.substring(5).trim(); // More robust: get text after "data:"
+            
+            // Note: The actual "message_stop" event itself doesn't carry data that needs parsing here for content.
+            // Its occurrence (setting currentEvent to "message_stop") is the signal.
+            // Parsing of data happens for other events like content_block_delta.
 
             try {
               const parsed = JSON.parse(data);
@@ -247,29 +234,30 @@ class Session extends SharedSession {
                   // This event might contain deltas for various things, including stop_reason
                   // The primary text delta is usually in content_block_delta
                   break;
-                // No default case needed as we only care about specific events for text
+                // No default case needed as we only care about specific events for text,
+                // and message_stop is handled by checking currentEvent after the loop.
               }
             } catch (error) {
-              // console.error("Failed to parse SSE message:", trimmedLine, "Event:", currentEvent);
-              // console.error("Parse error:", error);
-              // It's possible some non-JSON data or keep-alive pings might appear.
-              // Depending on strictness, might log or ignore. For now, log.
+              // console.warn("Failed to parse SSE message data:", data, "for event:", currentEvent, error);
             }
           }
+        } // End for (const line of lines)
+
+        // After processing all lines in the current chunk, check if message_stop was received.
+        if (currentEvent === "message_stop") {
+          break; // Exit the while(true) loop, history will be updated in finally.
         }
-      }
+      } // End while (true)
     } finally {
       reader.releaseLock();
-      // Final history update if loop exited unexpectedly (e.g. stream closed without message_stop)
-      // This is a fallback, primary history update should be on "message_stop"
-      // Fallback history update if stream ends without 'message_stop'
-      if (currentEvent !== "message_stop" && responseChunks.length > 0) {
+      // Consolidated history update: This runs once the stream is fully processed or message_stop caused a break.
+      if (responseChunks.length > 0 || currentEvent === "message_stop") { // Ensure history updates even for empty responses if message_stop occurred
         const assistantResponseText = responseChunks.join("");
         if (typeof input === "string") {
           this._addToHistory(input, assistantResponseText);
         } else if (Array.isArray(input)) {
           this._setConversationHistory([
-            ...workingMessages,
+            ...workingMessages, // These are the messages before the current assistant's response
             { role: "assistant", content: assistantResponseText },
           ]);
         }
