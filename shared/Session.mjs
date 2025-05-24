@@ -145,8 +145,19 @@ class Session {
     if (!Array.isArray(messages) || messages.length === 0) return 0;
 
     return messages.reduce((total, msg) => {
-      // Count tokens in the message content
-      const contentTokens = this._countTokens(msg.content || "");
+      let contentTokens = 0;
+      if (typeof msg.content === "string") {
+        contentTokens = this._countTokens(msg.content || "");
+      } else if (Array.isArray(msg.content)) {
+        for (const part of msg.content) {
+          if (part.type === "text") {
+            contentTokens += this._countTokens(part.value || "");
+          } else {
+            // Placeholder for non-text parts (e.g., image, audio)
+            contentTokens += 75; // Add a fixed placeholder token count
+          }
+        }
+      }
 
       // Add tokens for message structure (role, formatting)
       const structureTokens = 3; // Approximate tokens for message structure
@@ -164,21 +175,22 @@ class Session {
     }
 
     // Set conversation history to all messages except the last one
+    // This sets history *for the duration of this chat call's context*.
     this._setConversationHistory(messages.slice(0, -1));
 
     // Generate a unique ID for this conversation
     const id = `${Math.random().toString(36).slice(2)}`;
     const created = Math.floor(Date.now() / 1000);
     if (stream) {
-      const streamer = this.promptStreaming(lastMessage.content, options);
+      const streamer = this.promptStreaming(lastMessage.content, options); // `lastMessage.content` is the input here
       // Transform the stream to emit properly formatted chunks
       return async function* () {
         for await (const chunk of streamer) {
           yield {
             id,
             created,
-            model: this.config.model,
-            endpoint: this.config.endpoint,
+            model: this.ai.config.model, // Corrected: Use this.ai.config
+            endpoint: this.ai.config.endpoint, // Corrected: Use this.ai.config
             object: "chat.completion.chunk",
             system_fingerprint: null,
             choices: [
@@ -199,13 +211,13 @@ class Session {
         }
       }.call(this);
     } else {
-      const content = await this.prompt(lastMessage.content, options);
+      const content = await this.prompt(lastMessage.content, options); // `lastMessage.content` is the input here
       // Format the response according to the example
       return {
         id,
         created,
-        model: this.config.model,
-        endpoint: this.config.endpoint,
+        model: this.ai.config.model, // Corrected: Use this.ai.config
+        endpoint: this.ai.config.endpoint, // Corrected: Use this.ai.config
         object: "chat.completion",
         system_fingerprint: null,
         choices: [
@@ -221,10 +233,11 @@ class Session {
           },
         ],
         usage: {
-          completion_tokens: this._countTokens(content),
-          prompt_tokens: this._countTokens(lastMessage.content),
+          completion_tokens: this._countTokensInMessages([{ role: 'assistant', content: content }]),
+          prompt_tokens: this._countTokensInMessages([{ role: 'user', content: lastMessage.content }]),
           total_tokens:
-            this._countTokens(content) + this._countTokens(lastMessage.content),
+            this._countTokensInMessages([{ role: 'assistant', content: content }]) +
+            this._countTokensInMessages([{ role: 'user', content: lastMessage.content }]),
           completion_tokens_details: null,
           prompt_tokens_details: {
             audio_tokens: null,
@@ -252,14 +265,14 @@ class Session {
     clonedSession._setConversationHistory([...this._getConversationHistory()]);
     return clonedSession;
   }
-  async prompt(...rest) {
+  async prompt(input, options = {}) {
     const output = [];
-    for await (const message of this.promptStreaming(...rest)) {
+    for await (const message of this.promptStreaming(input, options)) {
       output.push(message);
     }
     return output.join("");
   }
-  async *promptStreaming() {
+  async *promptStreaming(input, options = {}) {
     throw new Error("Abstract method not implemented");
   }
   get config() {
