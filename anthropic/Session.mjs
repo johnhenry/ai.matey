@@ -1,6 +1,26 @@
 import SharedSession from "../shared/Session.mjs";
 
 class Session extends SharedSession {
+  // constructor(ai, config, options = {}) {
+  //   super(ai, config, options);
+  //   options.max_tokens =
+  //     options.maxTokens ??
+  //     this.ai.languageModel._capabilities.maxTokens ??
+  //     4096;
+  //   this.#$;
+
+  //   this.config = {
+  //     endpoint: "https://api.anthropic.com",
+  //     credentials: null,
+  //     model: "claude-3-opus-20240229",
+  //     ...config,
+  //   };
+  //   this.options = {
+  //     systemPrompt: "",
+  //     initialPrompts: [],
+  //     ...options,
+  //   };
+  // }
   async prompt(prompt, options = {}) {
     options.temperature =
       options.temperature ??
@@ -56,8 +76,7 @@ class Session extends SharedSession {
     options.temperature =
       options.temperature ??
       this.ai.languageModel._capabilities.defaultTemperature;
-    options.max_tokens =
-      options.maxTokens ?? this.ai.languageModel._capabilities.maxTokens;
+    options.max_tokens = options.maxTokens ?? 4096;
 
     const messages = [
       ...(this.options.initialPrompts || []).filter(

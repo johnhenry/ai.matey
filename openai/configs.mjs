@@ -4,7 +4,7 @@ export const ollama = {
 };
 export const lmstudio = {
   endpoint: "http://localhost:1234",
-  model: "gemma-3-1b-it",
+  model: "gemma-3-1b-it-qat",
 };
 export const mistral = {
   endpoint: "https://api.mistral.ai",
