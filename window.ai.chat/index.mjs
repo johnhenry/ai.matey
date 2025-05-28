@@ -76,7 +76,16 @@ const chat = async ({ messages, stream, ...options }) => {
       });
     },
   };
-  const model = await window.ai.languageModel.create(initObject);
+  const model = window.ai.languageModel
+    ? await window.ai.languageModel.create(initObject)
+    : globalThis.LanguageModel
+    ? await LanguageModel.create(initObject)
+    : null;
+  if (!model) {
+    throw new Error(
+      "No language model found. Please ensure window.ai.languageModel or globalThis.LanguageModel is set."
+    );
+  }
   // Generate a unique ID for this conversation
   const id = `${Math.random().toString(36).slice(2)}`;
   const created = Math.floor(Date.now() / 1000);
@@ -90,8 +99,8 @@ const chat = async ({ messages, stream, ...options }) => {
           yield {
             id,
             created,
-            model: "window.ai",
-            endpoint: "window.ai",
+            model: "gemini",
+            endpoint: "[local]",
             object: "chat.completion.chunk",
             system_fingerprint: null,
             choices: [
@@ -113,8 +122,8 @@ const chat = async ({ messages, stream, ...options }) => {
         yield {
           id,
           created,
-          model: "window.ai",
-          endpoint: "window.ai",
+          model: "gemini",
+          endpoint: "[local]",
           object: "chat.completion.chunk",
           system_fingerprint: null,
           choices: [
@@ -136,8 +145,8 @@ const chat = async ({ messages, stream, ...options }) => {
         yield {
           id,
           created,
-          model: "window.ai",
-          endpoint: "window.ai",
+          model: "gemini",
+          endpoint: "[local]",
           object: "chat.completion.chunk",
           system_fingerprint: null,
           choices: [
@@ -166,8 +175,8 @@ const chat = async ({ messages, stream, ...options }) => {
       return {
         id,
         created,
-        model: "window.ai",
-        endpoint: "window.ai",
+        model: "gemini",
+        endpoint: "[local]",
         object: "chat.completion",
         system_fingerprint: null,
         choices: [

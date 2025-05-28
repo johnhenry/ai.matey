@@ -850,7 +850,14 @@ Write a poem about space travel</textarea
             model: elements.openaiModel.value,
           });
         } else {
-          ai = window.ai;
+          ai = window?.ai.languageModel
+            ? window.ai
+            : {
+                languageModel: LanguageModel,
+                summarizer: Summarizer,
+                writer: Writer,
+                rewriter: Rewriter,
+              };
         }
 
         const settings = getSettings();
