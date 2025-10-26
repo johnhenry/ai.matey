@@ -16,11 +16,6 @@ import type {
   IRStreamChunk,
   FinishReason,
 } from '../../types/ir.js';
-import type {
-  AIModel,
-  ListModelsOptions,
-  ListModelsResult,
-} from '../../types/models.js';
 import {
   AdapterConversionError,
   NetworkError,
@@ -30,7 +25,6 @@ import {
   createErrorFromHttpResponse,
 } from '../../errors/index.js';
 import { normalizeSystemMessages } from '../../utils/system-message.js';
-import { getModelCache } from '../../utils/model-cache.js';
 import {
   getEffectiveStreamMode,
   mergeStreamingConfig,
@@ -137,7 +131,6 @@ export class AzureOpenAIBackendAdapter implements BackendAdapter<AzureOpenAIRequ
   private readonly deploymentId: string;
   private readonly apiVersion: string;
   private readonly baseURL: string;
-  private readonly modelCache: ReturnType<typeof getModelCache>;
 
   constructor(config: AzureOpenAIConfig) {
     this.config = config;
@@ -159,8 +152,6 @@ export class AzureOpenAIBackendAdapter implements BackendAdapter<AzureOpenAIRequ
         provenance: { backend: 'azure-openai-backend' },
       });
     }
-
-    this.modelCache = getModelCache(config.modelsCacheScope || 'global');
 
     this.metadata = {
       name: 'azure-openai-backend',
@@ -225,7 +216,9 @@ export class AzureOpenAIBackendAdapter implements BackendAdapter<AzureOpenAIRequ
               return {
                 type: 'image_url',
                 image_url: {
-                  url: block.source.url || `data:${block.source.mediaType};base64,${block.source.data}`,
+                  url: block.source.type === 'url'
+                    ? block.source.url
+                    : `data:${block.source.mediaType};base64,${block.source.data}`,
                   detail: 'auto'
                 }
               };
@@ -241,7 +234,7 @@ export class AzureOpenAIBackendAdapter implements BackendAdapter<AzureOpenAIRequ
       top_p: request.parameters?.topP,
       frequency_penalty: request.parameters?.frequencyPenalty,
       presence_penalty: request.parameters?.presencePenalty,
-      stop: request.parameters?.stopSequences,
+      stop: request.parameters?.stopSequences ? [...request.parameters.stopSequences] : undefined,
       stream: request.stream || false,
     };
 
@@ -258,6 +251,14 @@ export class AzureOpenAIBackendAdapter implements BackendAdapter<AzureOpenAIRequ
    */
   public toIR(response: AzureOpenAIResponse, originalRequest: IRChatRequest, latencyMs: number): IRChatResponse {
     const choice = response.choices[0];
+    if (!choice) {
+      throw new ProviderError({
+        code: ErrorCode.PROVIDER_ERROR,
+        message: 'No choices returned in response',
+        isRetryable: false,
+        provenance: { backend: this.metadata.name },
+      });
+    }
 
     const message: IRMessage = {
       role: choice.message.role === 'assistant' ? 'assistant' : 'user',
@@ -273,7 +274,7 @@ export class AzureOpenAIBackendAdapter implements BackendAdapter<AzureOpenAIRequ
       'content_filter': 'stop',  // Map content_filter to stop
     };
 
-    const irResponse: IRChatResponse = {
+    return {
       message,
       finishReason: finishReasonMap[choice.finish_reason || 'stop'] || 'stop',
       usage: response.usage ? {
@@ -291,20 +292,11 @@ export class AzureOpenAIBackendAdapter implements BackendAdapter<AzureOpenAIRequ
         custom: {
           ...originalRequest.metadata.custom,
           latencyMs,
+          ...(choice.content_filter_results ? { azure_content_filter: choice.content_filter_results } : {}),
         },
       },
       raw: response as unknown as Record<string, unknown>,
     };
-
-    // Include Azure content filter results if present
-    if (choice.content_filter_results) {
-      irResponse.metadata.custom = {
-        ...irResponse.metadata.custom,
-        azure_content_filter: choice.content_filter_results,
-      };
-    }
-
-    return irResponse;
   }
 
   /**

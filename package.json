@@ -7,7 +7,7 @@
   "module": "./dist/esm/index.js",
   "types": "./dist/types/index.d.ts",
   "bin": {
-    "ai-matey": "./bin/ai-matey"
+    "ai-matey": "bin/ai-matey"
   },
   "exports": {
     ".": {
@@ -230,7 +230,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/johnhenry/ai.matey"
+    "url": "git+https://github.com/johnhenry/ai.matey.git"
   },
   "engines": {
     "node": ">=18.0.0"

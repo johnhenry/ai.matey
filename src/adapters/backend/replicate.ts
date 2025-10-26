@@ -16,13 +16,7 @@ import type {
   IRStreamChunk,
   FinishReason,
 } from '../../types/ir.js';
-import type {
-  AIModel,
-  ListModelsOptions,
-  ListModelsResult,
-} from '../../types/models.js';
 import {
-  AdapterConversionError,
   NetworkError,
   ProviderError,
   StreamError,
@@ -30,7 +24,6 @@ import {
   createErrorFromHttpResponse,
 } from '../../errors/index.js';
 import { normalizeSystemMessages } from '../../utils/system-message.js';
-import { getModelCache } from '../../utils/model-cache.js';
 import {
   getEffectiveStreamMode,
   mergeStreamingConfig,
@@ -93,14 +86,12 @@ export class ReplicateBackendAdapter implements BackendAdapter<ReplicateRequest,
   readonly metadata: AdapterMetadata;
   private readonly config: BackendAdapterConfig;
   private readonly baseURL: string;
-  private readonly modelCache: ReturnType<typeof getModelCache>;
   private readonly maxPollAttempts: number = 60;  // Max 60 attempts (60 seconds)
   private readonly pollInterval: number = 1000;   // Poll every 1 second
 
   constructor(config: BackendAdapterConfig) {
     this.config = config;
     this.baseURL = config.baseURL || 'https://api.replicate.com/v1';
-    this.modelCache = getModelCache(config.modelsCacheScope || 'global');
     this.metadata = {
       name: 'replicate-backend',
       version: '1.0.0',
@@ -130,7 +121,7 @@ export class ReplicateBackendAdapter implements BackendAdapter<ReplicateRequest,
    * Convert IR to Replicate format.
    */
   public fromIR(request: IRChatRequest): ReplicateRequest {
-    const { messages, systemMessage } = normalizeSystemMessages(
+    const { messages, systemParameter } = normalizeSystemMessages(
       request.messages,
       this.metadata.capabilities.systemMessageStrategy,
       this.metadata.capabilities.supportsMultipleSystemMessages
@@ -153,10 +144,10 @@ export class ReplicateBackendAdapter implements BackendAdapter<ReplicateRequest,
     };
 
     // Add system prompt
-    if (systemMessage) {
-      input.system_prompt = typeof systemMessage === 'string'
-        ? systemMessage
-        : systemMessage.map((msg: any) => msg.type === 'text' ? msg.text : '').join('');
+    if (systemParameter) {
+      input.system_prompt = typeof systemParameter === 'string'
+        ? systemParameter
+        : (systemParameter as any[]).map((msg: any) => msg.type === 'text' ? msg.text : '').join('');
     }
 
     return {
@@ -446,7 +437,7 @@ export class ReplicateBackendAdapter implements BackendAdapter<ReplicateRequest,
    * Estimate cost.
    * Replicate pricing varies significantly per model.
    */
-  async estimateCost(request: IRChatRequest): Promise<number | null> {
+  async estimateCost(_request: IRChatRequest): Promise<number | null> {
     // Replicate pricing is complex and per-second, not per-token
     // Returning null as cost estimation is not reliable
     return null;

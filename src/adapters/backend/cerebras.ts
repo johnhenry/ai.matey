@@ -16,13 +16,7 @@ import type {
   IRStreamChunk,
   FinishReason,
 } from '../../types/ir.js';
-import type {
-  AIModel,
-  ListModelsOptions,
-  ListModelsResult,
-} from '../../types/models.js';
 import {
-  AdapterConversionError,
   NetworkError,
   ProviderError,
   StreamError,
@@ -30,7 +24,6 @@ import {
   createErrorFromHttpResponse,
 } from '../../errors/index.js';
 import { normalizeSystemMessages } from '../../utils/system-message.js';
-import { getModelCache } from '../../utils/model-cache.js';
 import {
   getEffectiveStreamMode,
   mergeStreamingConfig,
@@ -135,12 +128,10 @@ export class CerebrasBackendAdapter implements BackendAdapter<CerebrasRequest, C
   readonly metadata: AdapterMetadata;
   private readonly config: BackendAdapterConfig;
   private readonly baseURL: string;
-  private readonly modelCache: ReturnType<typeof getModelCache>;
 
   constructor(config: BackendAdapterConfig) {
     this.config = config;
     this.baseURL = config.baseURL || 'https://api.cerebras.ai/v1';
-    this.modelCache = getModelCache(config.modelsCacheScope || 'global');
     this.metadata = {
       name: 'cerebras-backend',
       version: '1.0.0',
@@ -186,7 +177,11 @@ export class CerebrasBackendAdapter implements BackendAdapter<CerebrasRequest, C
             } else if (block.type === 'image') {
               return {
                 type: 'image_url',
-                image_url: { url: block.source.url || `data:${block.source.mediaType};base64,${block.source.data}` }
+                image_url: {
+                  url: block.source.type === 'url'
+                    ? block.source.url
+                    : `data:${block.source.mediaType};base64,${block.source.data}`
+                }
               };
             }
             return { type: 'text', text: JSON.stringify(block) };
@@ -201,7 +196,7 @@ export class CerebrasBackendAdapter implements BackendAdapter<CerebrasRequest, C
       top_p: request.parameters?.topP,
       frequency_penalty: request.parameters?.frequencyPenalty,
       presence_penalty: request.parameters?.presencePenalty,
-      stop: request.parameters?.stopSequences,
+      stop: request.parameters?.stopSequences ? [...request.parameters.stopSequences] : undefined,
       stream: request.stream || false,
     };
 
@@ -218,6 +213,14 @@ export class CerebrasBackendAdapter implements BackendAdapter<CerebrasRequest, C
    */
   public toIR(response: CerebrasResponse, originalRequest: IRChatRequest, latencyMs: number): IRChatResponse {
     const choice = response.choices[0];
+    if (!choice) {
+      throw new ProviderError({
+        code: ErrorCode.PROVIDER_ERROR,
+        message: 'No choices returned in response',
+        isRetryable: false,
+        provenance: { backend: this.metadata.name },
+      });
+    }
 
     const message: IRMessage = {
       role: choice.message.role === 'assistant' ? 'assistant' : 'user',
@@ -232,7 +235,7 @@ export class CerebrasBackendAdapter implements BackendAdapter<CerebrasRequest, C
       'tool_calls': 'tool_calls',
     };
 
-    const irResponse: IRChatResponse = {
+    return {
       message,
       finishReason: finishReasonMap[choice.finish_reason || 'stop'] || 'stop',
       usage: response.usage ? {
@@ -250,20 +253,11 @@ export class CerebrasBackendAdapter implements BackendAdapter<CerebrasRequest, C
         custom: {
           ...originalRequest.metadata.custom,
           latencyMs,
+          ...(response.time_info ? { cerebras_timing: response.time_info } : {}),
         },
       },
       raw: response as unknown as Record<string, unknown>,
     };
-
-    // Include Cerebras-specific timing information
-    if (response.time_info) {
-      irResponse.metadata.custom = {
-        ...irResponse.metadata.custom,
-        cerebras_timing: response.time_info,
-      };
-    }
-
-    return irResponse;
   }
 
   /**

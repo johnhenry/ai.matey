@@ -1,8 +1,8 @@
 /**
- * Fireworks AI Backend Adapter
+ * Perplexity AI Backend Adapter
  *
- * Adapts Universal IR to Fireworks AI Chat Completions API.
- * Fireworks AI is OpenAI-compatible with 100+ models and fastest APIs.
+ * Adapts Universal IR to Perplexity AI Chat Completions API.
+ * Perplexity is OpenAI-compatible with search-augmented responses and citations.
  *
  * @module
  */
@@ -16,7 +16,13 @@ import type {
   IRStreamChunk,
   FinishReason,
 } from '../../types/ir.js';
+import type {
+  AIModel,
+  ListModelsOptions,
+  ListModelsResult,
+} from '../../types/models.js';
 import {
+  AdapterConversionError,
   NetworkError,
   ProviderError,
   StreamError,
@@ -24,68 +30,63 @@ import {
   createErrorFromHttpResponse,
 } from '../../errors/index.js';
 import { normalizeSystemMessages } from '../../utils/system-message.js';
+import { getModelCache } from '../../utils/model-cache.js';
 import {
   getEffectiveStreamMode,
   mergeStreamingConfig,
 } from '../../utils/streaming-modes.js';
 
 // ============================================================================
-// Fireworks AI API Types (OpenAI-compatible with extensions)
+// Perplexity AI API Types (OpenAI-compatible with search extensions)
 // ============================================================================
 
-export type FireworksAIMessageContent =
+export type PerplexityMessageContent =
   | string
   | Array<
       | { type: 'text'; text: string }
       | { type: 'image_url'; image_url: { url: string } }
     >;
 
-export interface FireworksAIMessage {
-  role: 'system' | 'user' | 'assistant' | 'tool';
-  content: FireworksAIMessageContent;
-  name?: string;
-  tool_calls?: Array<{
-    id: string;
-    type: 'function';
-    function: {
-      name: string;
-      arguments: string;
-    };
-  }>;
+export interface PerplexityMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: PerplexityMessageContent;
 }
 
-export interface FireworksAIRequest {
+export interface PerplexityRequest {
   model: string;
-  messages: FireworksAIMessage[];
+  messages: PerplexityMessage[];
   temperature?: number;
   max_tokens?: number;
   top_p?: number;
-  top_k?: number;  // Fireworks AI supports topK (unique among OpenAI-compatible)
   frequency_penalty?: number;
   presence_penalty?: number;
   stop?: string[];
   stream?: boolean;
-  reasoning_effort?: 'low' | 'medium' | 'high';  // For reasoning models
+  search_domain_filter?: string[];       // Perplexity-specific: limit search to domains
+  return_citations?: boolean;            // Perplexity-specific: include citations
+  return_images?: boolean;               // Perplexity-specific: include images
+  search_recency_filter?: string;        // Perplexity-specific: time filter (month, week, day, hour)
 }
 
-export interface FireworksAIResponse {
+export interface PerplexityResponse {
   id: string;
   object: 'chat.completion';
   created: number;
   model: string;
   choices: Array<{
     index: number;
-    message: FireworksAIMessage;
-    finish_reason: 'stop' | 'length' | 'tool_calls' | null;
+    message: PerplexityMessage;
+    finish_reason: 'stop' | 'length' | null;
   }>;
-  usage: {  // Always present in Fireworks AI
+  usage?: {
     prompt_tokens: number;
     completion_tokens: number;
     total_tokens: number;
   };
+  citations?: string[];   // Perplexity-specific: source URLs
 }
 
-export interface FireworksAIStreamChunk {
+export interface PerplexityStreamChunk {
   id: string;
   object: 'chat.completion.chunk';
   created: number;
@@ -98,51 +99,48 @@ export interface FireworksAIStreamChunk {
     };
     finish_reason: 'stop' | 'length' | null;
   }>;
-  usage?: {  // Usage stats included in streaming chunks
-    prompt_tokens: number;
-    completion_tokens: number;
-    total_tokens: number;
-  };
+  citations?: string[];
 }
 
 // ============================================================================
-// Fireworks AI Backend Adapter
+// Perplexity AI Backend Adapter
 // ============================================================================
 
 /**
- * Backend adapter for Fireworks AI Chat Completions API.
+ * Backend adapter for Perplexity AI Chat Completions API.
  *
  * Features:
- * - 100+ open-source models
- * - Fastest inference APIs
- * - OpenAI-compatible with topK support
- * - Vision model support
- * - Function calling support
- * - Reasoning models with reasoning_effort parameter
- * - Pricing from $0.10 per 1M tokens
+ * - Search-augmented responses with real-time web search
+ * - Citations and source URLs
+ * - OpenAI-compatible API
+ * - Online and offline models
+ * - Domain filtering and recency filtering
+ * - Pricing around $1 per 1M tokens
  */
-export class FireworksAIBackendAdapter implements BackendAdapter<FireworksAIRequest, FireworksAIResponse> {
+export class PerplexityBackendAdapter implements BackendAdapter<PerplexityRequest, PerplexityResponse> {
   readonly metadata: AdapterMetadata;
   private readonly config: BackendAdapterConfig;
   private readonly baseURL: string;
+  private readonly modelCache: ReturnType<typeof getModelCache>;
 
   constructor(config: BackendAdapterConfig) {
     this.config = config;
-    this.baseURL = config.baseURL || 'https://api.fireworks.ai/inference/v1';
+    this.baseURL = config.baseURL || 'https://api.perplexity.ai';
+    this.modelCache = getModelCache(config.modelsCacheScope || 'global');
     this.metadata = {
-      name: 'fireworks-ai-backend',
+      name: 'perplexity-backend',
       version: '1.0.0',
-      provider: 'Fireworks AI',
+      provider: 'Perplexity AI',
       capabilities: {
         streaming: true,
-        multiModal: true,  // Vision models available
-        tools: true,       // Function calling
+        multiModal: false,  // Text-only
+        tools: false,       // No function calling
         maxContextTokens: 128000,
         systemMessageStrategy: 'in-messages',
         supportsMultipleSystemMessages: true,
         supportsTemperature: true,
         supportsTopP: true,
-        supportsTopK: true,  // Fireworks AI supports topK
+        supportsTopK: false,
         supportsSeed: false,
         supportsFrequencyPenalty: true,
         supportsPresencePenalty: true,
@@ -155,17 +153,17 @@ export class FireworksAIBackendAdapter implements BackendAdapter<FireworksAIRequ
   }
 
   /**
-   * Convert IR to Fireworks AI format.
+   * Convert IR to Perplexity format.
    */
-  public fromIR(request: IRChatRequest): FireworksAIRequest {
+  public fromIR(request: IRChatRequest): PerplexityRequest {
     const { messages } = normalizeSystemMessages(
       request.messages,
       this.metadata.capabilities.systemMessageStrategy,
       this.metadata.capabilities.supportsMultipleSystemMessages
     );
 
-    const fireworksMessages: FireworksAIMessage[] = messages.map((msg) => ({
-      role: msg.role,
+    const perplexityMessages: PerplexityMessage[] = messages.map((msg) => ({
+      role: msg.role === 'tool' ? 'user' : msg.role,  // Map tool to user
       content: typeof msg.content === 'string'
         ? msg.content
         : msg.content.map((block) => {
@@ -174,51 +172,47 @@ export class FireworksAIBackendAdapter implements BackendAdapter<FireworksAIRequ
             } else if (block.type === 'image') {
               return {
                 type: 'image_url',
-                image_url: {
-                  url: block.source.type === 'url'
-                    ? block.source.url
-                    : `data:${block.source.mediaType};base64,${block.source.data}`
-                }
+                image_url: { url: block.source.url || `data:${block.source.mediaType};base64,${block.source.data}` }
               };
             }
             return { type: 'text', text: JSON.stringify(block) };
           }),
     }));
 
-    const fireworksRequest: FireworksAIRequest = {
-      model: request.parameters?.model || this.config.defaultModel || 'accounts/fireworks/models/llama-v3p1-8b-instruct',
-      messages: fireworksMessages,
+    const perplexityRequest: PerplexityRequest = {
+      model: request.parameters?.model || this.config.defaultModel || 'llama-3.1-sonar-small-128k-online',
+      messages: perplexityMessages,
       temperature: request.parameters?.temperature,
       max_tokens: request.parameters?.maxTokens,
       top_p: request.parameters?.topP,
-      top_k: request.parameters?.topK,  // Pass through topK
       frequency_penalty: request.parameters?.frequencyPenalty,
       presence_penalty: request.parameters?.presencePenalty,
-      stop: request.parameters?.stopSequences ? [...request.parameters.stopSequences] : undefined,
+      stop: request.parameters?.stopSequences,
       stream: request.stream || false,
     };
 
-    // Add reasoning_effort for reasoning models (if specified in custom parameters)
-    if (request.parameters?.custom?.reasoning_effort) {
-      fireworksRequest.reasoning_effort = request.parameters.custom.reasoning_effort as 'low' | 'medium' | 'high';
+    // Add Perplexity-specific parameters if provided in custom config
+    if (request.parameters?.custom?.search_domain_filter) {
+      perplexityRequest.search_domain_filter = request.parameters.custom.search_domain_filter as string[];
+    }
+    if (request.parameters?.custom?.return_citations !== undefined) {
+      perplexityRequest.return_citations = request.parameters.custom.return_citations as boolean;
+    }
+    if (request.parameters?.custom?.return_images !== undefined) {
+      perplexityRequest.return_images = request.parameters.custom.return_images as boolean;
+    }
+    if (request.parameters?.custom?.search_recency_filter) {
+      perplexityRequest.search_recency_filter = request.parameters.custom.search_recency_filter as string;
     }
 
-    return fireworksRequest;
+    return perplexityRequest;
   }
 
   /**
-   * Convert Fireworks AI response to IR.
+   * Convert Perplexity response to IR.
    */
-  public toIR(response: FireworksAIResponse, originalRequest: IRChatRequest, latencyMs: number): IRChatResponse {
+  public toIR(response: PerplexityResponse, originalRequest: IRChatRequest, latencyMs: number): IRChatResponse {
     const choice = response.choices[0];
-    if (!choice) {
-      throw new ProviderError({
-        code: ErrorCode.PROVIDER_ERROR,
-        message: 'No choices returned in response',
-        isRetryable: false,
-        provenance: { backend: this.metadata.name },
-      });
-    }
 
     const message: IRMessage = {
       role: choice.message.role === 'assistant' ? 'assistant' : 'user',
@@ -230,17 +224,16 @@ export class FireworksAIBackendAdapter implements BackendAdapter<FireworksAIRequ
     const finishReasonMap: Record<string, FinishReason> = {
       'stop': 'stop',
       'length': 'length',
-      'tool_calls': 'tool_calls',
     };
 
-    return {
+    const irResponse: IRChatResponse = {
       message,
       finishReason: finishReasonMap[choice.finish_reason || 'stop'] || 'stop',
-      usage: {  // Usage always present in Fireworks AI
+      usage: response.usage ? {
         promptTokens: response.usage.prompt_tokens,
         completionTokens: response.usage.completion_tokens,
         totalTokens: response.usage.total_tokens,
-      },
+      } : undefined,
       metadata: {
         ...originalRequest.metadata,
         providerResponseId: response.id,
@@ -255,6 +248,16 @@ export class FireworksAIBackendAdapter implements BackendAdapter<FireworksAIRequ
       },
       raw: response as unknown as Record<string, unknown>,
     };
+
+    // Include citations if present
+    if (response.citations && response.citations.length > 0) {
+      irResponse.metadata.custom = {
+        ...irResponse.metadata.custom,
+        citations: response.citations,
+      };
+    }
+
+    return irResponse;
   }
 
   /**
@@ -262,14 +265,14 @@ export class FireworksAIBackendAdapter implements BackendAdapter<FireworksAIRequ
    */
   async execute(request: IRChatRequest, signal?: AbortSignal): Promise<IRChatResponse> {
     try {
-      const fireworksRequest = this.fromIR(request);
-      fireworksRequest.stream = false;
+      const perplexityRequest = this.fromIR(request);
+      perplexityRequest.stream = false;
 
       const startTime = Date.now();
       const response = await fetch(`${this.baseURL}/chat/completions`, {
         method: 'POST',
         headers: this.getHeaders(),
-        body: JSON.stringify(fireworksRequest),
+        body: JSON.stringify(perplexityRequest),
         signal,
       });
 
@@ -282,7 +285,7 @@ export class FireworksAIBackendAdapter implements BackendAdapter<FireworksAIRequ
         );
       }
 
-      const data = (await response.json()) as FireworksAIResponse;
+      const data = (await response.json()) as PerplexityResponse;
       return this.toIR(data, request, Date.now() - startTime);
     } catch (error) {
       if (error instanceof NetworkError || error instanceof ProviderError) {
@@ -291,7 +294,7 @@ export class FireworksAIBackendAdapter implements BackendAdapter<FireworksAIRequ
 
       throw new ProviderError({
         code: ErrorCode.PROVIDER_ERROR,
-        message: `Fireworks AI request failed: ${error instanceof Error ? error.message : String(error)}`,
+        message: `Perplexity AI request failed: ${error instanceof Error ? error.message : String(error)}`,
         isRetryable: true,
         provenance: { backend: this.metadata.name },
         cause: error instanceof Error ? error : undefined,
@@ -304,8 +307,8 @@ export class FireworksAIBackendAdapter implements BackendAdapter<FireworksAIRequ
    */
   async *executeStream(request: IRChatRequest, signal?: AbortSignal): IRChatStream {
     try {
-      const fireworksRequest = this.fromIR(request);
-      fireworksRequest.stream = true;
+      const perplexityRequest = this.fromIR(request);
+      perplexityRequest.stream = true;
 
       const streamingConfig = mergeStreamingConfig(this.config.streaming);
       const effectiveMode = getEffectiveStreamMode(
@@ -318,7 +321,7 @@ export class FireworksAIBackendAdapter implements BackendAdapter<FireworksAIRequ
       const response = await fetch(`${this.baseURL}/chat/completions`, {
         method: 'POST',
         headers: this.getHeaders(),
-        body: JSON.stringify(fireworksRequest),
+        body: JSON.stringify(perplexityRequest),
         signal,
       });
 
@@ -341,7 +344,7 @@ export class FireworksAIBackendAdapter implements BackendAdapter<FireworksAIRequ
 
       let sequence = 0;
       let contentBuffer = '';
-      let usage: { promptTokens: number; completionTokens: number; totalTokens: number } | undefined;
+      let citations: string[] | undefined;
 
       yield {
         type: 'start',
@@ -375,16 +378,12 @@ export class FireworksAIBackendAdapter implements BackendAdapter<FireworksAIRequ
             if (data === '[DONE]') continue;
 
             try {
-              const chunk = JSON.parse(data) as FireworksAIStreamChunk;
+              const chunk = JSON.parse(data) as PerplexityStreamChunk;
               const delta = chunk.choices[0]?.delta?.content;
 
-              // Capture usage stats from streaming chunks
-              if (chunk.usage) {
-                usage = {
-                  promptTokens: chunk.usage.prompt_tokens,
-                  completionTokens: chunk.usage.completion_tokens,
-                  totalTokens: chunk.usage.total_tokens,
-                };
+              // Capture citations
+              if (chunk.citations && chunk.citations.length > 0) {
+                citations = chunk.citations;
               }
 
               if (delta) {
@@ -417,9 +416,9 @@ export class FireworksAIBackendAdapter implements BackendAdapter<FireworksAIRequ
                   message: { role: 'assistant', content: contentBuffer },
                 };
 
-                // Include usage stats in done chunk
-                if (usage) {
-                  (doneChunk as any).usage = usage;
+                // Include citations in done chunk
+                if (citations && citations.length > 0) {
+                  (doneChunk as any).citations = citations;
                 }
 
                 yield doneChunk;
@@ -477,10 +476,11 @@ export class FireworksAIBackendAdapter implements BackendAdapter<FireworksAIRequ
    */
   async estimateCost(request: IRChatRequest): Promise<number | null> {
     const pricing: Record<string, { input: number; output: number }> = {
-      'accounts/fireworks/models/llama-v3p1-8b-instruct': { input: 0.20, output: 0.20 },
-      'accounts/fireworks/models/llama-v3p1-70b-instruct': { input: 0.90, output: 0.90 },
-      'accounts/fireworks/models/qwen2p5-72b-instruct': { input: 0.90, output: 0.90 },
-      'accounts/fireworks/models/deepseek-v3': { input: 0.90, output: 2.00 },
+      'llama-3.1-sonar-small-128k-online': { input: 0.20, output: 0.20 },
+      'llama-3.1-sonar-large-128k-online': { input: 1.00, output: 1.00 },
+      'llama-3.1-sonar-huge-128k-online': { input: 5.00, output: 5.00 },
+      'llama-3.1-sonar-small-128k-chat': { input: 0.20, output: 0.20 },
+      'llama-3.1-sonar-large-128k-chat': { input: 1.00, output: 1.00 },
     };
 
     const model = request.parameters?.model || this.config.defaultModel || '';

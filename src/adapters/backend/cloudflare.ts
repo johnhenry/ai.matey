@@ -16,11 +16,6 @@ import type {
   IRStreamChunk,
   FinishReason,
 } from '../../types/ir.js';
-import type {
-  AIModel,
-  ListModelsOptions,
-  ListModelsResult,
-} from '../../types/models.js';
 import {
   AdapterConversionError,
   NetworkError,
@@ -30,7 +25,6 @@ import {
   createErrorFromHttpResponse,
 } from '../../errors/index.js';
 import { normalizeSystemMessages } from '../../utils/system-message.js';
-import { getModelCache } from '../../utils/model-cache.js';
 import {
   getEffectiveStreamMode,
   mergeStreamingConfig,
@@ -129,7 +123,6 @@ export class CloudflareBackendAdapter implements BackendAdapter<CloudflareReques
   private readonly config: CloudflareConfig;
   private readonly accountId: string;
   private readonly baseURL: string;
-  private readonly modelCache: ReturnType<typeof getModelCache>;
 
   constructor(config: CloudflareConfig) {
     this.config = config;
@@ -149,8 +142,6 @@ export class CloudflareBackendAdapter implements BackendAdapter<CloudflareReques
         provenance: { backend: 'cloudflare-backend' },
       });
     }
-
-    this.modelCache = getModelCache(config.modelsCacheScope || 'global');
 
     this.metadata = {
       name: 'cloudflare-backend',
@@ -198,7 +189,11 @@ export class CloudflareBackendAdapter implements BackendAdapter<CloudflareReques
             } else if (block.type === 'image') {
               return {
                 type: 'image_url',
-                image_url: { url: block.source.url || `data:${block.source.mediaType};base64,${block.source.data}` }
+                image_url: {
+                  url: block.source.type === 'url'
+                    ? block.source.url
+                    : `data:${block.source.mediaType};base64,${block.source.data}`
+                }
               };
             }
             return { type: 'text', text: JSON.stringify(block) };
@@ -213,7 +208,7 @@ export class CloudflareBackendAdapter implements BackendAdapter<CloudflareReques
       top_p: request.parameters?.topP,
       frequency_penalty: request.parameters?.frequencyPenalty,
       presence_penalty: request.parameters?.presencePenalty,
-      stop: request.parameters?.stopSequences,
+      stop: request.parameters?.stopSequences ? [...request.parameters.stopSequences] : undefined,
       stream: request.stream || false,
     };
   }
@@ -223,6 +218,14 @@ export class CloudflareBackendAdapter implements BackendAdapter<CloudflareReques
    */
   public toIR(response: CloudflareResponse, originalRequest: IRChatRequest, latencyMs: number): IRChatResponse {
     const choice = response.choices[0];
+    if (!choice) {
+      throw new ProviderError({
+        code: ErrorCode.PROVIDER_ERROR,
+        message: 'No choices returned in response',
+        isRetryable: false,
+        provenance: { backend: this.metadata.name },
+      });
+    }
 
     const message: IRMessage = {
       role: choice.message.role === 'assistant' ? 'assistant' : 'user',

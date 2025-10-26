@@ -8,7 +8,7 @@
  */
 
 import type { Middleware, MiddlewareContext, MiddlewareNext } from '../types/middleware.js';
-import type { IRChatRequest, IRChatResponse, IRMessage } from '../types/ir.js';
+import type { IRChatResponse, IRMessage } from '../types/ir.js';
 import { trimHistory, type TrimStrategy, shouldTrimHistory } from '../utils/conversation-history.js';
 
 // ============================================================================
@@ -233,7 +233,7 @@ export function createConversationHistoryMiddleware(
 
       // Merge history with request messages
       // Filter out duplicate system messages from request if history already has them
-      const requestMessages = request.messages.filter((msg, idx) => {
+      const requestMessages = request.messages.filter((msg) => {
         // Keep all non-system messages
         if (msg.role !== 'system') return true;
 
@@ -268,7 +268,7 @@ export function createConversationHistoryMiddleware(
           (h) =>
             h.role === msg.role &&
             h.content === msg.content &&
-            h.timestamp === msg.timestamp
+            (h as any).timestamp === (msg as any).timestamp
         );
 
         if (!alreadyInHistory) {

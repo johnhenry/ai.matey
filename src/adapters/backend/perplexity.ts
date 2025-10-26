@@ -16,13 +16,7 @@ import type {
   IRStreamChunk,
   FinishReason,
 } from '../../types/ir.js';
-import type {
-  AIModel,
-  ListModelsOptions,
-  ListModelsResult,
-} from '../../types/models.js';
 import {
-  AdapterConversionError,
   NetworkError,
   ProviderError,
   StreamError,
@@ -30,7 +24,6 @@ import {
   createErrorFromHttpResponse,
 } from '../../errors/index.js';
 import { normalizeSystemMessages } from '../../utils/system-message.js';
-import { getModelCache } from '../../utils/model-cache.js';
 import {
   getEffectiveStreamMode,
   mergeStreamingConfig,
@@ -121,12 +114,10 @@ export class PerplexityBackendAdapter implements BackendAdapter<PerplexityReques
   readonly metadata: AdapterMetadata;
   private readonly config: BackendAdapterConfig;
   private readonly baseURL: string;
-  private readonly modelCache: ReturnType<typeof getModelCache>;
 
   constructor(config: BackendAdapterConfig) {
     this.config = config;
     this.baseURL = config.baseURL || 'https://api.perplexity.ai';
-    this.modelCache = getModelCache(config.modelsCacheScope || 'global');
     this.metadata = {
       name: 'perplexity-backend',
       version: '1.0.0',
@@ -172,7 +163,11 @@ export class PerplexityBackendAdapter implements BackendAdapter<PerplexityReques
             } else if (block.type === 'image') {
               return {
                 type: 'image_url',
-                image_url: { url: block.source.url || `data:${block.source.mediaType};base64,${block.source.data}` }
+                image_url: {
+                  url: block.source.type === 'url'
+                    ? block.source.url
+                    : `data:${block.source.mediaType};base64,${block.source.data}`
+                }
               };
             }
             return { type: 'text', text: JSON.stringify(block) };
@@ -187,7 +182,7 @@ export class PerplexityBackendAdapter implements BackendAdapter<PerplexityReques
       top_p: request.parameters?.topP,
       frequency_penalty: request.parameters?.frequencyPenalty,
       presence_penalty: request.parameters?.presencePenalty,
-      stop: request.parameters?.stopSequences,
+      stop: request.parameters?.stopSequences ? [...request.parameters.stopSequences] : undefined,
       stream: request.stream || false,
     };
 
@@ -213,6 +208,14 @@ export class PerplexityBackendAdapter implements BackendAdapter<PerplexityReques
    */
   public toIR(response: PerplexityResponse, originalRequest: IRChatRequest, latencyMs: number): IRChatResponse {
     const choice = response.choices[0];
+    if (!choice) {
+      throw new ProviderError({
+        code: ErrorCode.PROVIDER_ERROR,
+        message: 'No choices returned in response',
+        isRetryable: false,
+        provenance: { backend: this.metadata.name },
+      });
+    }
 
     const message: IRMessage = {
       role: choice.message.role === 'assistant' ? 'assistant' : 'user',
@@ -226,7 +229,7 @@ export class PerplexityBackendAdapter implements BackendAdapter<PerplexityReques
       'length': 'length',
     };
 
-    const irResponse: IRChatResponse = {
+    return {
       message,
       finishReason: finishReasonMap[choice.finish_reason || 'stop'] || 'stop',
       usage: response.usage ? {
@@ -244,20 +247,11 @@ export class PerplexityBackendAdapter implements BackendAdapter<PerplexityReques
         custom: {
           ...originalRequest.metadata.custom,
           latencyMs,
+          ...(response.citations && response.citations.length > 0 ? { citations: response.citations } : {}),
         },
       },
       raw: response as unknown as Record<string, unknown>,
     };
-
-    // Include citations if present
-    if (response.citations && response.citations.length > 0) {
-      irResponse.metadata.custom = {
-        ...irResponse.metadata.custom,
-        citations: response.citations,
-      };
-    }
-
-    return irResponse;
   }
 
   /**

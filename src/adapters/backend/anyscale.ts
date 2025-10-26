@@ -16,13 +16,7 @@ import type {
   IRStreamChunk,
   FinishReason,
 } from '../../types/ir.js';
-import type {
-  AIModel,
-  ListModelsOptions,
-  ListModelsResult,
-} from '../../types/models.js';
 import {
-  AdapterConversionError,
   NetworkError,
   ProviderError,
   StreamError,
@@ -30,7 +24,6 @@ import {
   createErrorFromHttpResponse,
 } from '../../errors/index.js';
 import { normalizeSystemMessages } from '../../utils/system-message.js';
-import { getModelCache } from '../../utils/model-cache.js';
 import {
   getEffectiveStreamMode,
   mergeStreamingConfig,
@@ -114,12 +107,10 @@ export class AnyscaleBackendAdapter implements BackendAdapter<AnyscaleRequest, A
   readonly metadata: AdapterMetadata;
   private readonly config: BackendAdapterConfig;
   private readonly baseURL: string;
-  private readonly modelCache: ReturnType<typeof getModelCache>;
 
   constructor(config: BackendAdapterConfig) {
     this.config = config;
     this.baseURL = config.baseURL || 'https://api.endpoints.anyscale.com/v1';
-    this.modelCache = getModelCache(config.modelsCacheScope || 'global');
     this.metadata = {
       name: 'anyscale-backend',
       version: '1.0.0',
@@ -165,7 +156,11 @@ export class AnyscaleBackendAdapter implements BackendAdapter<AnyscaleRequest, A
             } else if (block.type === 'image') {
               return {
                 type: 'image_url',
-                image_url: { url: block.source.url || `data:${block.source.mediaType};base64,${block.source.data}` }
+                image_url: {
+                  url: block.source.type === 'url'
+                    ? block.source.url
+                    : `data:${block.source.mediaType};base64,${block.source.data}`
+                }
               };
             }
             return { type: 'text', text: JSON.stringify(block) };
@@ -180,7 +175,7 @@ export class AnyscaleBackendAdapter implements BackendAdapter<AnyscaleRequest, A
       top_p: request.parameters?.topP,
       frequency_penalty: request.parameters?.frequencyPenalty,
       presence_penalty: request.parameters?.presencePenalty,
-      stop: request.parameters?.stopSequences,
+      stop: request.parameters?.stopSequences ? [...request.parameters.stopSequences] : undefined,
       stream: request.stream || false,
     };
   }
@@ -190,6 +185,14 @@ export class AnyscaleBackendAdapter implements BackendAdapter<AnyscaleRequest, A
    */
   public toIR(response: AnyscaleResponse, originalRequest: IRChatRequest, latencyMs: number): IRChatResponse {
     const choice = response.choices[0];
+    if (!choice) {
+      throw new ProviderError({
+        code: ErrorCode.PROVIDER_ERROR,
+        message: 'No choices returned in response',
+        isRetryable: false,
+        provenance: { backend: this.metadata.name },
+      });
+    }
 
     const message: IRMessage = {
       role: choice.message.role === 'assistant' ? 'assistant' : 'user',

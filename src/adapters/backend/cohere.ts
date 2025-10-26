@@ -16,11 +16,6 @@ import type {
   IRStreamChunk,
   FinishReason,
 } from '../../types/ir.js';
-import type {
-  AIModel,
-  ListModelsOptions,
-  ListModelsResult,
-} from '../../types/models.js';
 import {
   AdapterConversionError,
   NetworkError,
@@ -30,7 +25,6 @@ import {
   createErrorFromHttpResponse,
 } from '../../errors/index.js';
 import { normalizeSystemMessages } from '../../utils/system-message.js';
-import { getModelCache } from '../../utils/model-cache.js';
 import {
   getEffectiveStreamMode,
   mergeStreamingConfig,
@@ -121,12 +115,10 @@ export class CohereBackendAdapter implements BackendAdapter<CohereRequest, Coher
   readonly metadata: AdapterMetadata;
   private readonly config: BackendAdapterConfig;
   private readonly baseURL: string;
-  private readonly modelCache: ReturnType<typeof getModelCache>;
 
   constructor(config: BackendAdapterConfig) {
     this.config = config;
     this.baseURL = config.baseURL || 'https://api.cohere.ai/v1';
-    this.modelCache = getModelCache(config.modelsCacheScope || 'global');
     this.metadata = {
       name: 'cohere-backend',
       version: '1.0.0',
@@ -156,7 +148,7 @@ export class CohereBackendAdapter implements BackendAdapter<CohereRequest, Coher
    * Convert IR to Cohere format.
    */
   public fromIR(request: IRChatRequest): CohereRequest {
-    const { messages, systemMessage } = normalizeSystemMessages(
+    const { messages, systemParameter } = normalizeSystemMessages(
       request.messages,
       this.metadata.capabilities.systemMessageStrategy,
       this.metadata.capabilities.supportsMultipleSystemMessages
@@ -193,7 +185,7 @@ export class CohereBackendAdapter implements BackendAdapter<CohereRequest, Coher
       k: request.parameters?.topK,
       frequency_penalty: request.parameters?.frequencyPenalty,
       presence_penalty: request.parameters?.presencePenalty,
-      stop_sequences: request.parameters?.stopSequences,
+      stop_sequences: request.parameters?.stopSequences ? [...request.parameters.stopSequences] : undefined,
       stream: request.stream || false,
     };
 
@@ -208,10 +200,10 @@ export class CohereBackendAdapter implements BackendAdapter<CohereRequest, Coher
     }
 
     // Add system message as preamble
-    if (systemMessage) {
-      cohereRequest.preamble = typeof systemMessage === 'string'
-        ? systemMessage
-        : systemMessage.map((block: any) => block.type === 'text' ? block.text : '').join('');
+    if (systemParameter) {
+      cohereRequest.preamble = typeof systemParameter === 'string'
+        ? systemParameter
+        : (systemParameter as any[]).map((block: any) => block.type === 'text' ? block.text : '').join('');
     }
 
     // Add Cohere-specific RAG parameters if provided
@@ -241,7 +233,7 @@ export class CohereBackendAdapter implements BackendAdapter<CohereRequest, Coher
       'ERROR_TOXIC': 'stop',
     };
 
-    const irResponse: IRChatResponse = {
+    return {
       message,
       finishReason: finishReasonMap[response.finish_reason] || 'stop',
       usage: response.meta?.billed_units ? {
@@ -259,20 +251,11 @@ export class CohereBackendAdapter implements BackendAdapter<CohereRequest, Coher
         custom: {
           ...originalRequest.metadata.custom,
           latencyMs,
+          ...(response.citations && response.citations.length > 0 ? { citations: response.citations } : {}),
         },
       },
       raw: response as unknown as Record<string, unknown>,
     };
-
-    // Include citations if present
-    if (response.citations && response.citations.length > 0) {
-      irResponse.metadata.custom = {
-        ...irResponse.metadata.custom,
-        citations: response.citations,
-      };
-    }
-
-    return irResponse;
   }
 
   /**

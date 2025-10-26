@@ -16,13 +16,7 @@ import type {
   IRStreamChunk,
   FinishReason,
 } from '../../types/ir.js';
-import type {
-  AIModel,
-  ListModelsOptions,
-  ListModelsResult,
-} from '../../types/models.js';
 import {
-  AdapterConversionError,
   NetworkError,
   ProviderError,
   StreamError,
@@ -30,7 +24,6 @@ import {
   createErrorFromHttpResponse,
 } from '../../errors/index.js';
 import { normalizeSystemMessages } from '../../utils/system-message.js';
-import { getModelCache } from '../../utils/model-cache.js';
 import {
   getEffectiveStreamMode,
   mergeStreamingConfig,
@@ -136,7 +129,6 @@ export class AWSBedrockBackendAdapter implements BackendAdapter<BedrockRequest, 
   private readonly config: AWSBedrockConfig;
   private readonly region: string;
   private readonly baseURL: string;
-  private readonly modelCache: ReturnType<typeof getModelCache>;
 
   constructor(config: AWSBedrockConfig) {
     this.config = config;
@@ -144,8 +136,6 @@ export class AWSBedrockBackendAdapter implements BackendAdapter<BedrockRequest, 
 
     // Construct base URL from region
     this.baseURL = config.baseURL || `https://bedrock-runtime.${this.region}.amazonaws.com`;
-
-    this.modelCache = getModelCache(config.modelsCacheScope || 'global');
 
     this.metadata = {
       name: 'aws-bedrock-backend',
@@ -177,7 +167,7 @@ export class AWSBedrockBackendAdapter implements BackendAdapter<BedrockRequest, 
    * Convert IR to Bedrock format.
    */
   public fromIR(request: IRChatRequest): BedrockRequest {
-    const { messages, systemMessage } = normalizeSystemMessages(
+    const { messages, systemParameter } = normalizeSystemMessages(
       request.messages,
       this.metadata.capabilities.systemMessageStrategy,
       this.metadata.capabilities.supportsMultipleSystemMessages
@@ -192,7 +182,7 @@ export class AWSBedrockBackendAdapter implements BackendAdapter<BedrockRequest, 
               return { text: block.text };
             } else if (block.type === 'image') {
               // Convert base64 data or URL to bytes
-              const bytes = block.source.data || '';  // Simplified: should decode base64
+              const bytes = block.source.type === 'base64' ? block.source.data : '';  // Simplified: should decode base64
               return {
                 image: {
                   format: 'png' as const,  // Simplified: should detect format
@@ -213,16 +203,16 @@ export class AWSBedrockBackendAdapter implements BackendAdapter<BedrockRequest, 
         temperature: request.parameters?.temperature,
         maxTokens: request.parameters?.maxTokens,
         topP: request.parameters?.topP,
-        stopSequences: request.parameters?.stopSequences,
+        stopSequences: request.parameters?.stopSequences ? [...request.parameters.stopSequences] : undefined,
       },
     };
 
     // Add system messages
-    if (systemMessage) {
-      if (typeof systemMessage === 'string') {
-        bedrockRequest.system = [{ text: systemMessage }];
-      } else if (Array.isArray(systemMessage)) {
-        bedrockRequest.system = systemMessage.map((msg: any) => ({
+    if (systemParameter) {
+      if (typeof systemParameter === 'string') {
+        bedrockRequest.system = [{ text: systemParameter }];
+      } else {
+        bedrockRequest.system = (systemParameter as any[]).map((msg: any) => ({
           text: typeof msg === 'string' ? msg : msg.text || JSON.stringify(msg)
         }));
       }
@@ -459,7 +449,7 @@ export class AWSBedrockBackendAdapter implements BackendAdapter<BedrockRequest, 
    * externally or uses basic headers. For production, use AWS SDK or aws4fetch
    * for proper SigV4 signing.
    */
-  private async getHeaders(method: string, path: string, body: string): Promise<Record<string, string>> {
+  private async getHeaders(_method: string, _path: string, _body: string): Promise<Record<string, string>> {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       'Accept': 'application/json',

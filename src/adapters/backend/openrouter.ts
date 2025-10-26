@@ -16,13 +16,7 @@ import type {
   IRStreamChunk,
   FinishReason,
 } from '../../types/ir.js';
-import type {
-  AIModel,
-  ListModelsOptions,
-  ListModelsResult,
-} from '../../types/models.js';
 import {
-  AdapterConversionError,
   NetworkError,
   ProviderError,
   StreamError,
@@ -30,7 +24,6 @@ import {
   createErrorFromHttpResponse,
 } from '../../errors/index.js';
 import { normalizeSystemMessages } from '../../utils/system-message.js';
-import { getModelCache } from '../../utils/model-cache.js';
 import {
   getEffectiveStreamMode,
   mergeStreamingConfig,
@@ -140,14 +133,12 @@ export class OpenRouterBackendAdapter implements BackendAdapter<OpenRouterReques
   private readonly baseURL: string;
   private readonly siteUrl: string;
   private readonly siteName: string;
-  private readonly modelCache: ReturnType<typeof getModelCache>;
 
   constructor(config: OpenRouterConfig) {
     this.config = config;
     this.baseURL = config.baseURL || 'https://openrouter.ai/api/v1';
     this.siteUrl = config.siteUrl || '';
     this.siteName = config.siteName || 'AI Matey';
-    this.modelCache = getModelCache(config.modelsCacheScope || 'global');
 
     this.metadata = {
       name: 'openrouter-backend',
@@ -196,7 +187,11 @@ export class OpenRouterBackendAdapter implements BackendAdapter<OpenRouterReques
             } else if (block.type === 'image') {
               return {
                 type: 'image_url',
-                image_url: { url: block.source.url || `data:${block.source.mediaType};base64,${block.source.data}` }
+                image_url: {
+                  url: block.source.type === 'url'
+                    ? block.source.url
+                    : `data:${block.source.mediaType};base64,${block.source.data}`
+                }
               };
             }
             return { type: 'text', text: JSON.stringify(block) };
@@ -212,7 +207,7 @@ export class OpenRouterBackendAdapter implements BackendAdapter<OpenRouterReques
       top_k: request.parameters?.topK,
       frequency_penalty: request.parameters?.frequencyPenalty,
       presence_penalty: request.parameters?.presencePenalty,
-      stop: request.parameters?.stopSequences,
+      stop: request.parameters?.stopSequences ? [...request.parameters.stopSequences] : undefined,
       stream: request.stream || false,
     };
 
@@ -240,6 +235,14 @@ export class OpenRouterBackendAdapter implements BackendAdapter<OpenRouterReques
    */
   public toIR(response: OpenRouterResponse, originalRequest: IRChatRequest, latencyMs: number): IRChatResponse {
     const choice = response.choices[0];
+    if (!choice) {
+      throw new ProviderError({
+        code: ErrorCode.PROVIDER_ERROR,
+        message: 'No choices returned in response',
+        isRetryable: false,
+        provenance: { backend: this.metadata.name },
+      });
+    }
 
     const message: IRMessage = {
       role: choice.message.role === 'assistant' ? 'assistant' : 'user',
