@@ -331,7 +331,7 @@ OpenTelemetry is the industry standard for observability. Portkey and other mana
 
 #### Competitive Context
 
-LangChain.js has excellent documentation with ~6,000 stars. Vercel AI SDK has comprehensive examples and video content. Our documentation quality needs to match these leaders. Interactive examples would:
+LangChain.js has excellent documentation and is well-established in the ecosystem. Vercel AI SDK has comprehensive examples and video content. Our documentation quality needs to match these leaders. Interactive examples would:
 - Lower the learning curve (currently a weakness)
 - Compete with Vercel's playground experience
 - Build community (like "Awesome LangChain" lists)
