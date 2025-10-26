@@ -1,6 +1,6 @@
 {
   "name": "ai.matey",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Universal AI Adapter System - Provider-agnostic interface for AI APIs",
   "type": "module",
   "main": "./dist/cjs/index.js",
@@ -279,6 +279,5 @@
     "typescript": "^5.9.3",
     "vitest": "^3.2.4"
   },
-  "dependencies": {
-  }
+  "dependencies": {}
 }
