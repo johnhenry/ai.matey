@@ -1,0 +1,77 @@
+{
+  "metadata": {
+    "provider": "ollama",
+    "scenario": "multi-turn-conversation",
+    "model": "llama3.2:1b",
+    "capturedAt": "2025-10-26T13:45:00.000Z",
+    "description": "Multi-turn conversation with local Ollama model",
+    "tags": ["chat", "multi-turn", "ollama", "local"],
+    "apiVersion": "v1"
+  },
+  "request": {
+    "messages": [
+      {
+        "role": "user",
+        "content": [
+          {
+            "type": "text",
+            "text": "My favorite color is blue."
+          }
+        ]
+      },
+      {
+        "role": "assistant",
+        "content": [
+          {
+            "type": "text",
+            "text": "That's nice! Blue is a calming and popular color."
+          }
+        ]
+      },
+      {
+        "role": "user",
+        "content": [
+          {
+            "type": "text",
+            "text": "What was my favorite color?"
+          }
+        ]
+      }
+    ],
+    "parameters": {
+      "model": "llama3.2:1b",
+      "temperature": 0.5,
+      "maxTokens": 100
+    },
+    "metadata": {
+      "requestId": "fixture-ollama-multi-1",
+      "timestamp": 1729950300000
+    }
+  },
+  "response": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "type": "text",
+          "text": "Your favorite color is blue."
+        }
+      ]
+    },
+    "usage": {
+      "promptTokens": 45,
+      "completionTokens": 7,
+      "totalTokens": 52
+    },
+    "finishReason": "stop",
+    "metadata": {
+      "requestId": "fixture-ollama-multi-1",
+      "timestamp": 1729950301500,
+      "provenance": {
+        "backend": "ollama",
+        "model": "llama3.2:1b",
+        "adaptedAt": 1729950301500
+      }
+    }
+  }
+}

@@ -1,0 +1,160 @@
+{
+  "metadata": {
+    "provider": "openai",
+    "scenario": "streaming-chat",
+    "model": "gpt-4",
+    "capturedAt": "2025-10-26T12:05:00.000Z",
+    "description": "Streaming chat completion with GPT-4",
+    "tags": ["streaming", "chat", "gpt-4"],
+    "apiVersion": "v1"
+  },
+  "request": {
+    "messages": [
+      {
+        "role": "user",
+        "content": [
+          {
+            "type": "text",
+            "text": "Write a haiku about TypeScript"
+          }
+        ]
+      }
+    ],
+    "parameters": {
+      "model": "gpt-4",
+      "temperature": 0.7,
+      "maxTokens": 100,
+      "stream": true
+    },
+    "metadata": {
+      "requestId": "fixture-streaming-chat-1",
+      "timestamp": 1729944300000
+    }
+  },
+  "chunks": [
+    {
+      "type": "start",
+      "metadata": {
+        "model": "gpt-4-0613",
+        "requestId": "fixture-streaming-chat-1"
+      }
+    },
+    {
+      "type": "content",
+      "delta": "Type",
+      "metadata": {}
+    },
+    {
+      "type": "content",
+      "delta": " safe",
+      "metadata": {}
+    },
+    {
+      "type": "content",
+      "delta": " code",
+      "metadata": {}
+    },
+    {
+      "type": "content",
+      "delta": " flows",
+      "metadata": {}
+    },
+    {
+      "type": "content",
+      "delta": " free",
+      "metadata": {}
+    },
+    {
+      "type": "content",
+      "delta": ",\n",
+      "metadata": {}
+    },
+    {
+      "type": "content",
+      "delta": "Comp",
+      "metadata": {}
+    },
+    {
+      "type": "content",
+      "delta": "iler",
+      "metadata": {}
+    },
+    {
+      "type": "content",
+      "delta": " catches",
+      "metadata": {}
+    },
+    {
+      "type": "content",
+      "delta": " errors",
+      "metadata": {}
+    },
+    {
+      "type": "content",
+      "delta": " early",
+      "metadata": {}
+    },
+    {
+      "type": "content",
+      "delta": ",\n",
+      "metadata": {}
+    },
+    {
+      "type": "content",
+      "delta": "Java",
+      "metadata": {}
+    },
+    {
+      "type": "content",
+      "delta": "Script",
+      "metadata": {}
+    },
+    {
+      "type": "content",
+      "delta": " with",
+      "metadata": {}
+    },
+    {
+      "type": "content",
+      "delta": " types",
+      "metadata": {}
+    },
+    {
+      "type": "content",
+      "delta": ".",
+      "metadata": {}
+    },
+    {
+      "type": "done",
+      "metadata": {
+        "finishReason": "stop"
+      }
+    }
+  ],
+  "finalResponse": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "type": "text",
+          "text": "Type safe code flows free,\nCompiler catches errors early,\nJavaScript with types."
+        }
+      ]
+    },
+    "usage": {
+      "promptTokens": 8,
+      "completionTokens": 22,
+      "totalTokens": 30
+    },
+    "finishReason": "stop",
+    "metadata": {
+      "requestId": "fixture-streaming-chat-1",
+      "timestamp": 1729944302000,
+      "provenance": {
+        "backend": "openai",
+        "model": "gpt-4-0613",
+        "adaptedAt": 1729944302000
+      }
+    }
+  }
+}

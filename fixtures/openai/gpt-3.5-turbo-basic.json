@@ -1,0 +1,59 @@
+{
+  "metadata": {
+    "provider": "openai",
+    "scenario": "gpt-3.5-turbo-basic",
+    "model": "gpt-3.5-turbo",
+    "capturedAt": "2025-10-26T13:15:00.000Z",
+    "description": "Basic chat with GPT-3.5 Turbo",
+    "tags": ["chat", "gpt-3.5", "turbo", "fast"],
+    "apiVersion": "v1"
+  },
+  "request": {
+    "messages": [
+      {
+        "role": "user",
+        "content": [
+          {
+            "type": "text",
+            "text": "Explain async/await in one sentence"
+          }
+        ]
+      }
+    ],
+    "parameters": {
+      "model": "gpt-3.5-turbo",
+      "temperature": 0.7,
+      "maxTokens": 100
+    },
+    "metadata": {
+      "requestId": "fixture-gpt35-1",
+      "timestamp": 1729948500000
+    }
+  },
+  "response": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "type": "text",
+          "text": "Async/await is a JavaScript syntax that allows you to write asynchronous code that looks and behaves like synchronous code, making it easier to read and understand."
+        }
+      ]
+    },
+    "usage": {
+      "promptTokens": 12,
+      "completionTokens": 32,
+      "totalTokens": 44
+    },
+    "finishReason": "stop",
+    "metadata": {
+      "requestId": "fixture-gpt35-1",
+      "timestamp": 1729948500800,
+      "provenance": {
+        "backend": "openai",
+        "model": "gpt-3.5-turbo-0125",
+        "adaptedAt": 1729948500800
+      }
+    }
+  }
+}

@@ -1,0 +1,140 @@
+{
+  "metadata": {
+    "provider": "ollama",
+    "scenario": "streaming-chat",
+    "model": "llama3.2:1b",
+    "capturedAt": "2025-10-26T13:00:00.000Z",
+    "description": "Streaming chat with Ollama",
+    "tags": ["streaming", "chat", "ollama", "local"],
+    "apiVersion": "v1"
+  },
+  "request": {
+    "messages": [
+      {
+        "role": "user",
+        "content": [
+          {
+            "type": "text",
+            "text": "Count to 5"
+          }
+        ]
+      }
+    ],
+    "parameters": {
+      "model": "llama3.2:1b",
+      "temperature": 0.3,
+      "maxTokens": 50,
+      "stream": true
+    },
+    "metadata": {
+      "requestId": "fixture-ollama-stream-1",
+      "timestamp": 1729947600000
+    }
+  },
+  "chunks": [
+    {
+      "type": "start",
+      "metadata": {
+        "model": "llama3.2:1b",
+        "requestId": "fixture-ollama-stream-1"
+      }
+    },
+    {
+      "type": "content",
+      "delta": "1",
+      "metadata": {}
+    },
+    {
+      "type": "content",
+      "delta": ",",
+      "metadata": {}
+    },
+    {
+      "type": "content",
+      "delta": " ",
+      "metadata": {}
+    },
+    {
+      "type": "content",
+      "delta": "2",
+      "metadata": {}
+    },
+    {
+      "type": "content",
+      "delta": ",",
+      "metadata": {}
+    },
+    {
+      "type": "content",
+      "delta": " ",
+      "metadata": {}
+    },
+    {
+      "type": "content",
+      "delta": "3",
+      "metadata": {}
+    },
+    {
+      "type": "content",
+      "delta": ",",
+      "metadata": {}
+    },
+    {
+      "type": "content",
+      "delta": " ",
+      "metadata": {}
+    },
+    {
+      "type": "content",
+      "delta": "4",
+      "metadata": {}
+    },
+    {
+      "type": "content",
+      "delta": ",",
+      "metadata": {}
+    },
+    {
+      "type": "content",
+      "delta": " ",
+      "metadata": {}
+    },
+    {
+      "type": "content",
+      "delta": "5",
+      "metadata": {}
+    },
+    {
+      "type": "done",
+      "metadata": {
+        "finishReason": "stop"
+      }
+    }
+  ],
+  "finalResponse": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "type": "text",
+          "text": "1, 2, 3, 4, 5"
+        }
+      ]
+    },
+    "usage": {
+      "promptTokens": 6,
+      "completionTokens": 9,
+      "totalTokens": 15
+    },
+    "finishReason": "stop",
+    "metadata": {
+      "requestId": "fixture-ollama-stream-1",
+      "timestamp": 1729947601500,
+      "provenance": {
+        "backend": "ollama",
+        "model": "llama3.2:1b",
+        "adaptedAt": 1729947601500
+      }
+    }
+  }
+}

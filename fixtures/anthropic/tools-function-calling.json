@@ -1,0 +1,88 @@
+{
+  "metadata": {
+    "provider": "anthropic",
+    "scenario": "tools-function-calling",
+    "model": "claude-3-5-sonnet-20241022",
+    "capturedAt": "2025-10-26T12:35:00.000Z",
+    "description": "Tool use with Claude",
+    "tags": ["tools", "function-calling", "claude"],
+    "apiVersion": "2023-06-01"
+  },
+  "request": {
+    "messages": [
+      {
+        "role": "user",
+        "content": [
+          {
+            "type": "text",
+            "text": "What's the weather in Tokyo?"
+          }
+        ]
+      }
+    ],
+    "parameters": {
+      "model": "claude-3-5-sonnet-20241022",
+      "temperature": 0.7,
+      "maxTokens": 200
+    },
+    "tools": [
+      {
+        "type": "function",
+        "function": {
+          "name": "get_weather",
+          "description": "Get the current weather for a location",
+          "parameters": {
+            "type": "object",
+            "properties": {
+              "location": {
+                "type": "string",
+                "description": "City name"
+              },
+              "unit": {
+                "type": "string",
+                "enum": ["celsius", "fahrenheit"],
+                "description": "Temperature unit"
+              }
+            },
+            "required": ["location"]
+          }
+        }
+      }
+    ],
+    "metadata": {
+      "requestId": "fixture-anthropic-tools-1",
+      "timestamp": 1729946100000
+    }
+  },
+  "response": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "type": "tool_use",
+          "id": "toolu_xyz789",
+          "name": "get_weather",
+          "input": {
+            "location": "Tokyo",
+            "unit": "celsius"
+          }
+        }
+      ]
+    },
+    "usage": {
+      "promptTokens": 88,
+      "completionTokens": 20,
+      "totalTokens": 108
+    },
+    "finishReason": "tool_use",
+    "metadata": {
+      "requestId": "fixture-anthropic-tools-1",
+      "timestamp": 1729946101200,
+      "provenance": {
+        "backend": "anthropic",
+        "model": "claude-3-5-sonnet-20241022",
+        "adaptedAt": 1729946101200
+      }
+    }
+  }
+}

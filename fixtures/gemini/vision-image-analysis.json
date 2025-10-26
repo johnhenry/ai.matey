@@ -1,0 +1,66 @@
+{
+  "metadata": {
+    "provider": "gemini",
+    "scenario": "vision-image-analysis",
+    "model": "gemini-1.5-pro-vision",
+    "capturedAt": "2025-10-26T13:40:00.000Z",
+    "description": "Image analysis with Gemini vision",
+    "tags": ["vision", "image", "multimodal", "gemini"],
+    "apiVersion": "v1"
+  },
+  "request": {
+    "messages": [
+      {
+        "role": "user",
+        "content": [
+          {
+            "type": "text",
+            "text": "What do you see in this image?"
+          },
+          {
+            "type": "image",
+            "source": {
+              "type": "url",
+              "url": "https://example.com/sunset.jpg"
+            }
+          }
+        ]
+      }
+    ],
+    "parameters": {
+      "model": "gemini-1.5-pro-vision",
+      "temperature": 0.7,
+      "maxTokens": 300
+    },
+    "metadata": {
+      "requestId": "fixture-gemini-vision-1",
+      "timestamp": 1729950000000
+    }
+  },
+  "response": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "type": "text",
+          "text": "The image shows a beautiful sunset over an ocean or large body of water. The sky is painted in vivid shades of orange, pink, and purple, with dramatic clouds catching the last light of day. The sun sits low on the horizon, creating a golden path of light across the water's surface. Silhouettes of what appear to be palm trees or tropical vegetation frame the left side of the image, adding depth and a sense of location."
+        }
+      ]
+    },
+    "usage": {
+      "promptTokens": 1295,
+      "completionTokens": 85,
+      "totalTokens": 1380
+    },
+    "finishReason": "stop",
+    "metadata": {
+      "requestId": "fixture-gemini-vision-1",
+      "timestamp": 1729950002500,
+      "provenance": {
+        "backend": "gemini",
+        "model": "gemini-1.5-pro-vision",
+        "adaptedAt": 1729950002500
+      }
+    }
+  }
+}

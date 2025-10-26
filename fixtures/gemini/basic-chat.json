@@ -1,0 +1,59 @@
+{
+  "metadata": {
+    "provider": "gemini",
+    "scenario": "basic-chat",
+    "model": "gemini-1.5-pro",
+    "capturedAt": "2025-10-26T12:45:00.000Z",
+    "description": "Basic chat completion with Gemini",
+    "tags": ["chat", "completion", "gemini"],
+    "apiVersion": "v1"
+  },
+  "request": {
+    "messages": [
+      {
+        "role": "user",
+        "content": [
+          {
+            "type": "text",
+            "text": "What is TypeScript?"
+          }
+        ]
+      }
+    ],
+    "parameters": {
+      "model": "gemini-1.5-pro",
+      "temperature": 0.7,
+      "maxTokens": 200
+    },
+    "metadata": {
+      "requestId": "fixture-gemini-chat-1",
+      "timestamp": 1729946700000
+    }
+  },
+  "response": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "type": "text",
+          "text": "TypeScript is a programming language developed and maintained by Microsoft. It's a strict syntactical superset of JavaScript, meaning any valid JavaScript code is also valid TypeScript code. TypeScript adds optional static typing to JavaScript, which helps developers catch errors during development and improves code maintainability, especially for large-scale applications."
+        }
+      ]
+    },
+    "usage": {
+      "promptTokens": 10,
+      "completionTokens": 66,
+      "totalTokens": 76
+    },
+    "finishReason": "stop",
+    "metadata": {
+      "requestId": "fixture-gemini-chat-1",
+      "timestamp": 1729946701500,
+      "provenance": {
+        "backend": "gemini",
+        "model": "gemini-1.5-pro",
+        "adaptedAt": 1729946701500
+      }
+    }
+  }
+}

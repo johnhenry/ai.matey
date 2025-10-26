@@ -1,0 +1,66 @@
+{
+  "metadata": {
+    "provider": "anthropic",
+    "scenario": "vision-image-analysis",
+    "model": "claude-3-5-sonnet-20241022",
+    "capturedAt": "2025-10-26T12:40:00.000Z",
+    "description": "Image analysis with Claude vision",
+    "tags": ["vision", "image", "multimodal", "claude"],
+    "apiVersion": "2023-06-01"
+  },
+  "request": {
+    "messages": [
+      {
+        "role": "user",
+        "content": [
+          {
+            "type": "text",
+            "text": "Describe this image"
+          },
+          {
+            "type": "image",
+            "source": {
+              "type": "url",
+              "url": "https://example.com/mountains.jpg"
+            }
+          }
+        ]
+      }
+    ],
+    "parameters": {
+      "model": "claude-3-5-sonnet-20241022",
+      "temperature": 0.7,
+      "maxTokens": 300
+    },
+    "metadata": {
+      "requestId": "fixture-anthropic-vision-1",
+      "timestamp": 1729946400000
+    }
+  },
+  "response": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "type": "text",
+          "text": "This image shows a stunning mountain landscape at sunset. Snow-capped peaks rise majestically against a vibrant orange and pink sky. In the foreground, there's a serene alpine lake reflecting the warm colors of the sunset. Pine trees frame the scene on both sides, adding depth to the composition. The lighting creates a peaceful, contemplative atmosphere typical of golden hour photography in mountainous regions."
+        }
+      ]
+    },
+    "usage": {
+      "promptTokens": 1290,
+      "completionTokens": 72,
+      "totalTokens": 1362
+    },
+    "finishReason": "stop",
+    "metadata": {
+      "requestId": "fixture-anthropic-vision-1",
+      "timestamp": 1729946402800,
+      "provenance": {
+        "backend": "anthropic",
+        "model": "claude-3-5-sonnet-20241022",
+        "adaptedAt": 1729946402800
+      }
+    }
+  }
+}

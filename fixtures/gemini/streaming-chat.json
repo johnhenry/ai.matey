@@ -1,0 +1,180 @@
+{
+  "metadata": {
+    "provider": "gemini",
+    "scenario": "streaming-chat",
+    "model": "gemini-1.5-pro",
+    "capturedAt": "2025-10-26T12:50:00.000Z",
+    "description": "Streaming chat with Gemini",
+    "tags": ["streaming", "chat", "gemini"],
+    "apiVersion": "v1"
+  },
+  "request": {
+    "messages": [
+      {
+        "role": "user",
+        "content": [
+          {
+            "type": "text",
+            "text": "Write a short poem about AI"
+          }
+        ]
+      }
+    ],
+    "parameters": {
+      "model": "gemini-1.5-pro",
+      "temperature": 0.8,
+      "maxTokens": 150,
+      "stream": true
+    },
+    "metadata": {
+      "requestId": "fixture-gemini-stream-1",
+      "timestamp": 1729947000000
+    }
+  },
+  "chunks": [
+    {
+      "type": "start",
+      "metadata": {
+        "model": "gemini-1.5-pro",
+        "requestId": "fixture-gemini-stream-1"
+      }
+    },
+    {
+      "type": "content",
+      "delta": "Silicon",
+      "metadata": {}
+    },
+    {
+      "type": "content",
+      "delta": " minds",
+      "metadata": {}
+    },
+    {
+      "type": "content",
+      "delta": " that",
+      "metadata": {}
+    },
+    {
+      "type": "content",
+      "delta": " think",
+      "metadata": {}
+    },
+    {
+      "type": "content",
+      "delta": " and",
+      "metadata": {}
+    },
+    {
+      "type": "content",
+      "delta": " learn",
+      "metadata": {}
+    },
+    {
+      "type": "content",
+      "delta": ",\n",
+      "metadata": {}
+    },
+    {
+      "type": "content",
+      "delta": "Processing",
+      "metadata": {}
+    },
+    {
+      "type": "content",
+      "delta": " data",
+      "metadata": {}
+    },
+    {
+      "type": "content",
+      "delta": " at",
+      "metadata": {}
+    },
+    {
+      "type": "content",
+      "delta": " every",
+      "metadata": {}
+    },
+    {
+      "type": "content",
+      "delta": " turn",
+      "metadata": {}
+    },
+    {
+      "type": "content",
+      "delta": ".\n",
+      "metadata": {}
+    },
+    {
+      "type": "content",
+      "delta": "Partners",
+      "metadata": {}
+    },
+    {
+      "type": "content",
+      "delta": " in",
+      "metadata": {}
+    },
+    {
+      "type": "content",
+      "delta": " creation",
+      "metadata": {}
+    },
+    {
+      "type": "content",
+      "delta": ",",
+      "metadata": {}
+    },
+    {
+      "type": "content",
+      "delta": " bright",
+      "metadata": {}
+    },
+    {
+      "type": "content",
+      "delta": " and",
+      "metadata": {}
+    },
+    {
+      "type": "content",
+      "delta": " new",
+      "metadata": {}
+    },
+    {
+      "type": "content",
+      "delta": ".",
+      "metadata": {}
+    },
+    {
+      "type": "done",
+      "metadata": {
+        "finishReason": "stop"
+      }
+    }
+  ],
+  "finalResponse": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "type": "text",
+          "text": "Silicon minds that think and learn,\nProcessing data at every turn.\nPartners in creation, bright and new."
+        }
+      ]
+    },
+    "usage": {
+      "promptTokens": 8,
+      "completionTokens": 24,
+      "totalTokens": 32
+    },
+    "finishReason": "stop",
+    "metadata": {
+      "requestId": "fixture-gemini-stream-1",
+      "timestamp": 1729947002000,
+      "provenance": {
+        "backend": "gemini",
+        "model": "gemini-1.5-pro",
+        "adaptedAt": 1729947002000
+      }
+    }
+  }
+}

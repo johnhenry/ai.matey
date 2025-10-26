@@ -1,0 +1,165 @@
+{
+  "metadata": {
+    "provider": "anthropic",
+    "scenario": "streaming-chat",
+    "model": "claude-3-5-sonnet-20241022",
+    "capturedAt": "2025-10-26T12:30:00.000Z",
+    "description": "Streaming chat with Claude",
+    "tags": ["streaming", "chat", "claude"],
+    "apiVersion": "2023-06-01"
+  },
+  "request": {
+    "messages": [
+      {
+        "role": "user",
+        "content": [
+          {
+            "type": "text",
+            "text": "Write a haiku about coding"
+          }
+        ]
+      }
+    ],
+    "parameters": {
+      "model": "claude-3-5-sonnet-20241022",
+      "temperature": 0.7,
+      "maxTokens": 100,
+      "stream": true
+    },
+    "metadata": {
+      "requestId": "fixture-anthropic-stream-1",
+      "timestamp": 1729945800000
+    }
+  },
+  "chunks": [
+    {
+      "type": "start",
+      "metadata": {
+        "model": "claude-3-5-sonnet-20241022",
+        "requestId": "fixture-anthropic-stream-1"
+      }
+    },
+    {
+      "type": "content",
+      "delta": "Lines",
+      "metadata": {}
+    },
+    {
+      "type": "content",
+      "delta": " of",
+      "metadata": {}
+    },
+    {
+      "type": "content",
+      "delta": " logic",
+      "metadata": {}
+    },
+    {
+      "type": "content",
+      "delta": " flow",
+      "metadata": {}
+    },
+    {
+      "type": "content",
+      "delta": " through",
+      "metadata": {}
+    },
+    {
+      "type": "content",
+      "delta": " screens",
+      "metadata": {}
+    },
+    {
+      "type": "content",
+      "delta": ",\n",
+      "metadata": {}
+    },
+    {
+      "type": "content",
+      "delta": "Debug",
+      "metadata": {}
+    },
+    {
+      "type": "content",
+      "delta": "ger",
+      "metadata": {}
+    },
+    {
+      "type": "content",
+      "delta": " lights",
+      "metadata": {}
+    },
+    {
+      "type": "content",
+      "delta": " the",
+      "metadata": {}
+    },
+    {
+      "type": "content",
+      "delta": " path",
+      "metadata": {}
+    },
+    {
+      "type": "content",
+      "delta": " forward",
+      "metadata": {}
+    },
+    {
+      "type": "content",
+      "delta": ",\n",
+      "metadata": {}
+    },
+    {
+      "type": "content",
+      "delta": "Functions",
+      "metadata": {}
+    },
+    {
+      "type": "content",
+      "delta": " compile",
+      "metadata": {}
+    },
+    {
+      "type": "content",
+      "delta": " dreams",
+      "metadata": {}
+    },
+    {
+      "type": "content",
+      "delta": ".",
+      "metadata": {}
+    },
+    {
+      "type": "done",
+      "metadata": {
+        "finishReason": "stop"
+      }
+    }
+  ],
+  "finalResponse": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "type": "text",
+          "text": "Lines of logic flow through screens,\nDebugger lights the path forward,\nFunctions compile dreams."
+        }
+      ]
+    },
+    "usage": {
+      "promptTokens": 9,
+      "completionTokens": 20,
+      "totalTokens": 29
+    },
+    "finishReason": "stop",
+    "metadata": {
+      "requestId": "fixture-anthropic-stream-1",
+      "timestamp": 1729945802500,
+      "provenance": {
+        "backend": "anthropic",
+        "model": "claude-3-5-sonnet-20241022",
+        "adaptedAt": 1729945802500
+      }
+    }
+  }
+}

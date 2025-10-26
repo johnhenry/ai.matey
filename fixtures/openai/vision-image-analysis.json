@@ -1,0 +1,66 @@
+{
+  "metadata": {
+    "provider": "openai",
+    "scenario": "vision-image-analysis",
+    "model": "gpt-4-vision-preview",
+    "capturedAt": "2025-10-26T12:15:00.000Z",
+    "description": "Image analysis with vision model",
+    "tags": ["vision", "image", "multimodal", "gpt-4"],
+    "apiVersion": "v1"
+  },
+  "request": {
+    "messages": [
+      {
+        "role": "user",
+        "content": [
+          {
+            "type": "text",
+            "text": "What's in this image?"
+          },
+          {
+            "type": "image",
+            "source": {
+              "type": "url",
+              "url": "https://example.com/cat.jpg"
+            }
+          }
+        ]
+      }
+    ],
+    "parameters": {
+      "model": "gpt-4-vision-preview",
+      "temperature": 0.7,
+      "maxTokens": 300
+    },
+    "metadata": {
+      "requestId": "fixture-vision-1",
+      "timestamp": 1729944900000
+    }
+  },
+  "response": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "type": "text",
+          "text": "The image shows an orange tabby cat sitting on a windowsill. The cat appears to be looking outside, with sunlight streaming through the window, creating a warm, peaceful atmosphere. The cat has distinctive striped markings typical of tabby cats, and its posture suggests it's relaxed and comfortable."
+        }
+      ]
+    },
+    "usage": {
+      "promptTokens": 1285,
+      "completionTokens": 58,
+      "totalTokens": 1343
+    },
+    "finishReason": "stop",
+    "metadata": {
+      "requestId": "fixture-vision-1",
+      "timestamp": 1729944902500,
+      "provenance": {
+        "backend": "openai",
+        "model": "gpt-4-vision-preview",
+        "adaptedAt": 1729944902500
+      }
+    }
+  }
+}

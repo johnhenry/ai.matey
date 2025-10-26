@@ -1,0 +1,77 @@
+{
+  "metadata": {
+    "provider": "anthropic",
+    "scenario": "multi-turn-conversation",
+    "model": "claude-3-5-sonnet-20241022",
+    "capturedAt": "2025-10-26T13:20:00.000Z",
+    "description": "Multi-turn conversation with Claude",
+    "tags": ["chat", "multi-turn", "conversation", "claude"],
+    "apiVersion": "2023-06-01"
+  },
+  "request": {
+    "messages": [
+      {
+        "role": "user",
+        "content": [
+          {
+            "type": "text",
+            "text": "What's the capital of France?"
+          }
+        ]
+      },
+      {
+        "role": "assistant",
+        "content": [
+          {
+            "type": "text",
+            "text": "The capital of France is Paris."
+          }
+        ]
+      },
+      {
+        "role": "user",
+        "content": [
+          {
+            "type": "text",
+            "text": "What's its population?"
+          }
+        ]
+      }
+    ],
+    "parameters": {
+      "model": "claude-3-5-sonnet-20241022",
+      "temperature": 0.7,
+      "maxTokens": 100
+    },
+    "metadata": {
+      "requestId": "fixture-anthropic-multi-1",
+      "timestamp": 1729948800000
+    }
+  },
+  "response": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "type": "text",
+          "text": "Paris has a population of approximately 2.1 million people within the city proper, and about 12 million in the greater Paris metropolitan area (Île-de-France region)."
+        }
+      ]
+    },
+    "usage": {
+      "promptTokens": 42,
+      "completionTokens": 41,
+      "totalTokens": 83
+    },
+    "finishReason": "stop",
+    "metadata": {
+      "requestId": "fixture-anthropic-multi-1",
+      "timestamp": 1729948801500,
+      "provenance": {
+        "backend": "anthropic",
+        "model": "claude-3-5-sonnet-20241022",
+        "adaptedAt": 1729948801500
+      }
+    }
+  }
+}

@@ -1,0 +1,69 @@
+{
+  "metadata": {
+    "provider": "openai",
+    "scenario": "json-mode",
+    "model": "gpt-4",
+    "capturedAt": "2025-10-26T12:20:00.000Z",
+    "description": "Structured JSON output mode",
+    "tags": ["json", "structured-output", "gpt-4"],
+    "apiVersion": "v1"
+  },
+  "request": {
+    "messages": [
+      {
+        "role": "system",
+        "content": [
+          {
+            "type": "text",
+            "text": "You are a helpful assistant that outputs JSON."
+          }
+        ]
+      },
+      {
+        "role": "user",
+        "content": [
+          {
+            "type": "text",
+            "text": "Extract the name, age, and occupation from this text: 'John Smith is a 35-year-old software engineer.'"
+          }
+        ]
+      }
+    ],
+    "parameters": {
+      "model": "gpt-4",
+      "temperature": 0.3,
+      "maxTokens": 200,
+      "responseFormat": { "type": "json_object" }
+    },
+    "metadata": {
+      "requestId": "fixture-json-mode-1",
+      "timestamp": 1729945200000
+    }
+  },
+  "response": {
+    "message": {
+      "role": "assistant",
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"name\":\"John Smith\",\"age\":35,\"occupation\":\"software engineer\"}"
+        }
+      ]
+    },
+    "usage": {
+      "promptTokens": 45,
+      "completionTokens": 18,
+      "totalTokens": 63
+    },
+    "finishReason": "stop",
+    "metadata": {
+      "requestId": "fixture-json-mode-1",
+      "timestamp": 1729945201000,
+      "provenance": {
+        "backend": "openai",
+        "model": "gpt-4-0613",
+        "adaptedAt": 1729945201000
+      }
+    }
+  }
+}
