@@ -350,6 +350,24 @@ import {
 } from 'ai.matey/adapters/backend-native';
 ```
 
+> **⚠️ Important: Optional Peer Dependencies**
+>
+> Native backends (`AppleBackend`, `NodeLlamaCppBackend`) require **optional peer dependencies** that are NOT automatically installed. ai.matey maintains zero runtime dependencies by default.
+>
+> **To use native backends, manually install the required packages:**
+>
+> ```bash
+> # For Apple Foundation Models (macOS 15+ only)
+> npm install apple-foundation-models
+>
+> # For Node Llama.cpp
+> npm install node-llama-cpp
+> ```
+>
+> **Why optional?** This keeps the core library lightweight (~0 dependencies). Most users only need HTTP-based backends (OpenAI, Anthropic, etc.) which work without any additional packages.
+>
+> If you try to use a native backend without installing its peer dependency, you'll get a clear error message with installation instructions.
+
 **Example:**
 ```typescript
 const backend = new DeepSeekBackendAdapter({
@@ -557,6 +575,42 @@ bridge.use(createTelemetryMiddleware({
 const metrics = sink.getMetrics();
 console.log(metrics.get('request.duration'));
 ```
+
+##### OpenTelemetry Integration
+
+For production observability with industry-standard distributed tracing:
+
+```typescript
+import { createOpenTelemetryMiddleware } from 'ai.matey/middleware';
+
+const otel = await createOpenTelemetryMiddleware({
+  serviceName: 'my-ai-service',
+  endpoint: 'http://localhost:4318/v1/traces', // OTLP endpoint
+  samplingRate: 0.1, // Sample 10% of requests in production
+  resourceAttributes: {
+    'deployment.environment': 'production',
+    'service.version': '1.0.0',
+  },
+});
+
+bridge.use(otel);
+```
+
+> **⚠️ Important: Optional Peer Dependencies**
+>
+> OpenTelemetry integration requires **optional peer dependencies** that are NOT automatically installed:
+>
+> ```bash
+> npm install @opentelemetry/api \
+>   @opentelemetry/sdk-trace-base \
+>   @opentelemetry/exporter-trace-otlp-http \
+>   @opentelemetry/resources \
+>   @opentelemetry/semantic-conventions
+> ```
+>
+> **Why optional?** This keeps the core library at zero dependencies. Most users don't need OpenTelemetry, but it's available when you need production-grade distributed tracing.
+>
+> See [OpenTelemetry documentation](./docs/opentelemetry.md) for integration guides with Jaeger, Zipkin, Datadog, Honeycomb, and New Relic.
 
 #### Transform Middleware
 
