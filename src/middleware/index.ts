@@ -112,3 +112,15 @@ export {
   type PIIDetectionResult,
   type ModerationResult,
 } from './validation.js';
+
+// OpenTelemetry middleware (requires optional peer dependencies)
+export {
+  createOpenTelemetryMiddleware,
+  OpenTelemetryTelemetrySink,
+  isOpenTelemetryAvailable,
+  isOpenTelemetryLoaded,
+  shutdownOpenTelemetry,
+  OpenTelemetryAttributes,
+  type OpenTelemetryConfig,
+  type BatchSpanProcessorConfig,
+} from './opentelemetry.js';

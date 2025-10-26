@@ -236,6 +236,11 @@
     "node": ">=18.0.0"
   },
   "peerDependencies": {
+    "@opentelemetry/api": "^1.0.0",
+    "@opentelemetry/exporter-trace-otlp-http": ">=0.50.0 <1.0.0",
+    "@opentelemetry/resources": "^1.0.0",
+    "@opentelemetry/sdk-trace-base": "^1.0.0",
+    "@opentelemetry/semantic-conventions": "^1.0.0",
     "apple-foundation-models": "*",
     "express": "^4.0.0 || ^5.0.0",
     "fastify": "^4.0.0 || ^5.0.0",
@@ -244,6 +249,24 @@
     "node-llama-cpp": "^3.0.0"
   },
   "peerDependenciesMeta": {
+    "@opentelemetry/api": {
+      "optional": true
+    },
+    "@opentelemetry/exporter-trace-otlp-http": {
+      "optional": true
+    },
+    "@opentelemetry/resources": {
+      "optional": true
+    },
+    "@opentelemetry/sdk-trace-base": {
+      "optional": true
+    },
+    "@opentelemetry/semantic-conventions": {
+      "optional": true
+    },
+    "apple-foundation-models": {
+      "optional": true
+    },
     "express": {
       "optional": true
     },
@@ -257,9 +280,6 @@
       "optional": true
     },
     "node-llama-cpp": {
-      "optional": true
-    },
-    "apple-foundation-models": {
       "optional": true
     }
   },
@@ -278,6 +298,5 @@
     "prettier": "^3.6.2",
     "typescript": "^5.9.3",
     "vitest": "^3.2.4"
-  },
-  "dependencies": {}
+  }
 }
