@@ -76,8 +76,9 @@ The AI tooling ecosystem can be segmented into distinct categories:
 - **WebLLM**: Browser-based inference with WebGPU
 - **Chrome AI**: Built-in browser AI (experimental)
 - **Node Llama.cpp**: Local GGUF model execution
+- **JavaScript Practical Approaches** (Guide): Transformers.js-based local inference, Web Workers, client-side model execution
 
-**ai.matey Position:** ✅ **Supports these as backends** (including Ollama, Chrome AI, Node Llama.cpp)
+**ai.matey Position:** ✅ **Supports these as backends** (including Ollama, Chrome AI, Node Llama.cpp). The practical approaches guide focuses on local inference which is architecturally different from ai.matey's cloud API abstraction, but both can be used together (local models via Ollama/Chrome AI backend, cloud APIs via other backends).
 
 ### 6. Infrastructure & Gateways
 **Focus**: Production deployment, routing, observability
@@ -241,6 +242,42 @@ The AI tooling ecosystem can be segmented into distinct categories:
 - ⭐ **Unified API** (use same code for local/cloud)
 
 **Recommendation:** Use **ai.matey to orchestrate local + cloud models**
+
+---
+
+### vs JavaScript Practical Approaches (Local Inference Patterns)
+
+The "LLMs and JavaScript: Practical Approaches" guide (Volcanic Minds) represents a fundamentally different architectural paradigm from ai.matey:
+
+**Local Inference Approach (Guide):**
+- ⭐ Direct model execution using Transformers.js
+- ⭐ Browser-based inference with Web Workers
+- ⭐ Local model downloads (Hugging Face ecosystem)
+- ⭐ Client-side processing (privacy, offline capability)
+- ⭐ Zero API costs
+- ⭐ Minimal abstraction layers
+
+**ai.matey Approach (Cloud APIs):**
+- ⭐ **Provider abstraction** (not local execution)
+- ⭐ **Cloud API orchestration** (OpenAI, Anthropic, etc.)
+- ⭐ **Advanced routing** (cost/latency optimization)
+- ⭐ **Production features** (circuit breaker, retry, telemetry)
+- ⭐ **No device constraints** (server-side models)
+
+**Key Distinction:** The guide focuses on **how to run models locally** in JavaScript, while ai.matey focuses on **how to abstract cloud provider APIs**. These are complementary approaches:
+
+| Aspect | Local Inference (Guide) | Cloud APIs (ai.matey) |
+|--------|------------------------|---------------------|
+| Model Location | User's device | Remote servers |
+| Privacy | High (local) | Provider-dependent |
+| Cost | Free (after download) | Per-token pricing |
+| Latency | Device-dependent | Network + API |
+| Model Size | Limited (browser) | No constraints |
+| Offline | ✅ Yes | ❌ No |
+| Provider Choice | Single (HuggingFace) | Multiple (6+) |
+| Setup Complexity | Low | Medium |
+
+**Complementary Use:** ai.matey can integrate local approaches through Ollama or Chrome AI backends, enabling hybrid strategies (try local first, fallback to cloud).
 
 ---
 
