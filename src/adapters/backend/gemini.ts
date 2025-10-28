@@ -334,12 +334,15 @@ export class GeminiBackendAdapter implements BackendAdapter<GeminiRequest, Gemin
       }
 
       if (mode === 'tools') {
+        // Sanitize schema for Gemini (remove unsupported properties)
+        const sanitizedSchema = this.sanitizeSchemaForGemini(jsonSchema);
+
         // Use Gemini's function calling
         geminiRequest.tools = [{
           functionDeclarations: [{
             name,
             description,
-            parameters: jsonSchema,
+            parameters: sanitizedSchema,
           }],
         }];
         // Force function calling with ANY mode
@@ -444,5 +447,52 @@ export class GeminiBackendAdapter implements BackendAdapter<GeminiRequest, Gemin
       case 'SAFETY': return 'content_filter';
       default: return 'stop';
     }
+  }
+
+  /**
+   * Sanitize JSON Schema for Gemini's function calling.
+   * Gemini doesn't support certain JSON Schema features, so we need to remove them.
+   */
+  private sanitizeSchemaForGemini(schema: any): any {
+    if (!schema || typeof schema !== 'object') {
+      return schema;
+    }
+
+    const sanitized = { ...schema };
+
+    // Remove properties that Gemini doesn't support
+    delete sanitized.additionalProperties;
+    delete sanitized.$defs;
+    delete sanitized.definitions;
+    delete sanitized.$schema;
+    delete sanitized.markdownDescription;  // Gemini doesn't support this
+
+    // Recursively sanitize nested objects
+    if (sanitized.properties) {
+      sanitized.properties = Object.fromEntries(
+        Object.entries(sanitized.properties).map(([key, value]) => [
+          key,
+          this.sanitizeSchemaForGemini(value),
+        ])
+      );
+    }
+
+    // Recursively sanitize array items
+    if (sanitized.items) {
+      sanitized.items = this.sanitizeSchemaForGemini(sanitized.items);
+    }
+
+    // Recursively sanitize allOf, anyOf, oneOf
+    if (sanitized.allOf) {
+      sanitized.allOf = sanitized.allOf.map((s: any) => this.sanitizeSchemaForGemini(s));
+    }
+    if (sanitized.anyOf) {
+      sanitized.anyOf = sanitized.anyOf.map((s: any) => this.sanitizeSchemaForGemini(s));
+    }
+    if (sanitized.oneOf) {
+      sanitized.oneOf = sanitized.oneOf.map((s: any) => this.sanitizeSchemaForGemini(s));
+    }
+
+    return sanitized;
   }
 }

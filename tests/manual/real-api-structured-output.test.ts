@@ -265,7 +265,7 @@ describe.skipIf(skipIfNoKeys())('Gemini Real API - Structured Output', () => {
         },
       ],
       mode: 'tools',
-      model: 'gemini-1.5-flash',
+      model: 'gemini-2.5-flash',
     });
 
     expect(result.data).toBeDefined();
@@ -285,7 +285,7 @@ describe.skipIf(skipIfNoKeys())('Gemini Real API - Structured Output', () => {
         },
       ],
       mode: 'json',
-      model: 'gemini-1.5-flash',
+      model: 'gemini-2.5-flash',
     });
 
     expect(result.data).toBeDefined();
@@ -302,7 +302,7 @@ describe.skipIf(skipIfNoKeys())('Cross-Provider Consistency', () => {
   const providers = [
     { name: 'OpenAI', backend: new OpenAIBackendAdapter({ apiKey: process.env.OPENAI_API_KEY! }), model: 'gpt-4o-mini' },
     { name: 'Anthropic', backend: new AnthropicBackendAdapter({ apiKey: process.env.ANTHROPIC_API_KEY! }), model: 'claude-3-5-haiku-20241022' },
-    { name: 'Gemini', backend: new GeminiBackendAdapter({ apiKey: process.env.GOOGLE_API_KEY! }), model: 'gemini-1.5-flash' },
+    { name: 'Gemini', backend: new GeminiBackendAdapter({ apiKey: process.env.GOOGLE_API_KEY! }), model: 'gemini-2.5-flash' },
   ].filter(p => {
     // Only test providers with valid API keys
     if (p.name === 'OpenAI' && !process.env.OPENAI_API_KEY) return false;

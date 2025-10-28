@@ -15,6 +15,7 @@ import type {
   IRMessage,
   IRStreamChunk,
   FinishReason,
+  MessageContent,
 } from '../../types/ir.js';
 import type {
   AIModel,
@@ -862,10 +863,49 @@ export class OpenAIBackendAdapter implements BackendAdapter<OpenAIRequest, OpenA
         throw new Error('No choices in OpenAI response');
       }
 
-      // Convert message
+      // Check if response has tool calls
+      const hasToolCalls = choice.message.tool_calls && choice.message.tool_calls.length > 0;
+
+      // Convert message content
+      let messageContent: string | MessageContent[];
+      if (hasToolCalls) {
+        // Build content blocks array with tool calls
+        const contentBlocks: MessageContent[] = [];
+
+        // Add text content if present
+        if (choice.message.content) {
+          contentBlocks.push({
+            type: 'text',
+            text: this.convertMessageContentFromOpenAI(choice.message.content),
+          });
+        }
+
+        // Add tool calls
+        for (const toolCall of choice.message.tool_calls!) {
+          let input: any;
+          try {
+            input = JSON.parse(toolCall.function.arguments);
+          } catch {
+            input = { raw: toolCall.function.arguments };
+          }
+
+          contentBlocks.push({
+            type: 'tool_use',
+            id: toolCall.id,
+            name: toolCall.function.name,
+            input,
+          });
+        }
+
+        messageContent = contentBlocks;
+      } else {
+        // Regular text response
+        messageContent = this.convertMessageContentFromOpenAI(choice.message.content);
+      }
+
       const message: IRMessage = {
         role: 'assistant',
-        content: this.convertMessageContentFromOpenAI(choice.message.content),
+        content: messageContent,
       };
 
       // Map finish reason
@@ -962,6 +1002,11 @@ export class OpenAIBackendAdapter implements BackendAdapter<OpenAIRequest, OpenA
   private convertMessageContentFromOpenAI(content: OpenAIMessageContent): string {
     if (typeof content === 'string') {
       return content;
+    }
+
+    // Handle null content (can happen with tool-only responses)
+    if (!content) {
+      return '';
     }
 
     // Extract text from content blocks
