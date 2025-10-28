@@ -64,18 +64,50 @@ Based on competitive analysis, these features would strengthen our position:
 1. ✅ **React hooks** (`useChat`, `useCompletion`, `useObject`) - Match Vercel AI SDK - **COMPLETE v0.1.1**
 2. ✅ **Structured output** (Zod integration) - Match Instructor-JS - **COMPLETE v0.1.1**
 3. ✅ **OpenTelemetry** - Match enterprise observability standards - **COMPLETE v0.1.1**
-4. **Better documentation** - Match LangChain quality
+4. 🎯 **Better documentation** - Match LangChain quality - **NEXT (< 1 day)**
 
 **Medium Priority (Differentiation):**
-1. **Semantic caching** - Unique in provider abstraction space
-2. **Agent runtime** - Light orchestration without LangChain complexity
-3. **RAG pipeline** - Basic support without full LlamaIndex scope
-4. **Geographic routing** - Enterprise feature few competitors have
+1. 🎯 **Semantic caching** - Unique in provider abstraction space - **NEXT (1 day)**
+2. 🎯 **Prometheus metrics** - Enterprise observability standard - **NEXT (< 1 day)**
+3. 🎯 **Request deduplication** - Cost savings feature - **NEXT (1 day)**
+4. **Agent runtime** - Light orchestration without LangChain complexity - **(1 week)**
+5. **RAG pipeline** - Basic support without full LlamaIndex scope - **(1 week)**
+6. **Geographic routing** - Enterprise feature few competitors have - **(2 weeks)**
 
 **Low Priority (Nice to Have):**
-1. **Browser integration** - WebLLM support
-2. **VSCode extension** - Developer experience enhancement
-3. **Community marketplace** - Long-term ecosystem play
+1. 🎯 **Vue.js composables** - Framework coverage - **NEXT (2 days)**
+2. 🎯 **SvelteKit integration** - Framework coverage - **NEXT (2 days)**
+3. 🎯 **Interactive playground** - Lower learning curve - **NEXT (5 days)**
+4. 🎯 **Batch request optimization** - Cost savings - **NEXT (2 days)**
+5. **Browser integration** - WebLLM support - **(2 weeks)**
+6. **VSCode extension** - Developer experience enhancement - **(2 weeks)**
+7. **Community marketplace** - Long-term ecosystem play - **(Future)**
+
+---
+
+## 🎯 Next Low-Hanging Fruit (Prioritized)
+
+See [NEXT_LOW_HANGING_FRUIT.md](../NEXT_LOW_HANGING_FRUIT.md) for detailed analysis.
+
+**Week 1 Priorities:**
+1. **Better Documentation** (< 1 day) - Getting Started, API Reference, improved README
+2. **Semantic Caching** (1 day) - Unique competitive advantage
+3. **Prometheus Metrics** (< 1 day) - Enterprise observability
+
+**Week 2 Priorities:**
+4. **Request Deduplication** (1 day) - Automatic cost savings
+5. **Vue.js Composables** (2 days) - Framework coverage
+6. **SvelteKit Integration** (2 days) - Framework coverage
+
+**Week 3-4:**
+7. **Interactive Playground** (5 days) - Learning curve improvement
+8. **Batch Request Optimization** (2 days) - Cost optimization
+9. **Basic RAG Pipeline** (5-7 days) - Feature completeness
+
+**Month 2:**
+10. **Lightweight Agent Runtime** (7 days) - Simple ReAct pattern
+11. **Geographic Routing** (2 weeks) - Enterprise feature
+12. **Multi-tenancy Support** (2 weeks) - Enterprise feature
 
 ### Strategic Roadmap Alignment
 
