@@ -15,6 +15,7 @@ import type {
   IRMessage,
   IRStreamChunk,
   FinishReason,
+  MessageContent,
 } from '../../types/ir.js';
 import {
   AdapterConversionError,
@@ -29,6 +30,7 @@ import {
   getEffectiveStreamMode,
   mergeStreamingConfig,
 } from '../../utils/streaming-modes.js';
+import { convertZodToJsonSchema } from '../../structured/schema-converter.js';
 
 // ============================================================================
 // Azure OpenAI API Types (OpenAI-compatible with Azure extensions)
@@ -65,6 +67,16 @@ export interface AzureOpenAIRequest {
   stop?: string[];
   stream?: boolean;
   seed?: number;
+  tools?: Array<{
+    type: 'function';
+    function: {
+      name: string;
+      description?: string;
+      parameters: Record<string, unknown>;
+    };
+  }>;
+  tool_choice?: { type: 'function'; function: { name: string } } | 'auto' | 'none';
+  response_format?: { type: 'json_object' } | { type: 'json_schema'; json_schema: { name: string; schema: any; strict?: boolean } };
   // Note: model is NOT sent in Azure OpenAI requests (deployment is in URL)
 }
 
@@ -96,8 +108,17 @@ export interface AzureOpenAIStreamChunk {
     delta: {
       role?: 'assistant';
       content?: string;
+      tool_calls?: Array<{
+        index: number;
+        id?: string;
+        type?: 'function';
+        function?: {
+          name?: string;
+          arguments?: string;
+        };
+      }>;
     };
-    finish_reason: 'stop' | 'length' | 'content_filter' | null;
+    finish_reason: 'stop' | 'length' | 'tool_calls' | 'content_filter' | null;
     content_filter_results?: any;
   }>;
 }
@@ -241,6 +262,63 @@ export class AzureOpenAIBackendAdapter implements BackendAdapter<AzureOpenAIRequ
     // Add seed if provided
     if (request.parameters?.seed !== undefined) {
       azureRequest.seed = request.parameters.seed;
+    }
+
+    // Handle schema-based structured output
+    if (request.schema) {
+      const schema = request.schema;
+      const mode = schema.mode || 'tools';
+      const name = schema.name || 'extract';
+      const description = schema.description || `Extract structured data matching the ${name} schema`;
+
+      // Convert Zod schema to JSON Schema
+      let jsonSchema: any;
+      if (schema.type === 'zod') {
+        jsonSchema = convertZodToJsonSchema(schema.schema);
+      } else {
+        jsonSchema = schema.schema;
+      }
+
+      if (mode === 'tools') {
+        // Use Azure OpenAI's tool calling (same as OpenAI)
+        azureRequest.tools = [{
+          type: 'function',
+          function: {
+            name,
+            description,
+            parameters: jsonSchema,
+          },
+        }];
+        // Force tool use
+        azureRequest.tool_choice = { type: 'function', function: { name } };
+      } else if (mode === 'json_schema') {
+        // Use Azure OpenAI's strict JSON schema mode
+        azureRequest.response_format = {
+          type: 'json_schema',
+          json_schema: {
+            name,
+            schema: jsonSchema,
+            strict: true,
+          },
+        };
+      } else if (mode === 'json') {
+        // Use Azure OpenAI's JSON object mode
+        azureRequest.response_format = { type: 'json_object' };
+
+        // Add schema to system message for context
+        const schemaMessage: AzureOpenAIMessage = {
+          role: 'system',
+          content: `You must respond with valid JSON matching this schema:\n${JSON.stringify(jsonSchema, null, 2)}`,
+        };
+        azureRequest.messages.unshift(schemaMessage);
+      } else if (mode === 'md_json') {
+        // Add markdown JSON instruction to system message
+        const mdJsonMessage: AzureOpenAIMessage = {
+          role: 'system',
+          content: `Respond with JSON in a markdown code block:\n\`\`\`json\n...\n\`\`\`\n\nThe JSON must match this schema:\n${JSON.stringify(jsonSchema, null, 2)}`,
+        };
+        azureRequest.messages.unshift(mdJsonMessage);
+      }
     }
 
     return azureRequest;
@@ -390,6 +468,15 @@ export class AzureOpenAIBackendAdapter implements BackendAdapter<AzureOpenAIRequ
       let sequence = 0;
       let contentBuffer = '';
 
+      // Tool call buffering for structured output
+      const toolCallsBuffer = new Map<number, {
+        id: string;
+        type: 'function';
+        function: { name: string; arguments: string };
+      }>();
+      const toolCallsYieldedLength = new Map<number, number>();
+      let doneEmitted = false; // Prevent multiple done chunks
+
       yield {
         type: 'start',
         sequence: sequence++,
@@ -423,8 +510,11 @@ export class AzureOpenAIBackendAdapter implements BackendAdapter<AzureOpenAIRequ
 
             try {
               const chunk = JSON.parse(data) as AzureOpenAIStreamChunk;
-              const delta = chunk.choices[0]?.delta?.content;
+              const choice = chunk.choices[0];
+              if (!choice) continue;
 
+              // Handle content delta
+              const delta = choice.delta?.content;
               if (delta) {
                 contentBuffer += delta;
 
@@ -442,23 +532,104 @@ export class AzureOpenAIBackendAdapter implements BackendAdapter<AzureOpenAIRequ
                 yield contentChunk;
               }
 
-              if (chunk.choices[0]?.finish_reason) {
+              // Handle tool call deltas for structured output
+              if (choice.delta?.tool_calls) {
+                for (const toolCallDelta of choice.delta.tool_calls) {
+                  const index = toolCallDelta.index;
+                  const existingCall = toolCallsBuffer.get(index);
+                  const argumentsDelta = toolCallDelta.function?.arguments || '';
+
+                  if (!existingCall) {
+                    // Initialize new tool call
+                    toolCallsBuffer.set(index, {
+                      id: toolCallDelta.id || '',
+                      type: 'function',
+                      function: {
+                        name: toolCallDelta.function?.name || '',
+                        arguments: argumentsDelta,
+                      },
+                    });
+                    toolCallsYieldedLength.set(index, 0);
+                  } else {
+                    // Accumulate deltas
+                    if (argumentsDelta) {
+                      existingCall.function.arguments += argumentsDelta;
+                    }
+                    if (toolCallDelta.function?.name) {
+                      existingCall.function.name += toolCallDelta.function.name;
+                    }
+                  }
+
+                  // Yield only new delta as content (for structured output parsing)
+                  if (argumentsDelta) { // Process ALL tool calls
+                    const toolCall = toolCallsBuffer.get(index)!;
+                    const previousLength = toolCallsYieldedLength.get(index) || 0;
+                    const currentLength = toolCall.function.arguments.length;
+                    const newDelta = toolCall.function.arguments.substring(previousLength);
+
+                    if (newDelta) {
+                      toolCallsYieldedLength.set(index, currentLength);
+                      yield {
+                        type: 'content',
+                        sequence: sequence++,
+                        delta: newDelta,
+                        role: 'assistant',
+                      };
+                    }
+                  }
+                }
+              }
+
+              if (choice.finish_reason && !doneEmitted) {
+                doneEmitted = true;
                 const finishReasonMap: Record<string, FinishReason> = {
                   'stop': 'stop',
                   'length': 'length',
+                  'tool_calls': 'tool_calls',
                   'content_filter': 'stop',
                 };
+
+                // Build final message content
+                let messageContent: string | MessageContent[];
+                if (toolCallsBuffer.size > 0) {
+                  // Include tool calls in message
+                  const contentBlocks: MessageContent[] = [];
+
+                  for (const [_index, toolCall] of toolCallsBuffer.entries()) {
+                    try {
+                      const input = JSON.parse(toolCall.function.arguments);
+                      contentBlocks.push({
+                        type: 'tool_use',
+                        id: toolCall.id,
+                        name: toolCall.function.name,
+                        input,
+                      });
+                    } catch {
+                      // If JSON parse fails, use raw string
+                      contentBlocks.push({
+                        type: 'tool_use',
+                        id: toolCall.id,
+                        name: toolCall.function.name,
+                        input: { raw: toolCall.function.arguments },
+                      });
+                    }
+                  }
+
+                  messageContent = contentBlocks;
+                } else {
+                  messageContent = contentBuffer;
+                }
 
                 const doneChunk: IRStreamChunk = {
                   type: 'done',
                   sequence: sequence++,
-                  finishReason: finishReasonMap[chunk.choices[0].finish_reason] || 'stop',
-                  message: { role: 'assistant', content: contentBuffer },
+                  finishReason: finishReasonMap[choice.finish_reason] || 'stop',
+                  message: { role: 'assistant', content: messageContent },
                 };
 
                 // Include content filter results if present
-                if (chunk.choices[0].content_filter_results) {
-                  (doneChunk as any).azure_content_filter = chunk.choices[0].content_filter_results;
+                if (choice.content_filter_results) {
+                  (doneChunk as any).azure_content_filter = choice.content_filter_results;
                 }
 
                 yield doneChunk;
@@ -470,6 +641,10 @@ export class AzureOpenAIBackendAdapter implements BackendAdapter<AzureOpenAIRequ
         }
       } finally {
         reader.releaseLock();
+        // Clear buffers to prevent memory leaks
+        contentBuffer = '';
+        toolCallsBuffer.clear();
+        toolCallsYieldedLength.clear();
       }
     } catch (error) {
       yield {

@@ -623,6 +623,74 @@ export interface IRMetadata {
 }
 
 // ============================================================================
+// Structured Output Schema
+// ============================================================================
+
+/**
+ * Extraction modes for structured output.
+ *
+ * Different strategies for extracting structured data from LLMs.
+ */
+export type ExtractionMode =
+  | 'tools'       // Function/tool calling (most reliable)
+  | 'json'        // JSON response format mode
+  | 'md_json'     // Extract from markdown code blocks
+  | 'json_schema'; // JSON schema mode (OpenAI-specific)
+
+/**
+ * Schema information for structured output.
+ *
+ * Used to carry schema information through the IR adapter pipeline.
+ * Enables structured data extraction with validation across all providers.
+ *
+ * @since 0.2.0
+ */
+export interface IRSchema {
+  /**
+   * Schema type identifier.
+   */
+  type: 'zod' | 'json-schema';
+
+  /**
+   * The actual schema object.
+   * - For 'zod': Zod schema instance
+   * - For 'json-schema': JSON Schema object
+   */
+  schema: any;
+
+  /**
+   * Extraction mode preference.
+   *
+   * Backend adapters should honor this when possible.
+   * @default 'tools'
+   */
+  mode?: ExtractionMode;
+
+  /**
+   * Schema name (for tool calling).
+   * @default 'extract'
+   */
+  name?: string;
+
+  /**
+   * Schema description.
+   *
+   * Used to guide the model when generating structured data.
+   */
+  description?: string;
+
+  /**
+   * Whether to validate the response against the schema.
+   *
+   * When true, backend adapters should validate responses
+   * and add warnings to metadata if validation fails.
+   *
+   * @default true
+   */
+  validate?: boolean;
+}
+
+// ============================================================================
 // Chat Request
 // ============================================================================
 
@@ -709,6 +777,39 @@ export interface IRChatRequest {
    * @default 'delta'
    */
   readonly streamMode?: StreamMode;
+
+  /**
+   * Optional schema for structured output.
+   *
+   * When provided, the backend should attempt to return
+   * structured data matching the schema. Backends implement
+   * this via:
+   * - Tool calling (most providers)
+   * - JSON mode (OpenAI, some others)
+   * - Prompt engineering (fallback)
+   *
+   * The schema can be a Zod schema or JSON Schema object.
+   * Backends should validate responses when validate flag is true.
+   *
+   * @since 0.2.0
+   *
+   * @example
+   * ```typescript
+   * import { z } from 'zod'
+   *
+   * const request: IRChatRequest = {
+   *   messages: [{ role: 'user', content: 'Extract user...' }],
+   *   schema: {
+   *     type: 'zod',
+   *     schema: z.object({ name: z.string(), age: z.number() }),
+   *     mode: 'tools',
+   *     validate: true
+   *   },
+   *   // ... other fields
+   * }
+   * ```
+   */
+  readonly schema?: IRSchema;
 }
 
 // ============================================================================

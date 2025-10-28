@@ -15,6 +15,7 @@ import type {
   IRMessage,
   IRStreamChunk,
   FinishReason,
+  MessageContent,
 } from '../../types/ir.js';
 import {
   AdapterConversionError,
@@ -29,6 +30,7 @@ import {
   getEffectiveStreamMode,
   mergeStreamingConfig,
 } from '../../utils/streaming-modes.js';
+import { convertZodToJsonSchema } from '../../structured/schema-converter.js';
 
 // ============================================================================
 // Gemini API Types
@@ -36,7 +38,18 @@ import {
 
 export interface GeminiContent {
   role: 'user' | 'model';
-  parts: Array<{ text: string } | { inlineData: { mimeType: string; data: string } }>;
+  parts: Array<
+    | { text: string }
+    | { inlineData: { mimeType: string; data: string } }
+    | { functionCall: { name: string; args: Record<string, unknown> } }
+    | { functionResponse: { name: string; response: Record<string, unknown> } }
+  >;
+}
+
+export interface GeminiFunctionDeclaration {
+  name: string;
+  description: string;
+  parameters: Record<string, unknown>;
 }
 
 export interface GeminiRequest {
@@ -48,6 +61,15 @@ export interface GeminiRequest {
     topK?: number;
     maxOutputTokens?: number;
     stopSequences?: string[];
+    responseMimeType?: string;
+  };
+  tools?: Array<{
+    functionDeclarations: GeminiFunctionDeclaration[];
+  }>;
+  toolConfig?: {
+    functionCallingConfig: {
+      mode: 'ANY' | 'AUTO' | 'NONE';
+    };
   };
 }
 
@@ -282,9 +304,9 @@ export class GeminiBackendAdapter implements BackendAdapter<GeminiRequest, Gemin
       parts: typeof msg.content === 'string' ? [{ text: msg.content }] : msg.content.map((c) => (c.type === 'text' ? { text: c.text } : { text: JSON.stringify(c) })),
     }));
 
-    const systemInstruction = systemParameter ? { parts: [{ text: systemParameter }] } : undefined;
+    let systemInstruction = systemParameter ? { parts: [{ text: systemParameter }] } : undefined;
 
-    return {
+    const geminiRequest: GeminiRequest = {
       contents,
       systemInstruction,
       generationConfig: {
@@ -295,6 +317,59 @@ export class GeminiBackendAdapter implements BackendAdapter<GeminiRequest, Gemin
         stopSequences: request.parameters?.stopSequences ? [...request.parameters.stopSequences] : undefined,
       },
     };
+
+    // Handle schema-based structured output
+    if (request.schema) {
+      const schema = request.schema;
+      const mode = schema.mode || 'tools';
+      const name = schema.name || 'extract';
+      const description = schema.description || `Extract structured data matching the ${name} schema`;
+
+      // Convert Zod schema to JSON Schema
+      let jsonSchema: any;
+      if (schema.type === 'zod') {
+        jsonSchema = convertZodToJsonSchema(schema.schema);
+      } else {
+        jsonSchema = schema.schema;
+      }
+
+      if (mode === 'tools') {
+        // Use Gemini's function calling
+        geminiRequest.tools = [{
+          functionDeclarations: [{
+            name,
+            description,
+            parameters: jsonSchema,
+          }],
+        }];
+        // Force function calling with ANY mode
+        geminiRequest.toolConfig = {
+          functionCallingConfig: {
+            mode: 'ANY',
+          },
+        };
+      } else if (mode === 'json' || mode === 'json_schema') {
+        // Use Gemini's JSON response mode
+        geminiRequest.generationConfig = geminiRequest.generationConfig || {};
+        geminiRequest.generationConfig.responseMimeType = 'application/json';
+
+        // Add JSON schema instruction to system
+        const schemaInstruction = `You must respond with valid JSON matching this schema:\n${JSON.stringify(jsonSchema, null, 2)}`;
+        const systemText = systemParameter || '';
+        geminiRequest.systemInstruction = {
+          parts: [{ text: systemText ? `${systemText}\n\n${schemaInstruction}` : schemaInstruction }],
+        };
+      } else if (mode === 'md_json') {
+        // Add markdown JSON instruction to system
+        const mdJsonInstruction = `Respond with JSON in a markdown code block:\n\`\`\`json\n...\n\`\`\`\n\nThe JSON must match this schema:\n${JSON.stringify(jsonSchema, null, 2)}`;
+        const systemText = systemParameter || '';
+        geminiRequest.systemInstruction = {
+          parts: [{ text: systemText ? `${systemText}\n\n${mdJsonInstruction}` : mdJsonInstruction }],
+        };
+      }
+    }
+
+    return geminiRequest;
   }
 
   /**
@@ -306,12 +381,47 @@ export class GeminiBackendAdapter implements BackendAdapter<GeminiRequest, Gemin
     const candidate = response.candidates[0];
     if (!candidate) throw new AdapterConversionError({ code: ErrorCode.ADAPTER_CONVERSION_ERROR, message: 'No candidates in Gemini response', provenance: { backend: this.metadata.name } });
 
-    const content = candidate.content.parts.map((p) => ('text' in p ? p.text : '')).join('');
-    const message: IRMessage = { role: 'assistant', content };
+    // Check if response contains function calls
+    const hasFunctionCall = candidate.content.parts.some((p) => 'functionCall' in p);
+
+    let messageContent: string | MessageContent[];
+    let finishReason: FinishReason;
+
+    if (hasFunctionCall) {
+      // Extract function call as tool_use content
+      const contentBlocks: MessageContent[] = [];
+
+      for (const part of candidate.content.parts) {
+        if ('functionCall' in part) {
+          contentBlocks.push({
+            type: 'tool_use',
+            id: `gemini-fn-${Date.now()}`,
+            name: part.functionCall.name,
+            input: part.functionCall.args,
+          });
+        } else if ('text' in part) {
+          if (part.text) {
+            contentBlocks.push({
+              type: 'text',
+              text: part.text,
+            });
+          }
+        }
+      }
+
+      messageContent = contentBlocks;
+      finishReason = 'tool_calls';
+    } else {
+      // Regular text response
+      messageContent = candidate.content.parts.map((p) => ('text' in p ? p.text : '')).join('');
+      finishReason = this.mapFinishReason(candidate.finishReason);
+    }
+
+    const message: IRMessage = { role: 'assistant', content: messageContent };
 
     return {
       message,
-      finishReason: this.mapFinishReason(candidate.finishReason),
+      finishReason,
       usage: response.usageMetadata ? {
         promptTokens: response.usageMetadata.promptTokenCount,
         completionTokens: response.usageMetadata.candidatesTokenCount,

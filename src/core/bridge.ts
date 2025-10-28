@@ -14,7 +14,7 @@ import type {
   InferFrontendResponse,
   InferFrontendStreamChunk,
 } from '../types/adapters.js';
-import type { IRChatRequest, IRChatResponse } from '../types/ir.js';
+import type { IRChatRequest, IRChatResponse, IRMessage } from '../types/ir.js';
 import type {
   BridgeConfig,
   RequestOptions,
@@ -25,9 +25,15 @@ import type {
   ListModelsOptions,
   ListModelsResult,
 } from '../types/models.js';
+import type {
+  ExtractionMode,
+  GenerateObjectResult,
+} from '../structured/types.js';
 import { MiddlewareStack, createMiddlewareContext, createStreamingMiddlewareContext } from './middleware-stack.js';
 import { AdapterError, ErrorCode, ValidationError } from '../errors/index.js';
 import { validateIRChatRequest } from '../utils/validation.js';
+import { extractMarkdownJSON, parsePartialJSON, deepMerge } from '../structured/json-parser.js';
+import { isZodSchema } from '../structured/schema-converter.js';
 
 // ============================================================================
 // Bridge Implementation
@@ -72,6 +78,14 @@ export class Bridge<TFrontend extends FrontendAdapter = FrontendAdapter>
     this.middlewareStack = new MiddlewareStack();
   }
 
+  /**
+   * Safely get frontend name for error messages.
+   * Returns 'none' if frontend is not set.
+   */
+  private getFrontendName(): string {
+    return this.frontend?.metadata?.name ?? 'none';
+  }
+
   // ==========================================================================
   // Core Request Methods
   // ==========================================================================
@@ -92,7 +106,7 @@ export class Bridge<TFrontend extends FrontendAdapter = FrontendAdapter>
 
       // Step 3: Validate IR request
       validateIRChatRequest(enrichedRequest, {
-        frontend: this.frontend.metadata.name,
+        frontend: this.getFrontendName(),
       });
 
       // Step 4: Create middleware context
@@ -153,7 +167,7 @@ export class Bridge<TFrontend extends FrontendAdapter = FrontendAdapter>
 
       // Step 4: Validate IR request
       validateIRChatRequest(enrichedRequest, {
-        frontend: this.frontend.metadata.name,
+        frontend: this.getFrontendName(),
       });
 
       // Step 5: Create streaming middleware context
@@ -188,6 +202,475 @@ export class Bridge<TFrontend extends FrontendAdapter = FrontendAdapter>
         isRetryable: false,
         cause: error instanceof Error ? error : undefined,
         provenance: {},
+      });
+    }
+  }
+
+  // ==========================================================================
+  // Structured Output (Zod Integration)
+  // ==========================================================================
+
+  /**
+   * Generate a structured object with Zod validation via Bridge.
+   *
+   * This method provides a convenient way to get structured output
+   * from the LLM with automatic schema validation. The schema flows
+   * through the IR and is handled by the backend adapter.
+   *
+   * Works with routing and middleware - the schema is passed through
+   * the IR pipeline.
+   *
+   * @param options Options for structured generation
+   * @returns Promise resolving to validated object with metadata
+   *
+   * @example
+   * ```typescript
+   * import { z } from 'zod'
+   *
+   * const PersonSchema = z.object({
+   *   name: z.string(),
+   *   age: z.number(),
+   *   email: z.string().email()
+   * })
+   *
+   * const result = await bridge.generateObject({
+   *   schema: PersonSchema,
+   *   messages: [{ role: 'user', content: 'Extract info: John Doe, 30, john@example.com' }],
+   *   mode: 'tools'
+   * })
+   *
+   * console.log(result.data) // Fully typed as { name: string; age: number; email: string }
+   * ```
+   */
+  async generateObject<T = any>(options: {
+    schema: any;
+    messages: readonly IRMessage[];
+    model?: string;
+    mode?: ExtractionMode;
+    name?: string;
+    description?: string;
+    temperature?: number;
+    maxTokens?: number;
+    signal?: AbortSignal;
+    requestOptions?: RequestOptions;
+  }): Promise<GenerateObjectResult<T>> {
+    const {
+      schema,
+      messages,
+      model,
+      mode = 'tools',
+      name = 'extract',
+      description,
+      temperature = 0.0,
+      maxTokens,
+      signal,
+      requestOptions,
+    } = options;
+
+    const startTime = Date.now();
+
+    try {
+      // Validate schema is a Zod schema
+      if (!isZodSchema(schema)) {
+        throw new ValidationError({
+          code: ErrorCode.INVALID_PARAMETERS,
+          message: 'Invalid schema: expected Zod schema with .parse() and .safeParse() methods.\n' +
+            'Make sure you are passing a Zod schema instance (e.g., z.object({...}))',
+          validationDetails: [{
+            field: 'schema',
+            value: schema,
+            reason: 'Expected Zod schema with .parse() and .safeParse() methods',
+          }],
+        });
+      }
+
+      // Build IR request with schema
+      const irRequest: IRChatRequest = {
+        messages,
+        parameters: {
+          model: model || this.config.defaultModel,
+          temperature,
+          maxTokens,
+        },
+        stream: false,
+        schema: {
+          type: 'zod',
+          schema,
+          mode,
+          name,
+          description,
+          validate: true,
+        },
+        metadata: {
+          requestId: this.generateRequestId(),
+          timestamp: Date.now(),
+          provenance: {},
+        },
+      };
+
+      // Enrich request
+      const enrichedRequest = this.enrichRequest(irRequest, requestOptions);
+
+      // Validate IR request
+      validateIRChatRequest(enrichedRequest, {
+        frontend: this.getFrontendName(),
+      });
+
+      // Create middleware context
+      const context = createMiddlewareContext(
+        enrichedRequest,
+        this.config as Record<string, unknown>,
+        signal
+      );
+
+      // Execute middleware stack + backend
+      const irResponse = await this.middlewareStack.execute(context, async () => {
+        return await this.backend.execute(enrichedRequest, signal);
+      });
+
+      // Extract JSON content based on mode
+      let jsonContent: string;
+      const content = irResponse.message.content;
+
+      // Validate content exists
+      if (!content) {
+        throw new ValidationError({
+          code: ErrorCode.INVALID_MESSAGE_FORMAT,
+          message: 'No content in response message. The model may not have generated any output.',
+          validationDetails: [{
+            field: 'content',
+            value: content,
+            reason: 'Response message has no content',
+          }],
+        });
+      }
+
+      if (mode === 'tools') {
+        // Extract from tool call arguments, with fallback to content
+        try {
+          jsonContent = this.extractToolArguments(irResponse, name);
+        } catch (toolError) {
+          // Fallback: try to extract JSON from content if tool call failed
+          const contentStr = typeof content === 'string' ? content : JSON.stringify(content);
+          jsonContent = extractMarkdownJSON(contentStr);
+        }
+      } else if (mode === 'md_json') {
+        // Extract from markdown code block
+        const contentStr = typeof content === 'string' ? content : JSON.stringify(content);
+        jsonContent = extractMarkdownJSON(contentStr);
+      } else {
+        // Direct JSON content (json or json_schema modes)
+        jsonContent = typeof content === 'string' ? content : JSON.stringify(content);
+      }
+
+      // Parse JSON
+      let parsed: any;
+      try {
+        parsed = JSON.parse(jsonContent);
+      } catch (parseError) {
+        throw new AdapterError({
+          code: ErrorCode.INTERNAL_ERROR,
+          message: `Failed to parse JSON response: ${parseError instanceof Error ? parseError.message : String(parseError)}\nRaw content: ${jsonContent.substring(0, 200)}...`,
+          provenance: {
+            frontend: this.getFrontendName(),
+            backend: this.backend.metadata.name,
+          },
+        });
+      }
+
+      // Validate with Zod schema
+      let validated: T;
+      const warnings: string[] = [];
+
+      try {
+        validated = schema.parse(parsed) as T;
+      } catch (validationError: any) {
+        // Collect validation errors
+        if (validationError.errors) {
+          for (const error of validationError.errors) {
+            warnings.push(
+              `Validation error at ${error.path.join('.')}: ${error.message}`
+            );
+          }
+        }
+
+        throw new ValidationError({
+          code: ErrorCode.INVALID_REQUEST,
+          message: `Schema validation failed: ${validationError instanceof Error ? validationError.message : String(validationError)}`,
+          validationDetails: warnings.map((w) => ({
+            field: 'schema',
+            value: parsed,
+            reason: w,
+            expected: 'Valid data matching schema',
+          })),
+          provenance: {
+            frontend: this.getFrontendName(),
+            backend: this.backend.metadata.name,
+          },
+        });
+      }
+
+      // Build result
+      const result: GenerateObjectResult<T> = {
+        data: validated,
+        raw: jsonContent,
+        warnings: warnings.length > 0 ? warnings : undefined,
+        metadata: {
+          model: irResponse.metadata.providerResponseId || model || 'unknown',
+          finishReason: irResponse.finishReason,
+          usage: irResponse.usage
+            ? {
+                promptTokens: irResponse.usage.promptTokens,
+                completionTokens: irResponse.usage.completionTokens,
+                totalTokens: irResponse.usage.totalTokens,
+              }
+            : undefined,
+          responseId: irResponse.metadata.providerResponseId,
+          latencyMs: Date.now() - startTime,
+        },
+      };
+
+      return result;
+    } catch (error) {
+      // Re-throw adapter errors
+      if (error instanceof AdapterError) {
+        throw error;
+      }
+
+      throw new AdapterError({
+        code: ErrorCode.INTERNAL_ERROR,
+        message: `generateObject failed: ${error instanceof Error ? error.message : String(error)}`,
+        provenance: {
+          frontend: this.getFrontendName(),
+          backend: this.backend.metadata.name,
+        },
+        cause: error instanceof Error ? error : undefined,
+      });
+    }
+  }
+
+  /**
+   * Generate a structured object with streaming and partial validation.
+   *
+   * Returns an async generator that yields progressively more complete
+   * partial objects as the model generates the response.
+   *
+   * The final yield is the fully validated object.
+   *
+   * @param options Options for structured streaming generation
+   * @returns Async generator yielding partial objects, final value is complete object
+   *
+   * @example
+   * ```typescript
+   * const stream = bridge.generateObjectStream({
+   *   schema: RecipeSchema,
+   *   messages: [{ role: 'user', content: 'Recipe for cookies' }],
+   *   onPartial: (partial) => {
+   *     console.log('Progress:', partial)
+   *   }
+   * })
+   *
+   * for await (const partial of stream) {
+   *   updateUI(partial) // Update UI with progressive data
+   * }
+   * ```
+   */
+  async *generateObjectStream<T = any>(options: {
+    schema: any;
+    messages: readonly IRMessage[];
+    model?: string;
+    mode?: ExtractionMode;
+    name?: string;
+    description?: string;
+    temperature?: number;
+    maxTokens?: number;
+    onPartial?: (partial: Partial<T>) => void;
+    signal?: AbortSignal;
+    requestOptions?: RequestOptions;
+  }): AsyncGenerator<Partial<T>, T, undefined> {
+    const {
+      schema,
+      messages,
+      model,
+      mode = 'tools',
+      name = 'extract',
+      description,
+      temperature = 0.0,
+      maxTokens,
+      onPartial,
+      signal,
+      requestOptions,
+    } = options;
+
+    try {
+      // Validate schema is a Zod schema
+      if (!isZodSchema(schema)) {
+        throw new ValidationError({
+          code: ErrorCode.INVALID_PARAMETERS,
+          message: 'Invalid schema: expected Zod schema with .parse() and .safeParse() methods.\n' +
+            'Make sure you are passing a Zod schema instance (e.g., z.object({...}))',
+          validationDetails: [{
+            field: 'schema',
+            value: schema,
+            reason: 'Expected Zod schema with .parse() and .safeParse() methods',
+          }],
+        });
+      }
+
+      // Build streaming IR request with schema
+      const irRequest: IRChatRequest = {
+        messages,
+        parameters: {
+          model: model || this.config.defaultModel,
+          temperature,
+          maxTokens,
+        },
+        stream: true,
+        schema: {
+          type: 'zod',
+          schema,
+          mode,
+          name,
+          description,
+          validate: true,
+        },
+        metadata: {
+          requestId: this.generateRequestId(),
+          timestamp: Date.now(),
+          provenance: {},
+        },
+      };
+
+      // Enrich request
+      const enrichedRequest = this.enrichRequest(irRequest, requestOptions);
+
+      // Validate IR request
+      validateIRChatRequest(enrichedRequest, {
+        frontend: this.getFrontendName(),
+      });
+
+      // Create streaming middleware context
+      const context = createStreamingMiddlewareContext(
+        enrichedRequest,
+        this.config as Record<string, unknown>,
+        signal
+      );
+
+      // Execute middleware stack + backend
+      const irStream = await this.middlewareStack.executeStream(context, async () => {
+        return this.backend.executeStream(enrichedRequest, signal);
+      });
+
+      let fullContent = '';
+      let lastParsedObject: any = undefined;
+
+      for await (const chunk of irStream) {
+        // Handle abort signal
+        if (signal?.aborted) {
+          break;
+        }
+
+        if (chunk.type === 'content' && chunk.delta) {
+          fullContent += chunk.delta;
+
+          // Try to parse partial JSON
+          const parsed = parsePartialJSON(fullContent);
+
+          if (parsed !== null) {
+            // Merge with previous object for progressive updates
+            lastParsedObject = lastParsedObject ? deepMerge(lastParsedObject, parsed) : parsed;
+
+            // Try partial validation (schema.partial() if available)
+            let partialObject: Partial<T> = lastParsedObject;
+
+            try {
+              // If schema has partial() method, use it for lenient validation
+              if (typeof schema.partial === 'function') {
+                const partialSchema = schema.partial();
+                partialObject = partialSchema.parse(lastParsedObject);
+              }
+            } catch {
+              // Partial validation failed, use unvalidated object
+            }
+
+            // Yield partial object
+            yield partialObject;
+
+            // Call onPartial callback
+            if (onPartial) {
+              onPartial(partialObject);
+            }
+          }
+        }
+
+        if (chunk.type === 'done') {
+          // Final validation with full schema
+          let finalObject: T;
+
+          try {
+            finalObject = schema.parse(lastParsedObject) as T;
+          } catch (validationError) {
+            throw new ValidationError({
+              code: ErrorCode.INVALID_REQUEST,
+              message: `Final schema validation failed: ${validationError instanceof Error ? validationError.message : String(validationError)}`,
+              validationDetails: [
+                {
+                  field: 'schema',
+                  value: lastParsedObject,
+                  reason: 'Failed to validate complete object',
+                  expected: 'Valid data matching schema',
+                },
+              ],
+              provenance: {
+                frontend: this.getFrontendName(),
+                backend: this.backend.metadata.name,
+              },
+            });
+          }
+
+          return finalObject;
+        }
+
+        if (chunk.type === 'error') {
+          throw new AdapterError({
+            code: ErrorCode.INTERNAL_ERROR,
+            message: `Stream error: ${chunk.error.message}`,
+            provenance: {
+              frontend: this.getFrontendName(),
+              backend: this.backend.metadata.name,
+            },
+          });
+        }
+      }
+
+      // Stream ended without done chunk - validate what we have
+      if (lastParsedObject) {
+        const finalObject = schema.parse(lastParsedObject) as T;
+        return finalObject;
+      }
+
+      throw new AdapterError({
+        code: ErrorCode.INTERNAL_ERROR,
+        message: 'Stream ended without generating valid object',
+        provenance: {
+          frontend: this.getFrontendName(),
+          backend: this.backend.metadata.name,
+        },
+      });
+    } catch (error) {
+      // Re-throw adapter errors
+      if (error instanceof AdapterError) {
+        throw error;
+      }
+
+      throw new AdapterError({
+        code: ErrorCode.INTERNAL_ERROR,
+        message: `generateObjectStream failed: ${error instanceof Error ? error.message : String(error)}`,
+        provenance: {
+          frontend: this.getFrontendName(),
+          backend: this.backend.metadata.name,
+        },
+        cause: error instanceof Error ? error : undefined,
       });
     }
   }
@@ -250,7 +733,7 @@ export class Bridge<TFrontend extends FrontendAdapter = FrontendAdapter>
           },
         ],
         provenance: {
-          frontend: this.frontend.metadata.name,
+          frontend: this.getFrontendName(),
           backend: this.backend.metadata.name,
         },
       });
@@ -378,7 +861,7 @@ export class Bridge<TFrontend extends FrontendAdapter = FrontendAdapter>
         timestamp,
         provenance: {
           ...request.metadata?.provenance,
-          frontend: this.frontend.metadata.name,
+          frontend: this.getFrontendName(),
         },
         custom: {
           ...request.metadata?.custom,
@@ -402,7 +885,7 @@ export class Bridge<TFrontend extends FrontendAdapter = FrontendAdapter>
         requestId: request.metadata.requestId,
         provenance: {
           ...response.metadata.provenance,
-          frontend: this.frontend.metadata.name,
+          frontend: this.getFrontendName(),
           backend: this.backend.metadata.name,
         },
       },
@@ -415,6 +898,40 @@ export class Bridge<TFrontend extends FrontendAdapter = FrontendAdapter>
   private generateRequestId(): string {
     // Use standard UUID v4 for request IDs
     return crypto.randomUUID();
+  }
+
+  /**
+   * Extract tool call arguments from IR response.
+   */
+  private extractToolArguments(response: IRChatResponse, toolName: string): string {
+    // Check if response has tool use content
+    const content = response.message.content;
+
+    if (Array.isArray(content)) {
+      // Look for tool_use content type
+      for (const block of content) {
+        if (
+          typeof block === 'object' &&
+          block !== null &&
+          'type' in block &&
+          block.type === 'tool_use' &&
+          'name' in block &&
+          block.name === toolName &&
+          'input' in block
+        ) {
+          return typeof block.input === 'string'
+            ? block.input
+            : JSON.stringify(block.input);
+        }
+      }
+    }
+
+    // Fallback: try to parse entire content as JSON
+    if (typeof content === 'string') {
+      return content;
+    }
+
+    return JSON.stringify(content);
   }
 }
 

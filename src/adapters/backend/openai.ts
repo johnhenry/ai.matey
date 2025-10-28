@@ -35,6 +35,7 @@ import {
   getEffectiveStreamMode,
   mergeStreamingConfig,
 } from '../../utils/streaming-modes.js';
+import { convertZodToJsonSchema } from '../../structured/schema-converter.js';
 
 // ============================================================================
 // OpenAI API Types
@@ -83,6 +84,16 @@ export interface OpenAIRequest {
   stream?: boolean;
   user?: string;
   seed?: number;
+  tools?: Array<{
+    type: 'function';
+    function: {
+      name: string;
+      description?: string;
+      parameters: any;
+    };
+  }>;
+  tool_choice?: { type: 'function'; function: { name: string } } | 'auto' | 'none';
+  response_format?: { type: 'json_object' } | { type: 'json_schema'; json_schema: { name: string; schema: any; strict?: boolean } };
 }
 
 /**
@@ -282,7 +293,17 @@ export class OpenAIBackendAdapter implements BackendAdapter<OpenAIRequest, OpenA
       // Parse SSE stream
       let sequence = 0;
       let contentBuffer = '';
+      let toolCallsBuffer: Map<number, {
+        id: string;
+        type: 'function';
+        function: {
+          name: string;
+          arguments: string;
+        };
+      }> = new Map();
+      let toolCallsYieldedLength: Map<number, number> = new Map(); // Track what we've already yielded
       let finishReasonReceived: FinishReason | null = null;
+      let doneEmitted = false; // Prevent multiple done chunks
       let usage: { promptTokens: number; completionTokens: number; totalTokens: number } | undefined;
 
       // Yield start chunk
@@ -321,10 +342,35 @@ export class OpenAIBackendAdapter implements BackendAdapter<OpenAIRequest, OpenA
 
               if (data === '[DONE]') {
                 // Stream complete - yield done chunk if not already sent
-                if (!finishReasonReceived) {
+                if (!finishReasonReceived && !doneEmitted) {
+                  doneEmitted = true;
+                  let messageContent: string | any[];
+
+                  if (toolCallsBuffer.size > 0) {
+                    const toolCalls = Array.from(toolCallsBuffer.values());
+                    messageContent = toolCalls.map(tc => {
+                      // Parse JSON to ensure consistent object type
+                      let input: any;
+                      try {
+                        input = JSON.parse(tc.function.arguments);
+                      } catch {
+                        // If JSON parse fails, wrap raw string
+                        input = { raw: tc.function.arguments };
+                      }
+                      return {
+                        type: 'tool_use',
+                        id: tc.id,
+                        name: tc.function.name,
+                        input,
+                      };
+                    });
+                  } else {
+                    messageContent = contentBuffer;
+                  }
+
                   const message: IRMessage = {
                     role: 'assistant',
-                    content: contentBuffer,
+                    content: messageContent,
                   };
 
                   yield {
@@ -370,20 +416,98 @@ export class OpenAIBackendAdapter implements BackendAdapter<OpenAIRequest, OpenA
                   yield contentChunk;
                 }
 
-                // Tool calls delta (not implemented yet - Phase 5)
+                // Tool calls delta
                 if (choice.delta.tool_calls) {
-                  // TODO: Handle tool call deltas in Phase 5
-                  console.warn('Tool calls delta received but not yet implemented');
+                  for (const toolCallDelta of choice.delta.tool_calls) {
+                    const index = toolCallDelta.index;
+                    const existingCall = toolCallsBuffer.get(index);
+                    const argumentsDelta = toolCallDelta.function?.arguments || '';
+
+                    if (!existingCall) {
+                      // First chunk for this tool call - initialize
+                      toolCallsBuffer.set(index, {
+                        id: toolCallDelta.id || '',
+                        type: 'function',
+                        function: {
+                          name: toolCallDelta.function?.name || '',
+                          arguments: argumentsDelta,
+                        },
+                      });
+                      toolCallsYieldedLength.set(index, 0);
+                    } else {
+                      // Subsequent chunk - accumulate arguments
+                      if (argumentsDelta) {
+                        existingCall.function.arguments += argumentsDelta;
+                      }
+                      if (toolCallDelta.function?.name) {
+                        existingCall.function.name += toolCallDelta.function.name;
+                      }
+                    }
+
+                    // Yield only the new portion as a content delta
+                    // This allows generateObjectStream to progressively parse the JSON
+                    if (argumentsDelta) { // Process ALL tool calls
+                      const toolCall = toolCallsBuffer.get(index)!;
+                      const previousLength = toolCallsYieldedLength.get(index) || 0;
+                      const currentLength = toolCall.function.arguments.length;
+                      const newDelta = toolCall.function.arguments.substring(previousLength);
+
+                      if (newDelta) {
+                        toolCallsYieldedLength.set(index, currentLength);
+
+                        const toolContentChunk: IRStreamChunk = {
+                          type: 'content',
+                          sequence: sequence++,
+                          delta: newDelta,
+                          role: 'assistant',
+                        };
+
+                        // Add accumulated arguments if configured
+                        if (includeBoth) {
+                          (toolContentChunk as any).accumulated = toolCall.function.arguments;
+                        }
+
+                        yield toolContentChunk;
+                      }
+                    }
+                  }
                 }
 
                 // Finish reason
-                if (choice.finish_reason && !finishReasonReceived) {
+                if (choice.finish_reason && !finishReasonReceived && !doneEmitted) {
+                  doneEmitted = true;
                   finishReasonReceived = this.mapFinishReason(choice.finish_reason);
 
-                  // Build final message
+                  // Build final message with tool calls if present
+                  let messageContent: string | any[];
+
+                  if (toolCallsBuffer.size > 0) {
+                    // Convert tool calls to IR content blocks
+                    const toolCalls = Array.from(toolCallsBuffer.values());
+                    messageContent = toolCalls.map(tc => {
+                      // Parse JSON to ensure consistent object type
+                      let input: any;
+                      try {
+                        input = JSON.parse(tc.function.arguments);
+                      } catch {
+                        // If JSON parse fails, wrap raw string
+                        input = { raw: tc.function.arguments };
+                      }
+                      return {
+                        type: 'tool_use',
+                        id: tc.id,
+                        name: tc.function.name,
+                        input,
+                      };
+                    });
+                  } else {
+                    // Regular text content
+                    messageContent = contentBuffer;
+                  }
+
                   const message: IRMessage = {
                     role: 'assistant',
-                    content: contentBuffer,
+                    content: messageContent,
                   };
 
                   yield {
@@ -411,10 +535,35 @@ export class OpenAIBackendAdapter implements BackendAdapter<OpenAIRequest, OpenA
         }
 
         // If stream ended without finish_reason, yield a done chunk
-        if (!finishReasonReceived) {
+        if (!finishReasonReceived && !doneEmitted) {
+          doneEmitted = true;
+          let messageContent: string | any[];
+
+          if (toolCallsBuffer.size > 0) {
+            const toolCalls = Array.from(toolCallsBuffer.values());
+            messageContent = toolCalls.map(tc => {
+              // Parse JSON to ensure consistent object type
+              let input: any;
+              try {
+                input = JSON.parse(tc.function.arguments);
+              } catch {
+                // If JSON parse fails, wrap raw string
+                input = { raw: tc.function.arguments };
+              }
+              return {
+                type: 'tool_use',
+                id: tc.id,
+                name: tc.function.name,
+                input,
+              };
+            });
+          } else {
+            messageContent = contentBuffer;
+          }
+
           const message: IRMessage = {
             role: 'assistant',
-            content: contentBuffer,
+            content: messageContent,
           };
 
           yield {
@@ -427,6 +576,10 @@ export class OpenAIBackendAdapter implements BackendAdapter<OpenAIRequest, OpenA
         }
       } finally {
         reader.releaseLock();
+        // Clear buffers to prevent memory leaks
+        contentBuffer = '';
+        toolCallsBuffer.clear();
+        toolCallsYieldedLength.clear();
       }
     } catch (error) {
       // Yield error chunk
@@ -575,8 +728,96 @@ export class OpenAIBackendAdapter implements BackendAdapter<OpenAIRequest, OpenA
         this.metadata.capabilities.supportsMultipleSystemMessages
       );
 
-      // Convert messages
-      const openaiMessages: OpenAIMessage[] = messages.map((msg) => this.convertMessageToOpenAI(msg));
+      // Handle schema if present
+      let finalMessages = [...messages];
+      let tools: OpenAIRequest['tools'];
+      let toolChoice: OpenAIRequest['tool_choice'];
+      let responseFormat: OpenAIRequest['response_format'];
+
+      if (request.schema) {
+        const schema = request.schema;
+        const mode = schema.mode || 'tools';
+        const name = schema.name || 'extract';
+        const description = schema.description;
+
+        // Convert schema to JSON Schema if it's a Zod schema
+        let jsonSchema: any;
+        if (schema.type === 'zod') {
+          jsonSchema = convertZodToJsonSchema(schema.schema);
+        } else {
+          jsonSchema = schema.schema;
+        }
+
+        // Apply schema based on mode
+        if (mode === 'tools') {
+          // Use function/tool calling
+          tools = [
+            {
+              type: 'function',
+              function: {
+                name,
+                description: description || `Extract structured data matching the ${name} schema`,
+                parameters: jsonSchema,
+              },
+            },
+          ];
+          toolChoice = { type: 'function', function: { name } };
+        } else if (mode === 'json_schema') {
+          // Use OpenAI's json_schema mode
+          responseFormat = {
+            type: 'json_schema',
+            json_schema: {
+              name,
+              schema: jsonSchema,
+              strict: true,
+            },
+          };
+        } else if (mode === 'json') {
+          // Use JSON object mode
+          responseFormat = { type: 'json_object' };
+
+          // Add schema to system message
+          const schemaSystemMessage: IRMessage = {
+            role: 'system',
+            content: `You must respond with valid JSON matching this schema:\n${JSON.stringify(jsonSchema, null, 2)}`,
+          };
+          finalMessages = [schemaSystemMessage, ...finalMessages];
+        } else if (mode === 'md_json') {
+          // Extract from markdown code block
+          const schemaSystemMessage: IRMessage = {
+            role: 'system',
+            content: `Respond with JSON in a markdown code block:\n\`\`\`json\n...\n\`\`\`\n\nThe JSON must match this schema:\n${JSON.stringify(jsonSchema, null, 2)}`,
+          };
+          finalMessages = [schemaSystemMessage, ...finalMessages];
+        }
+      }
+
+      // Handle existing tools from request.tools
+      if (request.tools && request.tools.length > 0) {
+        const existingTools = request.tools.map((tool) => ({
+          type: 'function' as const,
+          function: {
+            name: tool.name,
+            description: tool.description,
+            parameters: tool.parameters,
+          },
+        }));
+
+        // Merge with schema tools
+        tools = tools ? [...tools, ...existingTools] : existingTools;
+
+        // Handle toolChoice from request
+        if (request.toolChoice) {
+          if (typeof request.toolChoice === 'object' && 'name' in request.toolChoice) {
+            toolChoice = { type: 'function', function: { name: request.toolChoice.name } };
+          } else if (request.toolChoice === 'auto' || request.toolChoice === 'none') {
+            toolChoice = request.toolChoice;
+          }
+        }
+      }
+
+      // Convert final messages
+      const openaiMessages: OpenAIMessage[] = finalMessages.map((msg) => this.convertMessageToOpenAI(msg));
 
       // Build OpenAI request
       const openaiRequest: OpenAIRequest = {
@@ -591,6 +832,9 @@ export class OpenAIBackendAdapter implements BackendAdapter<OpenAIRequest, OpenA
         stream: request.stream,
         user: request.parameters?.user,
         seed: request.parameters?.seed,
+        tools,
+        tool_choice: toolChoice,
+        response_format: responseFormat,
       };
 
       return openaiRequest;

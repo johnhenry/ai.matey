@@ -197,6 +197,16 @@
         "types": "./dist/types/react/index.d.ts",
         "default": "./dist/cjs/react/index.js"
       }
+    },
+    "./structured": {
+      "import": {
+        "types": "./dist/types/structured/index.d.ts",
+        "default": "./dist/esm/structured/index.js"
+      },
+      "require": {
+        "types": "./dist/types/structured/index.d.ts",
+        "default": "./dist/cjs/structured/index.js"
+      }
     }
   },
   "files": [
@@ -222,6 +232,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
+    "test:manual": "vitest run tests/manual --no-isolate",
+    "test:performance": "vitest run tests/performance --reporter=verbose",
     "demo": "node demo/demo.mjs",
     "validate:examples": "node scripts/validate-examples.mjs"
   },
@@ -259,7 +271,8 @@
     "node-llama-cpp": "^3.0.0",
     "react": "^18.0.0 || ^19.0.0",
     "react-dom": "^18.0.0 || ^19.0.0",
-    "zod": "^3.0.0"
+    "zod": "^3.20.0",
+    "zod-to-json-schema": "^3.20.0"
   },
   "peerDependenciesMeta": {
     "@opentelemetry/api": {
@@ -303,6 +316,9 @@
     },
     "zod": {
       "optional": true
+    },
+    "zod-to-json-schema": {
+      "optional": true
     }
   },
   "devDependencies": {
@@ -322,6 +338,8 @@
     "hono": "^4.9.12",
     "prettier": "^3.6.2",
     "typescript": "^5.9.3",
-    "vitest": "^3.2.4"
+    "vitest": "^3.2.4",
+    "zod": "^3.25.0",
+    "zod-to-json-schema": "^3.24.0"
   }
 }

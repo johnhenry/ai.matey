@@ -35,6 +35,7 @@ import {
   getEffectiveStreamMode,
   mergeStreamingConfig,
 } from '../../utils/streaming-modes.js';
+import { convertZodToJsonSchema } from '../../structured/schema-converter.js';
 
 // ============================================================================
 // Anthropic API Types
@@ -58,6 +59,15 @@ export interface AnthropicMessage {
 }
 
 /**
+ * Anthropic tool definition.
+ */
+export interface AnthropicTool {
+  name: string;
+  description: string;
+  input_schema: Record<string, unknown>;
+}
+
+/**
  * Anthropic Messages API request.
  */
 export interface AnthropicRequest {
@@ -70,6 +80,8 @@ export interface AnthropicRequest {
   top_k?: number;
   stop_sequences?: string[];
   stream?: boolean;
+  tools?: AnthropicTool[];
+  tool_choice?: { type: 'auto' | 'any' | 'tool'; name?: string };
   metadata?: {
     user_id?: string;
   };
@@ -320,6 +332,14 @@ export class AnthropicBackendAdapter implements BackendAdapter<AnthropicRequest,
       let model = '';
       let usage: { promptTokens: number; completionTokens: number; totalTokens: number } | undefined;
 
+      // Tool call buffering for structured output
+      const toolCallsBuffer = new Map<number, {
+        id: string;
+        name: string;
+        input: string;
+      }>();
+      let toolCallsYieldedLength = new Map<number, number>();
+
       // Read stream
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
@@ -382,7 +402,16 @@ export class AnthropicBackendAdapter implements BackendAdapter<AnthropicRequest,
                     break;
 
                   case 'content_block_start':
-                    // Content block started (we'll handle deltas)
+                    // Content block started
+                    if (event.content_block.type === 'tool_use') {
+                      // Initialize tool call buffer
+                      toolCallsBuffer.set(event.index, {
+                        id: event.content_block.id,
+                        name: event.content_block.name,
+                        input: '',
+                      });
+                      toolCallsYieldedLength.set(event.index, 0);
+                    }
                     break;
 
                   case 'content_block_delta':
@@ -405,8 +434,29 @@ export class AnthropicBackendAdapter implements BackendAdapter<AnthropicRequest,
 
                       yield contentChunk;
                     } else if (event.delta.type === 'input_json_delta') {
-                      // Tool use delta (not implemented yet)
-                      // TODO: Handle tool use deltas in Phase 5
+                      // Tool use delta - accumulate and yield for structured output
+                      const index = event.index;
+                      const toolCall = toolCallsBuffer.get(index);
+
+                      if (toolCall) {
+                        const partialJson = event.delta.partial_json;
+                        toolCall.input += partialJson;
+
+                        // Yield only new delta as content for structured output parsing
+                        const previousLength = toolCallsYieldedLength.get(index) || 0;
+                        const currentLength = toolCall.input.length;
+                        const newDelta = toolCall.input.substring(previousLength);
+
+                        if (newDelta) {
+                          toolCallsYieldedLength.set(index, currentLength);
+                          yield {
+                            type: 'content',
+                            sequence: sequence++,
+                            delta: newDelta,
+                            role: 'assistant',
+                          };
+                        }
+                      }
                     }
                     break;
 
@@ -424,12 +474,45 @@ export class AnthropicBackendAdapter implements BackendAdapter<AnthropicRequest,
 
                   case 'message_stop':
                     // Stream complete
-                    const finishReason = this.mapStopReason(contentBuffer ? 'end_turn' : 'stop');
+                    let finishReason: FinishReason = 'stop';
+                    let messageContent: string | MessageContent[];
+
+                    // Check if we have tool calls
+                    if (toolCallsBuffer.size > 0) {
+                      finishReason = 'tool_calls';
+                      // Build content blocks with tool_use
+                      const contentBlocks: MessageContent[] = [];
+
+                      for (const [_index, toolCall] of toolCallsBuffer.entries()) {
+                        try {
+                          const input = JSON.parse(toolCall.input);
+                          contentBlocks.push({
+                            type: 'tool_use',
+                            id: toolCall.id,
+                            name: toolCall.name,
+                            input,
+                          });
+                        } catch {
+                          // If JSON parse fails, use raw string
+                          contentBlocks.push({
+                            type: 'tool_use',
+                            id: toolCall.id,
+                            name: toolCall.name,
+                            input: { raw: toolCall.input },
+                          });
+                        }
+                      }
+
+                      messageContent = contentBlocks;
+                    } else {
+                      finishReason = this.mapStopReason(contentBuffer ? 'end_turn' : 'stop');
+                      messageContent = contentBuffer;
+                    }
 
                     // Build final message
                     const message: IRMessage = {
                       role: 'assistant',
-                      content: contentBuffer,
+                      content: messageContent,
                     };
 
                     yield {
@@ -563,7 +646,7 @@ export class AnthropicBackendAdapter implements BackendAdapter<AnthropicRequest,
       // Validate max_tokens is present (required by Anthropic)
       const maxTokens = request.parameters?.maxTokens || 4096;
 
-      // Build Anthropic request
+      // Build base Anthropic request
       const anthropicRequest: AnthropicRequest = {
         model: request.parameters?.model || this.config.defaultModel || 'claude-3-5-sonnet-20241022',
         messages: anthropicMessages,
@@ -580,6 +663,42 @@ export class AnthropicBackendAdapter implements BackendAdapter<AnthropicRequest,
           ? { user_id: String(request.metadata.custom.userId) }
           : undefined,
       };
+
+      // Handle schema-based structured output
+      if (request.schema) {
+        const schema = request.schema;
+        const mode = schema.mode || 'tools';
+        const name = schema.name || 'extract';
+        const description = schema.description || `Extract structured data matching the ${name} schema`;
+
+        // Convert Zod schema to JSON Schema
+        let jsonSchema: any;
+        if (schema.type === 'zod') {
+          jsonSchema = convertZodToJsonSchema(schema.schema);
+        } else {
+          jsonSchema = schema.schema;
+        }
+
+        if (mode === 'tools') {
+          // Use Anthropic's tool calling
+          anthropicRequest.tools = [{
+            name,
+            description,
+            input_schema: jsonSchema,
+          }];
+          // Force tool use
+          anthropicRequest.tool_choice = { type: 'tool', name };
+        } else if (mode === 'json' || mode === 'json_schema') {
+          // json_schema mode not supported by Anthropic, treat as json mode
+          // Add JSON schema instruction to system message
+          const schemaInstruction = `\n\nYou must respond with valid JSON matching this schema:\n${JSON.stringify(jsonSchema, null, 2)}`;
+          anthropicRequest.system = (anthropicRequest.system || '') + schemaInstruction;
+        } else if (mode === 'md_json') {
+          // Add markdown JSON instruction to system message
+          const mdJsonInstruction = `\n\nRespond with JSON in a markdown code block:\n\`\`\`json\n...\n\`\`\`\n\nThe JSON must match this schema:\n${JSON.stringify(jsonSchema, null, 2)}`;
+          anthropicRequest.system = (anthropicRequest.system || '') + mdJsonInstruction;
+        }
+      }
 
       return anthropicRequest;
     } catch (error) {

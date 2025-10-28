@@ -20,6 +20,8 @@ import type {
   ListModelsOptions,
   ListModelsResult,
 } from '../../types/models.js';
+import { convertZodToJsonSchema } from '../../structured/schema-converter.js';
+import { generateExampleFromSchema } from '../../structured/schema-converter.js';
 
 // ============================================================================
 // Default Mock Models
@@ -100,7 +102,7 @@ export interface MockResponse {
    * Finish reason
    * @default 'stop'
    */
-  finishReason?: 'stop' | 'length' | 'tool_use' | 'content_filter';
+  finishReason?: 'stop' | 'length' | 'tool_calls' | 'content_filter';
 
   /**
    * Simulated token usage
@@ -301,15 +303,31 @@ export class MockBackendAdapter implements BackendAdapter {
     }
 
     // Build response content
-    const content: MessageContent[] =
-      typeof mockResponse.content === 'string'
-        ? [{ type: 'text', text: mockResponse.content }]
-        : mockResponse.content;
+    // For schema-based responses, keep content as-is (string or array)
+    // For regular responses, wrap strings in MessageContent array
+    let messageContent: string | MessageContent[];
+    if (typeof mockResponse.content === 'string') {
+      // Check if this is a schema-based request with json/json_schema/md_json mode
+      const isSchemaJson = irRequest.schema &&
+        (irRequest.schema.mode === 'json' ||
+         irRequest.schema.mode === 'json_schema' ||
+         irRequest.schema.mode === 'md_json');
+
+      if (isSchemaJson) {
+        // Return string directly for JSON extraction
+        messageContent = mockResponse.content;
+      } else {
+        // Wrap in MessageContent array for regular responses
+        messageContent = [{ type: 'text', text: mockResponse.content }];
+      }
+    } else {
+      messageContent = mockResponse.content;
+    }
 
     // Build IR message
     const message: IRMessage = {
       role: 'assistant',
-      content,
+      content: messageContent,
     };
 
     // Build usage stats
@@ -375,24 +393,45 @@ export class MockBackendAdapter implements BackendAdapter {
       metadata: irRequest.metadata,
     };
 
-    // Get response text
-    const text =
-      typeof mockResponse.content === 'string'
-        ? mockResponse.content
-        : mockResponse.content
-            .filter((c) => c.type === 'text')
-            .map((c) => (c as { text: string }).text)
-            .join('');
+    // Check if this is a tool call response
+    const isToolCall = Array.isArray(mockResponse.content) &&
+      mockResponse.content.some(c => c.type === 'tool_use');
+
+    // Get response text or tool arguments
+    let contentToStream = '';
+    if (isToolCall && Array.isArray(mockResponse.content)) {
+      // For tool calls, stream the arguments
+      const toolUse = mockResponse.content.find(c => c.type === 'tool_use') as any;
+      if (toolUse && toolUse.input) {
+        contentToStream = typeof toolUse.input === 'string'
+          ? toolUse.input
+          : JSON.stringify(toolUse.input);
+      }
+    } else {
+      // For text responses, stream the text
+      contentToStream =
+        typeof mockResponse.content === 'string'
+          ? mockResponse.content
+          : mockResponse.content
+              .filter((c) => c.type === 'text')
+              .map((c) => (c as { text: string }).text)
+              .join('');
+    }
 
     // Stream chunks
     let sequence = 1;
-    if (this.config.simulateStreaming && text) {
-      const words = text.split(' ');
-      for (const word of words) {
+    if (this.config.simulateStreaming && contentToStream) {
+      // For tool calls, stream JSON character by character or in chunks
+      // For text, stream word by word
+      const chunks = isToolCall
+        ? contentToStream.match(/.{1,10}/g) || [contentToStream] // Stream in 10-char chunks
+        : contentToStream.split(' ').map(w => w + ' '); // Stream word by word
+
+      for (const chunk of chunks) {
         yield {
           type: 'content',
           sequence: sequence++,
-          delta: word + ' ',
+          delta: chunk,
         };
 
         if (this.config.streamChunkDelay > 0) {
@@ -404,7 +443,7 @@ export class MockBackendAdapter implements BackendAdapter {
       yield {
         type: 'content',
         sequence: sequence++,
-        delta: text,
+        delta: contentToStream,
       };
     }
 
@@ -418,7 +457,7 @@ export class MockBackendAdapter implements BackendAdapter {
       : this.config.simulateUsage
       ? {
           promptTokens: this.estimateTokens(Array.from(irRequest.messages)),
-          completionTokens: Math.ceil(text.length / 4),
+          completionTokens: Math.ceil(contentToStream.length / 4),
           totalTokens: 0,
         }
       : undefined;
@@ -537,6 +576,11 @@ export class MockBackendAdapter implements BackendAdapter {
    * Get mock response for request
    */
   private getMockResponse(request: IRChatRequest): MockResponse {
+    // Handle schema-based requests for structured output
+    if (request.schema) {
+      return this.generateSchemaResponse(request);
+    }
+
     // Use custom generator if provided
     if (this.config.responseGenerator) {
       const generated = this.config.responseGenerator(request);
@@ -551,6 +595,58 @@ export class MockBackendAdapter implements BackendAdapter {
 
     // Use default response
     return this.normalizeResponse(this.config.defaultResponse);
+  }
+
+  /**
+   * Generate mock response for schema-based structured output requests
+   */
+  private generateSchemaResponse(request: IRChatRequest): MockResponse {
+    const schema = request.schema!;
+    const mode = schema.mode || 'tools';
+    const name = schema.name || 'extract';
+
+    // Convert Zod schema to JSON Schema
+    let jsonSchema: any;
+    if (schema.type === 'zod') {
+      jsonSchema = convertZodToJsonSchema(schema.schema);
+    } else {
+      jsonSchema = schema.schema;
+    }
+
+    // Generate example data from schema
+    const exampleData = generateExampleFromSchema(jsonSchema);
+    const jsonString = JSON.stringify(exampleData, null, 2);
+
+    // Build response based on mode
+    if (mode === 'tools') {
+      // Return tool_use content block
+      const content: MessageContent[] = [
+        {
+          type: 'tool_use',
+          id: `mock-tool-${Date.now()}`,
+          name,
+          input: exampleData,
+        },
+      ];
+
+      return {
+        content,
+        finishReason: 'tool_calls',
+      };
+    } else if (mode === 'md_json') {
+      // Return JSON wrapped in markdown code block
+      const content = `Here is the extracted data:\n\n\`\`\`json\n${jsonString}\n\`\`\``;
+      return {
+        content,
+        finishReason: 'stop',
+      };
+    } else {
+      // json or json_schema modes - return raw JSON
+      return {
+        content: jsonString,
+        finishReason: 'stop',
+      };
+    }
   }
 
   /**
