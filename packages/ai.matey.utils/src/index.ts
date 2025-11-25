@@ -26,3 +26,6 @@ export * from './warnings.js';
 
 // Conversation history utilities
 export * from './conversation-history.js';
+
+// Model cache utilities
+export * from './model-cache.js';
