@@ -7,8 +7,8 @@
  * @module
  */
 
-import { OpenAIBackendAdapter } from './openai.js';
-import type { BackendAdapterConfig } from 'ai.matey.types';
+import { OpenAIBackendAdapter } from 'ai.matey.backend.openai';
+import type { BackendAdapterConfig, IRChatRequest } from 'ai.matey.types';
 
 /**
  * Backend adapter for NVIDIA NIM API.
@@ -126,7 +126,7 @@ export class NVIDIABackendAdapter extends OpenAIBackendAdapter {
   /**
    * Estimate cost for NVIDIA NIM.
    */
-  async estimateCost(request: import('../../types/ir.js').IRChatRequest): Promise<number | null> {
+  async estimateCost(request: IRChatRequest): Promise<number | null> {
     // NVIDIA NIM pricing varies by model and deployment
     // For cloud API, estimate based on token usage
     const estimatedInputTokens = await super.estimateCost(request) || 0;

@@ -7,8 +7,8 @@
  * @module
  */
 
-import { OpenAIBackendAdapter } from './openai.js';
-import type { BackendAdapterConfig } from 'ai.matey.types';
+import { OpenAIBackendAdapter } from 'ai.matey.backend.openai';
+import type { BackendAdapterConfig, IRChatRequest } from 'ai.matey.types';
 
 /**
  * Backend adapter for DeepSeek API.
@@ -110,7 +110,7 @@ export class DeepSeekBackendAdapter extends OpenAIBackendAdapter {
   /**
    * Estimate cost for DeepSeek (very low cost provider).
    */
-  async estimateCost(request: import('../../types/ir.js').IRChatRequest): Promise<number | null> {
+  async estimateCost(request: IRChatRequest): Promise<number | null> {
     // DeepSeek pricing: ~$0.14 per 1M input tokens, ~$0.28 per 1M output tokens
     const estimatedInputTokens = await super.estimateCost(request) || 0;
     const estimatedOutputTokens = Math.min(request.parameters?.maxTokens || 1000, 4000);

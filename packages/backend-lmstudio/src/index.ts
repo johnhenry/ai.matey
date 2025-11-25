@@ -7,8 +7,8 @@
  * @module
  */
 
-import { OpenAIBackendAdapter } from './openai.js';
-import type { BackendAdapterConfig } from 'ai.matey.types';
+import { OpenAIBackendAdapter } from 'ai.matey.backend.openai';
+import type { BackendAdapterConfig, IRChatRequest } from 'ai.matey.types';
 
 /**
  * Backend adapter for LM Studio local API.
@@ -117,7 +117,7 @@ export class LMStudioBackendAdapter extends OpenAIBackendAdapter {
   /**
    * Estimate cost for LM Studio (always $0 - local inference).
    */
-  async estimateCost(_request: import('../../types/ir.js').IRChatRequest): Promise<number | null> {
+  async estimateCost(_request: IRChatRequest): Promise<number | null> {
     // LM Studio is free - runs locally
     return 0;
   }

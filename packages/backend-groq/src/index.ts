@@ -7,8 +7,8 @@
  * @module
  */
 
-import { OpenAIBackendAdapter } from './openai.js';
-import type { BackendAdapterConfig } from 'ai.matey.types';
+import { OpenAIBackendAdapter } from 'ai.matey.backend.openai';
+import type { BackendAdapterConfig, IRChatRequest } from 'ai.matey.types';
 
 /**
  * Backend adapter for Groq API.
@@ -117,7 +117,7 @@ export class GroqBackendAdapter extends OpenAIBackendAdapter {
   /**
    * Estimate cost for Groq (very low cost, optimized for speed).
    */
-  async estimateCost(request: import('../../types/ir.js').IRChatRequest): Promise<number | null> {
+  async estimateCost(request: IRChatRequest): Promise<number | null> {
     // Groq pricing: ~$0.05 per 1M input tokens, ~$0.10 per 1M output tokens
     // (Extremely competitive pricing)
     const estimatedInputTokens = await super.estimateCost(request) || 0;

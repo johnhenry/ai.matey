@@ -34,7 +34,8 @@
   "dependencies": {
     "ai.matey.types": "*",
     "ai.matey.errors": "*",
-    "ai.matey.utils": "*"
+    "ai.matey.utils": "*",
+    "ai.matey.backend.openai": "*"
   },
   "devDependencies": {
     "ai.matey.testing": "*",
