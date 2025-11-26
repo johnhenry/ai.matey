@@ -5,9 +5,9 @@
  */
 
 import { describe, it, expect, vi } from 'vitest';
-import { createTransformMiddleware } from '../../src/middleware/transform.js';
-import type { MiddlewareContext, MiddlewareNext } from '../../src/types/middleware.js';
-import type { IRChatRequest, IRChatResponse, IRMessage } from '../../src/types/ir.js';
+import { createTransformMiddleware } from 'ai.matey.middleware.transform';
+import type { MiddlewareContext, MiddlewareNext } from 'ai.matey.types';
+import type { IRChatRequest, IRChatResponse, IRMessage } from 'ai.matey.types';
 
 // ============================================================================
 // Test Helpers

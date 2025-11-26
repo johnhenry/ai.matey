@@ -5,20 +5,16 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { Bridge } from '../../src/core/bridge.js';
-import { AnthropicFrontendAdapter } from '../../src/adapters/frontend/anthropic.js';
-import { OpenAIBackendAdapter } from '../../src/adapters/backend/openai.js';
-import type { IRChatRequest, IRChatResponse } from '../../src/types/ir.js';
-import type { BackendAdapter } from '../../src/types/adapters.js';
-import {
-  createLoggingMiddleware,
-  createTelemetryMiddleware,
-  createCachingMiddleware,
-  createRetryMiddleware,
-  createTransformMiddleware,
-  InMemoryTelemetrySink,
-  InMemoryCacheStorage,
-} from '../../src/middleware/index.js';
+import { Bridge } from 'ai.matey.core';
+import { AnthropicFrontendAdapter } from 'ai.matey.frontend.anthropic';
+import { OpenAIBackendAdapter } from 'ai.matey.backend.openai';
+import type { IRChatRequest, IRChatResponse } from 'ai.matey.types';
+import type { BackendAdapter } from 'ai.matey.types';
+import { createLoggingMiddleware } from 'ai.matey.middleware.logging';
+import { createTelemetryMiddleware, InMemoryTelemetrySink } from 'ai.matey.middleware.telemetry';
+import { createCachingMiddleware, InMemoryCacheStorage } from 'ai.matey.middleware.caching';
+import { createRetryMiddleware } from 'ai.matey.middleware.retry';
+import { createTransformMiddleware } from 'ai.matey.middleware.transform';
 
 // ============================================================================
 // Mock Backend Adapter

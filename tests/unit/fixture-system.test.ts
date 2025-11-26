@@ -13,7 +13,7 @@ import {
   extractResponse,
   isChatFixture,
   isStreamingFixture,
-} from '../../src/testing/index.js';
+} from 'ai.matey.testing';
 
 describe('Fixture System', () => {
   describe('loadFixture', () => {

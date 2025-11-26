@@ -12,8 +12,8 @@ import {
   clampParameter,
   sanitizeParameters,
   areParametersValid,
-} from '../../src/utils/parameter-normalizer.js';
-import type { IRParameters } from '../../src/types/ir.js';
+} from 'ai.matey.utils';
+import type { IRParameters } from 'ai.matey.types';
 
 describe('Parameter Normalizer', () => {
   describe('normalizeTemperature', () => {

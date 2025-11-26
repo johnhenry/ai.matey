@@ -11,9 +11,9 @@ import {
   sanitizeRequest,
   DEFAULT_PII_PATTERNS,
   DEFAULT_INJECTION_PATTERNS,
-} from '../../src/middleware/validation.js';
-import type { IRChatRequest, IRChatResponse } from '../../src/types/ir.js';
-import type { MiddlewareContext } from '../../src/types/middleware.js';
+} from 'ai.matey.middleware.validation';
+import type { IRChatRequest, IRChatResponse } from 'ai.matey.types';
+import type { MiddlewareContext } from 'ai.matey.types';
 
 describe('Validation Middleware', () => {
   const mockRequest: IRChatRequest = {

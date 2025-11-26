@@ -5,21 +5,43 @@
  * fallback mechanisms, parallel dispatch, and health tracking.
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { Router } from '../../src/core/router.js';
-import type { BackendAdapter } from '../../src/types/adapters.js';
-import type { IRChatRequest, IRChatResponse, IRStreamChunk } from '../../src/types/ir.js';
+import { describe, it, expect, beforeEach } from 'vitest';
+import { Router } from 'ai.matey.core';
+import type { BackendAdapter, AdapterMetadata } from 'ai.matey.types';
+import type { IRChatRequest, IRChatResponse, IRStreamChunk, IRCapabilities } from 'ai.matey.types';
 
 // ============================================================================
 // Mock Backend Adapters
 // ============================================================================
 
 class MockBackendAdapter implements BackendAdapter {
+  readonly metadata: AdapterMetadata;
+
   constructor(
     public name: string,
     private shouldFail: boolean = false,
     private responseText: string = 'Response',
-  ) {}
+  ) {
+    this.metadata = {
+      name,
+      version: '1.0.0',
+      provider: 'mock',
+      capabilities: {
+        streaming: true,
+        multiModal: false,
+        tools: false,
+        systemMessageStrategy: 'in-messages' as const,
+      } as IRCapabilities,
+    };
+  }
+
+  fromIR(request: IRChatRequest): IRChatRequest {
+    return request;
+  }
+
+  toIR(response: IRChatResponse): IRChatResponse {
+    return response;
+  }
 
   async execute(request: IRChatRequest): Promise<IRChatResponse> {
     if (this.shouldFail) {
@@ -47,21 +69,24 @@ class MockBackendAdapter implements BackendAdapter {
     };
   }
 
-  async *executeStream(request: IRChatRequest): AsyncIterable<IRStreamChunk> {
+  async *executeStream(request: IRChatRequest): AsyncGenerator<IRStreamChunk, void, undefined> {
     if (this.shouldFail) {
       throw new Error(`${this.name} failed`);
     }
 
     const words = `${this.responseText} from ${this.name}`.split(' ');
+    let seq = 0;
     for (const word of words) {
       yield {
         type: 'content',
+        sequence: seq++,
         delta: word + ' ',
       };
     }
 
     yield {
       type: 'done',
+      sequence: seq,
       finishReason: 'stop',
       usage: {
         promptTokens: 10,

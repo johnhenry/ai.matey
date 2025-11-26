@@ -11,8 +11,8 @@ import {
   type CapabilityRequirements,
   type BackendModel,
   type ScoredModel,
-} from '../../src/core/capability-matcher.js';
-import type { AIModel } from '../../src/types/models.js';
+} from 'ai.matey.core/capability-matcher.js';
+import type { AIModel } from 'ai.matey.types';
 
 describe('Capability Matcher', () => {
   // Sample models for testing

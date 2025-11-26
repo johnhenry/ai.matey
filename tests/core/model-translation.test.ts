@@ -14,7 +14,7 @@ import {
   validateMapping,
   type ModelMapping,
   type ModelTranslationOptions,
-} from '../../src/core/model-translation.js';
+} from 'ai.matey.core/model-translation.js';
 
 describe('Model Translation', () => {
   describe('translateModel', () => {
