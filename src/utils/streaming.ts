@@ -216,14 +216,14 @@ export async function streamToResponse(
   stream: IRChatStream,
   requestMetadata: IRMetadata
 ): Promise<IRChatResponse> {
-  const accumulator = createStreamAccumulator();
+  let accumulator = createStreamAccumulator();
   let doneChunk: StreamDoneChunk | undefined;
 
   for await (const chunk of stream) {
     if (chunk.type === 'done') {
       doneChunk = chunk;
     } else {
-      accumulateChunk(accumulator, chunk);
+      accumulator = accumulateChunk(accumulator, chunk);
     }
   }
 
