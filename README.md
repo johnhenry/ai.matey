@@ -262,6 +262,8 @@ Connect to any AI provider with a unified interface.
 | [`ai.matey.backend.xai`](./packages/backend-xai) | xAI (Grok) | [README](./packages/backend-xai/README.md) |
 | [`ai.matey.backend.chrome-ai`](./packages/backend-chrome-ai) | Chrome AI | [README](./packages/backend-chrome-ai/README.md) |
 | [`ai.matey.backend.mock`](./packages/backend-mock) | Mock (testing) | [README](./packages/backend-mock/README.md) |
+| [`ai.matey.backend.function`](./packages/backend-function) | Function-based (testing) | [README](./packages/backend-function/README.md) |
+| [`ai.matey.backend.shared`](./packages/backend-shared) | Shared utilities | [README](./packages/backend-shared/README.md) |
 
 ### Frontend Adapters
 
