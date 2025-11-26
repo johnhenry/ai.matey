@@ -379,13 +379,22 @@ describe('Bridge Retry Logic', () => {
     const backend = createMockBackend({ shouldFail: true });
     const bridge = new Bridge(frontend, backend, { retries: 2 });
 
-    const chatPromise = bridge.chat({ messages: [{ role: 'user', content: 'Hello' }] } as any);
+    // Capture the error to prevent unhandled rejection warning
+    let caughtError: Error | undefined;
+    const chatPromise = bridge.chat({ messages: [{ role: 'user', content: 'Hello' }] } as any)
+      .catch((e: Error) => {
+        caughtError = e;
+      });
 
     // Advance through retry delays (1s, 2s exponential backoff)
     await vi.advanceTimersByTimeAsync(1000);
     await vi.advanceTimersByTimeAsync(2000);
 
-    await expect(chatPromise).rejects.toThrow();
+    await chatPromise;
+
+    // Verify that an error was thrown
+    expect(caughtError).toBeDefined();
+    expect(caughtError?.message).toContain('failed');
 
     // Initial + 2 retries = 3 calls
     expect(backend.execute).toHaveBeenCalledTimes(3);
