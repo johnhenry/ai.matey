@@ -19,6 +19,9 @@ import type {
   BridgeConfig,
   RequestOptions,
   Bridge as IBridge,
+  BridgeStats,
+  BridgeEventType,
+  BridgeEventListener,
 } from 'ai.matey.types';
 import type { Middleware } from 'ai.matey.types';
 import type {
@@ -45,6 +48,18 @@ export class Bridge<TFrontend extends FrontendAdapter = FrontendAdapter>
   readonly backend: BackendAdapter;
   readonly config: BridgeConfig;
   private middlewareStack: MiddlewareStack;
+
+  // Statistics tracking
+  private _totalRequests = 0;
+  private _successfulRequests = 0;
+  private _failedRequests = 0;
+  private _streamingRequests = 0;
+  private _latencies: number[] = [];
+  private _errorCounts: Record<string, number> = {};
+  private _statsResetTimestamp = Date.now();
+
+  // Event listeners (stored for future event emission)
+  private _eventListeners: Map<string, Set<BridgeEventListener>> = new Map();
 
   /**
    * Create a new Bridge instance.
@@ -83,6 +98,9 @@ export class Bridge<TFrontend extends FrontendAdapter = FrontendAdapter>
     request: InferFrontendRequest<TFrontend>,
     options?: RequestOptions
   ): Promise<InferFrontendResponse<TFrontend>> {
+    const startTime = Date.now();
+    this._totalRequests++;
+
     try {
       // Step 1: Convert frontend request to IR
       const irRequest = await this.frontend.toIR(request as any);
@@ -114,8 +132,17 @@ export class Bridge<TFrontend extends FrontendAdapter = FrontendAdapter>
       // Step 7: Convert IR response to frontend format
       const frontendResponse = await this.frontend.fromIR(enrichedResponse);
 
+      // Track success
+      this._successfulRequests++;
+      this._latencies.push(Date.now() - startTime);
+
       return frontendResponse as InferFrontendResponse<TFrontend>;
     } catch (error) {
+      // Track failure
+      this._failedRequests++;
+      const errorCode = error instanceof AdapterError ? error.code : 'UNKNOWN';
+      this._errorCounts[errorCode] = (this._errorCounts[errorCode] || 0) + 1;
+
       // Re-throw adapter errors, wrap others
       if (error instanceof AdapterError) {
         throw error;
@@ -138,6 +165,10 @@ export class Bridge<TFrontend extends FrontendAdapter = FrontendAdapter>
     request: InferFrontendRequest<TFrontend>,
     options?: RequestOptions
   ): AsyncGenerator<InferFrontendStreamChunk<TFrontend>, void, undefined> {
+    const startTime = Date.now();
+    this._totalRequests++;
+    this._streamingRequests++;
+
     try {
       // Step 1: Convert frontend request to IR
       const irRequest = await this.frontend.toIR(request as any);
@@ -176,7 +207,16 @@ export class Bridge<TFrontend extends FrontendAdapter = FrontendAdapter>
       for await (const chunk of frontendStream) {
         yield chunk as InferFrontendStreamChunk<TFrontend>;
       }
+
+      // Track success (after stream completes)
+      this._successfulRequests++;
+      this._latencies.push(Date.now() - startTime);
     } catch (error) {
+      // Track failure
+      this._failedRequests++;
+      const errorCode = error instanceof AdapterError ? error.code : 'UNKNOWN';
+      this._errorCounts[errorCode] = (this._errorCounts[errorCode] || 0) + 1;
+
       // Re-throw adapter errors, wrap others
       if (error instanceof AdapterError) {
         throw error;
@@ -292,31 +332,113 @@ export class Bridge<TFrontend extends FrontendAdapter = FrontendAdapter>
   }
 
   // ==========================================================================
-  // Event Handling (Stub implementations)
+  // Event Handling
   // ==========================================================================
 
-  on(): Bridge<TFrontend> {
-    throw new Error('Event handling not yet implemented');
+  /**
+   * Register an event listener.
+   *
+   * Note: Event emission is not yet implemented. Listeners are stored
+   * for future use when event emission is added.
+   *
+   * @param event Event type to listen for, or '*' for all events
+   * @param listener Callback function
+   */
+  on(event: BridgeEventType | '*', listener: BridgeEventListener): Bridge<TFrontend> {
+    const key = event as string;
+    if (!this._eventListeners.has(key)) {
+      this._eventListeners.set(key, new Set());
+    }
+    this._eventListeners.get(key)!.add(listener);
+    return this;
   }
 
-  off(): Bridge<TFrontend> {
-    throw new Error('Event handling not yet implemented');
+  /**
+   * Remove an event listener.
+   *
+   * @param event Event type
+   * @param listener Callback function to remove
+   */
+  off(event: BridgeEventType | '*', listener: BridgeEventListener): Bridge<TFrontend> {
+    const key = event as string;
+    const listeners = this._eventListeners.get(key);
+    if (listeners) {
+      listeners.delete(listener);
+    }
+    return this;
   }
 
-  once(): Bridge<TFrontend> {
-    throw new Error('Event handling not yet implemented');
+  /**
+   * Register a one-time event listener.
+   *
+   * Note: Event emission is not yet implemented. Listeners are stored
+   * for future use when event emission is added.
+   *
+   * @param event Event type to listen for
+   * @param listener Callback function
+   */
+  once(event: BridgeEventType, listener: BridgeEventListener): Bridge<TFrontend> {
+    const wrappedListener: BridgeEventListener = (eventData) => {
+      this.off(event, wrappedListener);
+      return listener(eventData);
+    };
+    return this.on(event, wrappedListener);
   }
 
   // ==========================================================================
-  // Statistics & Monitoring (Stub implementations)
+  // Statistics & Monitoring
   // ==========================================================================
 
-  getStats(): any {
-    throw new Error('Statistics not yet implemented');
+  /**
+   * Get runtime statistics for this bridge.
+   *
+   * @returns Bridge statistics including request counts, latencies, and error breakdown
+   */
+  getStats(): BridgeStats {
+    const sortedLatencies = [...this._latencies].sort((a, b) => a - b);
+    const len = sortedLatencies.length;
+
+    const getPercentile = (p: number): number => {
+      if (len === 0) return 0;
+      const index = Math.ceil((p / 100) * len) - 1;
+      return sortedLatencies[Math.max(0, Math.min(index, len - 1))];
+    };
+
+    const avgLatency = len > 0
+      ? sortedLatencies.reduce((a, b) => a + b, 0) / len
+      : 0;
+
+    return {
+      totalRequests: this._totalRequests,
+      successfulRequests: this._successfulRequests,
+      failedRequests: this._failedRequests,
+      successRate: this._totalRequests > 0
+        ? (this._successfulRequests / this._totalRequests) * 100
+        : 100,
+      streamingRequests: this._streamingRequests,
+      averageLatencyMs: Math.round(avgLatency),
+      p50LatencyMs: getPercentile(50),
+      p95LatencyMs: getPercentile(95),
+      p99LatencyMs: getPercentile(99),
+      backendUsage: {
+        [this.backend.metadata.name]: this._successfulRequests,
+      },
+      errorBreakdown: { ...this._errorCounts },
+      sinceTimestamp: this._statsResetTimestamp,
+    };
   }
 
+  /**
+   * Reset all statistics to zero.
+   */
   resetStats(): void {
-    throw new Error('Statistics not yet implemented');
+    this._totalRequests = 0;
+    this._successfulRequests = 0;
+    this._failedRequests = 0;
+    this._streamingRequests = 0;
+    this._latencies = [];
+    this._errorCounts = {};
+    this._statsResetTimestamp = Date.now();
   }
 
   // ==========================================================================
