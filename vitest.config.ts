@@ -14,6 +14,7 @@ export default defineConfig({
 
       // Backend adapters
       'ai.matey.backend.shared': path.resolve(__dirname, 'packages/backend-shared/src'),
+      'ai.matey.backend.function': path.resolve(__dirname, 'packages/backend-function/src'),
       'ai.matey.backend.openai': path.resolve(__dirname, 'packages/backend-openai/src'),
       'ai.matey.backend.anthropic': path.resolve(__dirname, 'packages/backend-anthropic/src'),
       'ai.matey.backend.gemini': path.resolve(__dirname, 'packages/backend-gemini/src'),
