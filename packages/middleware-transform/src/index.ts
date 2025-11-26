@@ -21,7 +21,9 @@ export type RequestTransformer = (request: IRChatRequest) => IRChatRequest | Pro
 /**
  * Response transformer function.
  */
-export type ResponseTransformer = (response: IRChatResponse) => IRChatResponse | Promise<IRChatResponse>;
+export type ResponseTransformer = (
+  response: IRChatResponse
+) => IRChatResponse | Promise<IRChatResponse>;
 
 /**
  * Message transformer function.
@@ -182,7 +184,9 @@ export function createPromptRewriter(
  * ```
  */
 export function createParameterModifier(
-  modifier: (params: IRChatRequest['parameters']) => IRChatRequest['parameters'] | Promise<IRChatRequest['parameters']>
+  modifier: (
+    params: IRChatRequest['parameters']
+  ) => IRChatRequest['parameters'] | Promise<IRChatRequest['parameters']>
 ): RequestTransformer {
   return async (request: IRChatRequest): Promise<IRChatRequest> => {
     return {
@@ -239,9 +243,7 @@ export function createSystemMessageInjector(
     };
 
     const messages =
-      position === 'start'
-        ? [systemMsg, ...request.messages]
-        : [...request.messages, systemMsg];
+      position === 'start' ? [systemMsg, ...request.messages] : [...request.messages, systemMsg];
 
     return {
       ...request,
