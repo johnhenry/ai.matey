@@ -352,8 +352,14 @@ ai-matey proxy --backend ./my-backend.mjs --port 3000
 # Emulate Ollama CLI with any backend
 ai-matey emulate-ollama --backend ./backend.mjs run llama3.1 "Hello!"
 
-# Convert between formats
-ai-matey convert --from openai --to anthropic request.json
+# Convert requests between formats
+ai-matey convert-request --from openai --to anthropic --input request.json
+
+# Convert responses between formats
+ai-matey convert-response --format openai --input response.json
+
+# Create a backend adapter template
+ai-matey create-backend --provider groq --output ./groq-backend.mjs
 ```
 
 ## Architecture
