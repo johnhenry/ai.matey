@@ -17,6 +17,7 @@ import { sendJSON } from './response-formatter.js';
 export class RateLimiter {
   private readonly options: Required<RateLimitOptions>;
   private readonly store: Map<string, RateLimitState>;
+  private cleanupIntervalId: ReturnType<typeof setInterval> | undefined;
 
   constructor(options: RateLimitOptions) {
     this.options = {
@@ -31,7 +32,19 @@ export class RateLimiter {
     this.store = new Map();
 
     // Cleanup old entries periodically
-    setInterval(() => this.cleanup(), this.options.windowMs);
+    this.cleanupIntervalId = setInterval(() => this.cleanup(), this.options.windowMs);
+  }
+
+  /**
+   * Dispose of the rate limiter and clean up resources.
+   * Call this when the rate limiter is no longer needed to prevent memory leaks.
+   */
+  dispose(): void {
+    if (this.cleanupIntervalId) {
+      clearInterval(this.cleanupIntervalId);
+      this.cleanupIntervalId = undefined;
+    }
+    this.store.clear();
   }
 
   /**
