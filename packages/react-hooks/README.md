@@ -1,6 +1,6 @@
 # ai.matey.react.hooks
 
-Additional React hooks for AI features
+Additional specialized React hooks for AI applications.
 
 Part of the [ai.matey](https://github.com/johnhenry/ai.matey) monorepo.
 
@@ -12,23 +12,29 @@ npm install ai.matey.react.hooks
 
 ## Quick Start
 
-```typescript
+```tsx
 import { useAssistant } from 'ai.matey.react.hooks';
 
-function ChatComponent() {
-  const { messages, input, handleSubmit, setInput } = useAssistant({
-    api: '/api/chat',
+function AssistantChat() {
+  const { messages, input, handleInputChange, handleSubmit, status } = useAssistant({
+    api: '/api/assistant',
+    assistantId: 'asst_xxx',
   });
 
   return (
     <div>
-      {messages.map((m, i) => (
-        <div key={i}>{m.content}</div>
+      {messages.map((m) => (
+        <div key={m.id}>
+          <strong>{m.role}:</strong> {m.content}
+        </div>
       ))}
       <form onSubmit={handleSubmit}>
-        <input value={input} onChange={(e) => setInput(e.target.value)} />
-        <button type="submit">Send</button>
+        <input value={input} onChange={handleInputChange} />
+        <button type="submit" disabled={status === 'in_progress'}>
+          Send
+        </button>
       </form>
+      <p>Status: {status}</p>
     </div>
   );
 }
@@ -36,24 +42,101 @@ function ChatComponent() {
 
 ## Exports
 
-- `useAssistant`
-- `useStream`
-- `useTokenCount`
+### Hooks
+
+- `useAssistant` - OpenAI Assistants API integration with thread management
+- `useTokenCount` - Token counting and context window tracking
+- `useStream` - Low-level stream consumption hook
+
+### Types
+
+- `AssistantMessage`, `Annotation`, `AssistantStatus` - Assistant types
+- `UseAssistantOptions`, `UseAssistantReturn` - useAssistant types
+- `UseTokenCountOptions`, `UseTokenCountReturn` - useTokenCount types
+- `UseStreamOptions`, `UseStreamReturn` - useStream types
 
 ## API Reference
 
 ### useAssistant
 
-See the TypeScript definitions for detailed API documentation.
+React hook for OpenAI Assistants API with thread and run management.
 
-### useStream
+```tsx
+const {
+  messages,          // AssistantMessage[] - Chat history with annotations
+  input,             // string - Current input
+  setInput,          // (value: string) => void
+  handleInputChange, // (e: ChangeEvent) => void
+  handleSubmit,      // (e?: FormEvent) => void
+  append,            // (message: string | Message) => Promise<void>
+  threadId,          // string | undefined - Current thread ID
+  status,            // AssistantStatus - Run status
+  stop,              // () => void - Cancel current run
+  setMessages,       // (messages: AssistantMessage[]) => void
+  error,             // Error | undefined
+} = useAssistant({
+  api: '/api/assistant',    // API endpoint
+  assistantId: 'asst_xxx',  // OpenAI Assistant ID
+  threadId: 'thread_xxx',   // Existing thread to continue
+  headers: {},              // Request headers
+  body: {},                 // Extra request body
+  onStatus: (status) => {}, // Called on status change
+  onError: (error) => {},   // Called on error
+});
+```
 
-See the TypeScript definitions for detailed API documentation.
+**AssistantStatus values:**
+- `awaiting_message` - Ready for input
+- `in_progress` - Processing request
+- `requires_action` - Tool call pending
+- `completed` - Run finished
+- `failed` - Run failed
+- `cancelled` - Run cancelled
+- `expired` - Run expired
 
 ### useTokenCount
 
-See the TypeScript definitions for detailed API documentation.
+Track token usage and context window limits.
 
+```tsx
+const {
+  tokenCount,        // number - Current token count
+  maxTokens,         // number - Model's max context
+  remainingTokens,   // number - Tokens remaining
+  isNearLimit,       // boolean - Within 10% of limit
+  isOverLimit,       // boolean - Exceeded limit
+  updateText,        // (text: string) => void - Update counted text
+} = useTokenCount({
+  model: 'gpt-4',           // Model name for limits
+  text: '',                 // Initial text to count
+  warningThreshold: 0.9,    // Threshold for isNearLimit
+});
+```
+
+**Supported models:**
+- `gpt-4`, `gpt-4-turbo`: 128,000 tokens
+- `gpt-3.5-turbo`: 16,385 tokens
+- `claude-3-opus`, `claude-3-sonnet`: 200,000 tokens
+- And more...
+
+### useStream
+
+Low-level hook for consuming async iterables/streams.
+
+```tsx
+const {
+  data,              // T[] - Accumulated data
+  isStreaming,       // boolean
+  error,             // Error | undefined
+  start,             // (stream: AsyncIterable<T>) => void
+  stop,              // () => void
+  reset,             // () => void
+} = useStream<ChunkType>({
+  onChunk: (chunk) => {},   // Called for each chunk
+  onComplete: (data) => {}, // Called when done
+  onError: (error) => {},   // Called on error
+});
+```
 
 ## License
 
