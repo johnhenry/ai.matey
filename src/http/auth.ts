@@ -7,13 +7,49 @@
  */
 
 import type { IncomingMessage } from 'http';
+import { timingSafeEqual } from 'crypto';
 import type { AuthValidator } from './types.js';
 import { extractBearerToken } from './request-parser.js';
+
+/**
+ * Timing-safe string comparison to prevent timing attacks
+ */
+function safeCompare(a: string, b: string): boolean {
+  const bufA = Buffer.from(a);
+  const bufB = Buffer.from(b);
+
+  if (bufA.length !== bufB.length) {
+    // Still perform comparison to maintain constant time
+    timingSafeEqual(bufA, bufA);
+    return false;
+  }
+
+  return timingSafeEqual(bufA, bufB);
+}
 
 /**
  * Default auth validator (always allows)
  */
 export const defaultAuthValidator: AuthValidator = () => true;
+
+/**
+ * Timing-safe check if a token exists in a collection
+ * Always iterates through all tokens to prevent timing attacks
+ */
+function safeTokenCheck(token: string, validTokens: string[] | Set<string>): boolean {
+  const tokensArray = validTokens instanceof Set ? Array.from(validTokens) : validTokens;
+  let found = false;
+
+  // Always check all tokens to maintain constant time
+  for (const validToken of tokensArray) {
+    if (safeCompare(token, validToken)) {
+      found = true;
+      // Don't return early - continue checking to maintain constant time
+    }
+  }
+
+  return found;
+}
 
 /**
  * Create bearer token validator
@@ -32,11 +68,7 @@ export function createBearerTokenValidator(
       return await validTokens(token);
     }
 
-    if (validTokens instanceof Set) {
-      return validTokens.has(token);
-    }
-
-    return validTokens.includes(token);
+    return safeTokenCheck(token, validTokens);
   };
 }
 
@@ -57,11 +89,7 @@ export function createAPIKeyValidator(
       return await validKeys(apiKey);
     }
 
-    if (validKeys instanceof Set) {
-      return validKeys.has(apiKey);
-    }
-
-    return validKeys.includes(apiKey);
+    return safeTokenCheck(apiKey, validKeys);
   };
 }
 
@@ -91,7 +119,11 @@ export function createBasicAuthValidator(
         return await credentials(username, password);
       }
 
-      return credentials.get(username) === password;
+      const storedPassword = credentials.get(username);
+      if (!storedPassword) {
+        return false;
+      }
+      return safeCompare(storedPassword, password);
     } catch {
       return false;
     }
