@@ -348,13 +348,27 @@ describe('Bridge.getConfig', () => {
 // ============================================================================
 
 describe('Bridge Retry Logic', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it('should retry on transient failure', async () => {
     const frontend = createMockFrontend();
     // Fail first 2 times, succeed on 3rd
     const backend = createMockBackend({ failCount: 2 });
     const bridge = new Bridge(frontend, backend, { retries: 3 });
 
-    const response = await bridge.chat({ messages: [{ role: 'user', content: 'Hello' }] } as any);
+    const chatPromise = bridge.chat({ messages: [{ role: 'user', content: 'Hello' }] } as any);
+
+    // Advance through retry delays (1s, 2s exponential backoff)
+    await vi.advanceTimersByTimeAsync(1000);
+    await vi.advanceTimersByTimeAsync(2000);
+
+    const response = await chatPromise;
 
     expect(response).toBeDefined();
     expect(backend.execute).toHaveBeenCalledTimes(3);
@@ -365,9 +379,13 @@ describe('Bridge Retry Logic', () => {
     const backend = createMockBackend({ shouldFail: true });
     const bridge = new Bridge(frontend, backend, { retries: 2 });
 
-    await expect(
-      bridge.chat({ messages: [{ role: 'user', content: 'Hello' }] } as any)
-    ).rejects.toThrow();
+    const chatPromise = bridge.chat({ messages: [{ role: 'user', content: 'Hello' }] } as any);
+
+    // Advance through retry delays (1s, 2s exponential backoff)
+    await vi.advanceTimersByTimeAsync(1000);
+    await vi.advanceTimersByTimeAsync(2000);
+
+    await expect(chatPromise).rejects.toThrow();
 
     // Initial + 2 retries = 3 calls
     expect(backend.execute).toHaveBeenCalledTimes(3);
