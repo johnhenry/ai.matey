@@ -411,6 +411,36 @@ export class Router implements IRouter {
   }
 
   /**
+   * Clear all model translation mappings.
+   *
+   * @returns This router for chaining
+   */
+  clearModelTranslationMapping(): Router {
+    this.modelTranslationMapping.clear();
+    return this;
+  }
+
+  /**
+   * Clear backend-specific model translation mappings.
+   *
+   * @param backendName Optional backend name to clear. If not provided, clears all.
+   * @returns This router for chaining
+   */
+  clearBackendTranslationMapping(backendName?: string): Router {
+    if (backendName) {
+      const backendMapping = this.backendTranslationMappings.get(backendName);
+      if (backendMapping) {
+        backendMapping.clear();
+      }
+    } else {
+      for (const mapping of this.backendTranslationMappings.values()) {
+        mapping.clear();
+      }
+    }
+    return this;
+  }
+
+  /**
    * Set model pattern mappings.
    */
   setModelPatterns(patterns: readonly ModelPatternMapping[]): Router {
@@ -886,6 +916,20 @@ export class Router implements IRouter {
         state.circuitOpenedAt = undefined;
       }
     }
+  }
+
+  /**
+   * Check if circuit breaker is open for a backend.
+   *
+   * @param name Backend name
+   * @returns true if circuit breaker is open, false otherwise
+   */
+  isCircuitBreakerOpen(name: string): boolean {
+    const state = this.backends.get(name);
+    if (!state) {
+      return false;
+    }
+    return state.circuitBreakerState === 'open';
   }
 
   // ==========================================================================

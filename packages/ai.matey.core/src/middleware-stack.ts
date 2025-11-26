@@ -50,6 +50,28 @@ export class MiddlewareStack {
   }
 
   /**
+   * Remove middleware from the stack.
+   *
+   * @param middleware Middleware function to remove
+   * @returns true if middleware was found and removed, false otherwise
+   * @throws {MiddlewareError} If stack is locked
+   */
+  remove(middleware: Middleware): boolean {
+    if (this.locked) {
+      throw new MiddlewareError({
+        message: 'Cannot remove middleware after stack is locked',
+        middlewareName: 'unknown',
+      });
+    }
+    const index = this.middleware.indexOf(middleware);
+    if (index !== -1) {
+      this.middleware.splice(index, 1);
+      return true;
+    }
+    return false;
+  }
+
+  /**
    * Add streaming middleware to the stack.
    *
    * @param middleware Streaming middleware function to add

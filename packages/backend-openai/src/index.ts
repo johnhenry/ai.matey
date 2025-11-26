@@ -587,6 +587,19 @@ export class OpenAIBackendAdapter implements BackendAdapter<OpenAIRequest, OpenA
     }
   }
 
+  /**
+   * Invalidate the cached model list.
+   *
+   * Forces the next listModels() call to fetch fresh data from the API
+   * (unless static models are configured).
+   *
+   * @returns This adapter for method chaining
+   */
+  invalidateModelCache(): OpenAIBackendAdapter {
+    this.modelCache.invalidate(this.metadata.name);
+    return this;
+  }
+
   // ==========================================================================
   // Private Helper Methods
   // ==========================================================================

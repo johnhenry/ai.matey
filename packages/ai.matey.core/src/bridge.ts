@@ -20,9 +20,12 @@ import type {
   RequestOptions,
   Bridge as IBridge,
   BridgeStats,
-  BridgeEventType,
   BridgeEventListener,
+  BridgeEventData,
+  RequestEvent,
+  StreamEvent,
 } from 'ai.matey.types';
+import { BridgeEventType } from 'ai.matey.types';
 import type { Middleware } from 'ai.matey.types';
 import type {
   ListModelsOptions,
@@ -101,61 +104,106 @@ export class Bridge<TFrontend extends FrontendAdapter = FrontendAdapter>
     const startTime = Date.now();
     this._totalRequests++;
 
-    try {
-      // Step 1: Convert frontend request to IR
-      const irRequest = await this.frontend.toIR(request as any);
+    // Step 1: Convert frontend request to IR
+    const irRequest = await this.frontend.toIR(request as any);
 
-      // Step 2: Ensure metadata has requestId and timestamp
-      const enrichedRequest = this.enrichRequest(irRequest, options);
+    // Step 2: Ensure metadata has requestId and timestamp
+    const enrichedRequest = this.enrichRequest(irRequest, options);
 
-      // Step 3: Validate IR request
-      validateIRChatRequest(enrichedRequest, {
-        frontend: this.frontend.metadata.name,
-      });
+    // Emit REQUEST_START event
+    this.emit({
+      type: BridgeEventType.REQUEST_START,
+      timestamp: Date.now(),
+      requestId: enrichedRequest.metadata.requestId,
+      request: enrichedRequest,
+    } as RequestEvent);
 
-      // Step 4: Create middleware context
-      const context = createMiddlewareContext(
-        enrichedRequest,
-        this.config as Record<string, unknown>,
-        options?.signal
-      );
+    const maxAttempts = (this.config.retries ?? 0) + 1;
+    let lastError: Error | undefined;
 
-      // Step 5: Execute middleware stack + backend
-      const irResponse = await this.middlewareStack.execute(context, async () => {
-        // Call backend adapter
-        return await this.backend.execute(enrichedRequest, options?.signal);
-      });
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        // Step 3: Validate IR request
+        validateIRChatRequest(enrichedRequest, {
+          frontend: this.frontend.metadata.name,
+        });
 
-      // Step 6: Enrich response with provenance
-      const enrichedResponse = this.enrichResponse(irResponse, enrichedRequest);
+        // Step 4: Create middleware context
+        const context = createMiddlewareContext(
+          enrichedRequest,
+          this.config as Record<string, unknown>,
+          options?.signal
+        );
 
-      // Step 7: Convert IR response to frontend format
-      const frontendResponse = await this.frontend.fromIR(enrichedResponse);
+        // Step 5: Execute middleware stack + backend
+        const irResponse = await this.middlewareStack.execute(context, async () => {
+          // Call backend adapter
+          return await this.backend.execute(enrichedRequest, options?.signal);
+        });
 
-      // Track success
-      this._successfulRequests++;
-      this._latencies.push(Date.now() - startTime);
+        // Step 6: Enrich response with provenance
+        const enrichedResponse = this.enrichResponse(irResponse, enrichedRequest);
 
-      return frontendResponse as InferFrontendResponse<TFrontend>;
-    } catch (error) {
-      // Track failure
-      this._failedRequests++;
-      const errorCode = error instanceof AdapterError ? error.code : 'UNKNOWN';
-      this._errorCounts[errorCode] = (this._errorCounts[errorCode] || 0) + 1;
+        // Step 7: Convert IR response to frontend format
+        const frontendResponse = await this.frontend.fromIR(enrichedResponse);
 
-      // Re-throw adapter errors, wrap others
-      if (error instanceof AdapterError) {
-        throw error;
+        // Track success
+        this._successfulRequests++;
+        const durationMs = Date.now() - startTime;
+        this._latencies.push(durationMs);
+
+        // Emit REQUEST_SUCCESS event
+        this.emit({
+          type: BridgeEventType.REQUEST_SUCCESS,
+          timestamp: Date.now(),
+          requestId: enrichedRequest.metadata.requestId,
+          request: enrichedRequest,
+          response: enrichedResponse,
+          durationMs,
+        } as RequestEvent);
+
+        return frontendResponse as InferFrontendResponse<TFrontend>;
+      } catch (error) {
+        lastError = error instanceof Error ? error : new Error(String(error));
+
+        // Don't retry on non-retryable errors or if this is the last attempt
+        const isRetryable = error instanceof AdapterError ? error.isRetryable : true;
+        if (!isRetryable || attempt >= maxAttempts) {
+          break;
+        }
+
+        // Wait before retrying (simple exponential backoff)
+        await this.delay(Math.min(1000 * Math.pow(2, attempt - 1), 10000));
       }
-
-      throw new AdapterError({
-        code: ErrorCode.INTERNAL_ERROR,
-        message: `Bridge execution failed: ${error instanceof Error ? error.message : String(error)}`,
-        isRetryable: false,
-        cause: error instanceof Error ? error : undefined,
-        provenance: {},
-      });
     }
+
+    // Track failure
+    this._failedRequests++;
+    const errorCode = lastError instanceof AdapterError ? lastError.code : 'UNKNOWN';
+    this._errorCounts[errorCode] = (this._errorCounts[errorCode] || 0) + 1;
+
+    // Emit REQUEST_ERROR event
+    this.emit({
+      type: BridgeEventType.REQUEST_ERROR,
+      timestamp: Date.now(),
+      requestId: enrichedRequest.metadata.requestId,
+      request: enrichedRequest,
+      error: lastError,
+      durationMs: Date.now() - startTime,
+    } as RequestEvent);
+
+    // Re-throw adapter errors, wrap others
+    if (lastError instanceof AdapterError) {
+      throw lastError;
+    }
+
+    throw new AdapterError({
+      code: ErrorCode.INTERNAL_ERROR,
+      message: `Bridge execution failed: ${lastError?.message ?? 'Unknown error'}`,
+      isRetryable: false,
+      cause: lastError,
+      provenance: {},
+    });
   }
 
   /**
@@ -169,19 +217,27 @@ export class Bridge<TFrontend extends FrontendAdapter = FrontendAdapter>
     this._totalRequests++;
     this._streamingRequests++;
 
+    // Step 1: Convert frontend request to IR
+    const irRequest = await this.frontend.toIR(request as any);
+
+    // Step 2: Ensure streaming is enabled
+    const streamingRequest: IRChatRequest = {
+      ...irRequest,
+      stream: true,
+    };
+
+    // Step 3: Ensure metadata has requestId and timestamp
+    const enrichedRequest = this.enrichRequest(streamingRequest, options);
+
+    // Emit STREAM_START event
+    this.emit({
+      type: BridgeEventType.STREAM_START,
+      timestamp: Date.now(),
+      requestId: enrichedRequest.metadata.requestId,
+      request: enrichedRequest,
+    } as StreamEvent);
+
     try {
-      // Step 1: Convert frontend request to IR
-      const irRequest = await this.frontend.toIR(request as any);
-
-      // Step 2: Ensure streaming is enabled
-      const streamingRequest: IRChatRequest = {
-        ...irRequest,
-        stream: true,
-      };
-
-      // Step 3: Ensure metadata has requestId and timestamp
-      const enrichedRequest = this.enrichRequest(streamingRequest, options);
-
       // Step 4: Validate IR request
       validateIRChatRequest(enrichedRequest, {
         frontend: this.frontend.metadata.name,
@@ -204,18 +260,41 @@ export class Bridge<TFrontend extends FrontendAdapter = FrontendAdapter>
       const frontendStream = this.frontend.fromIRStream(irStream);
 
       // Step 8: Yield chunks to caller
+      let chunkSequence = 0;
       for await (const chunk of frontendStream) {
+        chunkSequence++;
         yield chunk as InferFrontendStreamChunk<TFrontend>;
       }
 
       // Track success (after stream completes)
       this._successfulRequests++;
-      this._latencies.push(Date.now() - startTime);
+      const durationMs = Date.now() - startTime;
+      this._latencies.push(durationMs);
+
+      // Emit STREAM_COMPLETE event
+      this.emit({
+        type: BridgeEventType.STREAM_COMPLETE,
+        timestamp: Date.now(),
+        requestId: enrichedRequest.metadata.requestId,
+        request: enrichedRequest,
+        chunkSequence,
+        durationMs,
+      } as StreamEvent);
     } catch (error) {
       // Track failure
       this._failedRequests++;
       const errorCode = error instanceof AdapterError ? error.code : 'UNKNOWN';
       this._errorCounts[errorCode] = (this._errorCounts[errorCode] || 0) + 1;
+
+      // Emit STREAM_ERROR event
+      this.emit({
+        type: BridgeEventType.STREAM_ERROR,
+        timestamp: Date.now(),
+        requestId: enrichedRequest.metadata.requestId,
+        request: enrichedRequest,
+        error: error instanceof Error ? error : new Error(String(error)),
+        durationMs: Date.now() - startTime,
+      } as StreamEvent);
 
       // Re-throw adapter errors, wrap others
       if (error instanceof AdapterError) {
@@ -310,10 +389,14 @@ export class Bridge<TFrontend extends FrontendAdapter = FrontendAdapter>
   }
 
   /**
-   * Remove middleware from the stack (not implemented for locked stacks).
+   * Remove middleware from the stack.
+   *
+   * @param middleware Middleware to remove
+   * @returns This bridge for chaining
    */
-  removeMiddleware(_middleware: Middleware): Bridge<TFrontend> {
-    throw new Error('removeMiddleware not yet implemented');
+  removeMiddleware(middleware: Middleware): Bridge<TFrontend> {
+    this.middlewareStack.remove(middleware);
+    return this;
   }
 
   /**
@@ -453,6 +536,27 @@ export class Bridge<TFrontend extends FrontendAdapter = FrontendAdapter>
   }
 
   /**
+   * Check health of the backend.
+   *
+   * @returns true if backend is healthy, false otherwise
+   */
+  async checkHealth(): Promise<boolean> {
+    if (this.backend.healthCheck) {
+      return await this.backend.healthCheck();
+    }
+    return true; // Assume healthy if no health check is available
+  }
+
+  /**
+   * Get a copy of the bridge configuration.
+   *
+   * @returns Readonly copy of the bridge configuration
+   */
+  getConfig(): Readonly<BridgeConfig> {
+    return { ...this.config };
+  }
+
+  /**
    * Clone bridge with new configuration.
    */
   clone(config: Partial<BridgeConfig>): Bridge<TFrontend> {
@@ -537,6 +641,46 @@ export class Bridge<TFrontend extends FrontendAdapter = FrontendAdapter>
   private generateRequestId(): string {
     // Use standard UUID v4 for request IDs
     return crypto.randomUUID();
+  }
+
+  /**
+   * Emit an event to all registered listeners.
+   *
+   * @param event Event data to emit
+   */
+  private emit(event: BridgeEventData): void {
+    // Emit to specific event type listeners
+    const specificListeners = this._eventListeners.get(event.type);
+    if (specificListeners) {
+      for (const listener of specificListeners) {
+        try {
+          listener(event);
+        } catch {
+          // Ignore listener errors to prevent breaking the chain
+        }
+      }
+    }
+
+    // Emit to wildcard listeners
+    const wildcardListeners = this._eventListeners.get('*');
+    if (wildcardListeners) {
+      for (const listener of wildcardListeners) {
+        try {
+          listener(event);
+        } catch {
+          // Ignore listener errors to prevent breaking the chain
+        }
+      }
+    }
+  }
+
+  /**
+   * Delay execution for a specified number of milliseconds.
+   *
+   * @param ms Milliseconds to delay
+   */
+  private delay(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 }
 
