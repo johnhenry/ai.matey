@@ -1,26 +1,187 @@
+<p align="center">
+  <img src="logo.png" alt="ai.matey logo" width="200" />
+</p>
+
 # ai.matey - Universal AI Adapter System
 
 Provider-agnostic interface for AI APIs. Write once, run anywhere.
 
+## Why ai.matey?
+
+**Same code, any provider.** Switch between OpenAI, Anthropic, Gemini, Ollama, and 20+ other providers without changing your application code.
+
+```typescript
+// Your code stays the same...
+const response = await bridge.chat({
+  model: 'gpt-4',
+  messages: [{ role: 'user', content: 'Hello!' }],
+});
+
+// ...only the backend changes
+new OpenAIBackendAdapter({ apiKey: '...' })      // → OpenAI
+new AnthropicBackendAdapter({ apiKey: '...' })   // → Anthropic
+new GeminiBackendAdapter({ apiKey: '...' })      // → Google Gemini
+new OllamaBackendAdapter({ baseURL: '...' })     // → Local Ollama
+new GroqBackendAdapter({ apiKey: '...' })        // → Groq (fast inference)
+```
+
 ## Quick Start
+
+### Basic Bridge
+
+Accept requests in one format, execute on any provider:
 
 ```typescript
 import { Bridge } from 'ai.matey.core';
 import { OpenAIFrontendAdapter } from 'ai.matey.frontend.openai';
 import { AnthropicBackendAdapter } from 'ai.matey.backend.anthropic';
 
-// Create a bridge: accept OpenAI format, use Anthropic backend
+// Accept OpenAI format → Execute on Anthropic
 const bridge = new Bridge(
   new OpenAIFrontendAdapter(),
   new AnthropicBackendAdapter({ apiKey: process.env.ANTHROPIC_API_KEY })
 );
 
-// Make requests using OpenAI format
 const response = await bridge.chat({
+  model: 'gpt-4',  // Mapped to claude-3-5-sonnet automatically
+  messages: [{ role: 'user', content: 'Hello!' }],
+});
+```
+
+### Streaming
+
+```typescript
+const stream = await bridge.chatStream({
+  model: 'gpt-4',
+  messages: [{ role: 'user', content: 'Tell me a story' }],
+  stream: true,
+});
+
+for await (const chunk of stream) {
+  process.stdout.write(chunk.choices[0]?.delta?.content || '');
+}
+```
+
+### Router with Fallback
+
+Route requests to multiple backends with automatic fallback:
+
+```typescript
+import { Router, createRouter } from 'ai.matey.core';
+import { OpenAIFrontendAdapter } from 'ai.matey.frontend.openai';
+import { OpenAIBackendAdapter } from 'ai.matey.backend.openai';
+import { AnthropicBackendAdapter } from 'ai.matey.backend.anthropic';
+
+const router = createRouter(new OpenAIFrontendAdapter(), {
+  backends: [
+    new OpenAIBackendAdapter({ apiKey: process.env.OPENAI_API_KEY }),
+    new AnthropicBackendAdapter({ apiKey: process.env.ANTHROPIC_API_KEY }),
+  ],
+  strategy: 'priority',      // Try backends in order
+  fallbackStrategy: 'next',  // On failure, try next backend
+});
+
+// If OpenAI fails, automatically falls back to Anthropic
+const response = await router.chat({
   model: 'gpt-4',
   messages: [{ role: 'user', content: 'Hello!' }],
 });
 ```
+
+### Parallel Dispatch
+
+Query multiple models simultaneously for comparison or consensus:
+
+```typescript
+const result = await router.dispatchParallel(request, {
+  strategy: 'all',
+  backends: ['openai', 'anthropic', 'gemini'],
+});
+
+// Get responses from ALL backends
+result.allResponses.forEach(({ backend, response, latencyMs }) => {
+  console.log(`${backend}: ${response.message.content} (${latencyMs}ms)`);
+});
+```
+
+### Middleware
+
+Add logging, caching, retry logic, and more:
+
+```typescript
+import { createLoggingMiddleware } from 'ai.matey.middleware.logging';
+import { createRetryMiddleware } from 'ai.matey.middleware.retry';
+import { createCachingMiddleware } from 'ai.matey.middleware.caching';
+
+bridge
+  .use(createLoggingMiddleware({ level: 'info' }))
+  .use(createRetryMiddleware({ maxRetries: 3, backoff: 'exponential' }))
+  .use(createCachingMiddleware({ ttl: 3600 }));
+```
+
+### HTTP Server
+
+Serve an OpenAI-compatible API with any backend:
+
+```typescript
+import express from 'express';
+import { createExpressMiddleware } from 'ai.matey.http.express';
+
+const app = express();
+app.use('/v1', createExpressMiddleware({ bridge }));
+app.listen(3000);
+
+// Now clients can use OpenAI SDK pointed at localhost:3000
+```
+
+### React Hooks
+
+```tsx
+import { useChat } from 'ai.matey.react.core';
+
+function ChatComponent() {
+  const { messages, input, handleInputChange, handleSubmit } = useChat({
+    api: '/api/chat',
+  });
+
+  return (
+    <form onSubmit={handleSubmit}>
+      {messages.map((m) => (
+        <div key={m.id}>{m.content}</div>
+      ))}
+      <input value={input} onChange={handleInputChange} />
+    </form>
+  );
+}
+```
+
+### SDK Drop-in Replacement
+
+Use ai.matey as a drop-in replacement for official SDKs:
+
+```typescript
+// Instead of: import OpenAI from 'openai';
+import { OpenAI } from 'ai.matey.wrapper.openai-sdk';
+
+const client = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+  // Add ai.matey features transparently
+});
+
+// Existing OpenAI SDK code works unchanged
+const response = await client.chat.completions.create({
+  model: 'gpt-4',
+  messages: [{ role: 'user', content: 'Hello!' }],
+});
+```
+
+## Documentation
+
+| Document | Description |
+|----------|-------------|
+| [API Reference](./docs/api.md) | Complete API documentation for all components |
+| [Feature Guides](./docs/GUIDES.md) | In-depth guides for parallel dispatch, CLI tools, response conversion |
+| [Roadmap](./docs/ROADMAP.md) | Project roadmap and planned features |
 
 ## Package Reference
 
@@ -146,31 +307,20 @@ Run models locally.
 | [`ai.matey.native.apple`](./packages/native-apple) | Apple MLX (macOS 15+) | [README](./packages/native-apple/README.md) |
 | [`ai.matey.native.model-runner`](./packages/native-model-runner) | Generic model runner | [README](./packages/native-model-runner/README.md) |
 
-## Examples
-
-See the [examples directory](./examples) for comprehensive usage examples:
-
-- [Basic Bridge](./examples/basic) - Simple request/response
-- [HTTP Server](./examples/http) - Express, Fastify, etc.
-- [Middleware](./examples/middleware) - Logging, caching, retry
-- [Routing](./examples/routing) - Multi-backend routing
-- [Monorepo Examples](./examples/monorepo) - Cross-package usage
-
-## Development
+## CLI Tools
 
 ```bash
-# Install dependencies
-npm install
+# Install globally
+npm install -g ai.matey.cli
 
-# Build all packages
-npm run build
+# Start an OpenAI-compatible proxy with any backend
+ai-matey proxy --backend ./my-backend.mjs --port 3000
 
-# Run tests
-npm test
+# Emulate Ollama CLI with any backend
+ai-matey emulate-ollama --backend ./backend.mjs run llama3.1 "Hello!"
 
-# Run demos
-node demo/demo.mjs
-npx tsx demo/router-demo.ts
+# Convert between formats
+ai-matey convert --from openai --to anthropic request.json
 ```
 
 ## Architecture
@@ -204,6 +354,34 @@ npx tsx demo/router-demo.ts
 │                      AI Provider                            │
 │  (OpenAI, Anthropic, Gemini, Ollama, etc.)                  │
 └─────────────────────────────────────────────────────────────┘
+```
+
+## Examples
+
+See the [examples directory](./examples) and [demo directory](./demo) for comprehensive usage:
+
+```bash
+# Run the main demo
+node demo/demo.mjs
+
+# Run the router demo
+npx tsx demo/router-demo.ts
+```
+
+## Development
+
+```bash
+# Install dependencies
+npm install
+
+# Build all packages
+npm run build
+
+# Run tests
+npm test
+
+# Run linter
+npm run lint
 ```
 
 ## License
