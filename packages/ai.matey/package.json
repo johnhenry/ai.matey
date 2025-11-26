@@ -16,26 +16,6 @@
         "types": "./dist/types/index.d.ts",
         "default": "./dist/cjs/index.js"
       }
-    },
-    "./backend/*": {
-      "import": "./node_modules/ai.matey.backend.*/dist/esm/index.js",
-      "require": "./node_modules/ai.matey.backend.*/dist/cjs/index.js"
-    },
-    "./frontend/*": {
-      "import": "./node_modules/ai.matey.frontend.*/dist/esm/index.js",
-      "require": "./node_modules/ai.matey.frontend.*/dist/cjs/index.js"
-    },
-    "./middleware/*": {
-      "import": "./node_modules/ai.matey.middleware.*/dist/esm/index.js",
-      "require": "./node_modules/ai.matey.middleware.*/dist/cjs/index.js"
-    },
-    "./http/*": {
-      "import": "./node_modules/ai.matey.http.*/dist/esm/index.js",
-      "require": "./node_modules/ai.matey.http.*/dist/cjs/index.js"
-    },
-    "./react/*": {
-      "import": "./node_modules/ai.matey.react.*/dist/esm/index.js",
-      "require": "./node_modules/ai.matey.react.*/dist/cjs/index.js"
     }
   },
   "files": [
@@ -56,12 +36,7 @@
     "test": "vitest run",
     "test:watch": "vitest"
   },
-  "dependencies": {
-    "ai.matey.types": "*",
-    "ai.matey.errors": "*",
-    "ai.matey.utils": "*",
-    "ai.matey.core": "*"
-  },
+  "dependencies": {},
   "peerDependencies": {},
   "devDependencies": {
     "typescript": "^5.9.3",
