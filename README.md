@@ -67,22 +67,25 @@ for await (const chunk of stream) {
 Route requests to multiple backends with automatic fallback:
 
 ```typescript
-import { Router, createRouter } from 'ai.matey.core';
+import { Bridge, createRouter } from 'ai.matey.core';
 import { OpenAIFrontendAdapter } from 'ai.matey.frontend.openai';
 import { OpenAIBackendAdapter } from 'ai.matey.backend.openai';
 import { AnthropicBackendAdapter } from 'ai.matey.backend.anthropic';
 
-const router = createRouter(new OpenAIFrontendAdapter(), {
-  backends: [
-    new OpenAIBackendAdapter({ apiKey: process.env.OPENAI_API_KEY }),
-    new AnthropicBackendAdapter({ apiKey: process.env.ANTHROPIC_API_KEY }),
-  ],
-  strategy: 'priority',      // Try backends in order
-  fallbackStrategy: 'next',  // On failure, try next backend
-});
+// Create router and register backends
+const router = createRouter({
+  routingStrategy: 'model-based',
+  fallbackStrategy: 'sequential',
+})
+  .register('openai', new OpenAIBackendAdapter({ apiKey: process.env.OPENAI_API_KEY }))
+  .register('anthropic', new AnthropicBackendAdapter({ apiKey: process.env.ANTHROPIC_API_KEY }))
+  .setFallbackChain(['openai', 'anthropic']);
+
+// Use router as a backend in a Bridge
+const bridge = new Bridge(new OpenAIFrontendAdapter(), router);
 
 // If OpenAI fails, automatically falls back to Anthropic
-const response = await router.chat({
+const response = await bridge.chat({
   model: 'gpt-4',
   messages: [{ role: 'user', content: 'Hello!' }],
 });
@@ -93,13 +96,31 @@ const response = await router.chat({
 Query multiple models simultaneously for comparison or consensus:
 
 ```typescript
+import { createRouter } from 'ai.matey.core';
+import { OpenAIBackendAdapter } from 'ai.matey.backend.openai';
+import { AnthropicBackendAdapter } from 'ai.matey.backend.anthropic';
+import { GeminiBackendAdapter } from 'ai.matey.backend.gemini';
+
+// Create router with multiple backends
+const router = createRouter()
+  .register('openai', new OpenAIBackendAdapter({ apiKey: process.env.OPENAI_API_KEY }))
+  .register('anthropic', new AnthropicBackendAdapter({ apiKey: process.env.ANTHROPIC_API_KEY }))
+  .register('gemini', new GeminiBackendAdapter({ apiKey: process.env.GEMINI_API_KEY }));
+
+// Create IR request
+const request = {
+  messages: [{ role: 'user', content: 'What is 2+2?' }],
+  parameters: { model: 'gpt-4' },
+  metadata: { requestId: crypto.randomUUID(), timestamp: Date.now(), provenance: {} },
+};
+
+// Get responses from ALL backends in parallel
 const result = await router.dispatchParallel(request, {
   strategy: 'all',
   backends: ['openai', 'anthropic', 'gemini'],
 });
 
-// Get responses from ALL backends
-result.allResponses.forEach(({ backend, response, latencyMs }) => {
+result.allResponses?.forEach(({ backend, response, latencyMs }) => {
   console.log(`${backend}: ${response.message.content} (${latencyMs}ms)`);
 });
 ```
@@ -115,7 +136,7 @@ import { createCachingMiddleware } from 'ai.matey.middleware.caching';
 
 bridge
   .use(createLoggingMiddleware({ level: 'info' }))
-  .use(createRetryMiddleware({ maxRetries: 3, backoff: 'exponential' }))
+  .use(createRetryMiddleware({ maxAttempts: 3, backoffMultiplier: 2 }))
   .use(createCachingMiddleware({ ttl: 3600 }));
 ```
 
@@ -125,10 +146,19 @@ Serve an OpenAI-compatible API with any backend:
 
 ```typescript
 import express from 'express';
-import { createExpressMiddleware } from 'ai.matey.http.express';
+import { ExpressMiddleware } from 'ai.matey.http.express';
+import { Bridge } from 'ai.matey.core';
+import { OpenAIFrontendAdapter } from 'ai.matey.frontend.openai';
+import { AnthropicBackendAdapter } from 'ai.matey.backend.anthropic';
+
+const bridge = new Bridge(
+  new OpenAIFrontendAdapter(),
+  new AnthropicBackendAdapter({ apiKey: process.env.ANTHROPIC_API_KEY })
+);
 
 const app = express();
-app.use('/v1', createExpressMiddleware({ bridge }));
+app.use(express.json());
+app.use('/v1/chat/completions', ExpressMiddleware(bridge, { streaming: true }));
 app.listen(3000);
 
 // Now clients can use OpenAI SDK pointed at localhost:3000
@@ -155,24 +185,27 @@ function ChatComponent() {
 }
 ```
 
-### SDK Drop-in Replacement
+### SDK Wrapper
 
-Use ai.matey as a drop-in replacement for official SDKs:
+Use OpenAI SDK-style code with any backend:
 
 ```typescript
-// Instead of: import OpenAI from 'openai';
 import { OpenAI } from 'ai.matey.wrapper.openai-sdk';
+import { AnthropicBackendAdapter } from 'ai.matey.backend.anthropic';
 
-const client = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-  // Add ai.matey features transparently
-});
+// Create a backend adapter
+const backend = new AnthropicBackendAdapter({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-// Existing OpenAI SDK code works unchanged
+// Wrap it with OpenAI SDK interface
+const client = OpenAI(backend);
+
+// Use familiar OpenAI SDK patterns - works with any backend!
 const response = await client.chat.completions.create({
-  model: 'gpt-4',
+  model: 'claude-3-5-sonnet',
   messages: [{ role: 'user', content: 'Hello!' }],
 });
+
+console.log(response.choices[0].message.content);
 ```
 
 ## Documentation
