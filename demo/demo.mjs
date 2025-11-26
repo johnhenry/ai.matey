@@ -24,41 +24,54 @@
 
 import demo from 'node:test';
 import { Readable } from 'stream';
+
+// Import from monorepo packages
+import { Bridge, createRouter } from 'ai.matey.core';
+import { AnthropicFrontendAdapter } from 'ai.matey.frontend.anthropic';
+import { OpenAIBackendAdapter } from 'ai.matey.backend.openai';
+import { AnthropicBackendAdapter } from 'ai.matey.backend.anthropic';
+import { GeminiBackendAdapter } from 'ai.matey.backend.gemini';
+import { OllamaBackendAdapter } from 'ai.matey.backend.ollama';
+import { MistralBackendAdapter } from 'ai.matey.backend.mistral';
+import { DeepSeekBackendAdapter } from 'ai.matey.backend.deepseek';
+import { GroqBackendAdapter } from 'ai.matey.backend.groq';
+import { HuggingFaceBackendAdapter } from 'ai.matey.backend.huggingface';
+import { LMStudioBackendAdapter } from 'ai.matey.backend.lmstudio';
+import { NVIDIABackendAdapter } from 'ai.matey.backend.nvidia';
+import { MockBackendAdapter, createEchoBackend } from 'ai.matey.backend.mock';
+import { NodeHTTPListener } from 'ai.matey.http.node';
+
+// SDK Wrappers - each in their own package
+import { OpenAI } from 'ai.matey.wrapper.openai-sdk';
+import { Anthropic } from 'ai.matey.wrapper.anthropic-sdk';
+import { ChromeAILanguageModel } from 'ai.matey.wrapper.chrome-ai';
+
+// Conversion utilities - from CLI package
 import {
-  OpenAIBackendAdapter,
-  AnthropicBackendAdapter,
-  GeminiBackendAdapter,
-  OllamaBackendAdapter,
-  MistralBackendAdapter,
-  DeepSeekBackendAdapter,
-  GroqBackendAdapter,
-  HuggingFaceBackendAdapter,
-  LMStudioBackendAdapter,
-  NVIDIABackendAdapter,
-  createEchoBackend,
-  OpenAI,
-  Anthropic,
-  ChromeAILanguageModel,
-  createRouter,
-  Bridge,
-  AnthropicFrontendAdapter,
-  // Request converters
   toOpenAIRequest,
   toAnthropicRequest,
   toGeminiRequest,
   toMultipleRequestFormats,
-  // Response converters
   toOpenAI,
   toAnthropic,
   toGemini,
   toMultipleFormats,
-} from '../dist/esm/index.js';
+} from 'ai.matey.cli';
 
-// Import HTTP listener separately
-import { NodeHTTPListener } from '../dist/esm/http/index.js';
-
-// Import native backends (Node.js only)
-import { NodeLlamaCppBackend, AppleBackend } from '../dist/esm/adapters/backend-native/index.js';
+// Import native backends (Node.js only) - optional, may not be available
+let NodeLlamaCppBackend, AppleBackend;
+try {
+  const nativeModule = await import('ai.matey.native.node-llamacpp');
+  NodeLlamaCppBackend = nativeModule.NodeLlamaCppBackend;
+} catch {
+  // Node-llama-cpp not available
+}
+try {
+  const appleModule = await import('ai.matey.native.apple');
+  AppleBackend = appleModule.AppleBackend;
+} catch {
+  // Apple backend not available
+}
 
 // ============================================================================
 // PART 0: Setup & Configuration
