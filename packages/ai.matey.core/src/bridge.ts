@@ -58,6 +58,7 @@ export class Bridge<TFrontend extends FrontendAdapter = FrontendAdapter>
   private _failedRequests = 0;
   private _streamingRequests = 0;
   private _latencies: number[] = [];
+  private static readonly MAX_LATENCY_SAMPLES = 1000; // Prevent unbounded memory growth
   private _errorCounts: Record<string, number> = {};
   private _statsResetTimestamp = Date.now();
 
@@ -150,7 +151,7 @@ export class Bridge<TFrontend extends FrontendAdapter = FrontendAdapter>
         // Track success
         this._successfulRequests++;
         const durationMs = Date.now() - startTime;
-        this._latencies.push(durationMs);
+        this.recordLatency(durationMs);
 
         // Emit REQUEST_SUCCESS event
         this.emit({
@@ -269,7 +270,7 @@ export class Bridge<TFrontend extends FrontendAdapter = FrontendAdapter>
       // Track success (after stream completes)
       this._successfulRequests++;
       const durationMs = Date.now() - startTime;
-      this._latencies.push(durationMs);
+      this.recordLatency(durationMs);
 
       // Emit STREAM_COMPLETE event
       this.emit({
@@ -671,6 +672,19 @@ export class Bridge<TFrontend extends FrontendAdapter = FrontendAdapter>
           // Ignore listener errors to prevent breaking the chain
         }
       }
+    }
+  }
+
+  /**
+   * Record a latency sample, maintaining a rolling window to prevent unbounded memory growth.
+   *
+   * @param latencyMs Latency in milliseconds
+   */
+  private recordLatency(latencyMs: number): void {
+    this._latencies.push(latencyMs);
+    // Maintain rolling window to prevent memory leak in long-running applications
+    if (this._latencies.length > Bridge.MAX_LATENCY_SAMPLES) {
+      this._latencies.shift();
     }
   }
 

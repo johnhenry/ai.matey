@@ -7,8 +7,27 @@
  */
 
 import type { IncomingMessage } from 'http';
+import { timingSafeEqual } from 'crypto';
 import type { AuthValidator } from './types.js';
 import { extractBearerToken } from './request-parser.js';
+
+/**
+ * Timing-safe string comparison to prevent timing attacks.
+ * Returns false if strings have different lengths (without revealing length via timing).
+ */
+function safeCompare(a: string, b: string): boolean {
+  const bufA = Buffer.from(a);
+  const bufB = Buffer.from(b);
+
+  // If lengths differ, still do a comparison to prevent timing leaks
+  if (bufA.length !== bufB.length) {
+    // Compare against itself to maintain constant time
+    timingSafeEqual(bufA, bufA);
+    return false;
+  }
+
+  return timingSafeEqual(bufA, bufB);
+}
 
 /**
  * Default auth validator (always allows)
@@ -33,10 +52,22 @@ export function createBearerTokenValidator(
     }
 
     if (validTokens instanceof Set) {
-      return validTokens.has(token);
+      // Use timing-safe comparison for each token
+      for (const validToken of validTokens) {
+        if (safeCompare(validToken, token)) {
+          return true;
+        }
+      }
+      return false;
     }
 
-    return validTokens.includes(token);
+    // Use timing-safe comparison for array
+    for (const validToken of validTokens) {
+      if (safeCompare(validToken, token)) {
+        return true;
+      }
+    }
+    return false;
   };
 }
 
@@ -58,10 +89,22 @@ export function createAPIKeyValidator(
     }
 
     if (validKeys instanceof Set) {
-      return validKeys.has(apiKey);
+      // Use timing-safe comparison for each key
+      for (const validKey of validKeys) {
+        if (safeCompare(validKey, apiKey)) {
+          return true;
+        }
+      }
+      return false;
     }
 
-    return validKeys.includes(apiKey);
+    // Use timing-safe comparison for array
+    for (const validKey of validKeys) {
+      if (safeCompare(validKey, apiKey)) {
+        return true;
+      }
+    }
+    return false;
   };
 }
 
@@ -91,7 +134,11 @@ export function createBasicAuthValidator(
         return await credentials(username, password);
       }
 
-      return credentials.get(username) === password;
+      const storedPassword = credentials.get(username);
+      if (!storedPassword) {
+        return false;
+      }
+      return safeCompare(storedPassword, password);
     } catch {
       return false;
     }
