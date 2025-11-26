@@ -176,11 +176,21 @@ export interface MiddlewareWithMetadata {
 // ============================================================================
 
 /**
+ * Logger interface for logging middleware.
+ */
+export interface LoggingLogger {
+  debug(message: string, data?: unknown): void;
+  info(message: string, data?: unknown): void;
+  warn(message: string, data?: unknown): void;
+  error(message: string, data?: unknown): void;
+}
+
+/**
  * Configuration for logging middleware.
  */
 export interface LoggingMiddlewareConfig {
   /**
-   * Log level.
+   * Minimum log level.
    * @default 'info'
    */
   level?: 'debug' | 'info' | 'warn' | 'error';
@@ -204,9 +214,21 @@ export interface LoggingMiddlewareConfig {
   logErrors?: boolean;
 
   /**
-   * Custom logger function.
+   * Whether to sanitize sensitive data (API keys, tokens).
+   * @default true
    */
-  logger?: (level: string, message: string, data?: unknown) => void;
+  sanitize?: boolean;
+
+  /**
+   * Custom logger implementation.
+   * @default console
+   */
+  logger?: LoggingLogger;
+
+  /**
+   * Custom log prefix.
+   */
+  prefix?: string;
 }
 
 /**
