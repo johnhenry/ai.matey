@@ -19,9 +19,8 @@ import { OpenAIFrontendAdapter } from 'ai.matey.frontend.openai';
 
 // Create the backend adapter
 const backend = new OpenAIBackendAdapter({
-  apiKey: process.env._A_P_I_K_E_Y,
-  baseUrl: process.env._B_A_S_E_U_R_L,
-  organization: process.env._O_R_G_A_N_I_Z_A_T_I_O_N,
+  apiKey: process.env.OPENAI_API_KEY!,
+  baseURL: process.env.OPENAI_BASE_URL,  // Optional
 });
 
 // Create a bridge

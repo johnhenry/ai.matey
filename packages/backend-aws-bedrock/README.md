@@ -19,8 +19,8 @@ import { OpenAIFrontendAdapter } from 'ai.matey.frontend.openai';
 
 // Create the backend adapter
 const backend = new AWSBedrockBackendAdapter({
-  region: process.env._R_E_G_I_O_N,
-  credentials: process.env._C_R_E_D_E_N_T_I_A_L_S,
+  apiKey: process.env.AWS_ACCESS_KEY_ID!,  // Uses AWS credentials
+  // AWS region and credentials are typically configured via environment or AWS SDK
 });
 
 // Create a bridge

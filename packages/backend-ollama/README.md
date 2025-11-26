@@ -19,8 +19,7 @@ import { OpenAIFrontendAdapter } from 'ai.matey.frontend.openai';
 
 // Create the backend adapter
 const backend = new OllamaBackendAdapter({
-  baseUrl: process.env._B_A_S_E_U_R_L,
-  model: process.env._M_O_D_E_L,
+  baseURL: 'http://localhost:11434',  // Default Ollama server
 });
 
 // Create a bridge

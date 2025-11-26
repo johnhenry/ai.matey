@@ -19,8 +19,8 @@ import { OpenAIFrontendAdapter } from 'ai.matey.frontend.openai';
 
 // Create the backend adapter
 const backend = new CloudflareBackendAdapter({
-  accountId: process.env._A_C_C_O_U_N_T_I_D,
-  apiToken: process.env._A_P_I_T_O_K_E_N,
+  apiKey: process.env.CLOUDFLARE_API_TOKEN!,
+  // accountId is typically configured via baseURL
 });
 
 // Create a bridge

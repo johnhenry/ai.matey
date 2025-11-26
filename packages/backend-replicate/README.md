@@ -19,7 +19,7 @@ import { OpenAIFrontendAdapter } from 'ai.matey.frontend.openai';
 
 // Create the backend adapter
 const backend = new ReplicateBackendAdapter({
-  apiToken: process.env._A_P_I_T_O_K_E_N,
+  apiKey: process.env.REPLICATE_API_TOKEN!,
 });
 
 // Create a bridge

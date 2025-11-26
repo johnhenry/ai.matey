@@ -19,7 +19,7 @@ import { OpenAIFrontendAdapter } from 'ai.matey.frontend.openai';
 
 // Create the backend adapter
 const backend = new LMStudioBackendAdapter({
-  baseUrl: process.env._B_A_S_E_U_R_L,
+  baseURL: 'http://localhost:1234/v1',  // Default LM Studio local server
 });
 
 // Create a bridge

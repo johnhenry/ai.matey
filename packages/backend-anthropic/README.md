@@ -19,8 +19,8 @@ import { OpenAIFrontendAdapter } from 'ai.matey.frontend.openai';
 
 // Create the backend adapter
 const backend = new AnthropicBackendAdapter({
-  apiKey: process.env._A_P_I_K_E_Y,
-  baseUrl: process.env._B_A_S_E_U_R_L,
+  apiKey: process.env.ANTHROPIC_API_KEY!,
+  baseURL: process.env.ANTHROPIC_BASE_URL,  // Optional
 });
 
 // Create a bridge

@@ -17,11 +17,9 @@ import { MockBackendAdapter } from 'ai.matey.backend.mock';
 import { Bridge } from 'ai.matey.core';
 import { OpenAIFrontendAdapter } from 'ai.matey.frontend.openai';
 
-// Create the backend adapter
+// Create the backend adapter for testing
 const backend = new MockBackendAdapter({
-  defaultResponse: process.env._D_E_F_A_U_L_T_R_E_S_P_O_N_S_E,
-  modelResponses: process.env._M_O_D_E_L_R_E_S_P_O_N_S_E_S,
-  responseGenerator: process.env._R_E_S_P_O_N_S_E_G_E_N_E_R_A_T_O_R,
+  apiKey: 'mock-api-key',  // Any value works for mock
 });
 
 // Create a bridge

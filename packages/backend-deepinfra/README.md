@@ -19,7 +19,7 @@ import { OpenAIFrontendAdapter } from 'ai.matey.frontend.openai';
 
 // Create the backend adapter
 const backend = new DeepInfraBackendAdapter({
-  apiKey: process.env._A_P_I_K_E_Y,
+  apiKey: process.env.DEEPINFRA_API_KEY!,
 });
 
 // Create a bridge

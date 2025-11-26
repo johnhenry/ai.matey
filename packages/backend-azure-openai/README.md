@@ -19,10 +19,8 @@ import { OpenAIFrontendAdapter } from 'ai.matey.frontend.openai';
 
 // Create the backend adapter
 const backend = new AzureOpenAIBackendAdapter({
-  apiKey: process.env._A_P_I_K_E_Y,
-  endpoint: process.env._E_N_D_P_O_I_N_T,
-  deploymentName: process.env._D_E_P_L_O_Y_M_E_N_T_N_A_M_E,
-  apiVersion: process.env._A_P_I_V_E_R_S_I_O_N,
+  apiKey: process.env.AZURE_OPENAI_API_KEY!,
+  baseURL: `https://${process.env.AZURE_OPENAI_ENDPOINT}.openai.azure.com/openai/deployments/${process.env.AZURE_OPENAI_DEPLOYMENT}`,
 });
 
 // Create a bridge

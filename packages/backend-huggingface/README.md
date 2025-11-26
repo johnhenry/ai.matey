@@ -19,8 +19,7 @@ import { OpenAIFrontendAdapter } from 'ai.matey.frontend.openai';
 
 // Create the backend adapter
 const backend = new HuggingFaceBackendAdapter({
-  apiKey: process.env._A_P_I_K_E_Y,
-  model: process.env._M_O_D_E_L,
+  apiKey: process.env.HUGGINGFACE_API_KEY!,
 });
 
 // Create a bridge
