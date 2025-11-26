@@ -10,7 +10,7 @@
 
 // Re-export types (excluding error class types which are re-exported from errors)
 export {
-  // IR types
+  // IR types - Core
   type IRChatRequest,
   type IRChatResponse,
   type IRChatStream,
@@ -18,15 +18,35 @@ export {
   type IRMetadata,
   type IRParameters,
   type IRStreamChunk,
-  type StreamContentChunk,
-  type StreamDoneChunk,
-  type StreamErrorChunk,
   type MessageContent,
   type MessageRole,
   type TextContent,
   type ImageContent,
   type ToolUseContent,
   type ToolResultContent,
+  // IR types - Tools
+  type IRTool,
+  type JSONSchema,
+  type JSONSchemaType,
+  // IR types - Capabilities
+  type IRCapabilities,
+  type SystemMessageStrategy,
+  // IR types - Metadata & Warnings
+  type IRWarning,
+  type IRProvenance,
+  type IRUsage,
+  type WarningSeverity,
+  type WarningCategory,
+  type FinishReason,
+  // IR types - Streaming chunks
+  type StreamChunkType,
+  type BaseStreamChunk,
+  type StreamStartChunk,
+  type StreamContentChunk,
+  type StreamToolUseChunk,
+  type StreamMetadataChunk,
+  type StreamDoneChunk,
+  type StreamErrorChunk,
   // Adapter types
   type FrontendAdapter,
   type BackendAdapter,
@@ -42,6 +62,16 @@ export {
   // Bridge types (interface only, implementation from core)
   type BridgeConfig,
   type RequestOptions,
+  type BridgeEvent,
+  type BridgeEventData,
+  type BridgeEventListener,
+  type BridgeStats,
+  type BridgeBuilder,
+  type RequestEvent,
+  type StreamEvent,
+  type BackendEvent,
+  type MiddlewareEvent,
+  BridgeEventType,
   // Router types (interface only, implementation from core)
   type RouterConfig,
   type RoutingStrategy,

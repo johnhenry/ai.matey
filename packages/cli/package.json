@@ -6,9 +6,6 @@
   "main": "./dist/cjs/index.js",
   "module": "./dist/esm/index.js",
   "types": "./dist/types/index.d.ts",
-  "bin": {
-    "ai-matey": "./dist/esm/main.js"
-  },
   "exports": {
     ".": {
       "import": {
@@ -21,7 +18,15 @@
       }
     }
   },
-  "files": ["dist", "README.md", "CHANGELOG.md", "LICENSE"],
+  "bin": {
+    "ai-matey": "./dist/esm/main.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
   "scripts": {
     "build": "npm run build:esm && npm run build:cjs && npm run build:types",
     "build:esm": "tsc -p tsconfig.esm.json",
@@ -52,13 +57,27 @@
     "typescript": "^5.9.3",
     "vitest": "^3.2.4"
   },
-  "keywords": ["ai", "llm", "cli", "proxy", "ollama", "converter", "ai-matey"],
+  "keywords": [
+    "ai",
+    "llm",
+    "cli",
+    "proxy",
+    "ollama",
+    "converter",
+    "ai-matey"
+  ],
   "author": "AI Matey",
   "license": "MIT",
+  "homepage": "https://github.com/johnhenry/ai.matey#readme",
+  "bugs": {
+    "url": "https://github.com/johnhenry/ai.matey/issues"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/johnhenry/ai.matey.git",
     "directory": "packages/cli"
   },
-  "engines": { "node": ">=18.0.0" }
+  "engines": {
+    "node": ">=18.0.0"
+  }
 }

@@ -18,7 +18,12 @@
       }
     }
   },
-  "files": ["dist", "README.md", "CHANGELOG.md", "LICENSE"],
+  "files": [
+    "dist",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
   "scripts": {
     "build": "npm run build:esm && npm run build:cjs && npm run build:types",
     "build:esm": "tsc -p tsconfig.esm.json",
@@ -42,13 +47,25 @@
     "typescript": "^5.9.3",
     "vitest": "^3.2.4"
   },
-  "keywords": ["ai", "llm", "lmstudio", "adapter", "ai-matey"],
+  "keywords": [
+    "ai",
+    "llm",
+    "lmstudio",
+    "adapter",
+    "ai-matey"
+  ],
   "author": "AI Matey",
   "license": "MIT",
+  "homepage": "https://github.com/johnhenry/ai.matey#readme",
+  "bugs": {
+    "url": "https://github.com/johnhenry/ai.matey/issues"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/johnhenry/ai.matey.git",
     "directory": "packages/backend-lmstudio"
   },
-  "engines": { "node": ">=18.0.0" }
+  "engines": {
+    "node": ">=18.0.0"
+  }
 }
