@@ -39,7 +39,8 @@
   "dependencies": {
     "ai.matey.types": "*",
     "ai.matey.errors": "*",
-    "ai.matey.utils": "*"
+    "ai.matey.utils": "*",
+    "ai.matey.backend.shared": "*"
   },
   "devDependencies": {
     "ai.matey.testing": "*",

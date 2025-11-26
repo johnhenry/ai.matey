@@ -1,7 +1,7 @@
 {
-  "name": "ai.matey.backend.anthropic",
+  "name": "ai.matey.backend.shared",
   "version": "1.0.0",
-  "description": "Anthropic backend adapter for AI Matey",
+  "description": "Shared utilities for AI Matey backend adapters",
   "type": "module",
   "main": "./dist/cjs/index.js",
   "module": "./dist/esm/index.js",
@@ -37,21 +37,17 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "ai.matey.types": "*",
-    "ai.matey.errors": "*",
-    "ai.matey.utils": "*",
-    "ai.matey.backend.shared": "*"
+    "ai.matey.types": "*"
   },
   "devDependencies": {
-    "ai.matey.testing": "*",
     "typescript": "^5.9.3",
     "vitest": "^3.2.4"
   },
   "keywords": [
     "ai",
     "llm",
-    "anthropic",
     "adapter",
+    "utilities",
     "ai-matey"
   ],
   "author": "AI Matey",
@@ -63,7 +59,7 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/johnhenry/ai.matey.git",
-    "directory": "packages/backend-anthropic"
+    "directory": "packages/backend-shared"
   },
   "engines": {
     "node": ">=18.0.0"

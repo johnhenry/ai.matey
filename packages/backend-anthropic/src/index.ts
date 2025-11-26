@@ -35,6 +35,12 @@ import {
   getEffectiveStreamMode,
   mergeStreamingConfig,
 } from 'ai.matey.utils';
+import {
+  estimateTokens,
+  buildStaticResult,
+  applyModelFilter,
+  type ModelCapabilityFilter,
+} from 'ai.matey.backend.shared';
 
 // ============================================================================
 // Anthropic API Types
@@ -508,10 +514,10 @@ export class AnthropicBackendAdapter implements BackendAdapter<AnthropicRequest,
    * Estimate cost for a request (rough heuristic).
    */
   async estimateCost(request: IRChatRequest): Promise<number | null> {
-    // Rough estimation: 4 characters per token
-    const estimatedTokens = this.estimateTokens(request);
+    // Use shared token estimation utility
+    const estimatedInputTokens = estimateTokens(request);
     // Rough cost: $0.015 per 1000 tokens for Claude 3.5 Sonnet
-    return (estimatedTokens / 1000) * 0.015;
+    return (estimatedInputTokens / 1000) * 0.015;
   }
 
   /**
@@ -524,7 +530,7 @@ export class AnthropicBackendAdapter implements BackendAdapter<AnthropicRequest,
   async listModels(options?: ListModelsOptions): Promise<ListModelsResult> {
     // 1. Check static config first
     if (this.config.models) {
-      return this.buildStaticResult(this.config.models);
+      return buildStaticResult(this.config.models, 'anthropic');
     }
 
     // 2. Use default Anthropic models
@@ -536,7 +542,7 @@ export class AnthropicBackendAdapter implements BackendAdapter<AnthropicRequest,
     };
 
     // 3. Apply filter if requested
-    return this.applyModelFilter(result, options?.filter);
+    return applyModelFilter(result, options?.filter as ModelCapabilityFilter);
   }
 
   // ==========================================================================
@@ -821,102 +827,5 @@ export class AnthropicBackendAdapter implements BackendAdapter<AnthropicRequest,
 
     // Merge with custom headers (custom headers can override)
     return { ...headers, ...this.config.headers };
-  }
-
-  /**
-   * Estimate token count for a request (rough heuristic).
-   */
-  private estimateTokens(request: IRChatRequest): number {
-    let totalChars = 0;
-
-    for (const message of request.messages) {
-      if (typeof message.content === 'string') {
-        totalChars += message.content.length;
-      } else {
-        for (const block of message.content) {
-          if (block.type === 'text') {
-            totalChars += block.text.length;
-          }
-        }
-      }
-    }
-
-    // Rough estimate: 4 characters per token
-    return Math.ceil(totalChars / 4);
-  }
-
-  /**
-   * Build model list result from static configuration.
-   */
-  private buildStaticResult(models: readonly (string | AIModel)[]): ListModelsResult {
-    const normalizedModels: AIModel[] = models.map((model) => {
-      if (typeof model === 'string') {
-        // Convert string ID to AIModel
-        return {
-          id: model,
-          name: model,
-          ownedBy: 'anthropic',
-        };
-      }
-      return model;
-    });
-
-    return {
-      models: normalizedModels,
-      source: 'static',
-      fetchedAt: Date.now(),
-      isComplete: true,
-    };
-  }
-
-  /**
-   * Apply capability filter to model list result.
-   */
-  private applyModelFilter(
-    result: ListModelsResult,
-    filter?: {
-      readonly supportsStreaming?: boolean;
-      readonly supportsVision?: boolean;
-      readonly supportsTools?: boolean;
-      readonly supportsJSON?: boolean;
-    }
-  ): ListModelsResult {
-    if (!filter) {
-      return result;
-    }
-
-    const filteredModels = result.models.filter((model) => {
-      const capabilities = model.capabilities;
-
-      // If no capabilities info, can't filter
-      if (!capabilities) {
-        return true;
-      }
-
-      // Check each filter criterion
-      if (filter.supportsStreaming !== undefined && capabilities.supportsStreaming !== filter.supportsStreaming) {
-        return false;
-      }
-
-      if (filter.supportsVision !== undefined && capabilities.supportsVision !== filter.supportsVision) {
-        return false;
-      }
-
-      if (filter.supportsTools !== undefined && capabilities.supportsTools !== filter.supportsTools) {
-        return false;
-      }
-
-      if (filter.supportsJSON !== undefined && capabilities.supportsJSON !== filter.supportsJSON) {
-        return false;
-      }
-
-      return true;
-    });
-
-    return {
-      ...result,
-      models: filteredModels,
-      isComplete: result.isComplete && filteredModels.length === result.models.length,
-    };
   }
 }

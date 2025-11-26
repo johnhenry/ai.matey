@@ -35,6 +35,12 @@ import {
   getEffectiveStreamMode,
   mergeStreamingConfig,
 } from 'ai.matey.utils';
+import {
+  estimateTokens,
+  buildStaticResult,
+  applyModelFilter,
+  type ModelCapabilityFilter,
+} from 'ai.matey.backend.shared';
 
 // ============================================================================
 // OpenAI API Types
@@ -485,10 +491,10 @@ export class OpenAIBackendAdapter implements BackendAdapter<OpenAIRequest, OpenA
    * Estimate cost for a request (rough heuristic).
    */
   async estimateCost(request: IRChatRequest): Promise<number | null> {
-    // Rough estimation: 4 characters per token
-    const estimatedTokens = this.estimateTokens(request);
+    // Use shared token estimation utility
+    const estimatedInputTokens = estimateTokens(request);
     // Rough cost: $0.01 per 1000 tokens (varies by model)
-    return (estimatedTokens / 1000) * 0.01;
+    return (estimatedInputTokens / 1000) * 0.01;
   }
 
   /**
@@ -503,14 +509,14 @@ export class OpenAIBackendAdapter implements BackendAdapter<OpenAIRequest, OpenA
     try {
       // 1. Check static config override first
       if (this.config.models && !options?.forceRefresh) {
-        return this.buildStaticResult(this.config.models);
+        return buildStaticResult(this.config.models, 'openai');
       }
 
       // 2. Check cache
       if (this.config.cacheModels !== false && !options?.forceRefresh) {
         const cached = this.modelCache.get(this.metadata.name);
         if (cached) {
-          return this.applyModelFilter(cached, options?.filter);
+          return applyModelFilter(cached, options?.filter as ModelCapabilityFilter);
         }
       }
 
@@ -553,7 +559,7 @@ export class OpenAIBackendAdapter implements BackendAdapter<OpenAIRequest, OpenA
       }
 
       // 7. Apply filter if requested
-      return this.applyModelFilter(result, options?.filter);
+      return applyModelFilter(result, options?.filter as ModelCapabilityFilter);
     } catch (error) {
       // If we have a cached result, return it as fallback
       if (!options?.forceRefresh) {
@@ -826,52 +832,6 @@ export class OpenAIBackendAdapter implements BackendAdapter<OpenAIRequest, OpenA
   }
 
   /**
-   * Estimate token count for a request (rough heuristic).
-   */
-  private estimateTokens(request: IRChatRequest): number {
-    let totalChars = 0;
-
-    for (const message of request.messages) {
-      if (typeof message.content === 'string') {
-        totalChars += message.content.length;
-      } else {
-        for (const block of message.content) {
-          if (block.type === 'text') {
-            totalChars += block.text.length;
-          }
-        }
-      }
-    }
-
-    // Rough estimate: 4 characters per token
-    return Math.ceil(totalChars / 4);
-  }
-
-  /**
-   * Build model list result from static configuration.
-   */
-  private buildStaticResult(models: readonly (string | AIModel)[]): ListModelsResult {
-    const normalizedModels: AIModel[] = models.map((model) => {
-      if (typeof model === 'string') {
-        // Convert string ID to AIModel
-        return {
-          id: model,
-          name: model,
-          ownedBy: 'openai',
-        };
-      }
-      return model;
-    });
-
-    return {
-      models: normalizedModels,
-      source: 'static',
-      fetchedAt: Date.now(),
-      isComplete: true,
-    };
-  }
-
-  /**
    * Transform OpenAI model object to AIModel.
    */
   private transformOpenAIModel(model: OpenAIModel): AIModel {
@@ -882,57 +842,6 @@ export class OpenAIBackendAdapter implements BackendAdapter<OpenAIRequest, OpenA
       ownedBy: model.owned_by,
       // Note: OpenAI /models endpoint doesn't include capability info
       // This would need to be enriched from a static mapping if needed
-    };
-  }
-
-  /**
-   * Apply capability filter to model list result.
-   */
-  private applyModelFilter(
-    result: ListModelsResult,
-    filter?: {
-      readonly supportsStreaming?: boolean;
-      readonly supportsVision?: boolean;
-      readonly supportsTools?: boolean;
-      readonly supportsJSON?: boolean;
-    }
-  ): ListModelsResult {
-    if (!filter) {
-      return result;
-    }
-
-    const filteredModels = result.models.filter((model) => {
-      const capabilities = model.capabilities;
-
-      // If no capabilities info, can't filter
-      if (!capabilities) {
-        return true;
-      }
-
-      // Check each filter criterion
-      if (filter.supportsStreaming !== undefined && capabilities.supportsStreaming !== filter.supportsStreaming) {
-        return false;
-      }
-
-      if (filter.supportsVision !== undefined && capabilities.supportsVision !== filter.supportsVision) {
-        return false;
-      }
-
-      if (filter.supportsTools !== undefined && capabilities.supportsTools !== filter.supportsTools) {
-        return false;
-      }
-
-      if (filter.supportsJSON !== undefined && capabilities.supportsJSON !== filter.supportsJSON) {
-        return false;
-      }
-
-      return true;
-    });
-
-    return {
-      ...result,
-      models: filteredModels,
-      isComplete: result.isComplete && filteredModels.length === result.models.length,
     };
   }
 }
