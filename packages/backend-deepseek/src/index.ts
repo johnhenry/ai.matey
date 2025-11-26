@@ -56,10 +56,8 @@ export class DeepSeekBackendAdapter extends OpenAIBackendAdapter {
       baseURL: config.baseURL || 'https://api.deepseek.com/v1',
     };
 
-    super(deepseekConfig);
-
-    // Override metadata with DeepSeek-specific info
-    (this.metadata as any) = {
+    // Pass DeepSeek-specific metadata to parent constructor
+    super(deepseekConfig, {
       name: 'deepseek-backend',
       version: '1.0.0',
       provider: 'DeepSeek',
@@ -81,7 +79,7 @@ export class DeepSeekBackendAdapter extends OpenAIBackendAdapter {
       config: {
         baseURL: deepseekConfig.baseURL,
       },
-    };
+    });
   }
 
   /**
@@ -89,15 +87,12 @@ export class DeepSeekBackendAdapter extends OpenAIBackendAdapter {
    */
   async healthCheck(): Promise<boolean> {
     try {
-      const baseURL = (this.metadata.config as { baseURL: string }).baseURL;
-      const config = (this as unknown as { config: BackendAdapterConfig }).config;
-
-      const response = await fetch(`${baseURL}/models`, {
+      const response = await fetch(`${this.baseURL}/models`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${config.apiKey}`,
-          ...config.headers,
+          'Authorization': `Bearer ${this.config.apiKey}`,
+          ...this.config.headers,
         },
         signal: AbortSignal.timeout(5000),
       });

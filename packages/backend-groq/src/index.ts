@@ -63,10 +63,8 @@ export class GroqBackendAdapter extends OpenAIBackendAdapter {
       baseURL: config.baseURL || 'https://api.groq.com/openai/v1',
     };
 
-    super(groqConfig);
-
-    // Override metadata with Groq-specific info
-    (this.metadata as any) = {
+    // Pass Groq-specific metadata to parent constructor
+    super(groqConfig, {
       name: 'groq-backend',
       version: '1.0.0',
       provider: 'Groq',
@@ -88,7 +86,7 @@ export class GroqBackendAdapter extends OpenAIBackendAdapter {
       config: {
         baseURL: groqConfig.baseURL,
       },
-    };
+    });
   }
 
   /**
@@ -96,15 +94,12 @@ export class GroqBackendAdapter extends OpenAIBackendAdapter {
    */
   async healthCheck(): Promise<boolean> {
     try {
-      const baseURL = (this.metadata.config as { baseURL: string }).baseURL;
-      const config = (this as unknown as { config: BackendAdapterConfig }).config;
-
-      const response = await fetch(`${baseURL}/models`, {
+      const response = await fetch(`${this.baseURL}/models`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${config.apiKey}`,
-          ...config.headers,
+          'Authorization': `Bearer ${this.config.apiKey}`,
+          ...this.config.headers,
         },
         signal: AbortSignal.timeout(5000),
       });

@@ -65,10 +65,8 @@ export class LMStudioBackendAdapter extends OpenAIBackendAdapter {
       apiKey: config.apiKey || 'not-needed',
     };
 
-    super(lmstudioConfig);
-
-    // Override metadata with LM Studio-specific info
-    (this.metadata as any) = {
+    // Pass LM Studio-specific metadata to parent constructor
+    super(lmstudioConfig, {
       name: 'lmstudio-backend',
       version: '1.0.0',
       provider: 'LM Studio',
@@ -90,7 +88,7 @@ export class LMStudioBackendAdapter extends OpenAIBackendAdapter {
       config: {
         baseURL: lmstudioConfig.baseURL,
       },
-    };
+    });
   }
 
   /**
@@ -98,10 +96,8 @@ export class LMStudioBackendAdapter extends OpenAIBackendAdapter {
    */
   async healthCheck(): Promise<boolean> {
     try {
-      const baseURL = (this.metadata.config as { baseURL: string }).baseURL;
-
       // LM Studio doesn't require auth for local requests
-      const response = await fetch(`${baseURL}/models`, {
+      const response = await fetch(`${this.baseURL}/models`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',

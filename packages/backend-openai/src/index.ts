@@ -159,15 +159,23 @@ export interface OpenAIModelsResponse {
  */
 export class OpenAIBackendAdapter implements BackendAdapter<OpenAIRequest, OpenAIResponse> {
   readonly metadata: AdapterMetadata;
-  private readonly config: BackendAdapterConfig;
-  private readonly baseURL: string;
+  protected readonly config: BackendAdapterConfig;
+  protected readonly baseURL: string;
   private readonly modelCache: ReturnType<typeof getModelCache>;
 
-  constructor(config: BackendAdapterConfig) {
+  /**
+   * Create a new OpenAI backend adapter.
+   *
+   * @param config Backend adapter configuration
+   * @param metadataOverride Optional metadata to override defaults (used by subclasses)
+   */
+  constructor(config: BackendAdapterConfig, metadataOverride?: Partial<AdapterMetadata>) {
     this.config = config;
     this.baseURL = config.baseURL || 'https://api.openai.com/v1';
     this.modelCache = getModelCache(config.modelsCacheScope || 'global');
-    this.metadata = {
+
+    // Default OpenAI metadata
+    const defaultMetadata: AdapterMetadata = {
       name: 'openai-backend',
       version: '1.0.0',
       provider: 'OpenAI',
@@ -190,6 +198,22 @@ export class OpenAIBackendAdapter implements BackendAdapter<OpenAIRequest, OpenA
         baseURL: this.baseURL,
       },
     };
+
+    // Apply metadata overrides if provided (for subclasses)
+    this.metadata = metadataOverride
+      ? {
+          ...defaultMetadata,
+          ...metadataOverride,
+          capabilities: {
+            ...defaultMetadata.capabilities,
+            ...metadataOverride.capabilities,
+          },
+          config: {
+            ...defaultMetadata.config,
+            ...metadataOverride.config,
+          },
+        }
+      : defaultMetadata;
   }
 
   /**
