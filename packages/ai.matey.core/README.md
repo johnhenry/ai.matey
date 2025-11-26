@@ -1,6 +1,6 @@
 # ai.matey.core
 
-Core components for AI Matey - Universal AI Adapter System
+Core Bridge, Router, and MiddlewareStack implementations
 
 Part of the [ai.matey](https://github.com/johnhenry/ai.matey) monorepo.
 
@@ -10,29 +10,25 @@ Part of the [ai.matey](https://github.com/johnhenry/ai.matey) monorepo.
 npm install ai.matey.core
 ```
 
+## Exports
+
+- `Bridge`
+- `createBridge`
+- `Router`
+- `createRouter`
+- `MiddlewareStack`
+- `createMiddlewareContext`
+
 ## Usage
 
-This is the main umbrella package that re-exports all functionality.
-For better tree-shaking, consider importing from specific packages:
-
 ```typescript
-// Import everything (convenience)
-import { Bridge, OpenAIFrontendAdapter, AnthropicBackendAdapter } from 'ai.matey';
-
-// Or import specific packages (better for bundle size)
-import { Bridge } from 'ai.matey.core';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend.openai';
-import { AnthropicBackendAdapter } from 'ai.matey.backend.anthropic';
+import { Bridge, createBridge, Router, createRouter, MiddlewareStack, createMiddlewareContext } from 'ai.matey.core';
 ```
 
-## Available Packages
+## API Reference
 
-See the [main documentation](https://github.com/johnhenry/ai.matey) for a full list of available packages.
+See the TypeScript definitions for detailed API documentation.
 
 ## License
 
 MIT - see [LICENSE](./LICENSE) for details.
-
-## Contributing
-
-See the [contributing guide](https://github.com/johnhenry/ai.matey/blob/main/CONTRIBUTING.md) in the main repository.

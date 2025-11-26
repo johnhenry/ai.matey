@@ -1,6 +1,6 @@
 # ai.matey.types
 
-Type definitions for AI Matey - Universal AI Adapter System
+TypeScript type definitions for the ai.matey ecosystem
 
 Part of the [ai.matey](https://github.com/johnhenry/ai.matey) monorepo.
 
@@ -10,29 +10,26 @@ Part of the [ai.matey](https://github.com/johnhenry/ai.matey) monorepo.
 npm install ai.matey.types
 ```
 
+## Exports
+
+- `IRChatRequest`
+- `IRChatResponse`
+- `IRMessage`
+- `IRStreamChunk`
+- `FrontendAdapter`
+- `BackendAdapter`
+- `Middleware`
+
 ## Usage
 
-This is the main umbrella package that re-exports all functionality.
-For better tree-shaking, consider importing from specific packages:
-
 ```typescript
-// Import everything (convenience)
-import { Bridge, OpenAIFrontendAdapter, AnthropicBackendAdapter } from 'ai.matey';
-
-// Or import specific packages (better for bundle size)
-import { Bridge } from 'ai.matey.core';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend.openai';
-import { AnthropicBackendAdapter } from 'ai.matey.backend.anthropic';
+import { IRChatRequest, IRChatResponse, IRMessage, IRStreamChunk, FrontendAdapter, BackendAdapter, Middleware } from 'ai.matey.types';
 ```
 
-## Available Packages
+## API Reference
 
-See the [main documentation](https://github.com/johnhenry/ai.matey) for a full list of available packages.
+See the TypeScript definitions for detailed API documentation.
 
 ## License
 
 MIT - see [LICENSE](./LICENSE) for details.
-
-## Contributing
-
-See the [contributing guide](https://github.com/johnhenry/ai.matey/blob/main/CONTRIBUTING.md) in the main repository.

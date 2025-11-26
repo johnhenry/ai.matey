@@ -1,6 +1,6 @@
 # ai.matey.native.model-runner
 
-Model runner base class for AI Matey native backends
+Generic model runner for local models
 
 Part of the [ai.matey](https://github.com/johnhenry/ai.matey) monorepo.
 
@@ -10,14 +10,27 @@ Part of the [ai.matey](https://github.com/johnhenry/ai.matey) monorepo.
 npm install ai.matey.native.model-runner
 ```
 
-## Usage
+## Requirements
 
-See the [documentation](https://github.com/johnhenry/ai.matey/tree/main/docs) for usage examples.
+- Node.js 18+
+
+
+
+## Quick Start
+
+```typescript
+import { ModelRunner } from 'ai.matey.native.model-runner';
+
+const backend = new ModelRunner({
+  // configuration
+});
+```
+
+## Exports
+
+- `ModelRunner`
+- `createModelRunner`
 
 ## License
 
 MIT - see [LICENSE](./LICENSE) for details.
-
-## Contributing
-
-See the [contributing guide](https://github.com/johnhenry/ai.matey/blob/main/CONTRIBUTING.md) in the main repository.

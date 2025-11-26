@@ -1,6 +1,6 @@
 # ai.matey.wrapper.chrome-ai-legacy
 
-Legacy Chrome AI wrapper for AI Matey - use original Chrome AI API
+Legacy Chrome AI API wrapper
 
 Part of the [ai.matey](https://github.com/johnhenry/ai.matey) monorepo.
 
@@ -10,23 +10,57 @@ Part of the [ai.matey](https://github.com/johnhenry/ai.matey) monorepo.
 npm install ai.matey.wrapper.chrome-ai-legacy
 ```
 
-## Usage
+## Quick Start
 
 ```typescript
-import { createCompatibleClient } from 'ai.matey.wrapper.chrome-ai-legacy';
+import { ChromeAILegacyWrapper } from 'ai.matey.wrapper.chrome-ai-legacy';
+import { AnthropicBackendAdapter } from 'ai.matey.backend.anthropic';
 
-// Create a drop-in replacement for the official SDK
-const client = createCompatibleClient({
-  backend: yourBackendAdapter,
-});
+// Create an SDK-compatible client backed by any adapter
+const client = ChromeAILegacyWrapper(
+  new AnthropicBackendAdapter({ apiKey: process.env.ANTHROPIC_API_KEY })
+);
 
 // Use the same API as the official SDK
+const response = await client.chat.completions.create({
+  model: 'gpt-4',
+  messages: [{ role: 'user', content: 'Hello!' }],
+});
+```
+
+## API Reference
+
+### ChromeAILegacyWrapper
+
+Creates an SDK-compatible client wrapper.
+
+```typescript
+ChromeAILegacyWrapper(backend: BackendAdapter, config?: WrapperConfig): Client
+```
+
+## Exports
+
+- `ChromeAILegacyWrapper`
+
+## Use Cases
+
+### Migrate Existing Code
+
+Replace your existing SDK import with ai.matey wrapper:
+
+```typescript
+// Before
+import OpenAI from 'openai';
+const client = new OpenAI({ apiKey: '...' });
+
+// After
+import { ChromeAILegacyWrapper } from 'ai.matey.wrapper.chrome-ai-legacy';
+import { AnthropicBackendAdapter } from 'ai.matey.backend.anthropic';
+const client = ChromeAILegacyWrapper(new AnthropicBackendAdapter({ apiKey: '...' }));
+
+// Same API, different backend!
 ```
 
 ## License
 
 MIT - see [LICENSE](./LICENSE) for details.
-
-## Contributing
-
-See the [contributing guide](https://github.com/johnhenry/ai.matey/blob/main/CONTRIBUTING.md) in the main repository.

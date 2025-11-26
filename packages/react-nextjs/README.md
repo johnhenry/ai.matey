@@ -1,6 +1,6 @@
 # ai.matey.react.nextjs
 
-Next.js integration for AI Matey - App Router, Server Actions, API Routes
+Next.js App Router integration
 
 Part of the [ai.matey](https://github.com/johnhenry/ai.matey) monorepo.
 
@@ -10,18 +10,46 @@ Part of the [ai.matey](https://github.com/johnhenry/ai.matey) monorepo.
 npm install ai.matey.react.nextjs
 ```
 
-## Usage
+## Quick Start
 
 ```typescript
-import { /* hooks or components */ } from 'ai.matey.react.nextjs';
+import { createStreamingResponse } from 'ai.matey.react.nextjs';
+
+function ChatComponent() {
+  const { messages, input, handleSubmit, setInput } = createStreamingResponse({
+    api: '/api/chat',
+  });
+
+  return (
+    <div>
+      {messages.map((m, i) => (
+        <div key={i}>{m.content}</div>
+      ))}
+      <form onSubmit={handleSubmit}>
+        <input value={input} onChange={(e) => setInput(e.target.value)} />
+        <button type="submit">Send</button>
+      </form>
+    </div>
+  );
+}
 ```
 
-See the [React integration guide](https://github.com/johnhenry/ai.matey/tree/main/docs) for detailed usage.
+## Exports
+
+- `createStreamingResponse`
+- `AIProvider`
+
+## API Reference
+
+### createStreamingResponse
+
+See the TypeScript definitions for detailed API documentation.
+
+### AIProvider
+
+See the TypeScript definitions for detailed API documentation.
+
 
 ## License
 
 MIT - see [LICENSE](./LICENSE) for details.
-
-## Contributing
-
-See the [contributing guide](https://github.com/johnhenry/ai.matey/blob/main/CONTRIBUTING.md) in the main repository.

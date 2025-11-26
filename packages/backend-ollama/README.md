@@ -1,6 +1,6 @@
 # ai.matey.backend.ollama
 
-Ollama backend adapter for AI Matey
+Backend adapter for Ollama (local LLM inference)
 
 Part of the [ai.matey](https://github.com/johnhenry/ai.matey) monorepo.
 
@@ -10,41 +10,121 @@ Part of the [ai.matey](https://github.com/johnhenry/ai.matey) monorepo.
 npm install ai.matey.backend.ollama
 ```
 
-## Usage
+## Quick Start
 
 ```typescript
 import { OllamaBackendAdapter } from 'ai.matey.backend.ollama';
 import { Bridge } from 'ai.matey.core';
 import { OpenAIFrontendAdapter } from 'ai.matey.frontend.openai';
 
+// Create the backend adapter
+const backend = new OllamaBackendAdapter({
+  baseUrl: process.env._B_A_S_E_U_R_L,
+  model: process.env._M_O_D_E_L,
+});
+
+// Create a bridge
 const bridge = new Bridge(
   new OpenAIFrontendAdapter(),
-  new OllamaBackendAdapter({
-    apiKey: process.env.API_KEY,
-  })
+  backend
 );
 
+// Make a request
 const response = await bridge.chat({
-  model: 'model-name',
+  model: 'llama3.2',
   messages: [{ role: 'user', content: 'Hello!' }],
+});
+
+console.log(response.choices[0].message.content);
+```
+
+## API Reference
+
+### OllamaBackendAdapter
+
+The main adapter class for Ollama.
+
+#### Constructor
+
+```typescript
+new OllamaBackendAdapter(config: OllamaBackendAdapterConfig)
+```
+
+#### Configuration Options
+
+| Option | Type | Required | Description |
+|--------|------|----------|-------------|
+| `baseUrl` | `string` | No | Custom base URL for API endpoint |
+| `model` | `string` | No | Default model to use |
+
+#### Methods
+
+##### `execute(request: IRChatRequest): Promise<IRChatResponse>`
+
+Execute a chat completion request.
+
+```typescript
+const response = await backend.execute({
+  messages: [{ role: 'user', content: 'Hello!' }],
+  parameters: { model: 'llama3.2' },
+  metadata: { requestId: 'req-123', timestamp: Date.now() },
 });
 ```
 
-## Configuration
+##### `executeStream(request: IRChatRequest): AsyncGenerator<IRStreamChunk>`
 
-| Option | Type | Description |
-|--------|------|-------------|
-| `apiKey` | string | API key for authentication |
-| `baseUrl` | string | Optional custom base URL |
+Execute a streaming chat completion request.
+
+```typescript
+const stream = backend.executeStream({
+  messages: [{ role: 'user', content: 'Tell me a story' }],
+  parameters: { model: 'llama3.2' },
+  metadata: { requestId: 'req-123', timestamp: Date.now() },
+});
+
+for await (const chunk of stream) {
+  if (chunk.type === 'content') {
+    process.stdout.write(chunk.delta);
+  }
+}
+```
+
+##### `listModels(): Promise<ListModelsResult>`
+
+List available models.
+
+```typescript
+const models = await backend.listModels();
+console.log(models.models.map(m => m.id));
+```
 
 ## Supported Models
 
-See the provider's documentation for available models.
+- `llama3.2`
+- `llama3.1`
+- `mistral`
+- `codellama`
+
+## Streaming Support
+
+This adapter supports streaming responses. Use `executeStream()` for real-time token generation.
+
+## Error Handling
+
+```typescript
+import { AuthenticationError, RateLimitError } from 'ai.matey.errors';
+
+try {
+  const response = await backend.execute(request);
+} catch (error) {
+  if (error instanceof AuthenticationError) {
+    console.error('Invalid API key');
+  } else if (error instanceof RateLimitError) {
+    console.error('Rate limited, retry after:', error.retryAfter);
+  }
+}
+```
 
 ## License
 
 MIT - see [LICENSE](./LICENSE) for details.
-
-## Contributing
-
-See the [contributing guide](https://github.com/johnhenry/ai.matey/blob/main/CONTRIBUTING.md) in the main repository.

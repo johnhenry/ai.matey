@@ -1,6 +1,6 @@
 # ai.matey.native.node-llamacpp
 
-node-llamacpp native backend for AI Matey
+Native llama.cpp integration via node-llama-cpp
 
 Part of the [ai.matey](https://github.com/johnhenry/ai.matey) monorepo.
 
@@ -10,14 +10,26 @@ Part of the [ai.matey](https://github.com/johnhenry/ai.matey) monorepo.
 npm install ai.matey.native.node-llamacpp
 ```
 
-## Usage
+## Requirements
 
-See the [documentation](https://github.com/johnhenry/ai.matey/tree/main/docs) for usage examples.
+- Node.js 18+
+
+- GGUF model file
+
+## Quick Start
+
+```typescript
+import { NodeLlamaCppBackend } from 'ai.matey.native.node-llamacpp';
+
+const backend = new NodeLlamaCppBackend({
+  // configuration
+});
+```
+
+## Exports
+
+- `NodeLlamaCppBackend`
 
 ## License
 
 MIT - see [LICENSE](./LICENSE) for details.
-
-## Contributing
-
-See the [contributing guide](https://github.com/johnhenry/ai.matey/blob/main/CONTRIBUTING.md) in the main repository.

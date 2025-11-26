@@ -1,6 +1,6 @@
 # ai.matey.frontend.openai
 
-Openai frontend adapter for AI Matey
+Frontend adapter for OpenAI-compatible request format
 
 Part of the [ai.matey](https://github.com/johnhenry/ai.matey) monorepo.
 
@@ -10,23 +10,67 @@ Part of the [ai.matey](https://github.com/johnhenry/ai.matey) monorepo.
 npm install ai.matey.frontend.openai
 ```
 
-## Usage
+## Quick Start
 
 ```typescript
-import { OpenaiFrontendAdapter } from 'ai.matey.frontend.openai';
+import { OpenAIFrontendAdapter } from 'ai.matey.frontend.openai';
+import { Bridge } from 'ai.matey.core';
+import { OpenAIBackendAdapter } from 'ai.matey.backend.openai';
+
+// Create a bridge that accepts OpenAI format requests
+const bridge = new Bridge(
+  new OpenAIFrontendAdapter(),
+  new OpenAIBackendAdapter({ apiKey: process.env.OPENAI_API_KEY })
+);
+```
+
+## API Reference
+
+### OpenAIFrontendAdapter
+
+Converts incoming requests from OpenAI format to the internal IR format.
+
+#### Constructor
+
+```typescript
+new OpenAIFrontendAdapter()
+```
+
+#### Methods
+
+##### `toIR(request: ProviderRequest): IRChatRequest`
+
+Convert a provider-specific request to the internal IR format.
+
+##### `fromIR(response: IRChatResponse): ProviderResponse`
+
+Convert an IR response back to the provider-specific format.
+
+##### `fromIRStream(chunk: IRStreamChunk): ProviderStreamChunk`
+
+Convert an IR stream chunk to the provider-specific format.
+
+## Use Cases
+
+### Accept OpenAI Format, Use Any Backend
+
+```typescript
+import { OpenAIFrontendAdapter } from 'ai.matey.frontend.openai';
+import { AnthropicBackendAdapter } from 'ai.matey.backend.anthropic';
 import { Bridge } from 'ai.matey.core';
 
-// Create a bridge that accepts Openai format requests
 const bridge = new Bridge(
-  new OpenaiFrontendAdapter(),
-  yourBackendAdapter
+  new OpenAIFrontendAdapter(),
+  new AnthropicBackendAdapter({ apiKey: process.env.ANTHROPIC_API_KEY })
 );
+
+// Client sends OpenAI format, ai.matey translates to Anthropic
+const response = await bridge.chat({
+  model: 'gpt-4',  // Will be mapped to Claude
+  messages: [{ role: 'user', content: 'Hello!' }],
+});
 ```
 
 ## License
 
 MIT - see [LICENSE](./LICENSE) for details.
-
-## Contributing
-
-See the [contributing guide](https://github.com/johnhenry/ai.matey/blob/main/CONTRIBUTING.md) in the main repository.

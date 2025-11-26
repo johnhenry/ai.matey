@@ -1,6 +1,6 @@
 # ai.matey.middleware.security
 
-Security middleware for AI Matey
+Security middleware for rate limiting and access control
 
 Part of the [ai.matey](https://github.com/johnhenry/ai.matey) monorepo.
 
@@ -10,24 +10,61 @@ Part of the [ai.matey](https://github.com/johnhenry/ai.matey) monorepo.
 npm install ai.matey.middleware.security
 ```
 
-## Usage
+## Quick Start
 
 ```typescript
 import { createSecurityMiddleware } from 'ai.matey.middleware.security';
 import { Bridge } from 'ai.matey.core';
+import { OpenAIFrontendAdapter } from 'ai.matey.frontend.openai';
+import { OpenAIBackendAdapter } from 'ai.matey.backend.openai';
 
-const bridge = new Bridge(frontend, backend);
+const bridge = new Bridge(
+  new OpenAIFrontendAdapter(),
+  new OpenAIBackendAdapter({ apiKey: process.env.OPENAI_API_KEY })
+);
 
 // Add middleware
 bridge.use(createSecurityMiddleware({
-  // options
+  rateLimit: /* value */,
+  allowedModels: /* value */,
+  blockedPatterns: /* value */,
 }));
+```
+
+## API Reference
+
+### createSecurityMiddleware
+
+Creates middleware for security middleware for rate limiting and access control.
+
+#### Configuration
+
+```typescript
+createSecurityMiddleware(config?: SecurityMiddlewareConfig): Middleware
+```
+
+| Option | Type | Description |
+|--------|------|-------------|
+| `rateLimit` | `any` | Rate limiting configuration |
+| `allowedModels` | `any` | List of allowed models |
+| `blockedPatterns` | `any` | Patterns to block |
+
+## Exports
+
+- `createSecurityMiddleware`
+
+## Example
+
+```typescript
+import { createSecurityMiddleware } from 'ai.matey.middleware.security';
+
+const middleware = createSecurityMiddleware({
+  // configuration options
+});
+
+bridge.use(middleware);
 ```
 
 ## License
 
 MIT - see [LICENSE](./LICENSE) for details.
-
-## Contributing
-
-See the [contributing guide](https://github.com/johnhenry/ai.matey/blob/main/CONTRIBUTING.md) in the main repository.

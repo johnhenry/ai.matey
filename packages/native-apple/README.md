@@ -1,6 +1,6 @@
 # ai.matey.native.apple
 
-apple native backend for AI Matey
+Native Apple Intelligence integration (macOS 15+)
 
 Part of the [ai.matey](https://github.com/johnhenry/ai.matey) monorepo.
 
@@ -10,14 +10,26 @@ Part of the [ai.matey](https://github.com/johnhenry/ai.matey) monorepo.
 npm install ai.matey.native.apple
 ```
 
-## Usage
+## Requirements
 
-See the [documentation](https://github.com/johnhenry/ai.matey/tree/main/docs) for usage examples.
+- Node.js 18+
+- macOS 15+ (Sequoia)
+
+
+## Quick Start
+
+```typescript
+import { AppleBackend } from 'ai.matey.native.apple';
+
+const backend = new AppleBackend({
+  // configuration
+});
+```
+
+## Exports
+
+- `AppleBackend`
 
 ## License
 
 MIT - see [LICENSE](./LICENSE) for details.
-
-## Contributing
-
-See the [contributing guide](https://github.com/johnhenry/ai.matey/blob/main/CONTRIBUTING.md) in the main repository.

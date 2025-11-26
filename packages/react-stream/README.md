@@ -1,6 +1,6 @@
 # ai.matey.react.stream
 
-React streaming utilities for AI Matey - StreamProvider, StreamContext
+React components for streaming AI responses
 
 Part of the [ai.matey](https://github.com/johnhenry/ai.matey) monorepo.
 
@@ -10,18 +10,51 @@ Part of the [ai.matey](https://github.com/johnhenry/ai.matey) monorepo.
 npm install ai.matey.react.stream
 ```
 
-## Usage
+## Quick Start
 
 ```typescript
-import { /* hooks or components */ } from 'ai.matey.react.stream';
+import { StreamProvider } from 'ai.matey.react.stream';
+
+function ChatComponent() {
+  const { messages, input, handleSubmit, setInput } = StreamProvider({
+    api: '/api/chat',
+  });
+
+  return (
+    <div>
+      {messages.map((m, i) => (
+        <div key={i}>{m.content}</div>
+      ))}
+      <form onSubmit={handleSubmit}>
+        <input value={input} onChange={(e) => setInput(e.target.value)} />
+        <button type="submit">Send</button>
+      </form>
+    </div>
+  );
+}
 ```
 
-See the [React integration guide](https://github.com/johnhenry/ai.matey/tree/main/docs) for detailed usage.
+## Exports
+
+- `StreamProvider`
+- `StreamText`
+- `TypeWriter`
+
+## API Reference
+
+### StreamProvider
+
+See the TypeScript definitions for detailed API documentation.
+
+### StreamText
+
+See the TypeScript definitions for detailed API documentation.
+
+### TypeWriter
+
+See the TypeScript definitions for detailed API documentation.
+
 
 ## License
 
 MIT - see [LICENSE](./LICENSE) for details.
-
-## Contributing
-
-See the [contributing guide](https://github.com/johnhenry/ai.matey/blob/main/CONTRIBUTING.md) in the main repository.

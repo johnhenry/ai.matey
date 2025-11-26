@@ -1,6 +1,6 @@
 # ai.matey.backend.mock
 
-Mock backend adapter for AI Matey
+Mock backend adapter for testing
 
 Part of the [ai.matey](https://github.com/johnhenry/ai.matey) monorepo.
 
@@ -10,41 +10,122 @@ Part of the [ai.matey](https://github.com/johnhenry/ai.matey) monorepo.
 npm install ai.matey.backend.mock
 ```
 
-## Usage
+## Quick Start
 
 ```typescript
 import { MockBackendAdapter } from 'ai.matey.backend.mock';
 import { Bridge } from 'ai.matey.core';
 import { OpenAIFrontendAdapter } from 'ai.matey.frontend.openai';
 
+// Create the backend adapter
+const backend = new MockBackendAdapter({
+  defaultResponse: process.env._D_E_F_A_U_L_T_R_E_S_P_O_N_S_E,
+  modelResponses: process.env._M_O_D_E_L_R_E_S_P_O_N_S_E_S,
+  responseGenerator: process.env._R_E_S_P_O_N_S_E_G_E_N_E_R_A_T_O_R,
+});
+
+// Create a bridge
 const bridge = new Bridge(
   new OpenAIFrontendAdapter(),
-  new MockBackendAdapter({
-    apiKey: process.env.API_KEY,
-  })
+  backend
 );
 
+// Make a request
 const response = await bridge.chat({
-  model: 'model-name',
+  model: 'mock-gpt-4',
   messages: [{ role: 'user', content: 'Hello!' }],
+});
+
+console.log(response.choices[0].message.content);
+```
+
+## API Reference
+
+### MockBackendAdapter
+
+The main adapter class for Mock.
+
+#### Constructor
+
+```typescript
+new MockBackendAdapter(config: MockBackendAdapterConfig)
+```
+
+#### Configuration Options
+
+| Option | Type | Required | Description |
+|--------|------|----------|-------------|
+| `defaultResponse` | `string` | No | defaultResponse configuration |
+| `modelResponses` | `string` | No | modelResponses configuration |
+| `responseGenerator` | `string` | No | responseGenerator configuration |
+
+#### Methods
+
+##### `execute(request: IRChatRequest): Promise<IRChatResponse>`
+
+Execute a chat completion request.
+
+```typescript
+const response = await backend.execute({
+  messages: [{ role: 'user', content: 'Hello!' }],
+  parameters: { model: 'mock-gpt-4' },
+  metadata: { requestId: 'req-123', timestamp: Date.now() },
 });
 ```
 
-## Configuration
+##### `executeStream(request: IRChatRequest): AsyncGenerator<IRStreamChunk>`
 
-| Option | Type | Description |
-|--------|------|-------------|
-| `apiKey` | string | API key for authentication |
-| `baseUrl` | string | Optional custom base URL |
+Execute a streaming chat completion request.
+
+```typescript
+const stream = backend.executeStream({
+  messages: [{ role: 'user', content: 'Tell me a story' }],
+  parameters: { model: 'mock-gpt-4' },
+  metadata: { requestId: 'req-123', timestamp: Date.now() },
+});
+
+for await (const chunk of stream) {
+  if (chunk.type === 'content') {
+    process.stdout.write(chunk.delta);
+  }
+}
+```
+
+##### `listModels(): Promise<ListModelsResult>`
+
+List available models.
+
+```typescript
+const models = await backend.listModels();
+console.log(models.models.map(m => m.id));
+```
 
 ## Supported Models
 
-See the provider's documentation for available models.
+- `mock-gpt-4`
+- `mock-claude-3`
+- `mock-fast`
+
+## Streaming Support
+
+This adapter supports streaming responses. Use `executeStream()` for real-time token generation.
+
+## Error Handling
+
+```typescript
+import { AuthenticationError, RateLimitError } from 'ai.matey.errors';
+
+try {
+  const response = await backend.execute(request);
+} catch (error) {
+  if (error instanceof AuthenticationError) {
+    console.error('Invalid API key');
+  } else if (error instanceof RateLimitError) {
+    console.error('Rate limited, retry after:', error.retryAfter);
+  }
+}
+```
 
 ## License
 
 MIT - see [LICENSE](./LICENSE) for details.
-
-## Contributing
-
-See the [contributing guide](https://github.com/johnhenry/ai.matey/blob/main/CONTRIBUTING.md) in the main repository.

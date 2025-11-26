@@ -1,6 +1,6 @@
 # ai.matey.http.node
 
-Node.js HTTP server adapter for AI Matey
+HTTP integration for Node.js http module
 
 Part of the [ai.matey](https://github.com/johnhenry/ai.matey) monorepo.
 
@@ -10,22 +10,50 @@ Part of the [ai.matey](https://github.com/johnhenry/ai.matey) monorepo.
 npm install ai.matey.http.node
 ```
 
-## Usage
+## Quick Start
 
 ```typescript
-import { createNodeHandler } from 'ai.matey.http.node';
+import { NodeHTTPListener } from 'ai.matey.http.node';
 import { Bridge } from 'ai.matey.core';
+import { OpenAIFrontendAdapter } from 'ai.matey.frontend.openai';
+import { OpenAIBackendAdapter } from 'ai.matey.backend.openai';
 
-const bridge = new Bridge(frontend, backend);
-const handler = createNodeHandler(bridge);
+const bridge = new Bridge(
+  new OpenAIFrontendAdapter(),
+  new OpenAIBackendAdapter({ apiKey: process.env.OPENAI_API_KEY })
+);
 
-// Use with your Node server
+const handler = NodeHTTPListener(bridge, {
+  streaming: true,
+  timeout: 30000,
+});
+
+// Use with your Node.js server
 ```
+
+## API Reference
+
+### NodeHTTPListener
+
+Creates an HTTP handler for Node.js.
+
+```typescript
+NodeHTTPListener(bridge: Bridge, options?: HandlerOptions): Handler
+```
+
+#### Options
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `streaming` | `boolean` | `true` | Enable streaming responses |
+| `timeout` | `number` | `30000` | Request timeout in milliseconds |
+| `cors` | `boolean` | `false` | Enable CORS headers |
+
+## Exports
+
+- `NodeHTTPListener`
+- `createNodeHandler`
 
 ## License
 
 MIT - see [LICENSE](./LICENSE) for details.
-
-## Contributing
-
-See the [contributing guide](https://github.com/johnhenry/ai.matey/blob/main/CONTRIBUTING.md) in the main repository.
