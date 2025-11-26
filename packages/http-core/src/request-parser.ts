@@ -89,6 +89,8 @@ function readBody(req: IncomingMessage, maxSize: number): Promise<string> {
       totalSize += chunk.length;
 
       if (totalSize > maxSize) {
+        // Destroy the stream to stop receiving data and free resources
+        req.destroy();
         reject(new Error(`Request body too large (max ${maxSize} bytes)`));
         return;
       }

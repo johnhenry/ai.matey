@@ -68,13 +68,9 @@ export interface RetryConfig {
  * Default retry condition.
  *
  * Only retry transient errors (network issues, rate limits, server errors).
+ * Note: maxAttempts is enforced by the middleware loop, not this function.
  */
-function defaultShouldRetry(error: unknown, attempt: number): boolean {
-  // Don't retry if we've exhausted attempts
-  if (attempt >= 3) {
-    return false;
-  }
-
+function defaultShouldRetry(error: unknown, _attempt: number): boolean {
   // Check if error has isRetryable property
   if (error && typeof error === 'object' && 'isRetryable' in error) {
     return (error as { isRetryable: boolean }).isRetryable === true;
@@ -276,15 +272,12 @@ export function isServerError(error: unknown): boolean {
 
 /**
  * Create a retry predicate that only retries specific error types.
+ * Note: maxAttempts is enforced by the middleware loop, not this function.
  */
 export function createRetryPredicate(
   errorTypes: Array<'rate_limit' | 'network' | 'server'>
 ): (error: unknown, attempt: number) => boolean {
-  return (error: unknown, attempt: number): boolean => {
-    if (attempt >= 3) {
-      return false;
-    }
-
+  return (error: unknown, _attempt: number): boolean => {
     for (const type of errorTypes) {
       switch (type) {
         case 'rate_limit':

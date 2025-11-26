@@ -71,6 +71,16 @@ export class CoreHTTPHandler {
   }
 
   /**
+   * Dispose of the handler and release resources.
+   * Call this when the handler is no longer needed to prevent memory leaks.
+   */
+  dispose(): void {
+    if (this.rateLimiter) {
+      this.rateLimiter.dispose();
+    }
+  }
+
+  /**
    * Handle HTTP request
    */
   async handle(req: GenericRequest, res: GenericResponse): Promise<void> {
