@@ -25,4 +25,8 @@ export type {
   CompletionRequestOptions,
   UseObjectOptions,
   UseObjectReturn,
+  // Direct mode types
+  DirectBackend,
+  DirectModeOptions,
+  DirectToolCallHandler,
 } from './types.js';

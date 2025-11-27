@@ -35,7 +35,8 @@
   },
   "dependencies": {
     "ai.matey.types": "*",
-    "ai.matey.core": "*"
+    "ai.matey.core": "*",
+    "ai.matey.wrapper.ir": "*"
   },
   "peerDependencies": {
     "react": ">=18.0.0"

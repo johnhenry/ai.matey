@@ -37,7 +37,8 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "ai.matey.types": "*"
+    "ai.matey.types": "*",
+    "ai.matey.frontend.anthropic": "*"
   },
   "devDependencies": {
     "ai.matey.testing": "*",

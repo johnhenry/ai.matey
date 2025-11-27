@@ -2,11 +2,14 @@
  * useChat Hook
  *
  * React hook for building chat interfaces with streaming support.
+ * Supports both HTTP API mode and direct backend mode.
  *
  * @module
  */
 
-import { useState, useCallback, useRef, useId } from 'react';
+import { useState, useCallback, useRef, useId, useEffect } from 'react';
+import { Chat, createChat } from 'ai.matey.wrapper.ir';
+import type { IRMessage } from 'ai.matey.types';
 import type {
   Message,
   UseChatOptions,
@@ -22,12 +25,26 @@ function generateUniqueId(): string {
 }
 
 /**
+ * Convert React Message to IR message format.
+ */
+function messageToIR(message: Message): IRMessage {
+  return {
+    role: message.role,
+    content: message.content,
+  };
+}
+
+/**
  * useChat - React hook for chat interfaces.
  *
  * Provides state management, streaming, and utilities for building
  * chat applications with AI backends.
  *
- * @example
+ * Supports two modes:
+ * 1. HTTP Mode (default): Uses `api` endpoint with fetch
+ * 2. Direct Mode: Uses `direct.backend` for direct backend access
+ *
+ * @example HTTP Mode
  * ```tsx
  * import { useChat } from 'ai.matey.react.core';
  *
@@ -39,9 +56,36 @@ function generateUniqueId(): string {
  *   return (
  *     <div>
  *       {messages.map((m) => (
- *         <div key={m.id}>
- *           {m.role}: {m.content}
- *         </div>
+ *         <div key={m.id}>{m.role}: {m.content}</div>
+ *       ))}
+ *       <form onSubmit={handleSubmit}>
+ *         <input value={input} onChange={handleInputChange} />
+ *         <button type="submit" disabled={isLoading}>Send</button>
+ *       </form>
+ *     </div>
+ *   );
+ * }
+ * ```
+ *
+ * @example Direct Mode
+ * ```tsx
+ * import { useChat } from 'ai.matey.react.core';
+ * import { AnthropicBackend } from 'ai.matey.backend.anthropic';
+ *
+ * const backend = new AnthropicBackend({ apiKey: process.env.ANTHROPIC_API_KEY });
+ *
+ * function ChatComponent() {
+ *   const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat({
+ *     direct: {
+ *       backend,
+ *       systemPrompt: 'You are a helpful assistant.',
+ *     },
+ *   });
+ *
+ *   return (
+ *     <div>
+ *       {messages.map((m) => (
+ *         <div key={m.id}>{m.role}: {m.content}</div>
  *       ))}
  *       <form onSubmit={handleSubmit}>
  *         <input value={input} onChange={handleInputChange} />
@@ -57,19 +101,25 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
     initialMessages = [],
     initialInput = '',
     id,
+    // HTTP mode options
     api = '/api/chat',
     headers = {},
     body = {},
+    streamProtocol = 'data',
+    onResponse,
+    // Direct mode options
+    direct,
+    // Common options
     generateId = generateUniqueId,
     onFinish,
     onError,
-    onResponse,
     keepLastMessageOnError = true,
-    // maxToolRoundtrips for future tool calling support
-    maxToolRoundtrips: _maxToolRoundtrips = 0,
+    maxToolRoundtrips = 0,
     sendExtraMessageFields = false,
-    streamProtocol = 'data',
   } = options;
+
+  // Determine mode
+  const isDirectMode = !!direct;
 
   // Generate a stable ID for this chat instance
   const hookId = useId();
@@ -82,8 +132,28 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
   const [error, setError] = useState<Error | undefined>(undefined);
   const [data, _setData] = useState<unknown[] | undefined>(undefined);
 
-  // Refs for abort control
+  // Refs
   const abortControllerRef = useRef<AbortController | null>(null);
+  const chatRef = useRef<Chat | null>(null);
+
+  // Create Chat instance for direct mode
+  useEffect(() => {
+    if (isDirectMode && direct) {
+      chatRef.current = createChat({
+        backend: direct.backend,
+        systemPrompt: direct.systemPrompt,
+        defaultParameters: direct.defaultParameters,
+        tools: direct.tools,
+        onToolCall: direct.onToolCall,
+        autoExecuteTools: direct.autoExecuteTools,
+        maxToolRounds: direct.maxToolRounds ?? maxToolRoundtrips,
+      });
+    }
+
+    return () => {
+      chatRef.current = null;
+    };
+  }, [isDirectMode, direct, maxToolRoundtrips]);
 
   /**
    * Handle input change from form elements.
@@ -106,9 +176,102 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
   }, []);
 
   /**
-   * Send a chat request and handle streaming response.
+   * Send request in direct mode using wrapper-ir Chat.
    */
-  const sendRequest = useCallback(
+  const sendDirectRequest = useCallback(
+    async (
+      messagesToSend: Message[],
+      _requestOptions?: ChatRequestOptions
+    ): Promise<string | null | undefined> => {
+      const chat = chatRef.current;
+      if (!chat) {
+        throw new Error('Chat instance not initialized');
+      }
+
+      try {
+        setIsLoading(true);
+        setError(undefined);
+
+        // Create abort controller
+        abortControllerRef.current = new AbortController();
+        const { signal } = abortControllerRef.current;
+
+        // Clear chat and restore messages
+        chat.clear();
+        for (const msg of messagesToSend.slice(0, -1)) {
+          chat.addMessage(messageToIR(msg));
+        }
+
+        // Get the last user message content
+        const lastMessage = messagesToSend[messagesToSend.length - 1];
+        if (!lastMessage || lastMessage.role !== 'user') {
+          throw new Error('Last message must be a user message');
+        }
+
+        // Add placeholder assistant message
+        const assistantId = generateId();
+        const assistantMessage: Message = {
+          id: assistantId,
+          role: 'assistant',
+          content: '',
+          createdAt: new Date(),
+        };
+        setMessages((prev) => [...prev, assistantMessage]);
+
+        // Stream the response
+        const response = await chat.stream(lastMessage.content, {
+          signal,
+          onChunk: ({ accumulated }) => {
+            setMessages((prev) =>
+              prev.map((msg) =>
+                msg.id === assistantId
+                  ? { ...msg, content: accumulated }
+                  : msg
+              )
+            );
+          },
+        });
+
+        // Finalize message
+        const finalMessage: Message = {
+          id: assistantId,
+          role: 'assistant',
+          content: response.content,
+          createdAt: new Date(),
+        };
+
+        setMessages((prev) =>
+          prev.map((msg) => (msg.id === assistantId ? finalMessage : msg))
+        );
+
+        onFinish?.(finalMessage);
+        return response.content;
+      } catch (err) {
+        if (err instanceof Error && err.name === 'AbortError') {
+          return null;
+        }
+
+        const error = err instanceof Error ? err : new Error(String(err));
+        setError(error);
+        onError?.(error);
+
+        if (!keepLastMessageOnError) {
+          setMessages((prev) => prev.slice(0, -1));
+        }
+
+        return undefined;
+      } finally {
+        setIsLoading(false);
+        abortControllerRef.current = null;
+      }
+    },
+    [generateId, onFinish, onError, keepLastMessageOnError]
+  );
+
+  /**
+   * Send request in HTTP mode using fetch.
+   */
+  const sendHttpRequest = useCallback(
     async (
       messagesToSend: Message[],
       requestOptions?: ChatRequestOptions
@@ -265,6 +428,21 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
       sendExtraMessageFields,
       streamProtocol,
     ]
+  );
+
+  /**
+   * Send request using the appropriate mode.
+   */
+  const sendRequest = useCallback(
+    async (
+      messagesToSend: Message[],
+      requestOptions?: ChatRequestOptions
+    ): Promise<string | null | undefined> => {
+      return isDirectMode
+        ? sendDirectRequest(messagesToSend, requestOptions)
+        : sendHttpRequest(messagesToSend, requestOptions);
+    },
+    [isDirectMode, sendDirectRequest, sendHttpRequest]
   );
 
   /**

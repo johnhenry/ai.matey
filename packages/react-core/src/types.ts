@@ -8,6 +8,82 @@
 
 // Types are self-contained for React package portability
 
+// Import IR types for backend mode (optional dependency)
+import type {
+  IRChatRequest,
+  IRChatResponse,
+  IRStreamChunk,
+  IRParameters,
+  IRTool,
+} from 'ai.matey.types';
+
+/**
+ * Backend adapter interface for direct mode.
+ * This allows using a BackendAdapter or Bridge directly without HTTP.
+ */
+export interface DirectBackend {
+  execute(
+    request: IRChatRequest,
+    signal?: AbortSignal
+  ): Promise<IRChatResponse>;
+
+  executeStream?(
+    request: IRChatRequest,
+    signal?: AbortSignal
+  ): AsyncGenerator<IRStreamChunk, void, undefined>;
+}
+
+/**
+ * Handler for tool calls in direct mode.
+ */
+export type DirectToolCallHandler = (
+  toolName: string,
+  toolInput: Record<string, unknown>,
+  toolId: string
+) => Promise<string | { content: string; isError?: boolean }>;
+
+/**
+ * Direct backend mode options.
+ */
+export interface DirectModeOptions {
+  /**
+   * The backend adapter to use (Bridge or BackendAdapter).
+   */
+  backend: DirectBackend;
+
+  /**
+   * System prompt to prepend to conversations.
+   */
+  systemPrompt?: string | (() => string | Promise<string>);
+
+  /**
+   * Default IR parameters for requests.
+   */
+  defaultParameters?: IRParameters;
+
+  /**
+   * Available tools for the conversation.
+   */
+  tools?: readonly IRTool[];
+
+  /**
+   * Handler for tool calls.
+   */
+  onToolCall?: DirectToolCallHandler;
+
+  /**
+   * Auto-execute tools and continue the conversation.
+   * @default false
+   */
+  autoExecuteTools?: boolean;
+
+  /**
+   * Maximum tool execution rounds.
+   * @default 10
+   */
+  maxToolRounds?: number;
+}
+
 /**
  * Message in a chat conversation.
  */
@@ -56,6 +132,10 @@ export interface ToolInvocation {
 
 /**
  * Chat hook options.
+ *
+ * Supports two modes:
+ * 1. HTTP Mode (default): Uses `api` endpoint with fetch
+ * 2. Direct Mode: Uses `direct.backend` with wrapper-ir for direct backend access
  */
 export interface UseChatOptions {
   /** Initial messages */
@@ -64,28 +144,48 @@ export interface UseChatOptions {
   initialInput?: string;
   /** Chat ID for persistence */
   id?: string;
+
+  // -------------------------------------------------------------------------
+  // HTTP Mode Options (default)
+  // -------------------------------------------------------------------------
+
   /** API endpoint for chat */
   api?: string;
   /** Request headers */
   headers?: Record<string, string>;
   /** Request body extras */
   body?: Record<string, unknown>;
+  /** Stream protocol */
+  streamProtocol?: 'text' | 'data';
+  /** Called for each response chunk (HTTP mode only) */
+  onResponse?: (response: Response) => void;
+
+  // -------------------------------------------------------------------------
+  // Direct Mode Options (for using BackendAdapter directly)
+  // -------------------------------------------------------------------------
+
+  /**
+   * Direct backend mode configuration.
+   * When provided, bypasses HTTP and uses the backend adapter directly.
+   */
+  direct?: DirectModeOptions;
+
+  // -------------------------------------------------------------------------
+  // Common Options
+  // -------------------------------------------------------------------------
+
   /** Generate unique message IDs */
   generateId?: () => string;
   /** Called when response stream finishes */
   onFinish?: (message: Message) => void;
   /** Called on error */
   onError?: (error: Error) => void;
-  /** Called for each response chunk */
-  onResponse?: (response: Response) => void;
   /** Keep last message on error */
   keepLastMessageOnError?: boolean;
   /** Max number of automatic tool retries */
   maxToolRoundtrips?: number;
   /** Send extra message fields */
   sendExtraMessageFields?: boolean;
-  /** Stream protocol */
-  streamProtocol?: 'text' | 'data';
 }
 
 /**

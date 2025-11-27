@@ -4,25 +4,35 @@
  * Mimics the OpenAI SDK interface using any backend adapter.
  * Allows you to use OpenAI SDK-style code with any provider.
  *
+ * Uses the OpenAI Frontend Adapter internally for format conversions.
+ *
  * @module
  */
 
-import type { BackendAdapter, IRChatRequest, IRMessage, StreamMode, AIModel, ListModelsOptions, ListModelsResult } from 'ai.matey.types';
+import type { BackendAdapter, StreamMode, AIModel, ListModelsOptions, ListModelsResult } from 'ai.matey.types';
+import {
+  OpenAIFrontendAdapter,
+  type OpenAIRequest,
+  type OpenAIMessage,
+} from 'ai.matey.frontend.openai';
 
 // ============================================================================
-// OpenAI SDK Compatible Types
+// Re-export types from frontend adapter
+// ============================================================================
+
+export type {
+  OpenAIRequest,
+  OpenAIResponse,
+  OpenAIStreamChunk,
+  OpenAIMessage,
+} from 'ai.matey.frontend.openai';
+
+// ============================================================================
+// SDK-style Types (convenience aliases)
 // ============================================================================
 
 /**
- * OpenAI message format.
- */
-export interface OpenAIMessage {
-  role: 'system' | 'user' | 'assistant';
-  content: string;
-}
-
-/**
- * OpenAI chat completion request parameters.
+ * OpenAI chat completion request parameters (SDK style).
  */
 export interface OpenAIChatCompletionParams {
   model: string;
@@ -32,9 +42,10 @@ export interface OpenAIChatCompletionParams {
   top_p?: number;
   frequency_penalty?: number;
   presence_penalty?: number;
-  stop?: string[];
+  stop?: string | string[];
   stream?: boolean;
   user?: string;
+  seed?: number;
 }
 
 /**
@@ -43,7 +54,7 @@ export interface OpenAIChatCompletionParams {
 export interface OpenAIChatCompletionChoice {
   index: number;
   message: OpenAIMessage;
-  finish_reason: 'stop' | 'length' | 'content_filter' | null;
+  finish_reason: 'stop' | 'length' | 'tool_calls' | 'content_filter' | null;
 }
 
 /**
@@ -81,7 +92,7 @@ export interface OpenAIStreamDelta {
 export interface OpenAIStreamChoice {
   index: number;
   delta: OpenAIStreamDelta;
-  finish_reason: 'stop' | 'length' | 'content_filter' | null;
+  finish_reason: 'stop' | 'length' | 'tool_calls' | 'content_filter' | null;
 }
 
 /**
@@ -134,10 +145,12 @@ export interface OpenAISDKConfig {
 export class ChatCompletions {
   private backend: BackendAdapter;
   private config: OpenAISDKConfig;
+  private adapter: OpenAIFrontendAdapter;
 
   constructor(backend: BackendAdapter, config: OpenAISDKConfig = {}) {
     this.backend = backend;
     this.config = config;
+    this.adapter = new OpenAIFrontendAdapter();
   }
 
   /**
@@ -161,143 +174,93 @@ export class ChatCompletions {
   }
 
   private async createNonStream(params: OpenAIChatCompletionParams): Promise<OpenAIChatCompletion> {
-    // Convert to IR request
-    const messages: IRMessage[] = params.messages.map((msg) => ({
-      role: msg.role,
-      content: msg.content,
-    }));
-
-    const request: IRChatRequest = {
-      messages,
-      parameters: {
-        model: params.model,
-        temperature: params.temperature,
-        maxTokens: params.max_tokens,
-        topP: params.top_p,
-        frequencyPenalty: params.frequency_penalty,
-        presencePenalty: params.presence_penalty,
-        stopSequences: params.stop,
-        user: params.user,
-      },
+    // Convert params to OpenAI request format
+    const request: OpenAIRequest = {
+      model: params.model,
+      messages: params.messages,
+      temperature: params.temperature,
+      max_tokens: params.max_tokens,
+      top_p: params.top_p,
+      frequency_penalty: params.frequency_penalty,
+      presence_penalty: params.presence_penalty,
+      stop: params.stop,
       stream: false,
-      metadata: {
-        requestId: crypto.randomUUID(),
-        timestamp: Date.now(),
-        provenance: {
-          frontend: 'openai-sdk-wrapper',
-        },
-      },
+      user: params.user,
+      seed: params.seed,
     };
 
+    // Use frontend adapter to convert to IR
+    const irRequest = await this.adapter.toIR(request);
+
     // Execute via backend
-    const response = await this.backend.execute(request);
+    const irResponse = await this.backend.execute(irRequest);
 
-    // Convert to OpenAI format
-    const content = typeof response.message.content === 'string'
-      ? response.message.content
-      : response.message.content.map((c) => (c.type === 'text' ? c.text : '')).join('');
+    // Use frontend adapter to convert back to OpenAI format
+    const openaiResponse = await this.adapter.fromIR(irResponse);
 
+    // Return in SDK-style format
     return {
-      id: response.metadata.providerResponseId || response.metadata.requestId,
+      id: openaiResponse.id,
       object: 'chat.completion',
-      created: Math.floor(response.metadata.timestamp / 1000),
-      model: params.model,
-      choices: [
-        {
-          index: 0,
-          message: {
-            role: 'assistant',
-            content,
-          },
-          finish_reason: this.mapFinishReason(response.finishReason),
-        },
-      ],
-      usage: {
-        prompt_tokens: response.usage?.promptTokens || 0,
-        completion_tokens: response.usage?.completionTokens || 0,
-        total_tokens: response.usage?.totalTokens || 0,
+      created: openaiResponse.created,
+      model: openaiResponse.model,
+      choices: openaiResponse.choices.map((choice) => ({
+        index: choice.index,
+        message: choice.message as OpenAIMessage,
+        finish_reason: choice.finish_reason,
+      })),
+      usage: openaiResponse.usage ?? {
+        prompt_tokens: 0,
+        completion_tokens: 0,
+        total_tokens: 0,
       },
     };
   }
 
   private async *createStream(params: OpenAIChatCompletionParams): AsyncIterable<OpenAIChatCompletionChunk> {
-    // Convert to IR request
-    const messages: IRMessage[] = params.messages.map((msg) => ({
-      role: msg.role,
-      content: msg.content,
-    }));
-
-    const requestId = crypto.randomUUID();
-    const created = Math.floor(Date.now() / 1000);
-
-    const request: IRChatRequest = {
-      messages,
-      parameters: {
-        model: params.model,
-        temperature: params.temperature,
-        maxTokens: params.max_tokens,
-        topP: params.top_p,
-        frequencyPenalty: params.frequency_penalty,
-        presencePenalty: params.presence_penalty,
-        stopSequences: params.stop,
-        user: params.user,
-      },
+    // Convert params to OpenAI request format
+    const request: OpenAIRequest = {
+      model: params.model,
+      messages: params.messages,
+      temperature: params.temperature,
+      max_tokens: params.max_tokens,
+      top_p: params.top_p,
+      frequency_penalty: params.frequency_penalty,
+      presence_penalty: params.presence_penalty,
+      stop: params.stop,
       stream: true,
-      streamMode: this.config.streamMode,
-      metadata: {
-        requestId,
-        timestamp: Date.now(),
-        provenance: {
-          frontend: 'openai-sdk-wrapper',
-        },
-      },
+      user: params.user,
+      seed: params.seed,
     };
 
-    // Execute via backend
-    const stream = this.backend.executeStream(request);
+    // Use frontend adapter to convert to IR
+    let irRequest = await this.adapter.toIR(request);
 
-    for await (const chunk of stream) {
-      if (chunk.type === 'content') {
-        yield {
-          id: requestId,
-          object: 'chat.completion.chunk',
-          created,
-          model: params.model,
-          choices: [
-            {
-              index: 0,
-              delta: {
-                role: 'assistant',
-                content: chunk.delta,
-              },
-              finish_reason: null,
-            },
-          ],
-        };
-      } else if (chunk.type === 'done') {
-        yield {
-          id: requestId,
-          object: 'chat.completion.chunk',
-          created,
-          model: params.model,
-          choices: [
-            {
-              index: 0,
-              delta: {},
-              finish_reason: this.mapFinishReason(chunk.finishReason),
-            },
-          ],
-        };
-      }
+    // Add stream mode if configured
+    if (this.config.streamMode) {
+      irRequest = { ...irRequest, streamMode: this.config.streamMode };
     }
-  }
 
-  private mapFinishReason(reason: string): 'stop' | 'length' | 'content_filter' | null {
-    switch (reason) {
-      case 'stop': return 'stop';
-      case 'length': return 'length';
-      case 'content_filter': return 'content_filter';
-      default: return null;
+    // Execute streaming via backend
+    const irStream = this.backend.executeStream(irRequest);
+
+    // Use frontend adapter to convert stream
+    for await (const chunk of this.adapter.fromIRStream(irStream)) {
+      // Convert to SDK-style chunk
+      yield {
+        id: chunk.id,
+        object: 'chat.completion.chunk',
+        created: chunk.created,
+        model: chunk.model,
+        choices: chunk.choices.map((choice) => ({
+          index: choice.index,
+          delta: {
+            role: choice.delta.role,
+            content: choice.delta.content,
+          },
+          finish_reason: choice.finish_reason,
+        })),
+      };
     }
   }
 }

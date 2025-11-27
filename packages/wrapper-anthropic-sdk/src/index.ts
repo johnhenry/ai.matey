@@ -4,20 +4,46 @@
  * Mimics the Anthropic SDK interface using any backend adapter.
  * Allows you to use Anthropic SDK-style code with any provider.
  *
+ * Uses the Anthropic Frontend Adapter internally for format conversions.
+ *
  * @module
  */
 
-import type { BackendAdapter, IRChatRequest, IRMessage, StreamMode, AIModel, ListModelsOptions, ListModelsResult } from 'ai.matey.types';
+import type { BackendAdapter, StreamMode, AIModel, ListModelsOptions, ListModelsResult } from 'ai.matey.types';
+import {
+  AnthropicFrontendAdapter,
+  type AnthropicRequest,
+  type AnthropicStreamEvent,
+  type AnthropicContentBlock,
+} from 'ai.matey.frontend.anthropic';
 
 // ============================================================================
-// Anthropic SDK Compatible Types
+// Re-export types from frontend adapter
 // ============================================================================
 
+export type {
+  AnthropicRequest,
+  AnthropicResponse,
+  AnthropicStreamEvent,
+  AnthropicMessage,
+  AnthropicContentBlock,
+} from 'ai.matey.frontend.anthropic';
+
+// ============================================================================
+// SDK-style Types (compatibility aliases)
+// ============================================================================
+
+/**
+ * Anthropic SDK message (alias).
+ */
 export interface AnthropicSDKMessage {
   role: 'user' | 'assistant';
-  content: string;
+  content: string | AnthropicContentBlock[];
 }
 
+/**
+ * Anthropic message parameters (SDK style).
+ */
 export interface AnthropicMessageParams {
   model: string;
   messages: AnthropicSDKMessage[];
@@ -28,78 +54,45 @@ export interface AnthropicMessageParams {
   top_k?: number;
   stop_sequences?: string[];
   stream?: boolean;
+  metadata?: {
+    user_id?: string;
+  };
 }
 
-export interface AnthropicContentBlock {
-  type: 'text';
-  text: string;
-}
-
+/**
+ * Anthropic SDK usage information.
+ */
 export interface AnthropicSDKUsage {
   input_tokens: number;
   output_tokens: number;
 }
 
+/**
+ * Anthropic SDK message response.
+ */
 export interface AnthropicSDKMessageResponse {
   id: string;
   type: 'message';
   role: 'assistant';
   content: AnthropicContentBlock[];
   model: string;
-  stop_reason: 'end_turn' | 'max_tokens' | 'stop_sequence' | null;
+  stop_reason: 'end_turn' | 'max_tokens' | 'stop_sequence' | 'tool_use' | null;
   stop_sequence: string | null;
   usage: AnthropicSDKUsage;
 }
 
-export interface AnthropicMessageStart {
-  type: 'message_start';
-  message: Partial<AnthropicSDKMessageResponse>;
-}
-
-export interface AnthropicContentBlockStart {
-  type: 'content_block_start';
-  index: number;
-  content_block: { type: 'text'; text: '' };
-}
-
-export interface AnthropicContentBlockDelta {
-  type: 'content_block_delta';
-  index: number;
-  delta: { type: 'text_delta'; text: string };
-}
-
-export interface AnthropicContentBlockStop {
-  type: 'content_block_stop';
-  index: number;
-}
-
-export interface AnthropicMessageDelta {
-  type: 'message_delta';
-  delta: {
-    stop_reason: 'end_turn' | 'max_tokens' | 'stop_sequence' | null;
-    stop_sequence?: string | null;
-  };
-  usage: { output_tokens: number };
-}
-
-export interface AnthropicMessageStop {
-  type: 'message_stop';
-}
-
-export type AnthropicStreamEvent =
-  | AnthropicMessageStart
-  | AnthropicContentBlockStart
-  | AnthropicContentBlockDelta
-  | AnthropicContentBlockStop
-  | AnthropicMessageDelta
-  | AnthropicMessageStop;
-
+/**
+ * Anthropic Model object.
+ */
 export interface AnthropicModel {
   id: string;
   display_name: string;
   created_at: string;
 }
 
+/**
+ * Anthropic Models response.
+ */
 export interface AnthropicModelsResponse {
   data: AnthropicModel[];
   has_more: boolean;
@@ -107,7 +100,14 @@ export interface AnthropicModelsResponse {
   last_id: string | null;
 }
 
+/**
+ * Anthropic SDK wrapper configuration.
+ */
 export interface AnthropicSDKConfig {
+  /**
+   * Streaming mode for stream responses.
+   * @default 'delta'
+   */
   streamMode?: StreamMode;
 }
 
@@ -115,17 +115,33 @@ export interface AnthropicSDKConfig {
 // Messages Implementation
 // ============================================================================
 
+/**
+ * Messages interface (mimics Anthropic SDK).
+ */
 export class Messages {
   private backend: BackendAdapter;
   private config: AnthropicSDKConfig;
+  private adapter: AnthropicFrontendAdapter;
 
   constructor(backend: BackendAdapter, config: AnthropicSDKConfig = {}) {
     this.backend = backend;
     this.config = config;
+    this.adapter = new AnthropicFrontendAdapter();
   }
 
+  /**
+   * Create a message (non-streaming).
+   */
   async create(params: AnthropicMessageParams & { stream?: false | undefined }): Promise<AnthropicSDKMessageResponse>;
+
+  /**
+   * Create a message (streaming).
+   */
   create(params: AnthropicMessageParams & { stream: true }): AsyncIterable<AnthropicStreamEvent>;
+
+  /**
+   * Create a message.
+   */
   create(params: AnthropicMessageParams): Promise<AnthropicSDKMessageResponse> | AsyncIterable<AnthropicStreamEvent> {
     if (params.stream) {
       return this.createStream(params);
@@ -134,126 +150,77 @@ export class Messages {
   }
 
   private async createNonStream(params: AnthropicMessageParams): Promise<AnthropicSDKMessageResponse> {
-    const messages: IRMessage[] = [];
-
-    if (params.system) {
-      messages.push({ role: 'system', content: params.system });
-    }
-
-    messages.push(...params.messages.map((msg) => ({
-      role: msg.role,
-      content: msg.content,
-    })));
-
-    const request: IRChatRequest = {
-      messages,
-      parameters: {
-        model: params.model,
-        temperature: params.temperature,
-        maxTokens: params.max_tokens,
-        topP: params.top_p,
-        topK: params.top_k,
-        stopSequences: params.stop_sequences,
-      },
+    // Convert params to Anthropic request format
+    const request: AnthropicRequest = {
+      model: params.model,
+      messages: params.messages.map((msg) => ({
+        role: msg.role,
+        content: msg.content,
+      })),
+      max_tokens: params.max_tokens,
+      system: params.system,
+      temperature: params.temperature,
+      top_p: params.top_p,
+      top_k: params.top_k,
+      stop_sequences: params.stop_sequences,
       stream: false,
-      metadata: {
-        requestId: crypto.randomUUID(),
-        timestamp: Date.now(),
-        provenance: { frontend: 'anthropic-sdk-wrapper' },
-      },
+      metadata: params.metadata,
     };
 
-    const response = await this.backend.execute(request);
+    // Use frontend adapter to convert to IR
+    const irRequest = await this.adapter.toIR(request);
 
-    const content = typeof response.message.content === 'string'
-      ? response.message.content
-      : response.message.content.map((c) => (c.type === 'text' ? c.text : '')).join('');
+    // Execute via backend
+    const irResponse = await this.backend.execute(irRequest);
 
+    // Use frontend adapter to convert back to Anthropic format
+    const anthropicResponse = await this.adapter.fromIR(irResponse);
+
+    // Return in SDK-style format
     return {
-      id: (response.metadata?.providerResponseId || response.metadata?.requestId) || crypto.randomUUID(),
+      id: anthropicResponse.id,
       type: 'message',
       role: 'assistant',
-      content: [{ type: 'text', text: content }],
-      model: params.model,
-      stop_reason: this.mapFinishReason(response.finishReason),
-      stop_sequence: null,
-      usage: {
-        input_tokens: response.usage?.promptTokens || 0,
-        output_tokens: response.usage?.completionTokens || 0,
-      },
+      content: anthropicResponse.content,
+      model: anthropicResponse.model,
+      stop_reason: anthropicResponse.stop_reason,
+      stop_sequence: anthropicResponse.stop_sequence ?? null,
+      usage: anthropicResponse.usage,
     };
   }
 
   private async *createStream(params: AnthropicMessageParams): AsyncIterable<AnthropicStreamEvent> {
-    const messages: IRMessage[] = [];
-
-    if (params.system) {
-      messages.push({ role: 'system', content: params.system });
-    }
-
-    messages.push(...params.messages.map((msg) => ({
-      role: msg.role,
-      content: msg.content,
-    })));
-
-    const requestId = crypto.randomUUID();
-
-    const request: IRChatRequest = {
-      messages,
-      parameters: {
-        model: params.model,
-        temperature: params.temperature,
-        maxTokens: params.max_tokens,
-        topP: params.top_p,
-        topK: params.top_k,
-        stopSequences: params.stop_sequences,
-      },
+    // Convert params to Anthropic request format
+    const request: AnthropicRequest = {
+      model: params.model,
+      messages: params.messages.map((msg) => ({
+        role: msg.role,
+        content: msg.content,
+      })),
+      max_tokens: params.max_tokens,
+      system: params.system,
+      temperature: params.temperature,
+      top_p: params.top_p,
+      top_k: params.top_k,
+      stop_sequences: params.stop_sequences,
       stream: true,
-      streamMode: this.config.streamMode,
-      metadata: {
-        requestId,
-        timestamp: Date.now(),
-        provenance: { frontend: 'anthropic-sdk-wrapper' },
-      },
+      metadata: params.metadata,
     };
 
-    const stream = this.backend.executeStream(request);
+    // Use frontend adapter to convert to IR
+    let irRequest = await this.adapter.toIR(request);
 
-    yield {
-      type: 'message_start',
-      message: { id: requestId, type: 'message', role: 'assistant', model: params.model },
-    };
-
-    yield {
-      type: 'content_block_start',
-      index: 0,
-      content_block: { type: 'text', text: '' },
-    };
-
-    for await (const chunk of stream) {
-      if (chunk.type === 'content' && typeof chunk.delta === 'string') {
-        yield {
-          type: 'content_block_delta',
-          index: 0,
-          delta: { type: 'text_delta', text: chunk.delta },
-        };
-      } else if (chunk.type === 'done') {
-        yield { type: 'content_block_stop', index: 0 };
-        yield {
-          type: 'message_delta',
-          delta: { stop_reason: this.mapFinishReason(chunk.finishReason), stop_sequence: null },
-          usage: { output_tokens: chunk.usage?.completionTokens || 0 },
-        };
-        yield { type: 'message_stop' };
-      }
+    // Add stream mode if configured
+    if (this.config.streamMode) {
+      irRequest = { ...irRequest, streamMode: this.config.streamMode };
     }
-  }
 
-  private mapFinishReason(reason: string): 'end_turn' | 'max_tokens' | 'stop_sequence' | null {
-    switch (reason) {
-      case 'stop': return 'end_turn';
-      case 'length': return 'max_tokens';
-      default: return null;
+    // Execute streaming via backend
+    const irStream = this.backend.executeStream(irRequest);
+
+    // Use frontend adapter to convert stream
+    for await (const event of this.adapter.fromIRStream(irStream)) {
+      yield event;
     }
   }
 }
@@ -262,6 +229,9 @@ export class Messages {
 // Models Implementation
 // ============================================================================
 
+/**
+ * Models interface (mimics Anthropic SDK).
+ */
 export class Models {
   private backend: BackendAdapter;
 
@@ -269,6 +239,9 @@ export class Models {
     this.backend = backend;
   }
 
+  /**
+   * List available models.
+   */
   async list(options?: ListModelsOptions): Promise<AnthropicModelsResponse> {
     if (!this.backend.listModels) {
       return { data: [], has_more: false, first_id: null, last_id: null };
@@ -282,14 +255,20 @@ export class Models {
       created_at: model.created || new Date(result.fetchedAt).toISOString(),
     }));
 
+    const firstItem = data[0];
+    const lastItem = data[data.length - 1];
+
     return {
       data,
       has_more: false,
-      first_id: data.length > 0 ? data[0]!.id : null,
-      last_id: data.length > 0 ? data[data.length - 1]!.id : null,
+      first_id: firstItem?.id ?? null,
+      last_id: lastItem?.id ?? null,
     };
   }
 
+  /**
+   * Retrieve information about a specific model.
+   */
   async retrieve(modelId: string): Promise<AnthropicModel | null> {
     if (!this.backend.listModels) return null;
 
@@ -309,6 +288,9 @@ export class Models {
 // Client
 // ============================================================================
 
+/**
+ * Anthropic SDK-compatible client.
+ */
 export class AnthropicClient {
   readonly messages: Messages;
   readonly models: Models;
@@ -319,8 +301,31 @@ export class AnthropicClient {
   }
 }
 
+// ============================================================================
+// Factory Function
+// ============================================================================
+
 /**
  * Create an Anthropic SDK-compatible client using any backend adapter.
+ *
+ * @example
+ * ```typescript
+ * import { Anthropic } from 'ai.matey.wrapper.anthropic-sdk';
+ * import { OpenAIBackendAdapter } from 'ai.matey.backend.openai';
+ *
+ * const backend = new OpenAIBackendAdapter({ apiKey: 'sk-...' });
+ * const client = Anthropic(backend);
+ *
+ * const message = await client.messages.create({
+ *   model: 'gpt-4',
+ *   max_tokens: 1024,
+ *   messages: [
+ *     { role: 'user', content: 'Hello!' }
+ *   ],
+ * });
+ *
+ * console.log(message.content[0].text);
+ * ```
  */
 export function Anthropic(backend: BackendAdapter, config?: AnthropicSDKConfig): AnthropicClient {
   return new AnthropicClient(backend, config);
