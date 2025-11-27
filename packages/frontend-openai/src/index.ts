@@ -132,7 +132,7 @@ export class OpenAIFrontendAdapter
   /**
    * Convert OpenAI request to Universal IR.
    */
-  async toIR(request: OpenAIRequest): Promise<IRChatRequest> {
+  toIR(request: OpenAIRequest): Promise<IRChatRequest> {
     try {
       // Convert messages
       const messages: IRMessage[] = request.messages.map((msg) => this.convertMessageToIR(msg));
@@ -161,7 +161,7 @@ export class OpenAIFrontendAdapter
         },
       };
 
-      return irRequest;
+      return Promise.resolve(irRequest);
     } catch (error) {
       throw new AdapterConversionError({
         code: ErrorCode.ADAPTER_CONVERSION_ERROR,
@@ -177,7 +177,7 @@ export class OpenAIFrontendAdapter
   /**
    * Convert Universal IR response to OpenAI format.
    */
-  async fromIR(response: IRChatResponse): Promise<OpenAIResponse> {
+  fromIR(response: IRChatResponse): Promise<OpenAIResponse> {
     try {
       // Convert message
       const message = this.convertMessageFromIR(response.message);
@@ -207,7 +207,7 @@ export class OpenAIFrontendAdapter
           : undefined,
       };
 
-      return openaiResponse;
+      return Promise.resolve(openaiResponse);
     } catch (error) {
       throw new AdapterConversionError({
         code: ErrorCode.ADAPTER_CONVERSION_ERROR,

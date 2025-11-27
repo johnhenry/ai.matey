@@ -114,7 +114,7 @@ export class AnthropicFrontendAdapter implements FrontendAdapter<AnthropicReques
   /**
    * Convert Anthropic request to Universal IR.
    */
-  async toIR(request: AnthropicRequest): Promise<IRChatRequest> {
+  toIR(request: AnthropicRequest): Promise<IRChatRequest> {
     try {
       // Convert messages
       const messages: IRMessage[] = request.messages.map((msg) => this.convertMessageToIR(msg));
@@ -152,7 +152,7 @@ export class AnthropicFrontendAdapter implements FrontendAdapter<AnthropicReques
         },
       };
 
-      return irRequest;
+      return Promise.resolve(irRequest);
     } catch (error) {
       throw new AdapterConversionError({
         code: ErrorCode.ADAPTER_CONVERSION_ERROR,
@@ -168,7 +168,7 @@ export class AnthropicFrontendAdapter implements FrontendAdapter<AnthropicReques
   /**
    * Convert Universal IR response to Anthropic format.
    */
-  async fromIR(response: IRChatResponse): Promise<AnthropicResponse> {
+  fromIR(response: IRChatResponse): Promise<AnthropicResponse> {
     try {
       // Convert message content
       const content = this.convertContentFromIR(response.message.content);
@@ -190,7 +190,7 @@ export class AnthropicFrontendAdapter implements FrontendAdapter<AnthropicReques
         },
       };
 
-      return anthropicResponse;
+      return Promise.resolve(anthropicResponse);
     } catch (error) {
       throw new AdapterConversionError({
         code: ErrorCode.ADAPTER_CONVERSION_ERROR,
