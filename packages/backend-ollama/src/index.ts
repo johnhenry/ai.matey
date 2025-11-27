@@ -23,10 +23,7 @@ import {
   createErrorFromHttpResponse,
 } from 'ai.matey.errors';
 import { normalizeSystemMessages } from 'ai.matey.utils';
-import {
-  getEffectiveStreamMode,
-  mergeStreamingConfig,
-} from 'ai.matey.utils';
+import { getEffectiveStreamMode, mergeStreamingConfig } from 'ai.matey.utils';
 
 // ============================================================================
 // Ollama API Types
@@ -119,7 +116,9 @@ export class OllamaBackendAdapter implements BackendAdapter<OllamaRequest, Ollam
       const data = (await response.json()) as OllamaResponse;
       return this.toIR(data, request, Date.now() - startTime);
     } catch (error) {
-      if (error instanceof NetworkError || error instanceof ProviderError) throw error;
+      if (error instanceof NetworkError || error instanceof ProviderError) {
+        throw error;
+      }
       throw new ProviderError({
         code: ErrorCode.PROVIDER_ERROR,
         message: `Ollama request failed: ${error instanceof Error ? error.message : String(error)}`,
@@ -137,11 +136,7 @@ export class OllamaBackendAdapter implements BackendAdapter<OllamaRequest, Ollam
 
       // Get effective streaming configuration
       const streamingConfig = mergeStreamingConfig(this.config.streaming);
-      const effectiveMode = getEffectiveStreamMode(
-        request.streamMode,
-        undefined,
-        streamingConfig
-      );
+      const effectiveMode = getEffectiveStreamMode(request.streamMode, undefined, streamingConfig);
       const includeBoth = streamingConfig.includeBoth || effectiveMode === 'accumulated';
 
       const response = await fetch(`${this.baseURL}/api/chat`, {
@@ -158,13 +153,22 @@ export class OllamaBackendAdapter implements BackendAdapter<OllamaRequest, Ollam
         });
       }
 
-      if (!response.body) throw new StreamError({ code: ErrorCode.STREAM_ERROR, message: 'No response body', provenance: { backend: this.metadata.name } });
+      if (!response.body) {
+        throw new StreamError({
+          code: ErrorCode.STREAM_ERROR,
+          message: 'No response body',
+          provenance: { backend: this.metadata.name },
+        });
+      }
 
       let sequence = 0;
       yield {
         type: 'start',
         sequence: sequence++,
-        metadata: { ...request.metadata, provenance: { ...request.metadata.provenance, backend: this.metadata.name } },
+        metadata: {
+          ...request.metadata,
+          provenance: { ...request.metadata.provenance, backend: this.metadata.name },
+        },
       } as IRStreamChunk;
 
       const reader = response.body.getReader();
@@ -175,14 +179,18 @@ export class OllamaBackendAdapter implements BackendAdapter<OllamaRequest, Ollam
       try {
         while (true) {
           const { done, value } = await reader.read();
-          if (done) break;
+          if (done) {
+            break;
+          }
 
           buffer += decoder.decode(value, { stream: true });
           const lines = buffer.split('\n');
           buffer = lines.pop() || '';
 
           for (const line of lines) {
-            if (!line.trim()) continue;
+            if (!line.trim()) {
+              continue;
+            }
 
             try {
               const chunk: OllamaResponse = JSON.parse(line);
@@ -212,11 +220,14 @@ export class OllamaBackendAdapter implements BackendAdapter<OllamaRequest, Ollam
                   type: 'done',
                   sequence: sequence++,
                   finishReason: 'stop',
-                  usage: chunk.prompt_eval_count && chunk.eval_count ? {
-                    promptTokens: chunk.prompt_eval_count,
-                    completionTokens: chunk.eval_count,
-                    totalTokens: chunk.prompt_eval_count + chunk.eval_count,
-                  } : undefined,
+                  usage:
+                    chunk.prompt_eval_count && chunk.eval_count
+                      ? {
+                          promptTokens: chunk.prompt_eval_count,
+                          completionTokens: chunk.eval_count,
+                          totalTokens: chunk.prompt_eval_count + chunk.eval_count,
+                        }
+                      : undefined,
                   message,
                 } as IRStreamChunk;
               }
@@ -232,7 +243,10 @@ export class OllamaBackendAdapter implements BackendAdapter<OllamaRequest, Ollam
       yield {
         type: 'error',
         sequence: 0,
-        error: { code: error instanceof Error ? error.name : 'UNKNOWN_ERROR', message: error instanceof Error ? error.message : String(error) },
+        error: {
+          code: error instanceof Error ? error.name : 'UNKNOWN_ERROR',
+          message: error instanceof Error ? error.message : String(error),
+        },
       } as IRStreamChunk;
     }
   }
@@ -249,8 +263,8 @@ export class OllamaBackendAdapter implements BackendAdapter<OllamaRequest, Ollam
     }
   }
 
-  async estimateCost(_request: IRChatRequest): Promise<number | null> {
-    return null; // Ollama is free (local)
+  estimateCost(_request: IRChatRequest): Promise<number | null> {
+    return Promise.resolve(null); // Ollama is free (local)
   }
 
   /**
@@ -267,7 +281,10 @@ export class OllamaBackendAdapter implements BackendAdapter<OllamaRequest, Ollam
 
     const ollamaMessages: OllamaMessage[] = messages.map((msg) => ({
       role: msg.role as 'system' | 'user' | 'assistant',
-      content: typeof msg.content === 'string' ? msg.content : msg.content.map((c) => (c.type === 'text' ? c.text : JSON.stringify(c))).join(''),
+      content:
+        typeof msg.content === 'string'
+          ? msg.content
+          : msg.content.map((c) => (c.type === 'text' ? c.text : JSON.stringify(c))).join(''),
     }));
 
     return {
@@ -289,17 +306,24 @@ export class OllamaBackendAdapter implements BackendAdapter<OllamaRequest, Ollam
    *
    * Public method for testing and debugging - parse Ollama responses manually.
    */
-  public toIR(response: OllamaResponse, originalRequest: IRChatRequest, latencyMs: number): IRChatResponse {
+  public toIR(
+    response: OllamaResponse,
+    originalRequest: IRChatRequest,
+    latencyMs: number
+  ): IRChatResponse {
     const message: IRMessage = { role: 'assistant', content: response.message.content };
 
     return {
       message,
       finishReason: 'stop',
-      usage: response.prompt_eval_count && response.eval_count ? {
-        promptTokens: response.prompt_eval_count,
-        completionTokens: response.eval_count,
-        totalTokens: response.prompt_eval_count + response.eval_count,
-      } : undefined,
+      usage:
+        response.prompt_eval_count && response.eval_count
+          ? {
+              promptTokens: response.prompt_eval_count,
+              completionTokens: response.eval_count,
+              totalTokens: response.prompt_eval_count + response.eval_count,
+            }
+          : undefined,
       metadata: {
         ...originalRequest.metadata,
         providerResponseId: undefined, // Ollama does not provide a response ID
