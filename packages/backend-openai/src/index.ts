@@ -296,7 +296,7 @@ export class OpenAIBackendAdapter implements BackendAdapter<OpenAIRequest, OpenA
       // Parse SSE stream
       let sequence = 0;
       let contentBuffer = '';
-      // eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents
+
       let finishReasonReceived: FinishReason | null = null;
       let usage:
         | { promptTokens: number; completionTokens: number; totalTokens: number }

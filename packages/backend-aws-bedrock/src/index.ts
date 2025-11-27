@@ -24,10 +24,7 @@ import {
   createErrorFromHttpResponse,
 } from 'ai.matey.errors';
 import { normalizeSystemMessages } from 'ai.matey.utils';
-import {
-  getEffectiveStreamMode,
-  mergeStreamingConfig,
-} from 'ai.matey.utils';
+import { getEffectiveStreamMode, mergeStreamingConfig } from 'ai.matey.utils';
 
 // ============================================================================
 // AWS Bedrock API Types (Converse API)
@@ -98,10 +95,10 @@ export interface BedrockStreamChunk {
 }
 
 export interface AWSBedrockConfig extends BackendAdapterConfig {
-  region?: string;           // AWS region (default: 'us-east-1')
-  awsAccessKeyId?: string;   // AWS credentials
+  region?: string; // AWS region (default: 'us-east-1')
+  awsAccessKeyId?: string; // AWS credentials
   awsSecretAccessKey?: string;
-  awsSessionToken?: string;  // Optional session token
+  awsSessionToken?: string; // Optional session token
 }
 
 // ============================================================================
@@ -142,11 +139,11 @@ export class AWSBedrockBackendAdapter implements BackendAdapter<BedrockRequest, 
       version: '1.0.0',
       provider: 'AWS Bedrock',
       capabilities: {
-        streaming: true,  // Note: Not supported in all regions/models
-        multiModal: true,  // Vision supported in some models
-        tools: false,      // Converse API doesn't support function calling
-        maxContextTokens: 200000,  // Claude 3 models support 200K
-        systemMessageStrategy: 'separate-parameter',  // Uses system field
+        streaming: true, // Note: Not supported in all regions/models
+        multiModal: true, // Vision supported in some models
+        tools: false, // Converse API doesn't support function calling
+        maxContextTokens: 200000, // Claude 3 models support 200K
+        systemMessageStrategy: 'separate-parameter', // Uses system field
         supportsMultipleSystemMessages: true,
         supportsTemperature: true,
         supportsTopP: true,
@@ -175,35 +172,41 @@ export class AWSBedrockBackendAdapter implements BackendAdapter<BedrockRequest, 
 
     const bedrockMessages: BedrockMessage[] = messages.map((msg) => {
       const role = msg.role === 'assistant' ? 'assistant' : 'user';
-      const content: BedrockMessageContent[] = typeof msg.content === 'string'
-        ? [{ text: msg.content }]
-        : msg.content.map((block) => {
-            if (block.type === 'text') {
-              return { text: block.text };
-            } else if (block.type === 'image') {
-              // Convert base64 data or URL to bytes
-              const bytes = block.source.type === 'base64' ? block.source.data : '';  // Simplified: should decode base64
-              return {
-                image: {
-                  format: 'png' as const,  // Simplified: should detect format
-                  source: { bytes }
-                }
-              };
-            }
-            return { text: JSON.stringify(block) };
-          });
+      const content: BedrockMessageContent[] =
+        typeof msg.content === 'string'
+          ? [{ text: msg.content }]
+          : msg.content.map((block) => {
+              if (block.type === 'text') {
+                return { text: block.text };
+              } else if (block.type === 'image') {
+                // Convert base64 data or URL to bytes
+                const bytes = block.source.type === 'base64' ? block.source.data : ''; // Simplified: should decode base64
+                return {
+                  image: {
+                    format: 'png' as const, // Simplified: should detect format
+                    source: { bytes },
+                  },
+                };
+              }
+              return { text: JSON.stringify(block) };
+            });
 
       return { role, content };
     });
 
     const bedrockRequest: BedrockRequest = {
-      modelId: request.parameters?.model || this.config.defaultModel || 'anthropic.claude-3-haiku-20240307-v1:0',
+      modelId:
+        request.parameters?.model ||
+        this.config.defaultModel ||
+        'anthropic.claude-3-haiku-20240307-v1:0',
       messages: bedrockMessages,
       inferenceConfig: {
         temperature: request.parameters?.temperature,
         maxTokens: request.parameters?.maxTokens,
         topP: request.parameters?.topP,
-        stopSequences: request.parameters?.stopSequences ? [...request.parameters.stopSequences] : undefined,
+        stopSequences: request.parameters?.stopSequences
+          ? [...request.parameters.stopSequences]
+          : undefined,
       },
     };
 
@@ -213,7 +216,7 @@ export class AWSBedrockBackendAdapter implements BackendAdapter<BedrockRequest, 
         bedrockRequest.system = [{ text: systemParameter }];
       } else {
         bedrockRequest.system = (systemParameter as any[]).map((msg: any) => ({
-          text: typeof msg === 'string' ? msg : msg.text || JSON.stringify(msg)
+          text: typeof msg === 'string' ? msg : msg.text || JSON.stringify(msg),
         }));
       }
     }
@@ -224,17 +227,21 @@ export class AWSBedrockBackendAdapter implements BackendAdapter<BedrockRequest, 
   /**
    * Convert Bedrock response to IR.
    */
-  public toIR(response: BedrockResponse, originalRequest: IRChatRequest, latencyMs: number): IRChatResponse {
+  public toIR(
+    response: BedrockResponse,
+    originalRequest: IRChatRequest,
+    latencyMs: number
+  ): IRChatResponse {
     const message: IRMessage = {
       role: 'assistant',
       content: response.output.message.content.map((c) => c.text).join(''),
     };
 
     const finishReasonMap: Record<string, FinishReason> = {
-      'end_turn': 'stop',
-      'max_tokens': 'length',
-      'stop_sequence': 'stop',
-      'content_filtered': 'stop',
+      end_turn: 'stop',
+      max_tokens: 'length',
+      stop_sequence: 'stop',
+      content_filtered: 'stop',
     };
 
     return {
@@ -271,7 +278,11 @@ export class AWSBedrockBackendAdapter implements BackendAdapter<BedrockRequest, 
       const startTime = Date.now();
       const response = await fetch(`${this.baseURL}/model/${bedrockRequest.modelId}/converse`, {
         method: 'POST',
-        headers: await this.getHeaders('POST', `/model/${bedrockRequest.modelId}/converse`, JSON.stringify(bedrockRequest)),
+        headers: await this.getHeaders(
+          'POST',
+          `/model/${bedrockRequest.modelId}/converse`,
+          JSON.stringify(bedrockRequest)
+        ),
         body: JSON.stringify(bedrockRequest),
         signal,
       });
@@ -311,19 +322,22 @@ export class AWSBedrockBackendAdapter implements BackendAdapter<BedrockRequest, 
       const bedrockRequest = this.fromIR(request);
 
       const streamingConfig = mergeStreamingConfig(this.config.streaming);
-      const effectiveMode = getEffectiveStreamMode(
-        request.streamMode,
-        undefined,
-        streamingConfig
-      );
+      const effectiveMode = getEffectiveStreamMode(request.streamMode, undefined, streamingConfig);
       const includeBoth = streamingConfig.includeBoth || effectiveMode === 'accumulated';
 
-      const response = await fetch(`${this.baseURL}/model/${bedrockRequest.modelId}/converse-stream`, {
-        method: 'POST',
-        headers: await this.getHeaders('POST', `/model/${bedrockRequest.modelId}/converse-stream`, JSON.stringify(bedrockRequest)),
-        body: JSON.stringify(bedrockRequest),
-        signal,
-      });
+      const response = await fetch(
+        `${this.baseURL}/model/${bedrockRequest.modelId}/converse-stream`,
+        {
+          method: 'POST',
+          headers: await this.getHeaders(
+            'POST',
+            `/model/${bedrockRequest.modelId}/converse-stream`,
+            JSON.stringify(bedrockRequest)
+          ),
+          body: JSON.stringify(bedrockRequest),
+          signal,
+        }
+      );
 
       if (!response.ok) {
         throw createErrorFromHttpResponse(
@@ -364,7 +378,9 @@ export class AWSBedrockBackendAdapter implements BackendAdapter<BedrockRequest, 
       try {
         while (true) {
           const { done, value } = await reader.read();
-          if (done) break;
+          if (done) {
+            break;
+          }
 
           buffer += decoder.decode(value, { stream: true });
 
@@ -373,7 +389,9 @@ export class AWSBedrockBackendAdapter implements BackendAdapter<BedrockRequest, 
           buffer = lines.pop() || '';
 
           for (const line of lines) {
-            if (!line.trim()) continue;
+            if (!line.trim()) {
+              continue;
+            }
 
             try {
               const chunk = JSON.parse(line) as BedrockStreamChunk;
@@ -398,10 +416,10 @@ export class AWSBedrockBackendAdapter implements BackendAdapter<BedrockRequest, 
 
               if (chunk.messageStop) {
                 const finishReasonMap: Record<string, FinishReason> = {
-                  'end_turn': 'stop',
-                  'max_tokens': 'length',
-                  'stop_sequence': 'stop',
-                  'content_filtered': 'stop',
+                  end_turn: 'stop',
+                  max_tokens: 'length',
+                  stop_sequence: 'stop',
+                  content_filtered: 'stop',
                 };
 
                 const doneChunk: IRStreamChunk = {
@@ -449,10 +467,14 @@ export class AWSBedrockBackendAdapter implements BackendAdapter<BedrockRequest, 
    * externally or uses basic headers. For production, use AWS SDK or aws4fetch
    * for proper SigV4 signing.
    */
-  private async getHeaders(_method: string, _path: string, _body: string): Promise<Record<string, string>> {
+  private getHeaders(
+    _method: string,
+    _path: string,
+    _body: string
+  ): Promise<Record<string, string>> {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      'Accept': 'application/json',
+      Accept: 'application/json',
     };
 
     // If AWS credentials are provided in config, add Authorization header
@@ -467,19 +489,19 @@ export class AWSBedrockBackendAdapter implements BackendAdapter<BedrockRequest, 
       }
     }
 
-    return { ...headers, ...this.config.headers };
+    return Promise.resolve({ ...headers, ...this.config.headers });
   }
 
   /**
    * Health check.
    */
-  async healthCheck(): Promise<boolean> {
+  healthCheck(): Promise<boolean> {
     try {
       // Bedrock doesn't have a dedicated health endpoint
       // We'll attempt a minimal request
-      return true;  // Simplified: should actually test connectivity
+      return Promise.resolve(true); // Simplified: should actually test connectivity
     } catch {
-      return false;
+      return Promise.resolve(false);
     }
   }
 
@@ -487,20 +509,20 @@ export class AWSBedrockBackendAdapter implements BackendAdapter<BedrockRequest, 
    * Estimate cost.
    * AWS Bedrock pricing varies by model and region.
    */
-  async estimateCost(request: IRChatRequest): Promise<number | null> {
+  estimateCost(request: IRChatRequest): Promise<number | null> {
     const pricing: Record<string, { input: number; output: number }> = {
       'anthropic.claude-3-haiku-20240307-v1:0': { input: 0.25, output: 1.25 },
-      'anthropic.claude-3-sonnet-20240229-v1:0': { input: 3.00, output: 15.00 },
-      'anthropic.claude-3-opus-20240229-v1:0': { input: 15.00, output: 75.00 },
-      'meta.llama3-1-8b-instruct-v1:0': { input: 0.30, output: 0.60 },
-      'meta.llama3-1-70b-instruct-v1:0': { input: 1.00, output: 2.00 },
+      'anthropic.claude-3-sonnet-20240229-v1:0': { input: 3.0, output: 15.0 },
+      'anthropic.claude-3-opus-20240229-v1:0': { input: 15.0, output: 75.0 },
+      'meta.llama3-1-8b-instruct-v1:0': { input: 0.3, output: 0.6 },
+      'meta.llama3-1-70b-instruct-v1:0': { input: 1.0, output: 2.0 },
     };
 
     const model = request.parameters?.model || this.config.defaultModel || '';
     const modelPricing = pricing[model];
 
     if (!modelPricing) {
-      return null;
+      return Promise.resolve(null);
     }
 
     const inputTokens = request.messages.reduce((sum, msg) => {
@@ -513,6 +535,6 @@ export class AWSBedrockBackendAdapter implements BackendAdapter<BedrockRequest, 
     const inputCost = (inputTokens / 1_000_000) * modelPricing.input;
     const outputCost = (outputTokens / 1_000_000) * modelPricing.output;
 
-    return inputCost + outputCost;
+    return Promise.resolve(inputCost + outputCost);
   }
 }

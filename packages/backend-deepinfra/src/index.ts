@@ -24,10 +24,7 @@ import {
   createErrorFromHttpResponse,
 } from 'ai.matey.errors';
 import { normalizeSystemMessages } from 'ai.matey.utils';
-import {
-  getEffectiveStreamMode,
-  mergeStreamingConfig,
-} from 'ai.matey.utils';
+import { getEffectiveStreamMode, mergeStreamingConfig } from 'ai.matey.utils';
 
 // ============================================================================
 // DeepInfra API Types (OpenAI-compatible)
@@ -35,10 +32,7 @@ import {
 
 export type DeepInfraMessageContent =
   | string
-  | Array<
-      | { type: 'text'; text: string }
-      | { type: 'image_url'; image_url: { url: string } }
-    >;
+  | Array<{ type: 'text'; text: string } | { type: 'image_url'; image_url: { url: string } }>;
 
 export interface DeepInfraMessage {
   role: 'system' | 'user' | 'assistant' | 'tool';
@@ -112,7 +106,9 @@ export interface DeepInfraStreamChunk {
  * - Function calling support
  * - Competitive pricing starting at $0.40 per 1M tokens
  */
-export class DeepInfraBackendAdapter implements BackendAdapter<DeepInfraRequest, DeepInfraResponse> {
+export class DeepInfraBackendAdapter
+  implements BackendAdapter<DeepInfraRequest, DeepInfraResponse>
+{
   readonly metadata: AdapterMetadata;
   private readonly config: BackendAdapterConfig;
   private readonly baseURL: string;
@@ -126,8 +122,8 @@ export class DeepInfraBackendAdapter implements BackendAdapter<DeepInfraRequest,
       provider: 'DeepInfra',
       capabilities: {
         streaming: true,
-        multiModal: true,  // Vision models available
-        tools: true,       // Function calling
+        multiModal: true, // Vision models available
+        tools: true, // Function calling
         maxContextTokens: 128000,
         systemMessageStrategy: 'in-messages',
         supportsMultipleSystemMessages: true,
@@ -157,27 +153,32 @@ export class DeepInfraBackendAdapter implements BackendAdapter<DeepInfraRequest,
 
     const deepinfraMessages: DeepInfraMessage[] = messages.map((msg) => ({
       role: msg.role,
-      content: typeof msg.content === 'string'
-        ? msg.content
-        : msg.content.map((block) => {
-            if (block.type === 'text') {
-              return { type: 'text', text: block.text };
-            } else if (block.type === 'image') {
-              return {
-                type: 'image_url',
-                image_url: {
-                  url: block.source.type === 'url'
-                    ? block.source.url
-                    : `data:${block.source.mediaType};base64,${block.source.data}`
-                }
-              };
-            }
-            return { type: 'text', text: JSON.stringify(block) };
-          }),
+      content:
+        typeof msg.content === 'string'
+          ? msg.content
+          : msg.content.map((block) => {
+              if (block.type === 'text') {
+                return { type: 'text', text: block.text };
+              } else if (block.type === 'image') {
+                return {
+                  type: 'image_url',
+                  image_url: {
+                    url:
+                      block.source.type === 'url'
+                        ? block.source.url
+                        : `data:${block.source.mediaType};base64,${block.source.data}`,
+                  },
+                };
+              }
+              return { type: 'text', text: JSON.stringify(block) };
+            }),
     }));
 
     return {
-      model: request.parameters?.model || this.config.defaultModel || 'meta-llama/Meta-Llama-3.1-8B-Instruct',
+      model:
+        request.parameters?.model ||
+        this.config.defaultModel ||
+        'meta-llama/Meta-Llama-3.1-8B-Instruct',
       messages: deepinfraMessages,
       temperature: request.parameters?.temperature,
       max_tokens: request.parameters?.maxTokens,
@@ -192,7 +193,11 @@ export class DeepInfraBackendAdapter implements BackendAdapter<DeepInfraRequest,
   /**
    * Convert DeepInfra response to IR.
    */
-  public toIR(response: DeepInfraResponse, originalRequest: IRChatRequest, latencyMs: number): IRChatResponse {
+  public toIR(
+    response: DeepInfraResponse,
+    originalRequest: IRChatRequest,
+    latencyMs: number
+  ): IRChatResponse {
     const choice = response.choices[0];
     if (!choice) {
       throw new ProviderError({
@@ -205,25 +210,28 @@ export class DeepInfraBackendAdapter implements BackendAdapter<DeepInfraRequest,
 
     const message: IRMessage = {
       role: choice.message.role === 'assistant' ? 'assistant' : 'user',
-      content: typeof choice.message.content === 'string'
-        ? choice.message.content
-        : choice.message.content.map((c: any) => c.type === 'text' ? c.text : '').join(''),
+      content:
+        typeof choice.message.content === 'string'
+          ? choice.message.content
+          : choice.message.content.map((c: any) => (c.type === 'text' ? c.text : '')).join(''),
     };
 
     const finishReasonMap: Record<string, FinishReason> = {
-      'stop': 'stop',
-      'length': 'length',
-      'tool_calls': 'tool_calls',
+      stop: 'stop',
+      length: 'length',
+      tool_calls: 'tool_calls',
     };
 
     return {
       message,
       finishReason: finishReasonMap[choice.finish_reason || 'stop'] || 'stop',
-      usage: response.usage ? {
-        promptTokens: response.usage.prompt_tokens,
-        completionTokens: response.usage.completion_tokens,
-        totalTokens: response.usage.total_tokens,
-      } : undefined,
+      usage: response.usage
+        ? {
+            promptTokens: response.usage.prompt_tokens,
+            completionTokens: response.usage.completion_tokens,
+            totalTokens: response.usage.total_tokens,
+          }
+        : undefined,
       metadata: {
         ...originalRequest.metadata,
         providerResponseId: response.id,
@@ -291,11 +299,7 @@ export class DeepInfraBackendAdapter implements BackendAdapter<DeepInfraRequest,
       deepinfraRequest.stream = true;
 
       const streamingConfig = mergeStreamingConfig(this.config.streaming);
-      const effectiveMode = getEffectiveStreamMode(
-        request.streamMode,
-        undefined,
-        streamingConfig
-      );
+      const effectiveMode = getEffectiveStreamMode(request.streamMode, undefined, streamingConfig);
       const includeBoth = streamingConfig.includeBoth || effectiveMode === 'accumulated';
 
       const response = await fetch(`${this.baseURL}/chat/completions`, {
@@ -344,17 +348,23 @@ export class DeepInfraBackendAdapter implements BackendAdapter<DeepInfraRequest,
       try {
         while (true) {
           const { done, value } = await reader.read();
-          if (done) break;
+          if (done) {
+            break;
+          }
 
           buffer += decoder.decode(value, { stream: true });
           const lines = buffer.split('\n');
           buffer = lines.pop() || '';
 
           for (const line of lines) {
-            if (!line.trim() || !line.startsWith('data: ')) continue;
+            if (!line.trim() || !line.startsWith('data: ')) {
+              continue;
+            }
 
             const data = line.slice(6).trim();
-            if (data === '[DONE]') continue;
+            if (data === '[DONE]') {
+              continue;
+            }
 
             try {
               const chunk = JSON.parse(data) as DeepInfraStreamChunk;
@@ -379,8 +389,8 @@ export class DeepInfraBackendAdapter implements BackendAdapter<DeepInfraRequest,
 
               if (chunk.choices[0]?.finish_reason) {
                 const finishReasonMap: Record<string, FinishReason> = {
-                  'stop': 'stop',
-                  'length': 'length',
+                  stop: 'stop',
+                  length: 'length',
                 };
 
                 yield {
@@ -416,7 +426,7 @@ export class DeepInfraBackendAdapter implements BackendAdapter<DeepInfraRequest,
   private getHeaders(): Record<string, string> {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${this.config.apiKey}`,
+      Authorization: `Bearer ${this.config.apiKey}`,
     };
 
     return { ...headers, ...this.config.headers };
@@ -441,12 +451,12 @@ export class DeepInfraBackendAdapter implements BackendAdapter<DeepInfraRequest,
   /**
    * Estimate cost with detailed pricing.
    */
-  async estimateCost(request: IRChatRequest): Promise<number | null> {
+  estimateCost(request: IRChatRequest): Promise<number | null> {
     const pricing: Record<string, { input: number; output: number }> = {
-      'meta-llama/Meta-Llama-3.1-8B-Instruct': { input: 0.40, output: 0.40 },
-      'meta-llama/Meta-Llama-3.1-70B-Instruct': { input: 0.60, output: 0.60 },
-      'Qwen/Qwen2.5-72B-Instruct': { input: 0.60, output: 0.60 },
-      'deepseek-ai/DeepSeek-V3': { input: 0.60, output: 2.00 },
+      'meta-llama/Meta-Llama-3.1-8B-Instruct': { input: 0.4, output: 0.4 },
+      'meta-llama/Meta-Llama-3.1-70B-Instruct': { input: 0.6, output: 0.6 },
+      'Qwen/Qwen2.5-72B-Instruct': { input: 0.6, output: 0.6 },
+      'deepseek-ai/DeepSeek-V3': { input: 0.6, output: 2.0 },
       'mistralai/Mixtral-8x7B-Instruct-v0.1': { input: 0.24, output: 0.24 },
     };
 
@@ -454,7 +464,7 @@ export class DeepInfraBackendAdapter implements BackendAdapter<DeepInfraRequest,
     const modelPricing = pricing[model];
 
     if (!modelPricing) {
-      return null;
+      return Promise.resolve(null);
     }
 
     const inputTokens = request.messages.reduce((sum, msg) => {
@@ -467,6 +477,6 @@ export class DeepInfraBackendAdapter implements BackendAdapter<DeepInfraRequest,
     const inputCost = (inputTokens / 1_000_000) * modelPricing.input;
     const outputCost = (outputTokens / 1_000_000) * modelPricing.output;
 
-    return inputCost + outputCost;
+    return Promise.resolve(inputCost + outputCost);
   }
 }

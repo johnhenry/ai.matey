@@ -24,10 +24,7 @@ import {
   createErrorFromHttpResponse,
 } from 'ai.matey.errors';
 import { normalizeSystemMessages } from 'ai.matey.utils';
-import {
-  getEffectiveStreamMode,
-  mergeStreamingConfig,
-} from 'ai.matey.utils';
+import { getEffectiveStreamMode, mergeStreamingConfig } from 'ai.matey.utils';
 
 // ============================================================================
 // Fireworks AI API Types (OpenAI-compatible with extensions)
@@ -35,10 +32,7 @@ import {
 
 export type FireworksAIMessageContent =
   | string
-  | Array<
-      | { type: 'text'; text: string }
-      | { type: 'image_url'; image_url: { url: string } }
-    >;
+  | Array<{ type: 'text'; text: string } | { type: 'image_url'; image_url: { url: string } }>;
 
 export interface FireworksAIMessage {
   role: 'system' | 'user' | 'assistant' | 'tool';
@@ -60,12 +54,12 @@ export interface FireworksAIRequest {
   temperature?: number;
   max_tokens?: number;
   top_p?: number;
-  top_k?: number;  // Fireworks AI supports topK (unique among OpenAI-compatible)
+  top_k?: number; // Fireworks AI supports topK (unique among OpenAI-compatible)
   frequency_penalty?: number;
   presence_penalty?: number;
   stop?: string[];
   stream?: boolean;
-  reasoning_effort?: 'low' | 'medium' | 'high';  // For reasoning models
+  reasoning_effort?: 'low' | 'medium' | 'high'; // For reasoning models
 }
 
 export interface FireworksAIResponse {
@@ -78,7 +72,8 @@ export interface FireworksAIResponse {
     message: FireworksAIMessage;
     finish_reason: 'stop' | 'length' | 'tool_calls' | null;
   }>;
-  usage: {  // Always present in Fireworks AI
+  usage: {
+    // Always present in Fireworks AI
     prompt_tokens: number;
     completion_tokens: number;
     total_tokens: number;
@@ -98,7 +93,8 @@ export interface FireworksAIStreamChunk {
     };
     finish_reason: 'stop' | 'length' | null;
   }>;
-  usage?: {  // Usage stats included in streaming chunks
+  usage?: {
+    // Usage stats included in streaming chunks
     prompt_tokens: number;
     completion_tokens: number;
     total_tokens: number;
@@ -121,7 +117,9 @@ export interface FireworksAIStreamChunk {
  * - Reasoning models with reasoning_effort parameter
  * - Pricing from $0.10 per 1M tokens
  */
-export class FireworksAIBackendAdapter implements BackendAdapter<FireworksAIRequest, FireworksAIResponse> {
+export class FireworksAIBackendAdapter
+  implements BackendAdapter<FireworksAIRequest, FireworksAIResponse>
+{
   readonly metadata: AdapterMetadata;
   private readonly config: BackendAdapterConfig;
   private readonly baseURL: string;
@@ -135,14 +133,14 @@ export class FireworksAIBackendAdapter implements BackendAdapter<FireworksAIRequ
       provider: 'Fireworks AI',
       capabilities: {
         streaming: true,
-        multiModal: true,  // Vision models available
-        tools: true,       // Function calling
+        multiModal: true, // Vision models available
+        tools: true, // Function calling
         maxContextTokens: 128000,
         systemMessageStrategy: 'in-messages',
         supportsMultipleSystemMessages: true,
         supportsTemperature: true,
         supportsTopP: true,
-        supportsTopK: true,  // Fireworks AI supports topK
+        supportsTopK: true, // Fireworks AI supports topK
         supportsSeed: false,
         supportsFrequencyPenalty: true,
         supportsPresencePenalty: true,
@@ -166,32 +164,37 @@ export class FireworksAIBackendAdapter implements BackendAdapter<FireworksAIRequ
 
     const fireworksMessages: FireworksAIMessage[] = messages.map((msg) => ({
       role: msg.role,
-      content: typeof msg.content === 'string'
-        ? msg.content
-        : msg.content.map((block) => {
-            if (block.type === 'text') {
-              return { type: 'text', text: block.text };
-            } else if (block.type === 'image') {
-              return {
-                type: 'image_url',
-                image_url: {
-                  url: block.source.type === 'url'
-                    ? block.source.url
-                    : `data:${block.source.mediaType};base64,${block.source.data}`
-                }
-              };
-            }
-            return { type: 'text', text: JSON.stringify(block) };
-          }),
+      content:
+        typeof msg.content === 'string'
+          ? msg.content
+          : msg.content.map((block) => {
+              if (block.type === 'text') {
+                return { type: 'text', text: block.text };
+              } else if (block.type === 'image') {
+                return {
+                  type: 'image_url',
+                  image_url: {
+                    url:
+                      block.source.type === 'url'
+                        ? block.source.url
+                        : `data:${block.source.mediaType};base64,${block.source.data}`,
+                  },
+                };
+              }
+              return { type: 'text', text: JSON.stringify(block) };
+            }),
     }));
 
     const fireworksRequest: FireworksAIRequest = {
-      model: request.parameters?.model || this.config.defaultModel || 'accounts/fireworks/models/llama-v3p1-8b-instruct',
+      model:
+        request.parameters?.model ||
+        this.config.defaultModel ||
+        'accounts/fireworks/models/llama-v3p1-8b-instruct',
       messages: fireworksMessages,
       temperature: request.parameters?.temperature,
       max_tokens: request.parameters?.maxTokens,
       top_p: request.parameters?.topP,
-      top_k: request.parameters?.topK,  // Pass through topK
+      top_k: request.parameters?.topK, // Pass through topK
       frequency_penalty: request.parameters?.frequencyPenalty,
       presence_penalty: request.parameters?.presencePenalty,
       stop: request.parameters?.stopSequences ? [...request.parameters.stopSequences] : undefined,
@@ -200,7 +203,10 @@ export class FireworksAIBackendAdapter implements BackendAdapter<FireworksAIRequ
 
     // Add reasoning_effort for reasoning models (if specified in custom parameters)
     if (request.parameters?.custom?.reasoning_effort) {
-      fireworksRequest.reasoning_effort = request.parameters.custom.reasoning_effort as 'low' | 'medium' | 'high';
+      fireworksRequest.reasoning_effort = request.parameters.custom.reasoning_effort as
+        | 'low'
+        | 'medium'
+        | 'high';
     }
 
     return fireworksRequest;
@@ -209,7 +215,11 @@ export class FireworksAIBackendAdapter implements BackendAdapter<FireworksAIRequ
   /**
    * Convert Fireworks AI response to IR.
    */
-  public toIR(response: FireworksAIResponse, originalRequest: IRChatRequest, latencyMs: number): IRChatResponse {
+  public toIR(
+    response: FireworksAIResponse,
+    originalRequest: IRChatRequest,
+    latencyMs: number
+  ): IRChatResponse {
     const choice = response.choices[0];
     if (!choice) {
       throw new ProviderError({
@@ -222,21 +232,23 @@ export class FireworksAIBackendAdapter implements BackendAdapter<FireworksAIRequ
 
     const message: IRMessage = {
       role: choice.message.role === 'assistant' ? 'assistant' : 'user',
-      content: typeof choice.message.content === 'string'
-        ? choice.message.content
-        : choice.message.content.map((c: any) => c.type === 'text' ? c.text : '').join(''),
+      content:
+        typeof choice.message.content === 'string'
+          ? choice.message.content
+          : choice.message.content.map((c: any) => (c.type === 'text' ? c.text : '')).join(''),
     };
 
     const finishReasonMap: Record<string, FinishReason> = {
-      'stop': 'stop',
-      'length': 'length',
-      'tool_calls': 'tool_calls',
+      stop: 'stop',
+      length: 'length',
+      tool_calls: 'tool_calls',
     };
 
     return {
       message,
       finishReason: finishReasonMap[choice.finish_reason || 'stop'] || 'stop',
-      usage: {  // Usage always present in Fireworks AI
+      usage: {
+        // Usage always present in Fireworks AI
         promptTokens: response.usage.prompt_tokens,
         completionTokens: response.usage.completion_tokens,
         totalTokens: response.usage.total_tokens,
@@ -308,11 +320,7 @@ export class FireworksAIBackendAdapter implements BackendAdapter<FireworksAIRequ
       fireworksRequest.stream = true;
 
       const streamingConfig = mergeStreamingConfig(this.config.streaming);
-      const effectiveMode = getEffectiveStreamMode(
-        request.streamMode,
-        undefined,
-        streamingConfig
-      );
+      const effectiveMode = getEffectiveStreamMode(request.streamMode, undefined, streamingConfig);
       const includeBoth = streamingConfig.includeBoth || effectiveMode === 'accumulated';
 
       const response = await fetch(`${this.baseURL}/chat/completions`, {
@@ -341,7 +349,9 @@ export class FireworksAIBackendAdapter implements BackendAdapter<FireworksAIRequ
 
       let sequence = 0;
       let contentBuffer = '';
-      let usage: { promptTokens: number; completionTokens: number; totalTokens: number } | undefined;
+      let usage:
+        | { promptTokens: number; completionTokens: number; totalTokens: number }
+        | undefined;
 
       yield {
         type: 'start',
@@ -362,17 +372,23 @@ export class FireworksAIBackendAdapter implements BackendAdapter<FireworksAIRequ
       try {
         while (true) {
           const { done, value } = await reader.read();
-          if (done) break;
+          if (done) {
+            break;
+          }
 
           buffer += decoder.decode(value, { stream: true });
           const lines = buffer.split('\n');
           buffer = lines.pop() || '';
 
           for (const line of lines) {
-            if (!line.trim() || !line.startsWith('data: ')) continue;
+            if (!line.trim() || !line.startsWith('data: ')) {
+              continue;
+            }
 
             const data = line.slice(6).trim();
-            if (data === '[DONE]') continue;
+            if (data === '[DONE]') {
+              continue;
+            }
 
             try {
               const chunk = JSON.parse(data) as FireworksAIStreamChunk;
@@ -406,8 +422,8 @@ export class FireworksAIBackendAdapter implements BackendAdapter<FireworksAIRequ
 
               if (chunk.choices[0]?.finish_reason) {
                 const finishReasonMap: Record<string, FinishReason> = {
-                  'stop': 'stop',
-                  'length': 'length',
+                  stop: 'stop',
+                  length: 'length',
                 };
 
                 const doneChunk: IRStreamChunk = {
@@ -450,7 +466,7 @@ export class FireworksAIBackendAdapter implements BackendAdapter<FireworksAIRequ
   private getHeaders(): Record<string, string> {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${this.config.apiKey}`,
+      Authorization: `Bearer ${this.config.apiKey}`,
     };
 
     return { ...headers, ...this.config.headers };
@@ -475,19 +491,19 @@ export class FireworksAIBackendAdapter implements BackendAdapter<FireworksAIRequ
   /**
    * Estimate cost.
    */
-  async estimateCost(request: IRChatRequest): Promise<number | null> {
+  estimateCost(request: IRChatRequest): Promise<number | null> {
     const pricing: Record<string, { input: number; output: number }> = {
-      'accounts/fireworks/models/llama-v3p1-8b-instruct': { input: 0.20, output: 0.20 },
-      'accounts/fireworks/models/llama-v3p1-70b-instruct': { input: 0.90, output: 0.90 },
-      'accounts/fireworks/models/qwen2p5-72b-instruct': { input: 0.90, output: 0.90 },
-      'accounts/fireworks/models/deepseek-v3': { input: 0.90, output: 2.00 },
+      'accounts/fireworks/models/llama-v3p1-8b-instruct': { input: 0.2, output: 0.2 },
+      'accounts/fireworks/models/llama-v3p1-70b-instruct': { input: 0.9, output: 0.9 },
+      'accounts/fireworks/models/qwen2p5-72b-instruct': { input: 0.9, output: 0.9 },
+      'accounts/fireworks/models/deepseek-v3': { input: 0.9, output: 2.0 },
     };
 
     const model = request.parameters?.model || this.config.defaultModel || '';
     const modelPricing = pricing[model];
 
     if (!modelPricing) {
-      return null;
+      return Promise.resolve(null);
     }
 
     const inputTokens = request.messages.reduce((sum, msg) => {
@@ -500,6 +516,6 @@ export class FireworksAIBackendAdapter implements BackendAdapter<FireworksAIRequ
     const inputCost = (inputTokens / 1_000_000) * modelPricing.input;
     const outputCost = (outputTokens / 1_000_000) * modelPricing.output;
 
-    return inputCost + outputCost;
+    return Promise.resolve(inputCost + outputCost);
   }
 }

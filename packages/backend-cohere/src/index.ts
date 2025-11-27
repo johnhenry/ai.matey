@@ -25,29 +25,26 @@ import {
   createErrorFromHttpResponse,
 } from 'ai.matey.errors';
 import { normalizeSystemMessages } from 'ai.matey.utils';
-import {
-  getEffectiveStreamMode,
-  mergeStreamingConfig,
-} from 'ai.matey.utils';
+import { getEffectiveStreamMode, mergeStreamingConfig } from 'ai.matey.utils';
 
 // ============================================================================
 // Cohere API Types (Custom API)
 // ============================================================================
 
 export interface CohereChatMessage {
-  role: 'USER' | 'CHATBOT';  // Note: uppercase roles
+  role: 'USER' | 'CHATBOT'; // Note: uppercase roles
   message: string;
 }
 
 export interface CohereRequest {
-  model?: string;  // Optional in Cohere
-  message: string;  // Current user message
-  chat_history?: CohereChatMessage[];  // Previous conversation
-  preamble?: string;  // System message
+  model?: string; // Optional in Cohere
+  message: string; // Current user message
+  chat_history?: CohereChatMessage[]; // Previous conversation
+  preamble?: string; // System message
   temperature?: number;
   max_tokens?: number;
-  p?: number;  // top_p equivalent
-  k?: number;  // top_k
+  p?: number; // top_p equivalent
+  k?: number; // top_k
   frequency_penalty?: number;
   presence_penalty?: number;
   stop_sequences?: string[];
@@ -125,11 +122,11 @@ export class CohereBackendAdapter implements BackendAdapter<CohereRequest, Coher
       provider: 'Cohere',
       capabilities: {
         streaming: true,
-        multiModal: false,  // Text-only
-        tools: false,       // No function calling
+        multiModal: false, // Text-only
+        tools: false, // No function calling
         maxContextTokens: 128000,
-        systemMessageStrategy: 'separate-parameter',  // Uses preamble field
-        supportsMultipleSystemMessages: false,  // Only one preamble
+        systemMessageStrategy: 'separate-parameter', // Uses preamble field
+        supportsMultipleSystemMessages: false, // Only one preamble
         supportsTemperature: true,
         supportsTopP: true,
         supportsTopK: true,
@@ -156,7 +153,7 @@ export class CohereBackendAdapter implements BackendAdapter<CohereRequest, Coher
 
     // Cohere requires the last message to be a user message
     const lastMessage = messages[messages.length - 1];
-    if (!lastMessage || lastMessage.role !== 'user') {
+    if (lastMessage?.role !== 'user') {
       throw new AdapterConversionError({
         code: ErrorCode.ADAPTER_CONVERSION_ERROR,
         message: 'Cohere requires the last message to be from user',
@@ -165,16 +162,18 @@ export class CohereBackendAdapter implements BackendAdapter<CohereRequest, Coher
     }
 
     // Extract text content from last message
-    const currentMessage = typeof lastMessage.content === 'string'
-      ? lastMessage.content
-      : lastMessage.content.map((block) => block.type === 'text' ? block.text : '').join('');
+    const currentMessage =
+      typeof lastMessage.content === 'string'
+        ? lastMessage.content
+        : lastMessage.content.map((block) => (block.type === 'text' ? block.text : '')).join('');
 
     // Convert chat history (all messages except the last)
     const chatHistory: CohereChatMessage[] = messages.slice(0, -1).map((msg) => ({
       role: msg.role === 'user' ? 'USER' : 'CHATBOT',
-      message: typeof msg.content === 'string'
-        ? msg.content
-        : msg.content.map((block) => block.type === 'text' ? block.text : '').join(''),
+      message:
+        typeof msg.content === 'string'
+          ? msg.content
+          : msg.content.map((block) => (block.type === 'text' ? block.text : '')).join(''),
     }));
 
     const cohereRequest: CohereRequest = {
@@ -185,7 +184,9 @@ export class CohereBackendAdapter implements BackendAdapter<CohereRequest, Coher
       k: request.parameters?.topK,
       frequency_penalty: request.parameters?.frequencyPenalty,
       presence_penalty: request.parameters?.presencePenalty,
-      stop_sequences: request.parameters?.stopSequences ? [...request.parameters.stopSequences] : undefined,
+      stop_sequences: request.parameters?.stopSequences
+        ? [...request.parameters.stopSequences]
+        : undefined,
       stream: request.stream || false,
     };
 
@@ -201,14 +202,20 @@ export class CohereBackendAdapter implements BackendAdapter<CohereRequest, Coher
 
     // Add system message as preamble
     if (systemParameter) {
-      cohereRequest.preamble = typeof systemParameter === 'string'
-        ? systemParameter
-        : (systemParameter as any[]).map((block: any) => block.type === 'text' ? block.text : '').join('');
+      cohereRequest.preamble =
+        typeof systemParameter === 'string'
+          ? systemParameter
+          : (systemParameter as any[])
+              .map((block: any) => (block.type === 'text' ? block.text : ''))
+              .join('');
     }
 
     // Add Cohere-specific RAG parameters if provided
     if (request.parameters?.custom?.documents) {
-      cohereRequest.documents = request.parameters.custom.documents as Array<{ id?: string; data: Record<string, any> }>;
+      cohereRequest.documents = request.parameters.custom.documents as Array<{
+        id?: string;
+        data: Record<string, any>;
+      }>;
     }
     if (request.parameters?.custom?.connectors) {
       cohereRequest.connectors = request.parameters.custom.connectors as Array<{ id: string }>;
@@ -220,27 +227,34 @@ export class CohereBackendAdapter implements BackendAdapter<CohereRequest, Coher
   /**
    * Convert Cohere response to IR.
    */
-  public toIR(response: CohereResponse, originalRequest: IRChatRequest, latencyMs: number): IRChatResponse {
+  public toIR(
+    response: CohereResponse,
+    originalRequest: IRChatRequest,
+    latencyMs: number
+  ): IRChatResponse {
     const message: IRMessage = {
       role: 'assistant',
       content: response.text,
     };
 
     const finishReasonMap: Record<string, FinishReason> = {
-      'COMPLETE': 'stop',
-      'MAX_TOKENS': 'length',
-      'ERROR': 'stop',
-      'ERROR_TOXIC': 'stop',
+      COMPLETE: 'stop',
+      MAX_TOKENS: 'length',
+      ERROR: 'stop',
+      ERROR_TOXIC: 'stop',
     };
 
     return {
       message,
       finishReason: finishReasonMap[response.finish_reason] || 'stop',
-      usage: response.meta?.billed_units ? {
-        promptTokens: response.meta.billed_units.input_tokens,
-        completionTokens: response.meta.billed_units.output_tokens,
-        totalTokens: response.meta.billed_units.input_tokens + response.meta.billed_units.output_tokens,
-      } : undefined,
+      usage: response.meta?.billed_units
+        ? {
+            promptTokens: response.meta.billed_units.input_tokens,
+            completionTokens: response.meta.billed_units.output_tokens,
+            totalTokens:
+              response.meta.billed_units.input_tokens + response.meta.billed_units.output_tokens,
+          }
+        : undefined,
       metadata: {
         ...originalRequest.metadata,
         providerResponseId: response.generation_id,
@@ -251,7 +265,9 @@ export class CohereBackendAdapter implements BackendAdapter<CohereRequest, Coher
         custom: {
           ...originalRequest.metadata.custom,
           latencyMs,
-          ...(response.citations && response.citations.length > 0 ? { citations: response.citations } : {}),
+          ...(response.citations && response.citations.length > 0
+            ? { citations: response.citations }
+            : {}),
         },
       },
       raw: response as unknown as Record<string, unknown>,
@@ -309,11 +325,7 @@ export class CohereBackendAdapter implements BackendAdapter<CohereRequest, Coher
       cohereRequest.stream = true;
 
       const streamingConfig = mergeStreamingConfig(this.config.streaming);
-      const effectiveMode = getEffectiveStreamMode(
-        request.streamMode,
-        undefined,
-        streamingConfig
-      );
+      const effectiveMode = getEffectiveStreamMode(request.streamMode, undefined, streamingConfig);
       const includeBoth = streamingConfig.includeBoth || effectiveMode === 'accumulated';
 
       const response = await fetch(`${this.baseURL}/chat`, {
@@ -342,7 +354,7 @@ export class CohereBackendAdapter implements BackendAdapter<CohereRequest, Coher
 
       let sequence = 0;
       let contentBuffer = '';
-      let citations: CohereResponse['citations'] | undefined;
+      let citations: CohereResponse['citations'];
 
       yield {
         type: 'start',
@@ -363,14 +375,18 @@ export class CohereBackendAdapter implements BackendAdapter<CohereRequest, Coher
       try {
         while (true) {
           const { done, value } = await reader.read();
-          if (done) break;
+          if (done) {
+            break;
+          }
 
           buffer += decoder.decode(value, { stream: true });
           const lines = buffer.split('\n');
           buffer = lines.pop() || '';
 
           for (const line of lines) {
-            if (!line.trim()) continue;
+            if (!line.trim()) {
+              continue;
+            }
 
             try {
               const chunk = JSON.parse(line) as CohereStreamChunk;
@@ -395,10 +411,10 @@ export class CohereBackendAdapter implements BackendAdapter<CohereRequest, Coher
                 citations = chunk.citations;
               } else if (chunk.event_type === 'stream-end') {
                 const finishReasonMap: Record<string, FinishReason> = {
-                  'COMPLETE': 'stop',
-                  'MAX_TOKENS': 'length',
-                  'ERROR': 'stop',
-                  'ERROR_TOXIC': 'stop',
+                  COMPLETE: 'stop',
+                  MAX_TOKENS: 'length',
+                  ERROR: 'stop',
+                  ERROR_TOXIC: 'stop',
                 };
 
                 const doneChunk: IRStreamChunk = {
@@ -442,7 +458,7 @@ export class CohereBackendAdapter implements BackendAdapter<CohereRequest, Coher
   private getHeaders(): Record<string, string> {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${this.config.apiKey}`,
+      Authorization: `Bearer ${this.config.apiKey}`,
     };
 
     return { ...headers, ...this.config.headers };
@@ -467,19 +483,19 @@ export class CohereBackendAdapter implements BackendAdapter<CohereRequest, Coher
   /**
    * Estimate cost.
    */
-  async estimateCost(request: IRChatRequest): Promise<number | null> {
+  estimateCost(request: IRChatRequest): Promise<number | null> {
     const pricing: Record<string, { input: number; output: number }> = {
-      'command-r': { input: 0.15, output: 0.60 },
-      'command-r-plus': { input: 3.00, output: 15.00 },
-      'command': { input: 1.00, output: 2.00 },
-      'command-light': { input: 0.30, output: 0.60 },
+      'command-r': { input: 0.15, output: 0.6 },
+      'command-r-plus': { input: 3.0, output: 15.0 },
+      command: { input: 1.0, output: 2.0 },
+      'command-light': { input: 0.3, output: 0.6 },
     };
 
     const model = request.parameters?.model || this.config.defaultModel || '';
     const modelPricing = pricing[model];
 
     if (!modelPricing) {
-      return null;
+      return Promise.resolve(null);
     }
 
     const inputTokens = request.messages.reduce((sum, msg) => {
@@ -492,6 +508,6 @@ export class CohereBackendAdapter implements BackendAdapter<CohereRequest, Coher
     const inputCost = (inputTokens / 1_000_000) * modelPricing.input;
     const outputCost = (outputTokens / 1_000_000) * modelPricing.output;
 
-    return inputCost + outputCost;
+    return Promise.resolve(inputCost + outputCost);
   }
 }
