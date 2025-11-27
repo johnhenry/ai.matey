@@ -142,5 +142,6 @@ export class LMStudioBackendAdapter extends OpenAIBackendAdapter {
 export function createLMStudioAdapter(
   config: Partial<BackendAdapterConfig> = {}
 ): LMStudioBackendAdapter {
-  return new LMStudioBackendAdapter(config);
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
+  return new LMStudioBackendAdapter(config as BackendAdapterConfig);
 }
