@@ -605,7 +605,9 @@ export class AnthropicBackendAdapter
           : undefined,
         stream: request.stream,
         metadata:
-          request.metadata.custom?.userId !== undefined
+          request.metadata.custom?.userId !== undefined &&
+          (typeof request.metadata.custom.userId === 'string' ||
+            typeof request.metadata.custom.userId === 'number')
             ? { user_id: String(request.metadata.custom.userId) }
             : undefined,
       };
