@@ -1,27 +1,35 @@
-# ai.matey.headless
+# ai.matey.wrapper.ir
 
-Framework-agnostic headless chat client for the AI Matey universal adapter system.
+IR-native chat wrapper for the AI Matey universal adapter system.
 
 ## Installation
 
 ```bash
-npm install ai.matey.headless
+npm install ai.matey.wrapper.ir
 ```
 
 ## Overview
 
-This package provides a headless chat client that works directly with any AI Matey backend adapter, without requiring a UI framework like React, Vue, or Svelte. Perfect for:
+This package provides a chat client that works directly with the **IR (Intermediate Representation)** format - the universal format that all AI Matey adapters use internally.
 
+**Use cases:**
 - CLI tools and chatbots
 - Discord/Slack bots
 - Server-side batch processing
 - Testing and automation
-- Any Node.js/Deno application
+- Any application that wants to work directly with IR
+
+**Key features:**
+- Conversation state management (message history, token usage)
+- Streaming support with callbacks
+- Tool calling with auto-execution
+- Event system for state changes
+- Stream utilities (collect, transform, tee, throttle)
 
 ## Quick Start
 
 ```typescript
-import { createChat } from 'ai.matey.headless';
+import { createChat } from 'ai.matey.wrapper.ir';
 import { AnthropicBackend } from 'ai.matey.backend.anthropic';
 
 // Create a chat instance
@@ -37,7 +45,7 @@ const chat = createChat({
 const response = await chat.send('Hello!');
 console.log(response.content);
 
-// Continue the conversation
+// Continue the conversation (history is maintained)
 const followUp = await chat.send('Tell me more about that.');
 console.log(followUp.content);
 
@@ -61,7 +69,7 @@ await chat.stream('Tell me a story', {
 });
 
 // Or use stream utilities directly
-import { streamToText, collectStream } from 'ai.matey.headless';
+import { streamToText, collectStream } from 'ai.matey.wrapper.ir';
 
 const stream = backend.executeStream(request);
 
@@ -95,12 +103,11 @@ const chat = createChat({
   ],
   onToolCall: async (name, input, id) => {
     if (name === 'get_weather') {
-      // Call your weather API
       return `Weather in ${input.location}: Sunny, 72°F`;
     }
     return 'Tool not found';
   },
-  autoExecuteTools: true, // Automatically execute and continue
+  autoExecuteTools: true,
 });
 
 const response = await chat.send('What\'s the weather in Tokyo?');
@@ -130,8 +137,6 @@ unsubscribe();
 
 ## Stream Utilities
 
-The package includes powerful stream utilities:
-
 ```typescript
 import {
   collectStream,    // Collect stream into single result
@@ -140,7 +145,7 @@ import {
   streamToLines,    // Buffer and yield complete lines
   throttleStream,   // Rate-limit chunk delivery
   teeStream,        // Split into multiple streams
-} from 'ai.matey.headless';
+} from 'ai.matey.wrapper.ir';
 
 // Throttle UI updates to max 50ms intervals
 for await (const chunk of throttleStream(stream, 50)) {
@@ -156,7 +161,7 @@ await Promise.all([
 ]);
 ```
 
-## Configuration Options
+## Configuration
 
 ```typescript
 interface ChatConfig {
@@ -169,10 +174,10 @@ interface ChatConfig {
   // Optional: Max messages in history (default: 100)
   historyLimit?: number;
 
-  // Optional: Default parameters for all requests
+  // Optional: Default IR parameters for all requests
   defaultParameters?: IRParameters;
 
-  // Optional: Available tools
+  // Optional: Available tools (IR format)
   tools?: IRTool[];
 
   // Optional: Tool execution handler
@@ -192,9 +197,9 @@ interface ChatConfig {
 
 | Method | Description |
 |--------|-------------|
-| `send(content, options?)` | Send a message and get response |
-| `stream(content, options?)` | Stream a response with callbacks |
-| `addMessage(message)` | Add a message without sending |
+| `send(content, options?)` | Send a message and get IR response |
+| `stream(content, options?)` | Stream an IR response with callbacks |
+| `addMessage(message)` | Add an IR message without sending |
 | `clear()` | Clear conversation history |
 | `removeLastMessages(count?)` | Remove last N messages |
 | `on(event, listener)` | Subscribe to events |
@@ -202,14 +207,22 @@ interface ChatConfig {
 
 ### Properties
 
-| Property | Description |
-|----------|-------------|
-| `messages` | All messages in conversation |
-| `isLoading` | Whether request is in progress |
-| `error` | Current error, if any |
-| `totalUsage` | Cumulative token usage |
-| `requestCount` | Number of requests made |
-| `state` | Full state snapshot |
+| Property | Type | Description |
+|----------|------|-------------|
+| `messages` | `IRMessage[]` | All messages in conversation |
+| `isLoading` | `boolean` | Whether request is in progress |
+| `error` | `Error \| null` | Current error, if any |
+| `totalUsage` | `IRUsage` | Cumulative token usage |
+| `requestCount` | `number` | Number of requests made |
+| `state` | `ConversationState` | Full state snapshot |
+
+## Related Packages
+
+| Package | Description |
+|---------|-------------|
+| `ai.matey.frontend.generic` | FrontendAdapter that accepts IR directly |
+| `ai.matey.core` | Bridge and Router for connecting adapters |
+| `ai.matey.types` | IR type definitions |
 
 ## License
 

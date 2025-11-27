@@ -1,7 +1,7 @@
 {
-  "name": "ai.matey.headless",
+  "name": "ai.matey.wrapper.ir",
   "version": "1.0.0",
-  "description": "Framework-agnostic headless chat client for AI Matey",
+  "description": "IR-native chat wrapper for AI Matey - work directly with universal IR format",
   "type": "module",
   "main": "./dist/cjs/index.js",
   "module": "./dist/esm/index.js",
@@ -48,7 +48,9 @@
     "ai",
     "llm",
     "chat",
-    "headless",
+    "ir",
+    "intermediate-representation",
+    "wrapper",
     "streaming",
     "ai-matey",
     "openai",
@@ -64,7 +66,7 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/johnhenry/ai.matey.git",
-    "directory": "packages/ai.matey.headless"
+    "directory": "packages/wrapper-ir"
   },
   "engines": {
     "node": ">=18.0.0"

@@ -1,14 +1,14 @@
 /**
- * ai.matey.headless
+ * ai.matey.wrapper.ir
  *
- * Framework-agnostic chat client for the AI Matey universal adapter system.
+ * IR-native chat wrapper for the AI Matey universal adapter system.
  *
- * This package provides a headless chat client that works directly with the
- * Bridge or BackendAdapter, without requiring any UI framework.
+ * This package provides a chat client that works directly with the
+ * IR (Intermediate Representation) format.
  *
  * @example
  * ```typescript
- * import { createChat } from 'ai.matey.headless';
+ * import { createChat } from 'ai.matey.wrapper.ir';
  * import { AnthropicBackend } from 'ai.matey.backend.anthropic';
  *
  * const chat = createChat({

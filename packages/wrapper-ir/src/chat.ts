@@ -1,7 +1,7 @@
 /**
- * Headless Chat Client
+ * IR Chat Client
  *
- * A framework-agnostic chat client that wraps the Bridge/BackendAdapter
+ * An IR-native chat client that wraps the Bridge/BackendAdapter
  * with conversation state management, streaming helpers, and tool support.
  *
  * @module
@@ -39,7 +39,7 @@ import type {
  *
  * @example
  * ```typescript
- * import { Chat } from 'ai.matey.headless';
+ * import { Chat } from 'ai.matey.wrapper.ir';
  * import { AnthropicBackend } from 'ai.matey.backend.anthropic';
  *
  * const chat = new Chat({
