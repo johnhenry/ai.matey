@@ -25,13 +25,13 @@ export class OllamaFrontendAdapter implements FrontendAdapter<OllamaRequest, Oll
     },
   };
 
-  async toIR(request: OllamaRequest): Promise<IRChatRequest> {
+  toIR(request: OllamaRequest): Promise<IRChatRequest> {
     const messages: IRMessage[] = request.messages.map((msg: OllamaMessage) => ({
-      role: msg.role as 'system' | 'user' | 'assistant',
+      role: msg.role,
       content: msg.content,
     }));
 
-    return {
+    return Promise.resolve({
       messages,
       parameters: {
         model: request.model,
@@ -47,12 +47,12 @@ export class OllamaFrontendAdapter implements FrontendAdapter<OllamaRequest, Oll
         provenance: { frontend: this.metadata.name },
       },
       stream: request.stream,
-    };
+    });
   }
 
-  async fromIR(response: IRChatResponse): Promise<OllamaResponse> {
-    return {
-      model: response.metadata.custom?.model as string || 'unknown',
+  fromIR(response: IRChatResponse): Promise<OllamaResponse> {
+    return Promise.resolve({
+      model: (response.metadata.custom?.model as string) || 'unknown',
       created_at: new Date().toISOString(),
       message: {
         role: 'assistant',
@@ -61,7 +61,7 @@ export class OllamaFrontendAdapter implements FrontendAdapter<OllamaRequest, Oll
       done: true,
       prompt_eval_count: response.usage?.promptTokens,
       eval_count: response.usage?.completionTokens,
-    };
+    });
   }
 
   async *fromIRStream(
