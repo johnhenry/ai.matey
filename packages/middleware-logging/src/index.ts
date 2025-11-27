@@ -83,9 +83,11 @@ export interface LoggingConfig {
  */
 const defaultLogger: Logger = {
   debug: (message: string, data?: unknown) => {
+    // eslint-disable-next-line no-console
     console.debug(message, data !== undefined ? data : '');
   },
   info: (message: string, data?: unknown) => {
+    // eslint-disable-next-line no-console
     console.info(message, data !== undefined ? data : '');
   },
   warn: (message: string, data?: unknown) => {
