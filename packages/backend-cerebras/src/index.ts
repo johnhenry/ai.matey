@@ -24,10 +24,7 @@ import {
   createErrorFromHttpResponse,
 } from 'ai.matey.errors';
 import { normalizeSystemMessages } from 'ai.matey.utils';
-import {
-  getEffectiveStreamMode,
-  mergeStreamingConfig,
-} from 'ai.matey.utils';
+import { getEffectiveStreamMode, mergeStreamingConfig } from 'ai.matey.utils';
 
 // ============================================================================
 // Cerebras API Types (OpenAI-compatible)
@@ -35,10 +32,7 @@ import {
 
 export type CerebrasMessageContent =
   | string
-  | Array<
-      | { type: 'text'; text: string }
-      | { type: 'image_url'; image_url: { url: string } }
-    >;
+  | Array<{ type: 'text'; text: string } | { type: 'image_url'; image_url: { url: string } }>;
 
 export interface CerebrasMessage {
   role: 'system' | 'user' | 'assistant' | 'tool';
@@ -64,7 +58,7 @@ export interface CerebrasRequest {
   presence_penalty?: number;
   stop?: string[];
   stream?: boolean;
-  seed?: number;  // Cerebras supports seed
+  seed?: number; // Cerebras supports seed
 }
 
 export interface CerebrasResponse {
@@ -82,7 +76,8 @@ export interface CerebrasResponse {
     completion_tokens: number;
     total_tokens: number;
   };
-  time_info?: {  // Cerebras-specific timing information
+  time_info?: {
+    // Cerebras-specific timing information
     completion_time: number;
     prompt_time: number;
     total_time: number;
@@ -138,15 +133,15 @@ export class CerebrasBackendAdapter implements BackendAdapter<CerebrasRequest, C
       provider: 'Cerebras',
       capabilities: {
         streaming: true,
-        multiModal: false,  // Text-only models
-        tools: true,        // Function calling
+        multiModal: false, // Text-only models
+        tools: true, // Function calling
         maxContextTokens: 128000,
         systemMessageStrategy: 'in-messages',
         supportsMultipleSystemMessages: true,
         supportsTemperature: true,
         supportsTopP: true,
         supportsTopK: false,
-        supportsSeed: true,  // Cerebras supports seed
+        supportsSeed: true, // Cerebras supports seed
         supportsFrequencyPenalty: true,
         supportsPresencePenalty: true,
         maxStopSequences: 4,
@@ -169,23 +164,25 @@ export class CerebrasBackendAdapter implements BackendAdapter<CerebrasRequest, C
 
     const cerebrasMessages: CerebrasMessage[] = messages.map((msg) => ({
       role: msg.role,
-      content: typeof msg.content === 'string'
-        ? msg.content
-        : msg.content.map((block) => {
-            if (block.type === 'text') {
-              return { type: 'text', text: block.text };
-            } else if (block.type === 'image') {
-              return {
-                type: 'image_url',
-                image_url: {
-                  url: block.source.type === 'url'
-                    ? block.source.url
-                    : `data:${block.source.mediaType};base64,${block.source.data}`
-                }
-              };
-            }
-            return { type: 'text', text: JSON.stringify(block) };
-          }),
+      content:
+        typeof msg.content === 'string'
+          ? msg.content
+          : msg.content.map((block) => {
+              if (block.type === 'text') {
+                return { type: 'text', text: block.text };
+              } else if (block.type === 'image') {
+                return {
+                  type: 'image_url',
+                  image_url: {
+                    url:
+                      block.source.type === 'url'
+                        ? block.source.url
+                        : `data:${block.source.mediaType};base64,${block.source.data}`,
+                  },
+                };
+              }
+              return { type: 'text', text: JSON.stringify(block) };
+            }),
     }));
 
     const cerebrasRequest: CerebrasRequest = {
@@ -211,7 +208,11 @@ export class CerebrasBackendAdapter implements BackendAdapter<CerebrasRequest, C
   /**
    * Convert Cerebras response to IR.
    */
-  public toIR(response: CerebrasResponse, originalRequest: IRChatRequest, latencyMs: number): IRChatResponse {
+  public toIR(
+    response: CerebrasResponse,
+    originalRequest: IRChatRequest,
+    latencyMs: number
+  ): IRChatResponse {
     const choice = response.choices[0];
     if (!choice) {
       throw new ProviderError({
@@ -224,25 +225,28 @@ export class CerebrasBackendAdapter implements BackendAdapter<CerebrasRequest, C
 
     const message: IRMessage = {
       role: choice.message.role === 'assistant' ? 'assistant' : 'user',
-      content: typeof choice.message.content === 'string'
-        ? choice.message.content
-        : choice.message.content.map((c: any) => c.type === 'text' ? c.text : '').join(''),
+      content:
+        typeof choice.message.content === 'string'
+          ? choice.message.content
+          : choice.message.content.map((c: any) => (c.type === 'text' ? c.text : '')).join(''),
     };
 
     const finishReasonMap: Record<string, FinishReason> = {
-      'stop': 'stop',
-      'length': 'length',
-      'tool_calls': 'tool_calls',
+      stop: 'stop',
+      length: 'length',
+      tool_calls: 'tool_calls',
     };
 
     return {
       message,
       finishReason: finishReasonMap[choice.finish_reason || 'stop'] || 'stop',
-      usage: response.usage ? {
-        promptTokens: response.usage.prompt_tokens,
-        completionTokens: response.usage.completion_tokens,
-        totalTokens: response.usage.total_tokens,
-      } : undefined,
+      usage: response.usage
+        ? {
+            promptTokens: response.usage.prompt_tokens,
+            completionTokens: response.usage.completion_tokens,
+            totalTokens: response.usage.total_tokens,
+          }
+        : undefined,
       metadata: {
         ...originalRequest.metadata,
         providerResponseId: response.id,
@@ -311,11 +315,7 @@ export class CerebrasBackendAdapter implements BackendAdapter<CerebrasRequest, C
       cerebrasRequest.stream = true;
 
       const streamingConfig = mergeStreamingConfig(this.config.streaming);
-      const effectiveMode = getEffectiveStreamMode(
-        request.streamMode,
-        undefined,
-        streamingConfig
-      );
+      const effectiveMode = getEffectiveStreamMode(request.streamMode, undefined, streamingConfig);
       const includeBoth = streamingConfig.includeBoth || effectiveMode === 'accumulated';
 
       const response = await fetch(`${this.baseURL}/chat/completions`, {
@@ -344,7 +344,9 @@ export class CerebrasBackendAdapter implements BackendAdapter<CerebrasRequest, C
 
       let sequence = 0;
       let contentBuffer = '';
-      let timeInfo: { completion_time: number; prompt_time: number; total_time: number } | undefined;
+      let timeInfo:
+        | { completion_time: number; prompt_time: number; total_time: number }
+        | undefined;
 
       yield {
         type: 'start',
@@ -365,17 +367,23 @@ export class CerebrasBackendAdapter implements BackendAdapter<CerebrasRequest, C
       try {
         while (true) {
           const { done, value } = await reader.read();
-          if (done) break;
+          if (done) {
+            break;
+          }
 
           buffer += decoder.decode(value, { stream: true });
           const lines = buffer.split('\n');
           buffer = lines.pop() || '';
 
           for (const line of lines) {
-            if (!line.trim() || !line.startsWith('data: ')) continue;
+            if (!line.trim() || !line.startsWith('data: ')) {
+              continue;
+            }
 
             const data = line.slice(6).trim();
-            if (data === '[DONE]') continue;
+            if (data === '[DONE]') {
+              continue;
+            }
 
             try {
               const chunk = JSON.parse(data) as CerebrasStreamChunk;
@@ -405,8 +413,8 @@ export class CerebrasBackendAdapter implements BackendAdapter<CerebrasRequest, C
 
               if (chunk.choices[0]?.finish_reason) {
                 const finishReasonMap: Record<string, FinishReason> = {
-                  'stop': 'stop',
-                  'length': 'length',
+                  stop: 'stop',
+                  length: 'length',
                 };
 
                 const doneChunk: IRStreamChunk = {
@@ -449,7 +457,7 @@ export class CerebrasBackendAdapter implements BackendAdapter<CerebrasRequest, C
   private getHeaders(): Record<string, string> {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${this.config.apiKey}`,
+      Authorization: `Bearer ${this.config.apiKey}`,
     };
 
     return { ...headers, ...this.config.headers };
@@ -474,18 +482,18 @@ export class CerebrasBackendAdapter implements BackendAdapter<CerebrasRequest, C
   /**
    * Estimate cost.
    */
-  async estimateCost(request: IRChatRequest): Promise<number | null> {
+  estimateCost(request: IRChatRequest): Promise<number | null> {
     const pricing: Record<string, { input: number; output: number }> = {
-      'llama3.1-8b': { input: 0.10, output: 0.10 },
-      'llama3.1-70b': { input: 0.60, output: 0.60 },
-      'llama-3.3-70b': { input: 0.60, output: 0.60 },
+      'llama3.1-8b': { input: 0.1, output: 0.1 },
+      'llama3.1-70b': { input: 0.6, output: 0.6 },
+      'llama-3.3-70b': { input: 0.6, output: 0.6 },
     };
 
     const model = request.parameters?.model || this.config.defaultModel || '';
     const modelPricing = pricing[model];
 
     if (!modelPricing) {
-      return null;
+      return Promise.resolve(null);
     }
 
     const inputTokens = request.messages.reduce((sum, msg) => {
@@ -498,6 +506,6 @@ export class CerebrasBackendAdapter implements BackendAdapter<CerebrasRequest, C
     const inputCost = (inputTokens / 1_000_000) * modelPricing.input;
     const outputCost = (outputTokens / 1_000_000) * modelPricing.output;
 
-    return inputCost + outputCost;
+    return Promise.resolve(inputCost + outputCost);
   }
 }

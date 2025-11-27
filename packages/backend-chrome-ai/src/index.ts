@@ -15,14 +15,8 @@ import type {
   IRMessage,
   IRStreamChunk,
 } from 'ai.matey.types';
-import {
-  ProviderError,
-  ErrorCode,
-} from 'ai.matey.errors';
-import {
-  getEffectiveStreamMode,
-  mergeStreamingConfig,
-} from 'ai.matey.utils';
+import { ProviderError, ErrorCode } from 'ai.matey.errors';
+import { getEffectiveStreamMode, mergeStreamingConfig } from 'ai.matey.utils';
 
 // ============================================================================
 // Chrome AI Types
@@ -101,7 +95,11 @@ export class ChromeAIBackendAdapter implements BackendAdapter {
   /**
    * Convert provider response to IR format (passthrough - uses IR internally).
    */
-  toIR(response: IRChatResponse, _originalRequest: IRChatRequest, _latencyMs: number): IRChatResponse {
+  toIR(
+    response: IRChatResponse,
+    _originalRequest: IRChatRequest,
+    _latencyMs: number
+  ): IRChatResponse {
     return response;
   }
 
@@ -184,25 +182,27 @@ export class ChromeAIBackendAdapter implements BackendAdapter {
       // Combine messages into single prompt
       const prompt = request.messages
         .map((msg) => {
-          const content = typeof msg.content === 'string' ? msg.content : msg.content.map((c) => (c.type === 'text' ? c.text : '')).join('');
+          const content =
+            typeof msg.content === 'string'
+              ? msg.content
+              : msg.content.map((c) => (c.type === 'text' ? c.text : '')).join('');
           return `${msg.role === 'user' ? 'User' : 'Assistant'}: ${content}`;
         })
         .join('\n\n');
 
       // Get effective streaming configuration
       const streamingConfig = mergeStreamingConfig(this.config.streaming);
-      const effectiveMode = getEffectiveStreamMode(
-        request.streamMode,
-        undefined,
-        streamingConfig
-      );
+      const effectiveMode = getEffectiveStreamMode(request.streamMode, undefined, streamingConfig);
       const includeBoth = streamingConfig.includeBoth || effectiveMode === 'accumulated';
 
       let sequence = 0;
       yield {
         type: 'start',
         sequence: sequence++,
-        metadata: { ...request.metadata, provenance: { ...request.metadata.provenance, backend: this.metadata.name } },
+        metadata: {
+          ...request.metadata,
+          provenance: { ...request.metadata.provenance, backend: this.metadata.name },
+        },
       } as IRStreamChunk;
 
       const stream = session.promptStreaming(prompt);
@@ -218,7 +218,9 @@ export class ChromeAIBackendAdapter implements BackendAdapter {
           }
 
           const { done, value } = await reader.read();
-          if (done) break;
+          if (done) {
+            break;
+          }
 
           const delta = decoder.decode(value, { stream: true });
           contentBuffer += delta;
@@ -254,7 +256,10 @@ export class ChromeAIBackendAdapter implements BackendAdapter {
       yield {
         type: 'error',
         sequence: 0,
-        error: { code: error instanceof Error ? error.name : 'UNKNOWN_ERROR', message: error instanceof Error ? error.message : String(error) },
+        error: {
+          code: error instanceof Error ? error.name : 'UNKNOWN_ERROR',
+          message: error instanceof Error ? error.message : String(error),
+        },
       } as IRStreamChunk;
     }
   }
@@ -262,7 +267,9 @@ export class ChromeAIBackendAdapter implements BackendAdapter {
   async healthCheck(): Promise<boolean> {
     try {
       const win = getWindow();
-      if (!win?.ai?.languageModel) return false;
+      if (!win?.ai?.languageModel) {
+        return false;
+      }
       const capabilities = await win.ai.languageModel.capabilities();
       return capabilities.available !== 'no';
     } catch {
@@ -270,7 +277,7 @@ export class ChromeAIBackendAdapter implements BackendAdapter {
     }
   }
 
-  async estimateCost(_request: IRChatRequest): Promise<number | null> {
-    return 0; // Chrome AI is free
+  estimateCost(_request: IRChatRequest): Promise<number | null> {
+    return Promise.resolve(0); // Chrome AI is free
   }
 }

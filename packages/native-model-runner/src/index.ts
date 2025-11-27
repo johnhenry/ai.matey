@@ -10,21 +10,9 @@
 import { spawn, type ChildProcess } from 'node:child_process';
 import { EventEmitter } from 'node:events';
 import type { BackendAdapter, AdapterMetadata } from 'ai.matey.types';
-import type {
-  IRChatRequest,
-  IRChatResponse,
-  IRChatStream,
-  IRStreamChunk,
-} from 'ai.matey.types';
-import type {
-  ModelRunnerBackendConfig,
-  ModelRunnerStats,
-  PromptTemplate,
-} from 'ai.matey.types';
-import {
-  ErrorCode,
-  ProviderError,
-} from 'ai.matey.errors';
+import type { IRChatRequest, IRChatResponse, IRChatStream, IRStreamChunk } from 'ai.matey.types';
+import type { ModelRunnerBackendConfig, ModelRunnerStats, PromptTemplate } from 'ai.matey.types';
+import { ErrorCode, ProviderError } from 'ai.matey.errors';
 
 // ============================================================================
 // Base Class
@@ -46,10 +34,7 @@ import {
  * - parseResponse() - Parse model output to IR response
  * - parseStreamChunk() - Parse streaming output to IR chunks
  */
-export abstract class GenericModelRunnerBackend
-  extends EventEmitter
-  implements BackendAdapter
-{
+export abstract class GenericModelRunnerBackend extends EventEmitter implements BackendAdapter {
   abstract readonly metadata: AdapterMetadata;
 
   protected readonly config: ModelRunnerBackendConfig;
@@ -91,11 +76,11 @@ export abstract class GenericModelRunnerBackend
     try {
       // Discover port if needed (for HTTP communication)
       if (this.config.communication.type === 'http' && !this.port) {
-        this.port = this.config.port || (await this.findAvailablePort());
+        this.port = this.config.port ?? (await this.findAvailablePort());
       }
 
       // Spawn the process
-      await this.spawnProcess();
+      this.spawnProcess();
 
       // Wait for ready
       await this.waitForReady();
@@ -143,7 +128,7 @@ export abstract class GenericModelRunnerBackend
       // Wait for process to exit or timeout
       const timeout = this.config.lifecycle?.shutdownTimeout || 5000;
       await this.waitForExit(timeout);
-    } catch (error) {
+    } catch {
       // Force kill if graceful shutdown fails
       this.process.kill('SIGKILL');
     } finally {
@@ -216,7 +201,11 @@ export abstract class GenericModelRunnerBackend
   /**
    * Convert provider response to IR format (passthrough - uses IR internally).
    */
-  toIR(response: IRChatResponse, _originalRequest: IRChatRequest, _latencyMs: number): IRChatResponse {
+  toIR(
+    response: IRChatResponse,
+    _originalRequest: IRChatRequest,
+    _latencyMs: number
+  ): IRChatResponse {
     return response;
   }
 
@@ -323,7 +312,7 @@ export abstract class GenericModelRunnerBackend
   /**
    * Spawn the model runner process.
    */
-  private async spawnProcess(): Promise<void> {
+  private spawnProcess(): void {
     const args = this.buildCommandArgs();
     const substitutedArgs = this.substitutePlaceholders(args);
 
@@ -358,7 +347,7 @@ export abstract class GenericModelRunnerBackend
     // Handle process exit
     this.process.on('exit', (_code) => {
       if (this.isRunning && this.config.lifecycle?.autoRestart) {
-        this.handleCrash();
+        void this.handleCrash();
       }
     });
   }
@@ -367,9 +356,8 @@ export abstract class GenericModelRunnerBackend
    * Substitute placeholders in arguments.
    */
   private substitutePlaceholders(args: string[]): string[] {
-    const modelPath = typeof this.config.model === 'string'
-      ? this.config.model
-      : this.config.model.path;
+    const modelPath =
+      typeof this.config.model === 'string' ? this.config.model : this.config.model.path;
 
     const replacements: Record<string, string> = {
       '{modelPath}': modelPath,
@@ -411,7 +399,9 @@ export abstract class GenericModelRunnerBackend
    * Wait for process to exit.
    */
   private async waitForExit(timeout: number): Promise<void> {
-    if (!this.process) return;
+    if (!this.process) {
+      return;
+    }
 
     return new Promise((resolve) => {
       const timer = setTimeout(() => {
@@ -488,22 +478,24 @@ export abstract class GenericModelRunnerBackend
   /**
    * Find an available port.
    */
-  private async findAvailablePort(start: number = 8000): Promise<number> {
+  private findAvailablePort(start: number = 8000): Promise<number> {
     // Simple implementation - in production, use a proper port finder
-    return start + Math.floor(Math.random() * 1000);
+    return Promise.resolve(start + Math.floor(Math.random() * 1000));
   }
 
   /**
    * Start periodic health checks.
    */
   private startHealthCheck(): void {
-    const interval = this.config.lifecycle?.healthCheckInterval || 0;
+    const interval = this.config.lifecycle?.healthCheckInterval ?? 0;
     if (interval > 0) {
-      this.healthCheckTimer = setInterval(async () => {
-        const isHealthy = await this.healthCheck();
-        if (!isHealthy && this.isRunning) {
-          this.emit('error' as any, new Error('Health check failed'));
-        }
+      this.healthCheckTimer = setInterval(() => {
+        void (async () => {
+          const isHealthy = await this.healthCheck();
+          if (!isHealthy && this.isRunning) {
+            this.emit('error' as any, new Error('Health check failed'));
+          }
+        })();
       }, interval);
     }
   }
@@ -513,32 +505,39 @@ export abstract class GenericModelRunnerBackend
   // ==========================================================================
 
   // @ts-expect-error - Stub method parameters are intentionally unused
-  protected async executeStdio(request: IRChatRequest, signal?: AbortSignal): Promise<IRChatResponse> {
-    throw new Error('stdio communication not yet implemented - subclass must override');
+  protected executeStdio(_request: IRChatRequest, _signal?: AbortSignal): Promise<IRChatResponse> {
+    return Promise.reject(
+      new Error('stdio communication not yet implemented - subclass must override')
+    );
   }
 
   // @ts-expect-error - Stub method parameters are intentionally unused
-  protected async *executeStreamStdio(request: IRChatRequest, signal?: AbortSignal): IRChatStream {
-    throw new Error('stdio streaming not yet implemented - subclass must override');
+  protected async *executeStreamStdio(
+    _request: IRChatRequest,
+    _signal?: AbortSignal
+  ): IRChatStream {
+    yield Promise.reject(new Error('stdio streaming not yet implemented - subclass must override'));
   }
 
   // @ts-expect-error - Stub method parameters are intentionally unused
-  protected async executeHttp(request: IRChatRequest, signal?: AbortSignal): Promise<IRChatResponse> {
-    throw new Error('HTTP communication not yet implemented - subclass must override');
+  protected executeHttp(_request: IRChatRequest, _signal?: AbortSignal): Promise<IRChatResponse> {
+    return Promise.reject(
+      new Error('HTTP communication not yet implemented - subclass must override')
+    );
   }
 
   // @ts-expect-error - Stub method parameters are intentionally unused
-  protected async *executeStreamHttp(request: IRChatRequest, signal?: AbortSignal): IRChatStream {
-    throw new Error('HTTP streaming not yet implemented - subclass must override');
+  protected async *executeStreamHttp(_request: IRChatRequest, _signal?: AbortSignal): IRChatStream {
+    yield Promise.reject(new Error('HTTP streaming not yet implemented - subclass must override'));
   }
 
-  protected async httpHealthCheck(): Promise<boolean> {
+  protected httpHealthCheck(): Promise<boolean> {
     // Stub - subclass can override
-    return true;
+    return Promise.resolve(true);
   }
 
-  protected async stdioHealthCheck(): Promise<boolean> {
+  protected stdioHealthCheck(): Promise<boolean> {
     // Stub - subclass can override
-    return true;
+    return Promise.resolve(true);
   }
 }

@@ -45,22 +45,17 @@ export function FastifyHandler(
 
   const coreHandler = new CoreHTTPHandler({
     bridge,
-    cors: (cors === false || cors === undefined) ? undefined : (cors === true ? {} : cors),
-    ...restOptions as any, // HTTPListenerOptions types are compatible with CoreHandlerOptions at runtime
+    cors: cors === false || cors === undefined ? undefined : cors === true ? {} : cors,
+    ...(restOptions as any), // HTTPListenerOptions types are compatible with CoreHandlerOptions at runtime
   });
 
   // Return Fastify route handler
   return async (request: FastifyRequest, reply: FastifyReply): Promise<void> => {
-    try {
-      // Create adapters
-      const genericReq = new FastifyRequestAdapter(request);
-      const genericRes = new FastifyResponseAdapter(reply);
+    // Create adapters
+    const genericReq = new FastifyRequestAdapter(request);
+    const genericRes = new FastifyResponseAdapter(reply);
 
-      // Handle request through core handler
-      await coreHandler.handle(genericReq, genericRes);
-    } catch (error) {
-      // Fastify error handling
-      throw error;
-    }
+    // Handle request through core handler
+    await coreHandler.handle(genericReq, genericRes);
   };
 }

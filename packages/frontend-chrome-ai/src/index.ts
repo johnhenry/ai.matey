@@ -35,8 +35,8 @@ export class ChromeAIFrontendAdapter implements FrontendAdapter<ChromeAIRequest,
     },
   };
 
-  async toIR(request: ChromeAIRequest): Promise<IRChatRequest> {
-    return {
+  toIR(request: ChromeAIRequest): Promise<IRChatRequest> {
+    return Promise.resolve({
       messages: [{ role: 'user', content: request.prompt }],
       parameters: {
         temperature: request.temperature,
@@ -47,13 +47,13 @@ export class ChromeAIFrontendAdapter implements FrontendAdapter<ChromeAIRequest,
         timestamp: Date.now(),
         provenance: { frontend: this.metadata.name },
       },
-    };
+    });
   }
 
-  async fromIR(response: IRChatResponse): Promise<ChromeAIResponse> {
-    return {
+  fromIR(response: IRChatResponse): Promise<ChromeAIResponse> {
+    return Promise.resolve({
       text: typeof response.message.content === 'string' ? response.message.content : '',
-    };
+    });
   }
 
   async *fromIRStream(

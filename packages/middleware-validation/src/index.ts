@@ -155,9 +155,7 @@ export interface ValidationConfig {
    * Content moderation callback
    * Return true to block, false to allow
    */
-  moderationCallback?: (
-    content: string
-  ) => ModerationResult | Promise<ModerationResult>;
+  moderationCallback?: (content: string) => ModerationResult | Promise<ModerationResult>;
 
   /**
    * Block content flagged by moderation
@@ -214,9 +212,7 @@ export interface ValidationConfig {
    * Custom validation function
    * Return errors to block, empty array to allow
    */
-  customValidator?: (
-    request: IRChatRequest
-  ) => ValidationError[] | Promise<ValidationError[]>;
+  customValidator?: (request: IRChatRequest) => ValidationError[] | Promise<ValidationError[]>;
 
   /**
    * Throw errors on validation failure
@@ -391,10 +387,15 @@ export async function validateRequest(
   const messagesArray = Array.from(request.messages);
   for (let i = 0; i < messagesArray.length; i++) {
     const message = messagesArray[i];
-    if (!message) continue;
+    if (!message) {
+      continue;
+    }
 
     // Check allowed roles
-    if (config.allowedRoles && !config.allowedRoles.includes(message.role as 'user' | 'assistant' | 'system')) {
+    if (
+      config.allowedRoles &&
+      !config.allowedRoles.includes(message.role as 'user' | 'assistant' | 'system')
+    ) {
       errors.push(
         new ValidationError(
           `Invalid message role: ${message.role}`,
@@ -410,11 +411,7 @@ export async function validateRequest(
     // Check empty messages
     if (config.blockEmptyMessages !== false && text.trim().length === 0) {
       errors.push(
-        new ValidationError(
-          `Empty message at index ${i}`,
-          `messages[${i}].content`,
-          text
-        )
+        new ValidationError(`Empty message at index ${i}`, `messages[${i}].content`, text)
       );
     }
 
@@ -484,9 +481,7 @@ export async function validateRequest(
         const message = `Content flagged by moderation in message ${i}: ${modResult.categories.join(', ')}`;
 
         if (config.blockFlaggedContent) {
-          errors.push(
-            new ValidationError(message, `messages[${i}].content`, modResult)
-          );
+          errors.push(new ValidationError(message, `messages[${i}].content`, modResult));
         } else {
           warnings.push(message);
         }
@@ -507,10 +502,7 @@ export async function validateRequest(
 
   // Validate model
   if (config.validateModel && request.parameters?.model) {
-    if (
-      config.allowedModels &&
-      !config.allowedModels.includes(request.parameters.model)
-    ) {
+    if (config.allowedModels && !config.allowedModels.includes(request.parameters.model)) {
       errors.push(
         new ValidationError(
           `Model not allowed: ${request.parameters.model}`,
@@ -553,10 +545,7 @@ export async function validateRequest(
 /**
  * Sanitize request
  */
-export function sanitizeRequest(
-  request: IRChatRequest,
-  config: ValidationConfig
-): IRChatRequest {
+export function sanitizeRequest(request: IRChatRequest, config: ValidationConfig): IRChatRequest {
   if (config.sanitizeMessages === false) {
     return request;
   }
