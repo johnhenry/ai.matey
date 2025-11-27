@@ -53,7 +53,7 @@ export class DeepSeekBackendAdapter extends OpenAIBackendAdapter {
     // DeepSeek API endpoint
     const deepseekConfig: BackendAdapterConfig = {
       ...config,
-      baseURL: config.baseURL || 'https://api.deepseek.com/v1',
+      baseURL: config.baseURL ?? 'https://api.deepseek.com/v1',
     };
 
     // Pass DeepSeek-specific metadata to parent constructor
@@ -81,41 +81,6 @@ export class DeepSeekBackendAdapter extends OpenAIBackendAdapter {
       },
     });
   }
-
-  /**
-   * Health check for DeepSeek API.
-   */
-  async healthCheck(): Promise<boolean> {
-    try {
-      const response = await fetch(`${this.baseURL}/models`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.config.apiKey}`,
-          ...this.config.headers,
-        },
-        signal: AbortSignal.timeout(5000),
-      });
-      return response.ok;
-    } catch {
-      return false;
-    }
-  }
-
-  /**
-   * Estimate cost for DeepSeek (very low cost provider).
-   */
-  async estimateCost(request: IRChatRequest): Promise<number | null> {
-    // DeepSeek pricing: ~$0.14 per 1M input tokens, ~$0.28 per 1M output tokens
-    const estimatedInputTokens = await super.estimateCost(request) || 0;
-    const estimatedOutputTokens = Math.min(request.parameters?.maxTokens || 1000, 4000);
-
-    const inputCost = (estimatedInputTokens * 1000) * 0.14 / 1_000_000;
-    const outputCost = (estimatedOutputTokens / 1_000_000) * 0.28;
-
-    return inputCost + outputCost;
-  }
-
 }
 
 /**
