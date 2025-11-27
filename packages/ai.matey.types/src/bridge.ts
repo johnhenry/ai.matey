@@ -128,7 +128,7 @@ export const BridgeEventType = {
   MIDDLEWARE_EXECUTED: 'middleware:executed',
 } as const;
 
-export type BridgeEventType = typeof BridgeEventType[keyof typeof BridgeEventType];
+export type BridgeEventType = (typeof BridgeEventType)[keyof typeof BridgeEventType];
 
 /**
  * Base event interface.
@@ -173,9 +173,7 @@ export interface StreamEvent extends BridgeEvent {
  * Backend event with backend details.
  */
 export interface BackendEvent extends BridgeEvent {
-  readonly type:
-    | typeof BridgeEventType.BACKEND_SELECTED
-    | typeof BridgeEventType.BACKEND_FAILOVER;
+  readonly type: typeof BridgeEventType.BACKEND_SELECTED | typeof BridgeEventType.BACKEND_FAILOVER;
   readonly backend: string;
   readonly previousBackend?: string;
   readonly reason?: string;

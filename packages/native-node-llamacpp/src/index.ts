@@ -29,11 +29,7 @@ import type {
   IRStreamChunk,
   MessageContent,
 } from 'ai.matey.types';
-import {
-  AdapterError,
-  ErrorCode,
-  ProviderError,
-} from 'ai.matey.errors';
+import { AdapterError, ErrorCode, ProviderError } from 'ai.matey.errors';
 
 // Dynamic import to handle node-llama-cpp
 let getLlama: any;
@@ -42,14 +38,15 @@ let LlamaChatSession: any;
 async function loadLlamaCpp() {
   if (!getLlama) {
     try {
-      // @ts-ignore - Optional peer dependency, may not be installed
+      // @ts-expect-error - Optional peer dependency, may not be installed
       const llamaCpp = await import('node-llama-cpp');
       getLlama = llamaCpp.getLlama;
       LlamaChatSession = llamaCpp.LlamaChatSession;
-    } catch (error) {
+    } catch {
       throw new AdapterError({
         code: ErrorCode.PROVIDER_ERROR,
-        message: 'Failed to load node-llama-cpp. Make sure it is installed: npm install node-llama-cpp',
+        message:
+          'Failed to load node-llama-cpp. Make sure it is installed: npm install node-llama-cpp',
       });
     }
   }
@@ -165,7 +162,11 @@ export class NodeLlamaCppBackend implements BackendAdapter {
   /**
    * Convert provider response to IR format (passthrough - uses IR internally).
    */
-  toIR(response: IRChatResponse, _originalRequest: IRChatRequest, _latencyMs: number): IRChatResponse {
+  toIR(
+    response: IRChatResponse,
+    _originalRequest: IRChatRequest,
+    _latencyMs: number
+  ): IRChatResponse {
     return response;
   }
 
@@ -375,7 +376,7 @@ export class NodeLlamaCppBackend implements BackendAdapter {
     if (Array.isArray(content)) {
       return content
         .filter((c) => typeof c !== 'string' && c.type === 'text')
-        .map((c) => (c as any).text)
+        .map((c) => c.text)
         .join('\n');
     }
     return '';

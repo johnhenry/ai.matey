@@ -12,21 +12,9 @@
  * @module
  */
 
-import type {
-  IRChatRequest,
-  IRChatResponse,
-  IRChatStream,
-  IRCapabilities,
-} from './ir.js';
-import type {
-  AIModel,
-  ListModelsOptions,
-  ListModelsResult,
-} from './models.js';
-import type {
-  StreamingConfig,
-  StreamConversionOptions,
-} from './streaming.js';
+import type { IRChatRequest, IRChatResponse, IRChatStream, IRCapabilities } from './ir.js';
+import type { AIModel, ListModelsOptions, ListModelsResult } from './models.js';
+import type { StreamingConfig, StreamConversionOptions } from './streaming.js';
 
 // ============================================================================
 // Adapter Metadata
@@ -385,10 +373,7 @@ export interface AdapterRegistry {
    * @param name Unique adapter identifier
    * @param adapterClass Frontend adapter constructor
    */
-  registerFrontend<T extends FrontendAdapter>(
-    name: string,
-    adapterClass: new () => T
-  ): void;
+  registerFrontend<T extends FrontendAdapter>(name: string, adapterClass: new () => T): void;
 
   /**
    * Register a backend adapter type.
@@ -450,7 +435,7 @@ export interface AdapterRegistry {
  */
 export type AdapterPair<
   TFrontend extends FrontendAdapter = FrontendAdapter,
-  TBackend extends BackendAdapter = BackendAdapter
+  TBackend extends BackendAdapter = BackendAdapter,
 > = {
   readonly frontend: TFrontend;
   readonly backend: TBackend;
@@ -459,38 +444,41 @@ export type AdapterPair<
 /**
  * Infer provider request type from frontend adapter.
  */
-export type InferFrontendRequest<T extends FrontendAdapter> = T extends FrontendAdapter<
-  infer TRequest,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  any,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  any
->
-  ? TRequest
-  : never;
+export type InferFrontendRequest<T extends FrontendAdapter> =
+  T extends FrontendAdapter<
+    infer TRequest,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    any,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    any
+  >
+    ? TRequest
+    : never;
 
 /**
  * Infer provider response type from frontend adapter.
  */
-export type InferFrontendResponse<T extends FrontendAdapter> = T extends FrontendAdapter<
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  any,
-  infer TResponse,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  any
->
-  ? TResponse
-  : never;
+export type InferFrontendResponse<T extends FrontendAdapter> =
+  T extends FrontendAdapter<
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    any,
+    infer TResponse,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    any
+  >
+    ? TResponse
+    : never;
 
 /**
  * Infer provider stream chunk type from frontend adapter.
  */
-export type InferFrontendStreamChunk<T extends FrontendAdapter> = T extends FrontendAdapter<
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  any,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  any,
-  infer TStreamChunk
->
-  ? TStreamChunk
-  : never;
+export type InferFrontendStreamChunk<T extends FrontendAdapter> =
+  T extends FrontendAdapter<
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    any,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    any,
+    infer TStreamChunk
+  >
+    ? TStreamChunk
+    : never;

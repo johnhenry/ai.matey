@@ -44,7 +44,7 @@ export const FallbackStrategy = {
   CUSTOM: 'custom',
 } as const;
 
-export type FallbackStrategy = typeof FallbackStrategy[keyof typeof FallbackStrategy];
+export type FallbackStrategy = (typeof FallbackStrategy)[keyof typeof FallbackStrategy];
 
 /**
  * Routing strategies for selecting backends.
@@ -86,7 +86,7 @@ export const RoutingStrategy = {
   CUSTOM: 'custom',
 } as const;
 
-export type RoutingStrategy = typeof RoutingStrategy[keyof typeof RoutingStrategy];
+export type RoutingStrategy = (typeof RoutingStrategy)[keyof typeof RoutingStrategy];
 
 /**
  * Router configuration options.
@@ -166,9 +166,9 @@ export interface RouterConfig {
    * Must sum to 1.0. Overrides optimization preset.
    */
   readonly optimizationWeights?: {
-    cost: number;     // 0-1
-    speed: number;    // 0-1
-    quality: number;  // 0-1
+    cost: number; // 0-1
+    speed: number; // 0-1
+    quality: number; // 0-1
   };
 
   /**
@@ -412,7 +412,7 @@ export const ParallelStrategy = {
   CUSTOM: 'custom',
 } as const;
 
-export type ParallelStrategy = typeof ParallelStrategy[keyof typeof ParallelStrategy];
+export type ParallelStrategy = (typeof ParallelStrategy)[keyof typeof ParallelStrategy];
 
 /**
  * Options for parallel dispatch.

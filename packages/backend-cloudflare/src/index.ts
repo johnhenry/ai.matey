@@ -25,10 +25,7 @@ import {
   createErrorFromHttpResponse,
 } from 'ai.matey.errors';
 import { normalizeSystemMessages } from 'ai.matey.utils';
-import {
-  getEffectiveStreamMode,
-  mergeStreamingConfig,
-} from 'ai.matey.utils';
+import { getEffectiveStreamMode, mergeStreamingConfig } from 'ai.matey.utils';
 
 // ============================================================================
 // Cloudflare Workers AI API Types (OpenAI-compatible)
@@ -36,10 +33,7 @@ import {
 
 export type CloudflareMessageContent =
   | string
-  | Array<
-      | { type: 'text'; text: string }
-      | { type: 'image_url'; image_url: { url: string } }
-    >;
+  | Array<{ type: 'text'; text: string } | { type: 'image_url'; image_url: { url: string } }>;
 
 export interface CloudflareMessage {
   role: 'system' | 'user' | 'assistant' | 'tool';
@@ -100,7 +94,7 @@ export interface CloudflareStreamChunk {
 }
 
 export interface CloudflareConfig extends BackendAdapterConfig {
-  accountId?: string;  // Cloudflare account ID
+  accountId?: string; // Cloudflare account ID
 }
 
 // ============================================================================
@@ -118,7 +112,9 @@ export interface CloudflareConfig extends BackendAdapterConfig {
  * - Neuron-based pricing (pay per inference, not per token)
  * - Global edge network for low latency
  */
-export class CloudflareBackendAdapter implements BackendAdapter<CloudflareRequest, CloudflareResponse> {
+export class CloudflareBackendAdapter
+  implements BackendAdapter<CloudflareRequest, CloudflareResponse>
+{
   readonly metadata: AdapterMetadata;
   private readonly config: CloudflareConfig;
   private readonly accountId: string;
@@ -149,8 +145,8 @@ export class CloudflareBackendAdapter implements BackendAdapter<CloudflareReques
       provider: 'Cloudflare Workers AI',
       capabilities: {
         streaming: true,
-        multiModal: true,  // Vision models available
-        tools: true,       // Function calling
+        multiModal: true, // Vision models available
+        tools: true, // Function calling
         maxContextTokens: 128000,
         systemMessageStrategy: 'in-messages',
         supportsMultipleSystemMessages: true,
@@ -181,27 +177,30 @@ export class CloudflareBackendAdapter implements BackendAdapter<CloudflareReques
 
     const cloudflareMessages: CloudflareMessage[] = messages.map((msg) => ({
       role: msg.role,
-      content: typeof msg.content === 'string'
-        ? msg.content
-        : msg.content.map((block) => {
-            if (block.type === 'text') {
-              return { type: 'text', text: block.text };
-            } else if (block.type === 'image') {
-              return {
-                type: 'image_url',
-                image_url: {
-                  url: block.source.type === 'url'
-                    ? block.source.url
-                    : `data:${block.source.mediaType};base64,${block.source.data}`
-                }
-              };
-            }
-            return { type: 'text', text: JSON.stringify(block) };
-          }),
+      content:
+        typeof msg.content === 'string'
+          ? msg.content
+          : msg.content.map((block) => {
+              if (block.type === 'text') {
+                return { type: 'text', text: block.text };
+              } else if (block.type === 'image') {
+                return {
+                  type: 'image_url',
+                  image_url: {
+                    url:
+                      block.source.type === 'url'
+                        ? block.source.url
+                        : `data:${block.source.mediaType};base64,${block.source.data}`,
+                  },
+                };
+              }
+              return { type: 'text', text: JSON.stringify(block) };
+            }),
     }));
 
     return {
-      model: request.parameters?.model || this.config.defaultModel || '@cf/meta/llama-3.1-8b-instruct',
+      model:
+        request.parameters?.model || this.config.defaultModel || '@cf/meta/llama-3.1-8b-instruct',
       messages: cloudflareMessages,
       temperature: request.parameters?.temperature,
       max_tokens: request.parameters?.maxTokens,
@@ -216,7 +215,11 @@ export class CloudflareBackendAdapter implements BackendAdapter<CloudflareReques
   /**
    * Convert Cloudflare response to IR.
    */
-  public toIR(response: CloudflareResponse, originalRequest: IRChatRequest, latencyMs: number): IRChatResponse {
+  public toIR(
+    response: CloudflareResponse,
+    originalRequest: IRChatRequest,
+    latencyMs: number
+  ): IRChatResponse {
     const choice = response.choices[0];
     if (!choice) {
       throw new ProviderError({
@@ -229,25 +232,28 @@ export class CloudflareBackendAdapter implements BackendAdapter<CloudflareReques
 
     const message: IRMessage = {
       role: choice.message.role === 'assistant' ? 'assistant' : 'user',
-      content: typeof choice.message.content === 'string'
-        ? choice.message.content
-        : choice.message.content.map((c: any) => c.type === 'text' ? c.text : '').join(''),
+      content:
+        typeof choice.message.content === 'string'
+          ? choice.message.content
+          : choice.message.content.map((c: any) => (c.type === 'text' ? c.text : '')).join(''),
     };
 
     const finishReasonMap: Record<string, FinishReason> = {
-      'stop': 'stop',
-      'length': 'length',
-      'tool_calls': 'tool_calls',
+      stop: 'stop',
+      length: 'length',
+      tool_calls: 'tool_calls',
     };
 
     return {
       message,
       finishReason: finishReasonMap[choice.finish_reason || 'stop'] || 'stop',
-      usage: response.usage ? {
-        promptTokens: response.usage.prompt_tokens,
-        completionTokens: response.usage.completion_tokens,
-        totalTokens: response.usage.total_tokens,
-      } : undefined,
+      usage: response.usage
+        ? {
+            promptTokens: response.usage.prompt_tokens,
+            completionTokens: response.usage.completion_tokens,
+            totalTokens: response.usage.total_tokens,
+          }
+        : undefined,
       metadata: {
         ...originalRequest.metadata,
         providerResponseId: response.id,
@@ -315,11 +321,7 @@ export class CloudflareBackendAdapter implements BackendAdapter<CloudflareReques
       cloudflareRequest.stream = true;
 
       const streamingConfig = mergeStreamingConfig(this.config.streaming);
-      const effectiveMode = getEffectiveStreamMode(
-        request.streamMode,
-        undefined,
-        streamingConfig
-      );
+      const effectiveMode = getEffectiveStreamMode(request.streamMode, undefined, streamingConfig);
       const includeBoth = streamingConfig.includeBoth || effectiveMode === 'accumulated';
 
       const response = await fetch(`${this.baseURL}/chat/completions`, {
@@ -368,17 +370,23 @@ export class CloudflareBackendAdapter implements BackendAdapter<CloudflareReques
       try {
         while (true) {
           const { done, value } = await reader.read();
-          if (done) break;
+          if (done) {
+            break;
+          }
 
           buffer += decoder.decode(value, { stream: true });
           const lines = buffer.split('\n');
           buffer = lines.pop() || '';
 
           for (const line of lines) {
-            if (!line.trim() || !line.startsWith('data: ')) continue;
+            if (!line.trim() || !line.startsWith('data: ')) {
+              continue;
+            }
 
             const data = line.slice(6).trim();
-            if (data === '[DONE]') continue;
+            if (data === '[DONE]') {
+              continue;
+            }
 
             try {
               const chunk = JSON.parse(data) as CloudflareStreamChunk;
@@ -403,8 +411,8 @@ export class CloudflareBackendAdapter implements BackendAdapter<CloudflareReques
 
               if (chunk.choices[0]?.finish_reason) {
                 const finishReasonMap: Record<string, FinishReason> = {
-                  'stop': 'stop',
-                  'length': 'length',
+                  stop: 'stop',
+                  length: 'length',
                 };
 
                 yield {
@@ -440,7 +448,7 @@ export class CloudflareBackendAdapter implements BackendAdapter<CloudflareReques
   private getHeaders(): Record<string, string> {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${this.config.apiKey}`,
+      Authorization: `Bearer ${this.config.apiKey}`,
     };
 
     return { ...headers, ...this.config.headers };
@@ -467,18 +475,18 @@ export class CloudflareBackendAdapter implements BackendAdapter<CloudflareReques
    * Cloudflare uses neuron-based pricing (per inference, not per token).
    * Approximate cost based on model size.
    */
-  async estimateCost(request: IRChatRequest): Promise<number | null> {
+  estimateCost(request: IRChatRequest): Promise<number | null> {
     const neuronPricing: Record<string, number> = {
-      '@cf/meta/llama-3.1-8b-instruct': 0.01,   // Small models: ~$0.01 per 1K neurons
-      '@cf/meta/llama-3.1-70b-instruct': 0.10,  // Large models: ~$0.10 per 1K neurons
-      '@cf/microsoft/phi-2': 0.005,              // Tiny models: ~$0.005 per 1K neurons
+      '@cf/meta/llama-3.1-8b-instruct': 0.01, // Small models: ~$0.01 per 1K neurons
+      '@cf/meta/llama-3.1-70b-instruct': 0.1, // Large models: ~$0.10 per 1K neurons
+      '@cf/microsoft/phi-2': 0.005, // Tiny models: ~$0.005 per 1K neurons
     };
 
     const model = request.parameters?.model || this.config.defaultModel || '';
     const costPerNeuron = neuronPricing[model];
 
     if (!costPerNeuron) {
-      return null;
+      return Promise.resolve(null);
     }
 
     // Rough approximation: 1 neuron ≈ 1 token
@@ -490,6 +498,6 @@ export class CloudflareBackendAdapter implements BackendAdapter<CloudflareReques
     const outputTokens = request.parameters?.maxTokens || 1024;
     const totalNeurons = inputTokens + outputTokens;
 
-    return (totalNeurons / 1000) * costPerNeuron;
+    return Promise.resolve((totalNeurons / 1000) * costPerNeuron);
   }
 }

@@ -35,11 +35,13 @@ export interface HuggingFaceMessage {
  * Hugging Face API request.
  */
 export interface HuggingFaceRequest {
-  inputs: string | {
-    past_user_inputs?: string[];
-    generated_responses?: string[];
-    text: string;
-  };
+  inputs:
+    | string
+    | {
+        past_user_inputs?: string[];
+        generated_responses?: string[];
+        text: string;
+      };
   parameters?: {
     temperature?: number;
     max_new_tokens?: number;
@@ -103,7 +105,9 @@ export interface HuggingFaceResponse {
  * });
  * ```
  */
-export class HuggingFaceBackendAdapter implements BackendAdapter<HuggingFaceRequest, HuggingFaceResponse> {
+export class HuggingFaceBackendAdapter
+  implements BackendAdapter<HuggingFaceRequest, HuggingFaceResponse>
+{
   readonly metadata: AdapterMetadata;
   private readonly config: BackendAdapterConfig;
   private readonly baseURL: string;
@@ -193,12 +197,13 @@ export class HuggingFaceBackendAdapter implements BackendAdapter<HuggingFaceRequ
       const response = await this.execute(request, _signal);
 
       // Yield content as single chunk
-      const content = typeof response.message.content === 'string'
-        ? response.message.content
-        : response.message.content
-            .filter((c) => c.type === 'text')
-            .map((c) => (c as { text: string }).text)
-            .join('');
+      const content =
+        typeof response.message.content === 'string'
+          ? response.message.content
+          : response.message.content
+              .filter((c) => c.type === 'text')
+              .map((c) => (c as { text: string }).text)
+              .join('');
 
       yield {
         type: 'content',
@@ -247,18 +252,18 @@ export class HuggingFaceBackendAdapter implements BackendAdapter<HuggingFaceRequ
   /**
    * Estimate cost for Hugging Face.
    */
-  async estimateCost(request: IRChatRequest): Promise<number | null> {
+  estimateCost(request: IRChatRequest): Promise<number | null> {
     // Hugging Face Inference API is free for public models (with rate limits)
     // Inference Endpoints are charged separately
     const estimatedTokens = this.estimateTokens(request);
 
     // If using a private Inference Endpoint, estimate ~$0.06 per 1000 tokens
     if (this.baseURL !== 'https://api-inference.huggingface.co') {
-      return (estimatedTokens / 1000) * 0.06;
+      return Promise.resolve((estimatedTokens / 1000) * 0.06);
     }
 
     // Free tier
-    return 0;
+    return Promise.resolve(0);
   }
 
   // ==========================================================================
@@ -285,7 +290,8 @@ export class HuggingFaceBackendAdapter implements BackendAdapter<HuggingFaceRequ
           repetition_penalty: request.parameters?.frequencyPenalty
             ? 1 + request.parameters.frequencyPenalty
             : undefined,
-          do_sample: request.parameters?.temperature !== undefined && request.parameters.temperature > 0,
+          do_sample:
+            request.parameters?.temperature !== undefined && request.parameters.temperature > 0,
           return_full_text: false,
         },
         options: {
@@ -369,12 +375,13 @@ export class HuggingFaceBackendAdapter implements BackendAdapter<HuggingFaceRequ
     const parts: string[] = [];
 
     for (const message of messages) {
-      const text = typeof message.content === 'string'
-        ? message.content
-        : message.content
-            .filter((c) => c.type === 'text')
-            .map((c) => (c as { text: string }).text)
-            .join('\n');
+      const text =
+        typeof message.content === 'string'
+          ? message.content
+          : message.content
+              .filter((c) => c.type === 'text')
+              .map((c) => (c as { text: string }).text)
+              .join('\n');
 
       if (message.role === 'system') {
         parts.push(`System: ${text}`);
@@ -400,9 +407,7 @@ export class HuggingFaceBackendAdapter implements BackendAdapter<HuggingFaceRequ
     signal?: AbortSignal
   ): Promise<HuggingFaceResponse | HuggingFaceResponse[]> {
     try {
-      const url = model
-        ? `${this.baseURL}/models/${model}`
-        : this.baseURL;
+      const url = model ? `${this.baseURL}/models/${model}` : this.baseURL;
 
       const response = await fetch(url, {
         method: 'POST',
@@ -413,14 +418,9 @@ export class HuggingFaceBackendAdapter implements BackendAdapter<HuggingFaceRequ
 
       if (!response.ok) {
         const errorBody = await response.text();
-        throw createErrorFromHttpResponse(
-          response.status,
-          response.statusText,
-          errorBody,
-          {
-            backend: this.metadata.name,
-          }
-        );
+        throw createErrorFromHttpResponse(response.status, response.statusText, errorBody, {
+          backend: this.metadata.name,
+        });
       }
 
       const data = (await response.json()) as HuggingFaceResponse | HuggingFaceResponse[];
@@ -446,7 +446,7 @@ export class HuggingFaceBackendAdapter implements BackendAdapter<HuggingFaceRequ
   private getHeaders(): Record<string, string> {
     return {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${this.config.apiKey}`,
+      Authorization: `Bearer ${this.config.apiKey}`,
       ...this.config.headers,
     };
   }

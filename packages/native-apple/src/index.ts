@@ -30,11 +30,7 @@ import type {
   IRStreamChunk,
   IRMessage,
 } from 'ai.matey.types';
-import {
-  AdapterError,
-  ErrorCode,
-  ProviderError,
-} from 'ai.matey.errors';
+import { AdapterError, ErrorCode, ProviderError } from 'ai.matey.errors';
 import { platform } from 'node:os';
 
 // Dynamic import to handle apple-foundation-models
@@ -58,20 +54,22 @@ async function loadAppleAI() {
     if (!isPlatformSupported()) {
       throw new AdapterError({
         code: ErrorCode.PROVIDER_ERROR,
-        message: 'Apple Foundation Models are only supported on macOS 15+ (Sequoia) with Apple Intelligence. ' +
-                 `Current platform: ${platform()}`,
+        message:
+          'Apple Foundation Models are only supported on macOS 15+ (Sequoia) with Apple Intelligence. ' +
+          `Current platform: ${platform()}`,
       });
     }
 
     try {
-      // @ts-ignore - Optional peer dependency, may not be installed
+      // @ts-expect-error - Optional peer dependency, may not be installed
       appleAI = await import('apple-foundation-models');
     } catch (error) {
       throw new AdapterError({
         code: ErrorCode.PROVIDER_ERROR,
-        message: 'Failed to load apple-foundation-models. ' +
-                 'Install it with: npm install apple-foundation-models\n' +
-                 `Error: ${error instanceof Error ? error.message : String(error)}`,
+        message:
+          'Failed to load apple-foundation-models. ' +
+          'Install it with: npm install apple-foundation-models\n' +
+          `Error: ${error instanceof Error ? error.message : String(error)}`,
         cause: error instanceof Error ? error : undefined,
       });
     }
@@ -202,10 +200,13 @@ export class AppleBackend implements BackendAdapter {
       }
 
       // Extract system message as instructions
-      const systemMessages = request.messages.filter(m => m.role === 'system');
-      const instructions = systemMessages.length > 0
-        ? (typeof systemMessages[0]?.content === 'string' ? systemMessages[0].content : '')
-        : this.config.instructions;
+      const systemMessages = request.messages.filter((m) => m.role === 'system');
+      const instructions =
+        systemMessages.length > 0
+          ? typeof systemMessages[0]?.content === 'string'
+            ? systemMessages[0].content
+            : ''
+          : this.config.instructions;
 
       // Create Instructions object if we have instructions
       const instructionsObj = instructions ? new ai.Instructions(instructions) : undefined;
@@ -214,14 +215,14 @@ export class AppleBackend implements BackendAdapter {
       const session = new ai.LanguageModelSession(
         model,
         undefined, // guardrails (use default)
-        [],        // tools (empty for now)
+        [], // tools (empty for now)
         instructionsObj
       );
 
       // Convert non-system messages to a single prompt
-      const userMessages = request.messages.filter(m => m.role !== 'system');
+      const userMessages = request.messages.filter((m) => m.role !== 'system');
       const prompt = userMessages
-        .map(msg => typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content))
+        .map((msg) => (typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content)))
         .join('\n\n');
 
       // Prepare generation options
@@ -239,9 +240,8 @@ export class AppleBackend implements BackendAdapter {
       }
 
       if (this.config.samplingMode) {
-        options.sampling = this.config.samplingMode === 'random'
-          ? ai.SamplingMode.Random
-          : ai.SamplingMode.Default;
+        options.sampling =
+          this.config.samplingMode === 'random' ? ai.SamplingMode.Random : ai.SamplingMode.Default;
       }
 
       // Generate response
@@ -307,10 +307,13 @@ export class AppleBackend implements BackendAdapter {
       }
 
       // Extract system message as instructions
-      const systemMessages = request.messages.filter(m => m.role === 'system');
-      const instructions = systemMessages.length > 0
-        ? (typeof systemMessages[0]?.content === 'string' ? systemMessages[0].content : '')
-        : this.config.instructions;
+      const systemMessages = request.messages.filter((m) => m.role === 'system');
+      const instructions =
+        systemMessages.length > 0
+          ? typeof systemMessages[0]?.content === 'string'
+            ? systemMessages[0].content
+            : ''
+          : this.config.instructions;
 
       // Create Instructions object if we have instructions
       const instructionsObj = instructions ? new ai.Instructions(instructions) : undefined;
@@ -319,14 +322,14 @@ export class AppleBackend implements BackendAdapter {
       session = new ai.LanguageModelSession(
         model,
         undefined, // guardrails (use default)
-        [],        // tools (empty for now)
+        [], // tools (empty for now)
         instructionsObj
       );
 
       // Convert non-system messages to a single prompt
-      const userMessages = request.messages.filter(m => m.role !== 'system');
+      const userMessages = request.messages.filter((m) => m.role !== 'system');
       const prompt = userMessages
-        .map(msg => typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content))
+        .map((msg) => (typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content)))
         .join('\n\n');
 
       // Prepare generation options
@@ -344,9 +347,8 @@ export class AppleBackend implements BackendAdapter {
       }
 
       if (this.config.samplingMode) {
-        options.sampling = this.config.samplingMode === 'random'
-          ? ai.SamplingMode.Random
-          : ai.SamplingMode.Default;
+        options.sampling =
+          this.config.samplingMode === 'random' ? ai.SamplingMode.Random : ai.SamplingMode.Default;
       }
 
       // Yield start chunk
@@ -390,7 +392,6 @@ export class AppleBackend implements BackendAdapter {
           content: fullContent,
         },
       } as IRStreamChunk;
-
     } catch (error) {
       // Cleanup session if it was created
       if (session) {
@@ -424,15 +425,18 @@ export class AppleBackend implements BackendAdapter {
       sampling?: 'random' | 'default';
     };
   } {
-    const systemMessages = request.messages.filter(m => m.role === 'system');
-    const instructions = systemMessages.length > 0
-      ? (typeof systemMessages[0]?.content === 'string' ? systemMessages[0].content : '')
-      : this.config.instructions;
+    const systemMessages = request.messages.filter((m) => m.role === 'system');
+    const instructions =
+      systemMessages.length > 0
+        ? typeof systemMessages[0]?.content === 'string'
+          ? systemMessages[0].content
+          : ''
+        : this.config.instructions;
 
     // Convert non-system messages to prompt
-    const userMessages = request.messages.filter(m => m.role !== 'system');
+    const userMessages = request.messages.filter((m) => m.role !== 'system');
     const prompt = userMessages
-      .map(msg => typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content))
+      .map((msg) => (typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content)))
       .join('\n\n');
 
     // Build options
@@ -484,11 +488,11 @@ export class AppleBackend implements BackendAdapter {
   /**
    * Health check.
    */
-  async healthCheck(): Promise<boolean> {
+  healthCheck(): Promise<boolean> {
     try {
-      return this.initialized || isPlatformSupported();
+      return Promise.resolve(this.initialized || isPlatformSupported());
     } catch {
-      return false;
+      return Promise.resolve(false);
     }
   }
 }

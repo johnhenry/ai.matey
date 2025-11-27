@@ -107,7 +107,9 @@ export class HonoResponseAdapter implements GenericResponse {
   }
 
   send(data: any): void {
-    if (this._sent) return;
+    if (this._sent) {
+      return;
+    }
 
     this._sent = true;
 
@@ -136,8 +138,10 @@ export class HonoResponseAdapter implements GenericResponse {
     });
   }
 
-  async stream(generator: AsyncGenerator<any, void, undefined>): Promise<void> {
-    if (this._sent) return;
+  stream(generator: AsyncGenerator<any, void, undefined>): Promise<void> {
+    if (this._sent) {
+      return Promise.resolve();
+    }
 
     this._sent = true;
 
@@ -176,6 +180,8 @@ export class HonoResponseAdapter implements GenericResponse {
       status: this._statusCode,
       headers: this.c.res?.headers,
     });
+
+    return Promise.resolve();
   }
 
   isWritable(): boolean {

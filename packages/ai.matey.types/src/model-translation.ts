@@ -15,10 +15,10 @@ export type ModelMapping = Record<string, string>;
  * Translation strategy for Router fallback.
  */
 export type ModelTranslationStrategy =
-  | 'exact'    // Only exact matches in modelMapping
-  | 'pattern'  // Exact + regex pattern matching
-  | 'hybrid'   // Exact + pattern + backend default
-  | 'none';    // No translation (passthrough)
+  | 'exact' // Only exact matches in modelMapping
+  | 'pattern' // Exact + regex pattern matching
+  | 'hybrid' // Exact + pattern + backend default
+  | 'none'; // No translation (passthrough)
 
 /**
  * Configuration for model translation behavior.

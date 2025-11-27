@@ -73,7 +73,7 @@ export const ErrorCode = {
   INTERNAL_ERROR: 'INTERNAL_ERROR',
 } as const;
 
-export type ErrorCode = typeof ErrorCode[keyof typeof ErrorCode];
+export type ErrorCode = (typeof ErrorCode)[keyof typeof ErrorCode];
 
 // ============================================================================
 // Error Categories
@@ -96,7 +96,7 @@ export const ErrorCategory = {
   UNKNOWN: 'unknown',
 } as const;
 
-export type ErrorCategory = typeof ErrorCategory[keyof typeof ErrorCategory];
+export type ErrorCategory = (typeof ErrorCategory)[keyof typeof ErrorCategory];
 
 /**
  * Maps error codes to their categories.
@@ -275,7 +275,10 @@ export interface BaseErrorOptions {
  * Authentication error constructor options.
  */
 export interface AuthenticationErrorOptions {
-  readonly code: typeof ErrorCode.INVALID_API_KEY | typeof ErrorCode.MISSING_API_KEY | typeof ErrorCode.EXPIRED_API_KEY;
+  readonly code:
+    | typeof ErrorCode.INVALID_API_KEY
+    | typeof ErrorCode.MISSING_API_KEY
+    | typeof ErrorCode.EXPIRED_API_KEY;
   readonly message: string;
   readonly provenance?: ErrorProvenance;
   readonly cause?: Error;

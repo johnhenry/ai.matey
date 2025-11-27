@@ -24,10 +24,7 @@ import {
   createErrorFromHttpResponse,
 } from 'ai.matey.errors';
 import { normalizeSystemMessages } from 'ai.matey.utils';
-import {
-  getEffectiveStreamMode,
-  mergeStreamingConfig,
-} from 'ai.matey.utils';
+import { getEffectiveStreamMode, mergeStreamingConfig } from 'ai.matey.utils';
 
 // ============================================================================
 // Together AI API Types (OpenAI-compatible)
@@ -35,10 +32,7 @@ import {
 
 export type TogetherAIMessageContent =
   | string
-  | Array<
-      | { type: 'text'; text: string }
-      | { type: 'image_url'; image_url: { url: string } }
-    >;
+  | Array<{ type: 'text'; text: string } | { type: 'image_url'; image_url: { url: string } }>;
 
 export interface TogetherAIMessage {
   role: 'system' | 'user' | 'assistant' | 'tool';
@@ -112,7 +106,9 @@ export interface TogetherAIStreamChunk {
  * - Function calling support
  * - Budget pricing starting at $0.06 per 1M tokens
  */
-export class TogetherAIBackendAdapter implements BackendAdapter<TogetherAIRequest, TogetherAIResponse> {
+export class TogetherAIBackendAdapter
+  implements BackendAdapter<TogetherAIRequest, TogetherAIResponse>
+{
   readonly metadata: AdapterMetadata;
   private readonly config: BackendAdapterConfig;
   private readonly baseURL: string;
@@ -126,8 +122,8 @@ export class TogetherAIBackendAdapter implements BackendAdapter<TogetherAIReques
       provider: 'Together AI',
       capabilities: {
         streaming: true,
-        multiModal: true,  // Vision models available
-        tools: true,       // Function calling
+        multiModal: true, // Vision models available
+        tools: true, // Function calling
         maxContextTokens: 128000,
         systemMessageStrategy: 'in-messages',
         supportsMultipleSystemMessages: true,
@@ -157,27 +153,32 @@ export class TogetherAIBackendAdapter implements BackendAdapter<TogetherAIReques
 
     const togetherMessages: TogetherAIMessage[] = messages.map((msg) => ({
       role: msg.role,
-      content: typeof msg.content === 'string'
-        ? msg.content
-        : msg.content.map((block) => {
-            if (block.type === 'text') {
-              return { type: 'text', text: block.text };
-            } else if (block.type === 'image') {
-              return {
-                type: 'image_url',
-                image_url: {
-                  url: block.source.type === 'url'
-                    ? block.source.url
-                    : `data:${block.source.mediaType};base64,${block.source.data}`
-                }
-              };
-            }
-            return { type: 'text', text: JSON.stringify(block) };
-          }),
+      content:
+        typeof msg.content === 'string'
+          ? msg.content
+          : msg.content.map((block) => {
+              if (block.type === 'text') {
+                return { type: 'text', text: block.text };
+              } else if (block.type === 'image') {
+                return {
+                  type: 'image_url',
+                  image_url: {
+                    url:
+                      block.source.type === 'url'
+                        ? block.source.url
+                        : `data:${block.source.mediaType};base64,${block.source.data}`,
+                  },
+                };
+              }
+              return { type: 'text', text: JSON.stringify(block) };
+            }),
     }));
 
     return {
-      model: request.parameters?.model || this.config.defaultModel || 'meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo',
+      model:
+        request.parameters?.model ||
+        this.config.defaultModel ||
+        'meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo',
       messages: togetherMessages,
       temperature: request.parameters?.temperature,
       max_tokens: request.parameters?.maxTokens,
@@ -192,7 +193,11 @@ export class TogetherAIBackendAdapter implements BackendAdapter<TogetherAIReques
   /**
    * Convert Together AI response to IR.
    */
-  public toIR(response: TogetherAIResponse, originalRequest: IRChatRequest, latencyMs: number): IRChatResponse {
+  public toIR(
+    response: TogetherAIResponse,
+    originalRequest: IRChatRequest,
+    latencyMs: number
+  ): IRChatResponse {
     const choice = response.choices[0];
     if (!choice) {
       throw new ProviderError({
@@ -205,25 +210,28 @@ export class TogetherAIBackendAdapter implements BackendAdapter<TogetherAIReques
 
     const message: IRMessage = {
       role: choice.message.role === 'assistant' ? 'assistant' : 'user',
-      content: typeof choice.message.content === 'string'
-        ? choice.message.content
-        : choice.message.content.map((c: any) => c.type === 'text' ? c.text : '').join(''),
+      content:
+        typeof choice.message.content === 'string'
+          ? choice.message.content
+          : choice.message.content.map((c: any) => (c.type === 'text' ? c.text : '')).join(''),
     };
 
     const finishReasonMap: Record<string, FinishReason> = {
-      'stop': 'stop',
-      'length': 'length',
-      'tool_calls': 'tool_calls',
+      stop: 'stop',
+      length: 'length',
+      tool_calls: 'tool_calls',
     };
 
     return {
       message,
       finishReason: finishReasonMap[choice.finish_reason || 'stop'] || 'stop',
-      usage: response.usage ? {
-        promptTokens: response.usage.prompt_tokens,
-        completionTokens: response.usage.completion_tokens,
-        totalTokens: response.usage.total_tokens,
-      } : undefined,
+      usage: response.usage
+        ? {
+            promptTokens: response.usage.prompt_tokens,
+            completionTokens: response.usage.completion_tokens,
+            totalTokens: response.usage.total_tokens,
+          }
+        : undefined,
       metadata: {
         ...originalRequest.metadata,
         providerResponseId: response.id,
@@ -291,11 +299,7 @@ export class TogetherAIBackendAdapter implements BackendAdapter<TogetherAIReques
       togetherRequest.stream = true;
 
       const streamingConfig = mergeStreamingConfig(this.config.streaming);
-      const effectiveMode = getEffectiveStreamMode(
-        request.streamMode,
-        undefined,
-        streamingConfig
-      );
+      const effectiveMode = getEffectiveStreamMode(request.streamMode, undefined, streamingConfig);
       const includeBoth = streamingConfig.includeBoth || effectiveMode === 'accumulated';
 
       const response = await fetch(`${this.baseURL}/chat/completions`, {
@@ -344,17 +348,23 @@ export class TogetherAIBackendAdapter implements BackendAdapter<TogetherAIReques
       try {
         while (true) {
           const { done, value } = await reader.read();
-          if (done) break;
+          if (done) {
+            break;
+          }
 
           buffer += decoder.decode(value, { stream: true });
           const lines = buffer.split('\n');
           buffer = lines.pop() || '';
 
           for (const line of lines) {
-            if (!line.trim() || !line.startsWith('data: ')) continue;
+            if (!line.trim() || !line.startsWith('data: ')) {
+              continue;
+            }
 
             const data = line.slice(6).trim();
-            if (data === '[DONE]') continue;
+            if (data === '[DONE]') {
+              continue;
+            }
 
             try {
               const chunk = JSON.parse(data) as TogetherAIStreamChunk;
@@ -379,8 +389,8 @@ export class TogetherAIBackendAdapter implements BackendAdapter<TogetherAIReques
 
               if (chunk.choices[0]?.finish_reason) {
                 const finishReasonMap: Record<string, FinishReason> = {
-                  'stop': 'stop',
-                  'length': 'length',
+                  stop: 'stop',
+                  length: 'length',
                 };
 
                 yield {
@@ -416,7 +426,7 @@ export class TogetherAIBackendAdapter implements BackendAdapter<TogetherAIReques
   private getHeaders(): Record<string, string> {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${this.config.apiKey}`,
+      Authorization: `Bearer ${this.config.apiKey}`,
     };
 
     return { ...headers, ...this.config.headers };
@@ -441,18 +451,18 @@ export class TogetherAIBackendAdapter implements BackendAdapter<TogetherAIReques
   /**
    * Estimate cost.
    */
-  async estimateCost(request: IRChatRequest): Promise<number | null> {
+  estimateCost(request: IRChatRequest): Promise<number | null> {
     const pricing: Record<string, { input: number; output: number }> = {
-      'meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo': { input: 0.10, output: 0.10 },
+      'meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo': { input: 0.1, output: 0.1 },
       'meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo': { input: 0.88, output: 0.88 },
-      'meta-llama/Llama-4-Scout-17B-16E-Instruct': { input: 0.20, output: 0.20 },
+      'meta-llama/Llama-4-Scout-17B-16E-Instruct': { input: 0.2, output: 0.2 },
     };
 
     const model = request.parameters?.model || this.config.defaultModel || '';
     const modelPricing = pricing[model];
 
     if (!modelPricing) {
-      return null;
+      return Promise.resolve(null);
     }
 
     const inputTokens = request.messages.reduce((sum, msg) => {
@@ -465,6 +475,6 @@ export class TogetherAIBackendAdapter implements BackendAdapter<TogetherAIReques
     const inputCost = (inputTokens / 1_000_000) * modelPricing.input;
     const outputCost = (outputTokens / 1_000_000) * modelPricing.output;
 
-    return inputCost + outputCost;
+    return Promise.resolve(inputCost + outputCost);
   }
 }

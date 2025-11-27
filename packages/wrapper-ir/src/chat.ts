@@ -254,10 +254,7 @@ export class Chat {
   /**
    * Subscribe to chat events.
    */
-  on<K extends ChatEventType>(
-    event: K,
-    listener: ChatEventListener<ChatEvents[K]>
-  ): () => void {
+  on<K extends ChatEventType>(event: K, listener: ChatEventListener<ChatEvents[K]>): () => void {
     if (!this._listeners.has(event)) {
       this._listeners.set(event, new Set());
     }
@@ -272,10 +269,7 @@ export class Chat {
   /**
    * Unsubscribe from chat events.
    */
-  off<K extends ChatEventType>(
-    event: K,
-    listener: ChatEventListener<ChatEvents[K]>
-  ): void {
+  off<K extends ChatEventType>(event: K, listener: ChatEventListener<ChatEvents[K]>): void {
     this._listeners.get(event)?.delete(listener as ChatEventListener);
   }
 
@@ -316,9 +310,7 @@ export class Chat {
     throw new Error(`Max tool rounds (${this.config.maxToolRounds}) exceeded`);
   }
 
-  private async executeStreamWithToolLoop(
-    options?: StreamOptions
-  ): Promise<ChatResponse> {
+  private async executeStreamWithToolLoop(options?: StreamOptions): Promise<ChatResponse> {
     let rounds = 0;
 
     while (rounds < this.config.maxToolRounds) {
@@ -436,7 +428,9 @@ export class Chat {
   }
 
   private async executeToolCalls(toolCalls: readonly ToolCall[]): Promise<void> {
-    if (!this.config.onToolCall) return;
+    if (!this.config.onToolCall) {
+      return;
+    }
 
     for (const tool of toolCalls) {
       const result = await this.config.onToolCall(tool.name, tool.input, tool.id);
@@ -490,7 +484,7 @@ export class Chat {
 
       // Prepend system message if not already present
       const firstMessage = messages[0];
-      if (!firstMessage || firstMessage.role !== 'system') {
+      if (firstMessage?.role !== 'system') {
         messages.unshift({
           role: 'system',
           content: systemContent,
@@ -546,9 +540,7 @@ export class Chat {
       }));
   }
 
-  private createUserMessage(
-    content: string | readonly MessageContent[]
-  ): IRMessage {
+  private createUserMessage(content: string | readonly MessageContent[]): IRMessage {
     return {
       role: 'user',
       content: typeof content === 'string' ? content : [...content],
@@ -565,8 +557,7 @@ export class Chat {
     const limit = this.config.historyLimit;
     if (this._messages.length > limit) {
       // Keep system message if present
-      const systemMessage =
-        this._messages[0]?.role === 'system' ? this._messages[0] : null;
+      const systemMessage = this._messages[0]?.role === 'system' ? this._messages[0] : null;
       const excess = this._messages.length - limit;
 
       if (systemMessage) {

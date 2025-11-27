@@ -38,13 +38,14 @@ async function checkOpenTelemetryAvailability(): Promise<boolean> {
 
   try {
     // Use dynamic import() for ESM/CJS compatibility
-    const [apiModule, sdkTraceBase, otlpExporter, resources, semanticConventions] = await Promise.all([
-      import('@opentelemetry/api'),
-      import('@opentelemetry/sdk-trace-base'),
-      import('@opentelemetry/exporter-trace-otlp-http'),
-      import('@opentelemetry/resources'),
-      import('@opentelemetry/semantic-conventions'),
-    ]);
+    const [apiModule, sdkTraceBase, otlpExporter, resources, semanticConventions] =
+      await Promise.all([
+        import('@opentelemetry/api'),
+        import('@opentelemetry/sdk-trace-base'),
+        import('@opentelemetry/exporter-trace-otlp-http'),
+        import('@opentelemetry/resources'),
+        import('@opentelemetry/semantic-conventions'),
+      ]);
 
     api = apiModule;
     TracerProvider = sdkTraceBase.BasicTracerProvider;
@@ -56,7 +57,7 @@ async function checkOpenTelemetryAvailability(): Promise<boolean> {
 
     otelAvailable = true;
     return true;
-  } catch (error) {
+  } catch {
     return false;
   }
 }
@@ -237,9 +238,8 @@ async function getOrCreateTracerProvider(config: OpenTelemetryConfig): Promise<a
   }
 
   // Start initialization
-  providerInitializationPromise = (async () => {
+  providerInitializationPromise = (() => {
     try {
-
       const {
         serviceName = 'ai-matey',
         serviceVersion = '0.1.0',
@@ -286,7 +286,7 @@ async function getOrCreateTracerProvider(config: OpenTelemetryConfig): Promise<a
 
       globalTracerProvider = provider;
       globalTracerProviderConfig = configHash;
-      return provider;
+      return Promise.resolve(provider);
     } finally {
       // Clear the initialization promise whether success or failure
       providerInitializationPromise = null;
@@ -348,7 +348,9 @@ function shouldSample(samplingRate: number): boolean {
  * bridge.use(otel);
  * ```
  */
-export async function createOpenTelemetryMiddleware(config: OpenTelemetryConfig = {}): Promise<Middleware> {
+export async function createOpenTelemetryMiddleware(
+  config: OpenTelemetryConfig = {}
+): Promise<Middleware> {
   // Check if OpenTelemetry is available
   const available = await checkOpenTelemetryAvailability();
   if (!available) {
@@ -384,13 +386,17 @@ export async function createOpenTelemetryMiddleware(config: OpenTelemetryConfig 
         [OpenTelemetryAttributes.REQUEST_MODEL]: context.request.parameters?.model ?? 'unknown',
         [OpenTelemetryAttributes.REQUEST_STREAM]: String(context.request.stream ?? false),
         [OpenTelemetryAttributes.REQUEST_MESSAGE_COUNT]: context.request.messages.length,
-        [OpenTelemetryAttributes.FRONTEND]: context.request.metadata.provenance?.frontend ?? 'unknown',
+        [OpenTelemetryAttributes.FRONTEND]:
+          context.request.metadata.provenance?.frontend ?? 'unknown',
       },
     });
 
     // Add max_tokens if present
     if (context.request.parameters?.maxTokens) {
-      span.setAttribute(OpenTelemetryAttributes.REQUEST_MAX_TOKENS, context.request.parameters.maxTokens);
+      span.setAttribute(
+        OpenTelemetryAttributes.REQUEST_MAX_TOKENS,
+        context.request.parameters.maxTokens
+      );
     }
 
     const startTime = Date.now();
@@ -407,12 +413,18 @@ export async function createOpenTelemetryMiddleware(config: OpenTelemetryConfig 
       const duration = Date.now() - startTime;
 
       // Add response attributes to span
-      span.setAttribute(OpenTelemetryAttributes.RESPONSE_BACKEND, response.metadata.provenance?.backend ?? 'unknown');
+      span.setAttribute(
+        OpenTelemetryAttributes.RESPONSE_BACKEND,
+        response.metadata.provenance?.backend ?? 'unknown'
+      );
       span.setAttribute(OpenTelemetryAttributes.RESPONSE_FINISH_REASON, response.finishReason);
       span.setAttribute(OpenTelemetryAttributes.DURATION_MS, duration);
 
       if (response.metadata.provenance?.backendModel) {
-        span.setAttribute(OpenTelemetryAttributes.RESPONSE_MODEL, response.metadata.provenance.backendModel);
+        span.setAttribute(
+          OpenTelemetryAttributes.RESPONSE_MODEL,
+          response.metadata.provenance.backendModel
+        );
       }
 
       // Add token usage if present
@@ -421,7 +433,10 @@ export async function createOpenTelemetryMiddleware(config: OpenTelemetryConfig 
           span.setAttribute(OpenTelemetryAttributes.TOKENS_PROMPT, response.usage.promptTokens);
         }
         if (response.usage.completionTokens) {
-          span.setAttribute(OpenTelemetryAttributes.TOKENS_COMPLETION, response.usage.completionTokens);
+          span.setAttribute(
+            OpenTelemetryAttributes.TOKENS_COMPLETION,
+            response.usage.completionTokens
+          );
         }
         if (response.usage.totalTokens) {
           span.setAttribute(OpenTelemetryAttributes.TOKENS_TOTAL, response.usage.totalTokens);

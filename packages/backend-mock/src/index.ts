@@ -15,11 +15,7 @@ import type {
   IRMessage,
   MessageContent,
 } from 'ai.matey.types';
-import type {
-  AIModel,
-  ListModelsOptions,
-  ListModelsResult,
-} from 'ai.matey.types';
+import type { AIModel, ListModelsOptions, ListModelsResult } from 'ai.matey.types';
 
 // ============================================================================
 // Default Mock Models
@@ -274,7 +270,11 @@ export class MockBackendAdapter implements BackendAdapter {
   /**
    * Convert mock response to IR format (passthrough since mock uses IR).
    */
-  toIR(response: IRChatResponse, _originalRequest: IRChatRequest, _latencyMs: number): IRChatResponse {
+  toIR(
+    response: IRChatResponse,
+    _originalRequest: IRChatRequest,
+    _latencyMs: number
+  ): IRChatResponse {
     // Mock adapter uses IR directly - no conversion needed
     return response;
   }
@@ -320,12 +320,12 @@ export class MockBackendAdapter implements BackendAdapter {
           totalTokens: mockResponse.usage.inputTokens + mockResponse.usage.outputTokens,
         }
       : this.config.simulateUsage
-      ? {
-          promptTokens: this.estimateTokens(Array.from(irRequest.messages)),
-          completionTokens: this.estimateTokens([message]),
-          totalTokens: 0,
-        }
-      : undefined;
+        ? {
+            promptTokens: this.estimateTokens(Array.from(irRequest.messages)),
+            completionTokens: this.estimateTokens([message]),
+            totalTokens: 0,
+          }
+        : undefined;
 
     if (usage) {
       usage.totalTokens = usage.promptTokens + usage.completionTokens;
@@ -416,12 +416,12 @@ export class MockBackendAdapter implements BackendAdapter {
           totalTokens: mockResponse.usage.inputTokens + mockResponse.usage.outputTokens,
         }
       : this.config.simulateUsage
-      ? {
-          promptTokens: this.estimateTokens(Array.from(irRequest.messages)),
-          completionTokens: Math.ceil(text.length / 4),
-          totalTokens: 0,
-        }
-      : undefined;
+        ? {
+            promptTokens: this.estimateTokens(Array.from(irRequest.messages)),
+            completionTokens: Math.ceil(text.length / 4),
+            totalTokens: 0,
+          }
+        : undefined;
 
     if (usage) {
       usage.totalTokens = usage.promptTokens + usage.completionTokens;
@@ -440,10 +440,10 @@ export class MockBackendAdapter implements BackendAdapter {
    *
    * Returns configured models or default mock models.
    */
-  async listModels(options?: ListModelsOptions): Promise<ListModelsResult> {
+  listModels(options?: ListModelsOptions): Promise<ListModelsResult> {
     // Check if config provides custom models
     if (this.config.models) {
-      return this.buildStaticResult(this.config.models, options?.filter);
+      return Promise.resolve(this.buildStaticResult(this.config.models, options?.filter));
     }
 
     // Use default mock models
@@ -455,7 +455,7 @@ export class MockBackendAdapter implements BackendAdapter {
     };
 
     // Apply filter if requested
-    return this.applyModelFilter(result, options?.filter);
+    return Promise.resolve(this.applyModelFilter(result, options?.filter));
   }
 
   /**
@@ -507,10 +507,15 @@ export class MockBackendAdapter implements BackendAdapter {
 
     const filtered = result.models.filter((model) => {
       const caps = model.capabilities;
-      if (!caps) return true; // If no capabilities info, include it
+      if (!caps) {
+        return true;
+      } // If no capabilities info, include it
 
       // Check each filter criterion
-      if (filter.supportsStreaming !== undefined && caps.supportsStreaming !== filter.supportsStreaming) {
+      if (
+        filter.supportsStreaming !== undefined &&
+        caps.supportsStreaming !== filter.supportsStreaming
+      ) {
         return false;
       }
       if (filter.supportsVision !== undefined && caps.supportsVision !== filter.supportsVision) {

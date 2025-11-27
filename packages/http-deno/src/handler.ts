@@ -43,8 +43,8 @@ export function DenoHandler(
 
   const coreHandler = new CoreHTTPHandler({
     bridge,
-    cors: (cors === false || cors === undefined) ? undefined : (cors === true ? {} : cors),
-    ...restOptions as any, // HTTPListenerOptions types are compatible with CoreHandlerOptions at runtime
+    cors: cors === false || cors === undefined ? undefined : cors === true ? {} : cors,
+    ...(restOptions as any), // HTTPListenerOptions types are compatible with CoreHandlerOptions at runtime
   });
 
   // Return Deno HTTP handler
@@ -80,13 +80,10 @@ export function DenoHandler(
     } catch (error) {
       // Return error response
       console.error('Deno handler error:', error);
-      return new Response(
-        JSON.stringify({ error: 'Internal Server Error' }),
-        {
-          status: 500,
-          headers: { 'Content-Type': 'application/json' },
-        }
-      );
+      return new Response(JSON.stringify({ error: 'Internal Server Error' }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
   };
 }

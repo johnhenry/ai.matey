@@ -87,7 +87,7 @@ export function createTransformMiddleware(config: TransformConfig = {}): Middlew
     // Apply message transformations
     if (transformMessages) {
       const transformedMessages = await Promise.all(
-        request.messages.map((msg) => transformMessages(msg))
+        request.messages.map((msg) => Promise.resolve(transformMessages(msg)))
       );
 
       request = {

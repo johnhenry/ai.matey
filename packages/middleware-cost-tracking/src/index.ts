@@ -146,34 +146,38 @@ export interface CostStorage {
 export class InMemoryCostStorage implements CostStorage {
   private costs: CostCalculation[] = [];
 
-  async record(cost: CostCalculation): Promise<void> {
+  record(cost: CostCalculation): Promise<void> {
     this.costs.push(cost);
+    return Promise.resolve();
   }
 
-  async getTotal(startTime?: number, endTime?: number): Promise<number> {
-    return this.filterCosts(startTime, endTime).reduce((sum, c) => sum + c.totalCost, 0);
+  getTotal(startTime?: number, endTime?: number): Promise<number> {
+    return Promise.resolve(
+      this.filterCosts(startTime, endTime).reduce((sum, c) => sum + c.totalCost, 0)
+    );
   }
 
-  async getByProvider(startTime?: number, endTime?: number): Promise<Map<string, number>> {
+  getByProvider(startTime?: number, endTime?: number): Promise<Map<string, number>> {
     const result = new Map<string, number>();
     for (const cost of this.filterCosts(startTime, endTime)) {
       const current = result.get(cost.provider) || 0;
       result.set(cost.provider, current + cost.totalCost);
     }
-    return result;
+    return Promise.resolve(result);
   }
 
-  async getByModel(startTime?: number, endTime?: number): Promise<Map<string, number>> {
+  getByModel(startTime?: number, endTime?: number): Promise<Map<string, number>> {
     const result = new Map<string, number>();
     for (const cost of this.filterCosts(startTime, endTime)) {
       const current = result.get(cost.model) || 0;
       result.set(cost.model, current + cost.totalCost);
     }
-    return result;
+    return Promise.resolve(result);
   }
 
-  async clear(): Promise<void> {
+  clear(): Promise<void> {
     this.costs = [];
+    return Promise.resolve();
   }
 
   private filterCosts(startTime?: number, endTime?: number): CostCalculation[] {
@@ -257,7 +261,7 @@ export interface CostTrackingConfig {
  */
 export const DEFAULT_PRICING: Record<string, ProviderPricing> = {
   // Anthropic Claude
-  'anthropic': {
+  anthropic: {
     inputCostPer1M: 3.0,
     outputCostPer1M: 15.0,
   },
@@ -275,7 +279,7 @@ export const DEFAULT_PRICING: Record<string, ProviderPricing> = {
   },
 
   // OpenAI
-  'openai': {
+  openai: {
     inputCostPer1M: 10.0,
     outputCostPer1M: 30.0,
   },
@@ -293,7 +297,7 @@ export const DEFAULT_PRICING: Record<string, ProviderPricing> = {
   },
 
   // Google Gemini
-  'gemini': {
+  gemini: {
     inputCostPer1M: 0.125,
     outputCostPer1M: 0.375,
   },
@@ -303,29 +307,29 @@ export const DEFAULT_PRICING: Record<string, ProviderPricing> = {
   },
 
   // Mistral
-  'mistral': {
+  mistral: {
     inputCostPer1M: 1.0,
     outputCostPer1M: 3.0,
   },
 
   // DeepSeek
-  'deepseek': {
+  deepseek: {
     inputCostPer1M: 0.14,
     outputCostPer1M: 0.28,
   },
 
   // Groq (very low cost)
-  'groq': {
+  groq: {
     inputCostPer1M: 0.05,
-    outputCostPer1M: 0.10,
+    outputCostPer1M: 0.1,
   },
 
   // Local/Free providers
-  'ollama': {
+  ollama: {
     inputCostPer1M: 0,
     outputCostPer1M: 0,
   },
-  'lmstudio': {
+  lmstudio: {
     inputCostPer1M: 0,
     outputCostPer1M: 0,
   },

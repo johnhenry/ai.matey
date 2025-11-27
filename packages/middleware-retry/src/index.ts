@@ -281,13 +281,19 @@ export function createRetryPredicate(
     for (const type of errorTypes) {
       switch (type) {
         case 'rate_limit':
-          if (isRateLimitError(error)) return true;
+          if (isRateLimitError(error)) {
+            return true;
+          }
           break;
         case 'network':
-          if (isNetworkError(error)) return true;
+          if (isNetworkError(error)) {
+            return true;
+          }
           break;
         case 'server':
-          if (isServerError(error)) return true;
+          if (isServerError(error)) {
+            return true;
+          }
           break;
       }
     }

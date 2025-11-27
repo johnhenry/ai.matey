@@ -98,7 +98,7 @@ export interface ModelCapabilities {
    * Used for cost-based optimization and routing.
    */
   readonly pricing?: {
-    readonly input: number;  // Cost per 1k input tokens
+    readonly input: number; // Cost per 1k input tokens
     readonly output: number; // Cost per 1k output tokens
   };
 

@@ -95,7 +95,10 @@ export type StreamingMiddlewareNext = () => Promise<IRChatStream>;
 /**
  * Standard middleware function.
  */
-export type Middleware = (context: MiddlewareContext, next: MiddlewareNext) => Promise<IRChatResponse>;
+export type Middleware = (
+  context: MiddlewareContext,
+  next: MiddlewareNext
+) => Promise<IRChatResponse>;
 
 /**
  * Streaming middleware function.

@@ -25,10 +25,7 @@ import {
   createErrorFromHttpResponse,
 } from 'ai.matey.errors';
 import { normalizeSystemMessages } from 'ai.matey.utils';
-import {
-  getEffectiveStreamMode,
-  mergeStreamingConfig,
-} from 'ai.matey.utils';
+import { getEffectiveStreamMode, mergeStreamingConfig } from 'ai.matey.utils';
 
 // ============================================================================
 // Mistral API Types (OpenAI-compatible)
@@ -109,7 +106,11 @@ export class MistralBackendAdapter implements BackendAdapter<MistralRequest, Mis
 
       const response = await fetch(`${this.baseURL}/chat/completions`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${this.config.apiKey}`, ...this.config.headers },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${this.config.apiKey}`,
+          ...this.config.headers,
+        },
         body: JSON.stringify(mistralRequest),
         signal,
       });
@@ -124,7 +125,9 @@ export class MistralBackendAdapter implements BackendAdapter<MistralRequest, Mis
       const data = (await response.json()) as MistralResponse;
       return this.toIR(data, request, Date.now() - startTime);
     } catch (error) {
-      if (error instanceof NetworkError || error instanceof ProviderError) throw error;
+      if (error instanceof NetworkError || error instanceof ProviderError) {
+        throw error;
+      }
       throw new ProviderError({
         code: ErrorCode.PROVIDER_ERROR,
         message: `Mistral request failed: ${error instanceof Error ? error.message : String(error)}`,
@@ -142,16 +145,16 @@ export class MistralBackendAdapter implements BackendAdapter<MistralRequest, Mis
 
       // Get effective streaming configuration
       const streamingConfig = mergeStreamingConfig(this.config.streaming);
-      const effectiveMode = getEffectiveStreamMode(
-        request.streamMode,
-        undefined,
-        streamingConfig
-      );
+      const effectiveMode = getEffectiveStreamMode(request.streamMode, undefined, streamingConfig);
       const includeBoth = streamingConfig.includeBoth || effectiveMode === 'accumulated';
 
       const response = await fetch(`${this.baseURL}/chat/completions`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${this.config.apiKey}`, ...this.config.headers },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${this.config.apiKey}`,
+          ...this.config.headers,
+        },
         body: JSON.stringify(mistralRequest),
         signal,
       });
@@ -163,13 +166,22 @@ export class MistralBackendAdapter implements BackendAdapter<MistralRequest, Mis
         });
       }
 
-      if (!response.body) throw new StreamError({ code: ErrorCode.STREAM_ERROR, message: 'No response body', provenance: { backend: this.metadata.name } });
+      if (!response.body) {
+        throw new StreamError({
+          code: ErrorCode.STREAM_ERROR,
+          message: 'No response body',
+          provenance: { backend: this.metadata.name },
+        });
+      }
 
       let sequence = 0;
       yield {
         type: 'start',
         sequence: sequence++,
-        metadata: { ...request.metadata, provenance: { ...request.metadata.provenance, backend: this.metadata.name } },
+        metadata: {
+          ...request.metadata,
+          provenance: { ...request.metadata.provenance, backend: this.metadata.name },
+        },
       } as IRStreamChunk;
 
       const reader = response.body.getReader();
@@ -180,16 +192,22 @@ export class MistralBackendAdapter implements BackendAdapter<MistralRequest, Mis
       try {
         while (true) {
           const { done, value } = await reader.read();
-          if (done) break;
+          if (done) {
+            break;
+          }
 
           buffer += decoder.decode(value, { stream: true });
           const lines = buffer.split('\n');
           buffer = lines.pop() || '';
 
           for (const line of lines) {
-            if (!line.trim() || !line.startsWith('data: ')) continue;
+            if (!line.trim() || !line.startsWith('data: ')) {
+              continue;
+            }
             const data = line.slice(6).trim();
-            if (data === '[DONE]') continue;
+            if (data === '[DONE]') {
+              continue;
+            }
 
             try {
               const chunk = JSON.parse(data);
@@ -236,7 +254,10 @@ export class MistralBackendAdapter implements BackendAdapter<MistralRequest, Mis
       yield {
         type: 'error',
         sequence: 0,
-        error: { code: error instanceof Error ? error.name : 'UNKNOWN_ERROR', message: error instanceof Error ? error.message : String(error) },
+        error: {
+          code: error instanceof Error ? error.name : 'UNKNOWN_ERROR',
+          message: error instanceof Error ? error.message : String(error),
+        },
       } as IRStreamChunk;
     }
   }
@@ -245,7 +266,7 @@ export class MistralBackendAdapter implements BackendAdapter<MistralRequest, Mis
     try {
       const response = await fetch(`${this.baseURL}/models`, {
         method: 'GET',
-        headers: { 'Authorization': `Bearer ${this.config.apiKey}` },
+        headers: { Authorization: `Bearer ${this.config.apiKey}` },
         signal: AbortSignal.timeout(5000),
       });
       return response.ok;
@@ -254,9 +275,9 @@ export class MistralBackendAdapter implements BackendAdapter<MistralRequest, Mis
     }
   }
 
-  async estimateCost(request: IRChatRequest): Promise<number | null> {
+  estimateCost(request: IRChatRequest): Promise<number | null> {
     const estimatedTokens = this.estimateTokens(request);
-    return (estimatedTokens / 1000) * 0.002; // Rough estimate: $0.002 per 1K tokens
+    return Promise.resolve((estimatedTokens / 1000) * 0.002); // Rough estimate: $0.002 per 1K tokens
   }
 
   /**
@@ -273,7 +294,10 @@ export class MistralBackendAdapter implements BackendAdapter<MistralRequest, Mis
 
     const mistralMessages: MistralMessage[] = messages.map((msg) => ({
       role: msg.role as 'system' | 'user' | 'assistant',
-      content: typeof msg.content === 'string' ? msg.content : msg.content.map((c) => (c.type === 'text' ? c.text : JSON.stringify(c))).join(''),
+      content:
+        typeof msg.content === 'string'
+          ? msg.content
+          : msg.content.map((c) => (c.type === 'text' ? c.text : JSON.stringify(c))).join(''),
     }));
 
     return {
@@ -292,9 +316,19 @@ export class MistralBackendAdapter implements BackendAdapter<MistralRequest, Mis
    *
    * Public method for testing and debugging - parse Mistral responses manually.
    */
-  public toIR(response: MistralResponse, originalRequest: IRChatRequest, latencyMs: number): IRChatResponse {
+  public toIR(
+    response: MistralResponse,
+    originalRequest: IRChatRequest,
+    latencyMs: number
+  ): IRChatResponse {
     const choice = response.choices[0];
-    if (!choice) throw new AdapterConversionError({ code: ErrorCode.ADAPTER_CONVERSION_ERROR, message: 'No choices in Mistral response', provenance: { backend: this.metadata.name } });
+    if (!choice) {
+      throw new AdapterConversionError({
+        code: ErrorCode.ADAPTER_CONVERSION_ERROR,
+        message: 'No choices in Mistral response',
+        provenance: { backend: this.metadata.name },
+      });
+    }
 
     const message: IRMessage = { role: 'assistant', content: choice.message.content };
 
@@ -318,10 +352,13 @@ export class MistralBackendAdapter implements BackendAdapter<MistralRequest, Mis
 
   private mapFinishReason(reason: string): FinishReason {
     switch (reason) {
-      case 'stop': return 'stop';
+      case 'stop':
+        return 'stop';
       case 'length':
-      case 'model_length': return 'length';
-      default: return 'stop';
+      case 'model_length':
+        return 'length';
+      default:
+        return 'stop';
     }
   }
 

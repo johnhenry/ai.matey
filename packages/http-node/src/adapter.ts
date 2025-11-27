@@ -32,7 +32,9 @@ export class NodeRequestAdapter implements GenericRequest {
    * Parse the request body if not already parsed
    */
   private async ensureParsed(): Promise<void> {
-    if (this._parsed) return;
+    if (this._parsed) {
+      return;
+    }
 
     // Avoid multiple simultaneous parse calls
     if (this._parsePromise) {
@@ -137,7 +139,9 @@ export class NodeResponseAdapter implements GenericResponse {
   }
 
   send(data: any): void {
-    if (!this.isWritable()) return;
+    if (!this.isWritable()) {
+      return;
+    }
 
     this._headersSent = true;
 
@@ -151,7 +155,9 @@ export class NodeResponseAdapter implements GenericResponse {
   }
 
   async stream(generator: AsyncGenerator<any, void, undefined>): Promise<void> {
-    if (!this.isWritable()) return;
+    if (!this.isWritable()) {
+      return;
+    }
 
     this._headersSent = true;
 
@@ -161,7 +167,9 @@ export class NodeResponseAdapter implements GenericResponse {
     try {
       // Stream chunks
       for await (const chunk of generator) {
-        if (!this.isWritable()) break;
+        if (!this.isWritable()) {
+          break;
+        }
         sendSSEChunk(this.res, chunk);
       }
 

@@ -24,10 +24,7 @@ import {
   createErrorFromHttpResponse,
 } from 'ai.matey.errors';
 import { normalizeSystemMessages } from 'ai.matey.utils';
-import {
-  getEffectiveStreamMode,
-  mergeStreamingConfig,
-} from 'ai.matey.utils';
+import { getEffectiveStreamMode, mergeStreamingConfig } from 'ai.matey.utils';
 
 // ============================================================================
 // Anyscale API Types (OpenAI-compatible)
@@ -35,10 +32,7 @@ import {
 
 export type AnyscaleMessageContent =
   | string
-  | Array<
-      | { type: 'text'; text: string }
-      | { type: 'image_url'; image_url: { url: string } }
-    >;
+  | Array<{ type: 'text'; text: string } | { type: 'image_url'; image_url: { url: string } }>;
 
 export interface AnyscaleMessage {
   role: 'system' | 'user' | 'assistant';
@@ -117,9 +111,9 @@ export class AnyscaleBackendAdapter implements BackendAdapter<AnyscaleRequest, A
       provider: 'Anyscale',
       capabilities: {
         streaming: true,
-        multiModal: false,  // Text-only
-        tools: false,       // No function calling
-        maxContextTokens: 4096,  // Llama-2 default
+        multiModal: false, // Text-only
+        tools: false, // No function calling
+        maxContextTokens: 4096, // Llama-2 default
         systemMessageStrategy: 'in-messages',
         supportsMultipleSystemMessages: true,
         supportsTemperature: true,
@@ -147,28 +141,31 @@ export class AnyscaleBackendAdapter implements BackendAdapter<AnyscaleRequest, A
     );
 
     const anyscaleMessages: AnyscaleMessage[] = messages.map((msg) => ({
-      role: msg.role === 'tool' ? 'user' : msg.role,  // Map tool to user
-      content: typeof msg.content === 'string'
-        ? msg.content
-        : msg.content.map((block) => {
-            if (block.type === 'text') {
-              return { type: 'text', text: block.text };
-            } else if (block.type === 'image') {
-              return {
-                type: 'image_url',
-                image_url: {
-                  url: block.source.type === 'url'
-                    ? block.source.url
-                    : `data:${block.source.mediaType};base64,${block.source.data}`
-                }
-              };
-            }
-            return { type: 'text', text: JSON.stringify(block) };
-          }),
+      role: msg.role === 'tool' ? 'user' : msg.role, // Map tool to user
+      content:
+        typeof msg.content === 'string'
+          ? msg.content
+          : msg.content.map((block) => {
+              if (block.type === 'text') {
+                return { type: 'text', text: block.text };
+              } else if (block.type === 'image') {
+                return {
+                  type: 'image_url',
+                  image_url: {
+                    url:
+                      block.source.type === 'url'
+                        ? block.source.url
+                        : `data:${block.source.mediaType};base64,${block.source.data}`,
+                  },
+                };
+              }
+              return { type: 'text', text: JSON.stringify(block) };
+            }),
     }));
 
     return {
-      model: request.parameters?.model || this.config.defaultModel || 'meta-llama/Llama-2-70b-chat-hf',
+      model:
+        request.parameters?.model || this.config.defaultModel || 'meta-llama/Llama-2-70b-chat-hf',
       messages: anyscaleMessages,
       temperature: request.parameters?.temperature,
       max_tokens: request.parameters?.maxTokens,
@@ -183,7 +180,11 @@ export class AnyscaleBackendAdapter implements BackendAdapter<AnyscaleRequest, A
   /**
    * Convert Anyscale response to IR.
    */
-  public toIR(response: AnyscaleResponse, originalRequest: IRChatRequest, latencyMs: number): IRChatResponse {
+  public toIR(
+    response: AnyscaleResponse,
+    originalRequest: IRChatRequest,
+    latencyMs: number
+  ): IRChatResponse {
     const choice = response.choices[0];
     if (!choice) {
       throw new ProviderError({
@@ -196,24 +197,27 @@ export class AnyscaleBackendAdapter implements BackendAdapter<AnyscaleRequest, A
 
     const message: IRMessage = {
       role: choice.message.role === 'assistant' ? 'assistant' : 'user',
-      content: typeof choice.message.content === 'string'
-        ? choice.message.content
-        : choice.message.content.map((c: any) => c.type === 'text' ? c.text : '').join(''),
+      content:
+        typeof choice.message.content === 'string'
+          ? choice.message.content
+          : choice.message.content.map((c: any) => (c.type === 'text' ? c.text : '')).join(''),
     };
 
     const finishReasonMap: Record<string, FinishReason> = {
-      'stop': 'stop',
-      'length': 'length',
+      stop: 'stop',
+      length: 'length',
     };
 
     return {
       message,
       finishReason: finishReasonMap[choice.finish_reason || 'stop'] || 'stop',
-      usage: response.usage ? {
-        promptTokens: response.usage.prompt_tokens,
-        completionTokens: response.usage.completion_tokens,
-        totalTokens: response.usage.total_tokens,
-      } : undefined,
+      usage: response.usage
+        ? {
+            promptTokens: response.usage.prompt_tokens,
+            completionTokens: response.usage.completion_tokens,
+            totalTokens: response.usage.total_tokens,
+          }
+        : undefined,
       metadata: {
         ...originalRequest.metadata,
         providerResponseId: response.id,
@@ -281,11 +285,7 @@ export class AnyscaleBackendAdapter implements BackendAdapter<AnyscaleRequest, A
       anyscaleRequest.stream = true;
 
       const streamingConfig = mergeStreamingConfig(this.config.streaming);
-      const effectiveMode = getEffectiveStreamMode(
-        request.streamMode,
-        undefined,
-        streamingConfig
-      );
+      const effectiveMode = getEffectiveStreamMode(request.streamMode, undefined, streamingConfig);
       const includeBoth = streamingConfig.includeBoth || effectiveMode === 'accumulated';
 
       const response = await fetch(`${this.baseURL}/chat/completions`, {
@@ -334,17 +334,23 @@ export class AnyscaleBackendAdapter implements BackendAdapter<AnyscaleRequest, A
       try {
         while (true) {
           const { done, value } = await reader.read();
-          if (done) break;
+          if (done) {
+            break;
+          }
 
           buffer += decoder.decode(value, { stream: true });
           const lines = buffer.split('\n');
           buffer = lines.pop() || '';
 
           for (const line of lines) {
-            if (!line.trim() || !line.startsWith('data: ')) continue;
+            if (!line.trim() || !line.startsWith('data: ')) {
+              continue;
+            }
 
             const data = line.slice(6).trim();
-            if (data === '[DONE]') continue;
+            if (data === '[DONE]') {
+              continue;
+            }
 
             try {
               const chunk = JSON.parse(data) as AnyscaleStreamChunk;
@@ -369,8 +375,8 @@ export class AnyscaleBackendAdapter implements BackendAdapter<AnyscaleRequest, A
 
               if (chunk.choices[0]?.finish_reason) {
                 const finishReasonMap: Record<string, FinishReason> = {
-                  'stop': 'stop',
-                  'length': 'length',
+                  stop: 'stop',
+                  length: 'length',
                 };
 
                 yield {
@@ -406,7 +412,7 @@ export class AnyscaleBackendAdapter implements BackendAdapter<AnyscaleRequest, A
   private getHeaders(): Record<string, string> {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${this.config.apiKey}`,
+      Authorization: `Bearer ${this.config.apiKey}`,
     };
 
     return { ...headers, ...this.config.headers };
@@ -431,18 +437,18 @@ export class AnyscaleBackendAdapter implements BackendAdapter<AnyscaleRequest, A
   /**
    * Estimate cost.
    */
-  async estimateCost(request: IRChatRequest): Promise<number | null> {
+  estimateCost(request: IRChatRequest): Promise<number | null> {
     const pricing: Record<string, { input: number; output: number }> = {
-      'meta-llama/Llama-2-70b-chat-hf': { input: 1.00, output: 1.00 },
+      'meta-llama/Llama-2-70b-chat-hf': { input: 1.0, output: 1.0 },
       'meta-llama/Llama-2-7b-chat-hf': { input: 0.15, output: 0.15 },
-      'codellama/CodeLlama-34b-Instruct-hf': { input: 1.00, output: 1.00 },
+      'codellama/CodeLlama-34b-Instruct-hf': { input: 1.0, output: 1.0 },
     };
 
     const model = request.parameters?.model || this.config.defaultModel || '';
     const modelPricing = pricing[model];
 
     if (!modelPricing) {
-      return null;
+      return Promise.resolve(null);
     }
 
     const inputTokens = request.messages.reduce((sum, msg) => {
@@ -455,6 +461,6 @@ export class AnyscaleBackendAdapter implements BackendAdapter<AnyscaleRequest, A
     const inputCost = (inputTokens / 1_000_000) * modelPricing.input;
     const outputCost = (outputTokens / 1_000_000) * modelPricing.output;
 
-    return inputCost + outputCost;
+    return Promise.resolve(inputCost + outputCost);
   }
 }

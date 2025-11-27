@@ -24,10 +24,7 @@ import {
   createErrorFromHttpResponse,
 } from 'ai.matey.errors';
 import { normalizeSystemMessages } from 'ai.matey.utils';
-import {
-  getEffectiveStreamMode,
-  mergeStreamingConfig,
-} from 'ai.matey.utils';
+import { getEffectiveStreamMode, mergeStreamingConfig } from 'ai.matey.utils';
 
 // ============================================================================
 // OpenRouter API Types (OpenAI-compatible with extensions)
@@ -35,10 +32,7 @@ import {
 
 export type OpenRouterMessageContent =
   | string
-  | Array<
-      | { type: 'text'; text: string }
-      | { type: 'image_url'; image_url: { url: string } }
-    >;
+  | Array<{ type: 'text'; text: string } | { type: 'image_url'; image_url: { url: string } }>;
 
 export interface OpenRouterMessage {
   role: 'system' | 'user' | 'assistant' | 'tool';
@@ -67,10 +61,11 @@ export interface OpenRouterRequest {
   stream?: boolean;
   seed?: number;
   // OpenRouter-specific parameters
-  transforms?: string[];           // Model-specific transformations
-  route?: 'fallback';              // Fallback to alternative models
-  provider?: {                     // Provider preferences
-    order?: string[];              // Provider priority
+  transforms?: string[]; // Model-specific transformations
+  route?: 'fallback'; // Fallback to alternative models
+  provider?: {
+    // Provider preferences
+    order?: string[]; // Provider priority
     allow_fallbacks?: boolean;
   };
 }
@@ -108,8 +103,8 @@ export interface OpenRouterStreamChunk {
 }
 
 export interface OpenRouterConfig extends BackendAdapterConfig {
-  siteUrl?: string;      // Your site URL (for HTTP-Referer header)
-  siteName?: string;     // Your site name (for X-Title header)
+  siteUrl?: string; // Your site URL (for HTTP-Referer header)
+  siteName?: string; // Your site name (for X-Title header)
 }
 
 // ============================================================================
@@ -127,7 +122,9 @@ export interface OpenRouterConfig extends BackendAdapterConfig {
  * - Function calling support
  * - Variable pricing depending on model
  */
-export class OpenRouterBackendAdapter implements BackendAdapter<OpenRouterRequest, OpenRouterResponse> {
+export class OpenRouterBackendAdapter
+  implements BackendAdapter<OpenRouterRequest, OpenRouterResponse>
+{
   readonly metadata: AdapterMetadata;
   private readonly config: OpenRouterConfig;
   private readonly baseURL: string;
@@ -146,8 +143,8 @@ export class OpenRouterBackendAdapter implements BackendAdapter<OpenRouterReques
       provider: 'OpenRouter',
       capabilities: {
         streaming: true,
-        multiModal: true,  // Vision models available
-        tools: true,       // Function calling
+        multiModal: true, // Vision models available
+        tools: true, // Function calling
         maxContextTokens: 128000,
         systemMessageStrategy: 'in-messages',
         supportsMultipleSystemMessages: true,
@@ -179,23 +176,25 @@ export class OpenRouterBackendAdapter implements BackendAdapter<OpenRouterReques
 
     const openrouterMessages: OpenRouterMessage[] = messages.map((msg) => ({
       role: msg.role,
-      content: typeof msg.content === 'string'
-        ? msg.content
-        : msg.content.map((block) => {
-            if (block.type === 'text') {
-              return { type: 'text', text: block.text };
-            } else if (block.type === 'image') {
-              return {
-                type: 'image_url',
-                image_url: {
-                  url: block.source.type === 'url'
-                    ? block.source.url
-                    : `data:${block.source.mediaType};base64,${block.source.data}`
-                }
-              };
-            }
-            return { type: 'text', text: JSON.stringify(block) };
-          }),
+      content:
+        typeof msg.content === 'string'
+          ? msg.content
+          : msg.content.map((block) => {
+              if (block.type === 'text') {
+                return { type: 'text', text: block.text };
+              } else if (block.type === 'image') {
+                return {
+                  type: 'image_url',
+                  image_url: {
+                    url:
+                      block.source.type === 'url'
+                        ? block.source.url
+                        : `data:${block.source.mediaType};base64,${block.source.data}`,
+                  },
+                };
+              }
+              return { type: 'text', text: JSON.stringify(block) };
+            }),
     }));
 
     const openrouterRequest: OpenRouterRequest = {
@@ -233,7 +232,11 @@ export class OpenRouterBackendAdapter implements BackendAdapter<OpenRouterReques
   /**
    * Convert OpenRouter response to IR.
    */
-  public toIR(response: OpenRouterResponse, originalRequest: IRChatRequest, latencyMs: number): IRChatResponse {
+  public toIR(
+    response: OpenRouterResponse,
+    originalRequest: IRChatRequest,
+    latencyMs: number
+  ): IRChatResponse {
     const choice = response.choices[0];
     if (!choice) {
       throw new ProviderError({
@@ -246,26 +249,29 @@ export class OpenRouterBackendAdapter implements BackendAdapter<OpenRouterReques
 
     const message: IRMessage = {
       role: choice.message.role === 'assistant' ? 'assistant' : 'user',
-      content: typeof choice.message.content === 'string'
-        ? choice.message.content
-        : choice.message.content.map((c: any) => c.type === 'text' ? c.text : '').join(''),
+      content:
+        typeof choice.message.content === 'string'
+          ? choice.message.content
+          : choice.message.content.map((c: any) => (c.type === 'text' ? c.text : '')).join(''),
     };
 
     const finishReasonMap: Record<string, FinishReason> = {
-      'stop': 'stop',
-      'length': 'length',
-      'tool_calls': 'tool_calls',
-      'content_filter': 'stop',
+      stop: 'stop',
+      length: 'length',
+      tool_calls: 'tool_calls',
+      content_filter: 'stop',
     };
 
     return {
       message,
       finishReason: finishReasonMap[choice.finish_reason || 'stop'] || 'stop',
-      usage: response.usage ? {
-        promptTokens: response.usage.prompt_tokens,
-        completionTokens: response.usage.completion_tokens,
-        totalTokens: response.usage.total_tokens,
-      } : undefined,
+      usage: response.usage
+        ? {
+            promptTokens: response.usage.prompt_tokens,
+            completionTokens: response.usage.completion_tokens,
+            totalTokens: response.usage.total_tokens,
+          }
+        : undefined,
       metadata: {
         ...originalRequest.metadata,
         providerResponseId: response.id,
@@ -276,7 +282,7 @@ export class OpenRouterBackendAdapter implements BackendAdapter<OpenRouterReques
         custom: {
           ...originalRequest.metadata.custom,
           latencyMs,
-          actualModel: response.model,  // OpenRouter may route to different model
+          actualModel: response.model, // OpenRouter may route to different model
         },
       },
       raw: response as unknown as Record<string, unknown>,
@@ -334,11 +340,7 @@ export class OpenRouterBackendAdapter implements BackendAdapter<OpenRouterReques
       openrouterRequest.stream = true;
 
       const streamingConfig = mergeStreamingConfig(this.config.streaming);
-      const effectiveMode = getEffectiveStreamMode(
-        request.streamMode,
-        undefined,
-        streamingConfig
-      );
+      const effectiveMode = getEffectiveStreamMode(request.streamMode, undefined, streamingConfig);
       const includeBoth = streamingConfig.includeBoth || effectiveMode === 'accumulated';
 
       const response = await fetch(`${this.baseURL}/chat/completions`, {
@@ -387,17 +389,23 @@ export class OpenRouterBackendAdapter implements BackendAdapter<OpenRouterReques
       try {
         while (true) {
           const { done, value } = await reader.read();
-          if (done) break;
+          if (done) {
+            break;
+          }
 
           buffer += decoder.decode(value, { stream: true });
           const lines = buffer.split('\n');
           buffer = lines.pop() || '';
 
           for (const line of lines) {
-            if (!line.trim() || !line.startsWith('data: ')) continue;
+            if (!line.trim() || !line.startsWith('data: ')) {
+              continue;
+            }
 
             const data = line.slice(6).trim();
-            if (data === '[DONE]') continue;
+            if (data === '[DONE]') {
+              continue;
+            }
 
             try {
               const chunk = JSON.parse(data) as OpenRouterStreamChunk;
@@ -422,9 +430,9 @@ export class OpenRouterBackendAdapter implements BackendAdapter<OpenRouterReques
 
               if (chunk.choices[0]?.finish_reason) {
                 const finishReasonMap: Record<string, FinishReason> = {
-                  'stop': 'stop',
-                  'length': 'length',
-                  'content_filter': 'stop',
+                  stop: 'stop',
+                  length: 'length',
+                  content_filter: 'stop',
                 };
 
                 yield {
@@ -461,7 +469,7 @@ export class OpenRouterBackendAdapter implements BackendAdapter<OpenRouterReques
   private getHeaders(): Record<string, string> {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${this.config.apiKey}`,
+      Authorization: `Bearer ${this.config.apiKey}`,
     };
 
     // Add OpenRouter-specific headers
@@ -495,23 +503,23 @@ export class OpenRouterBackendAdapter implements BackendAdapter<OpenRouterReques
    * Estimate cost.
    * OpenRouter pricing varies by model.
    */
-  async estimateCost(request: IRChatRequest): Promise<number | null> {
+  estimateCost(request: IRChatRequest): Promise<number | null> {
     const pricing: Record<string, { input: number; output: number }> = {
       'anthropic/claude-3-haiku': { input: 0.25, output: 1.25 },
-      'anthropic/claude-3-sonnet': { input: 3.00, output: 15.00 },
-      'anthropic/claude-3-opus': { input: 15.00, output: 75.00 },
-      'openai/gpt-4o': { input: 2.50, output: 10.00 },
-      'openai/gpt-4o-mini': { input: 0.15, output: 0.60 },
+      'anthropic/claude-3-sonnet': { input: 3.0, output: 15.0 },
+      'anthropic/claude-3-opus': { input: 15.0, output: 75.0 },
+      'openai/gpt-4o': { input: 2.5, output: 10.0 },
+      'openai/gpt-4o-mini': { input: 0.15, output: 0.6 },
       'meta-llama/llama-3.1-8b-instruct': { input: 0.05, output: 0.05 },
-      'meta-llama/llama-3.1-70b-instruct': { input: 0.35, output: 0.40 },
-      'google/gemini-pro-1.5': { input: 1.25, output: 5.00 },
+      'meta-llama/llama-3.1-70b-instruct': { input: 0.35, output: 0.4 },
+      'google/gemini-pro-1.5': { input: 1.25, output: 5.0 },
     };
 
     const model = request.parameters?.model || this.config.defaultModel || '';
     const modelPricing = pricing[model];
 
     if (!modelPricing) {
-      return null;
+      return Promise.resolve(null);
     }
 
     const inputTokens = request.messages.reduce((sum, msg) => {
@@ -524,6 +532,6 @@ export class OpenRouterBackendAdapter implements BackendAdapter<OpenRouterReques
     const inputCost = (inputTokens / 1_000_000) * modelPricing.input;
     const outputCost = (outputTokens / 1_000_000) * modelPricing.output;
 
-    return inputCost + outputCost;
+    return Promise.resolve(inputCost + outputCost);
   }
 }

@@ -9,7 +9,13 @@
  * @module
  */
 
-import type { BackendAdapter, StreamMode, AIModel, ListModelsOptions, ListModelsResult } from 'ai.matey.types';
+import type {
+  BackendAdapter,
+  StreamMode,
+  AIModel,
+  ListModelsOptions,
+  ListModelsResult,
+} from 'ai.matey.types';
 import {
   OpenAIFrontendAdapter,
   type OpenAIRequest,
@@ -156,17 +162,23 @@ export class ChatCompletions {
   /**
    * Create a chat completion (non-streaming).
    */
-  async create(params: OpenAIChatCompletionParams & { stream?: false | undefined }): Promise<OpenAIChatCompletion>;
+  async create(
+    params: OpenAIChatCompletionParams & { stream?: false | undefined }
+  ): Promise<OpenAIChatCompletion>;
 
   /**
    * Create a chat completion (streaming).
    */
-  create(params: OpenAIChatCompletionParams & { stream: true }): AsyncIterable<OpenAIChatCompletionChunk>;
+  create(
+    params: OpenAIChatCompletionParams & { stream: true }
+  ): AsyncIterable<OpenAIChatCompletionChunk>;
 
   /**
    * Create a chat completion.
    */
-  create(params: OpenAIChatCompletionParams): Promise<OpenAIChatCompletion> | AsyncIterable<OpenAIChatCompletionChunk> {
+  create(
+    params: OpenAIChatCompletionParams
+  ): Promise<OpenAIChatCompletion> | AsyncIterable<OpenAIChatCompletionChunk> {
     if (params.stream) {
       return this.createStream(params);
     }
@@ -206,7 +218,7 @@ export class ChatCompletions {
       model: openaiResponse.model,
       choices: openaiResponse.choices.map((choice) => ({
         index: choice.index,
-        message: choice.message as OpenAIMessage,
+        message: choice.message,
         finish_reason: choice.finish_reason,
       })),
       usage: openaiResponse.usage ?? {
@@ -217,7 +229,9 @@ export class ChatCompletions {
     };
   }
 
-  private async *createStream(params: OpenAIChatCompletionParams): AsyncIterable<OpenAIChatCompletionChunk> {
+  private async *createStream(
+    params: OpenAIChatCompletionParams
+  ): AsyncIterable<OpenAIChatCompletionChunk> {
     // Convert params to OpenAI request format
     const request: OpenAIRequest = {
       model: params.model,
@@ -288,7 +302,9 @@ export class Models {
     const data: OpenAIModel[] = result.models.map((model: AIModel) => ({
       id: model.id,
       object: 'model' as const,
-      created: model.created ? new Date(model.created).getTime() / 1000 : Math.floor(result.fetchedAt / 1000),
+      created: model.created
+        ? new Date(model.created).getTime() / 1000
+        : Math.floor(result.fetchedAt / 1000),
       owned_by: model.ownedBy || 'unknown',
     }));
 
@@ -312,7 +328,9 @@ export class Models {
     return {
       id: model.id,
       object: 'model',
-      created: model.created ? new Date(model.created).getTime() / 1000 : Math.floor(result.fetchedAt / 1000),
+      created: model.created
+        ? new Date(model.created).getTime() / 1000
+        : Math.floor(result.fetchedAt / 1000),
       owned_by: model.ownedBy || 'unknown',
     };
   }

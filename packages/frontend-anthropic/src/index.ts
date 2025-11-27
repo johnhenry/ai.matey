@@ -28,7 +28,10 @@ import { convertStreamMode } from 'ai.matey.utils';
  */
 export type AnthropicContentBlock =
   | { type: 'text'; text: string }
-  | { type: 'image'; source: { type: 'url'; url: string } | { type: 'base64'; media_type: string; data: string } }
+  | {
+      type: 'image';
+      source: { type: 'url'; url: string } | { type: 'base64'; media_type: string; data: string };
+    }
   | { type: 'tool_use'; id: string; name: string; input: Record<string, unknown> };
 
 /**
@@ -80,9 +83,19 @@ export interface AnthropicResponse {
 export type AnthropicStreamEvent =
   | { type: 'message_start'; message: Partial<AnthropicResponse> }
   | { type: 'content_block_start'; index: number; content_block: AnthropicContentBlock }
-  | { type: 'content_block_delta'; index: number; delta: { type: 'text_delta'; text: string } | { type: 'input_json_delta'; partial_json: string } }
+  | {
+      type: 'content_block_delta';
+      index: number;
+      delta:
+        | { type: 'text_delta'; text: string }
+        | { type: 'input_json_delta'; partial_json: string };
+    }
   | { type: 'content_block_stop'; index: number }
-  | { type: 'message_delta'; delta: { stop_reason: string; stop_sequence?: string | null }; usage: { output_tokens: number } }
+  | {
+      type: 'message_delta';
+      delta: { stop_reason: string; stop_sequence?: string | null };
+      usage: { output_tokens: number };
+    }
   | { type: 'message_stop' }
   | { type: 'error'; error: { type: string; message: string } };
 
@@ -93,7 +106,9 @@ export type AnthropicStreamEvent =
 /**
  * Frontend adapter for Anthropic Messages API.
  */
-export class AnthropicFrontendAdapter implements FrontendAdapter<AnthropicRequest, AnthropicResponse, AnthropicStreamEvent> {
+export class AnthropicFrontendAdapter
+  implements FrontendAdapter<AnthropicRequest, AnthropicResponse, AnthropicStreamEvent>
+{
   readonly metadata: AdapterMetadata = {
     name: 'anthropic-frontend',
     version: '1.0.0',
@@ -244,7 +259,7 @@ export class AnthropicFrontendAdapter implements FrontendAdapter<AnthropicReques
             };
             break;
 
-          case 'done':
+          case 'done': {
             // Emit content_block_stop
             yield {
               type: 'content_block_stop',
@@ -266,6 +281,7 @@ export class AnthropicFrontendAdapter implements FrontendAdapter<AnthropicReques
               type: 'message_stop',
             };
             break;
+          }
 
           case 'error':
             // Emit error event
@@ -365,7 +381,9 @@ export class AnthropicFrontendAdapter implements FrontendAdapter<AnthropicReques
   /**
    * Convert IR content to Anthropic content blocks.
    */
-  private convertContentFromIR(content: string | readonly MessageContent[]): AnthropicContentBlock[] {
+  private convertContentFromIR(
+    content: string | readonly MessageContent[]
+  ): AnthropicContentBlock[] {
     if (typeof content === 'string') {
       return [{ type: 'text', text: content }];
     }
@@ -410,7 +428,9 @@ export class AnthropicFrontendAdapter implements FrontendAdapter<AnthropicReques
   /**
    * Map IR finish reason to Anthropic stop reason.
    */
-  private mapFinishReason(finishReason: string): 'end_turn' | 'max_tokens' | 'stop_sequence' | 'tool_use' | null {
+  private mapFinishReason(
+    finishReason: string
+  ): 'end_turn' | 'max_tokens' | 'stop_sequence' | 'tool_use' | null {
     switch (finishReason) {
       case 'stop':
         return 'end_turn';

@@ -9,7 +9,13 @@
  * @module
  */
 
-import type { BackendAdapter, StreamMode, AIModel, ListModelsOptions, ListModelsResult } from 'ai.matey.types';
+import type {
+  BackendAdapter,
+  StreamMode,
+  AIModel,
+  ListModelsOptions,
+  ListModelsResult,
+} from 'ai.matey.types';
 import {
   AnthropicFrontendAdapter,
   type AnthropicRequest,
@@ -132,7 +138,9 @@ export class Messages {
   /**
    * Create a message (non-streaming).
    */
-  async create(params: AnthropicMessageParams & { stream?: false | undefined }): Promise<AnthropicSDKMessageResponse>;
+  async create(
+    params: AnthropicMessageParams & { stream?: false | undefined }
+  ): Promise<AnthropicSDKMessageResponse>;
 
   /**
    * Create a message (streaming).
@@ -142,14 +150,18 @@ export class Messages {
   /**
    * Create a message.
    */
-  create(params: AnthropicMessageParams): Promise<AnthropicSDKMessageResponse> | AsyncIterable<AnthropicStreamEvent> {
+  create(
+    params: AnthropicMessageParams
+  ): Promise<AnthropicSDKMessageResponse> | AsyncIterable<AnthropicStreamEvent> {
     if (params.stream) {
       return this.createStream(params);
     }
     return this.createNonStream(params);
   }
 
-  private async createNonStream(params: AnthropicMessageParams): Promise<AnthropicSDKMessageResponse> {
+  private async createNonStream(
+    params: AnthropicMessageParams
+  ): Promise<AnthropicSDKMessageResponse> {
     // Convert params to Anthropic request format
     const request: AnthropicRequest = {
       model: params.model,
@@ -270,11 +282,15 @@ export class Models {
    * Retrieve information about a specific model.
    */
   async retrieve(modelId: string): Promise<AnthropicModel | null> {
-    if (!this.backend.listModels) return null;
+    if (!this.backend.listModels) {
+      return null;
+    }
 
     const result: ListModelsResult = await this.backend.listModels();
     const model = result.models.find((m: AIModel) => m.id === modelId);
-    if (!model) return null;
+    if (!model) {
+      return null;
+    }
 
     return {
       id: model.id,

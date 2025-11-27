@@ -24,10 +24,7 @@ import {
   createErrorFromHttpResponse,
 } from 'ai.matey.errors';
 import { normalizeSystemMessages } from 'ai.matey.utils';
-import {
-  getEffectiveStreamMode,
-  mergeStreamingConfig,
-} from 'ai.matey.utils';
+import { getEffectiveStreamMode, mergeStreamingConfig } from 'ai.matey.utils';
 
 // ============================================================================
 // Perplexity AI API Types (OpenAI-compatible with search extensions)
@@ -35,10 +32,7 @@ import {
 
 export type PerplexityMessageContent =
   | string
-  | Array<
-      | { type: 'text'; text: string }
-      | { type: 'image_url'; image_url: { url: string } }
-    >;
+  | Array<{ type: 'text'; text: string } | { type: 'image_url'; image_url: { url: string } }>;
 
 export interface PerplexityMessage {
   role: 'system' | 'user' | 'assistant';
@@ -55,10 +49,10 @@ export interface PerplexityRequest {
   presence_penalty?: number;
   stop?: string[];
   stream?: boolean;
-  search_domain_filter?: string[];       // Perplexity-specific: limit search to domains
-  return_citations?: boolean;            // Perplexity-specific: include citations
-  return_images?: boolean;               // Perplexity-specific: include images
-  search_recency_filter?: string;        // Perplexity-specific: time filter (month, week, day, hour)
+  search_domain_filter?: string[]; // Perplexity-specific: limit search to domains
+  return_citations?: boolean; // Perplexity-specific: include citations
+  return_images?: boolean; // Perplexity-specific: include images
+  search_recency_filter?: string; // Perplexity-specific: time filter (month, week, day, hour)
 }
 
 export interface PerplexityResponse {
@@ -76,7 +70,7 @@ export interface PerplexityResponse {
     completion_tokens: number;
     total_tokens: number;
   };
-  citations?: string[];   // Perplexity-specific: source URLs
+  citations?: string[]; // Perplexity-specific: source URLs
 }
 
 export interface PerplexityStreamChunk {
@@ -110,7 +104,9 @@ export interface PerplexityStreamChunk {
  * - Domain filtering and recency filtering
  * - Pricing around $1 per 1M tokens
  */
-export class PerplexityBackendAdapter implements BackendAdapter<PerplexityRequest, PerplexityResponse> {
+export class PerplexityBackendAdapter
+  implements BackendAdapter<PerplexityRequest, PerplexityResponse>
+{
   readonly metadata: AdapterMetadata;
   private readonly config: BackendAdapterConfig;
   private readonly baseURL: string;
@@ -124,8 +120,8 @@ export class PerplexityBackendAdapter implements BackendAdapter<PerplexityReques
       provider: 'Perplexity AI',
       capabilities: {
         streaming: true,
-        multiModal: false,  // Text-only
-        tools: false,       // No function calling
+        multiModal: false, // Text-only
+        tools: false, // No function calling
         maxContextTokens: 128000,
         systemMessageStrategy: 'in-messages',
         supportsMultipleSystemMessages: true,
@@ -154,28 +150,33 @@ export class PerplexityBackendAdapter implements BackendAdapter<PerplexityReques
     );
 
     const perplexityMessages: PerplexityMessage[] = messages.map((msg) => ({
-      role: msg.role === 'tool' ? 'user' : msg.role,  // Map tool to user
-      content: typeof msg.content === 'string'
-        ? msg.content
-        : msg.content.map((block) => {
-            if (block.type === 'text') {
-              return { type: 'text', text: block.text };
-            } else if (block.type === 'image') {
-              return {
-                type: 'image_url',
-                image_url: {
-                  url: block.source.type === 'url'
-                    ? block.source.url
-                    : `data:${block.source.mediaType};base64,${block.source.data}`
-                }
-              };
-            }
-            return { type: 'text', text: JSON.stringify(block) };
-          }),
+      role: msg.role === 'tool' ? 'user' : msg.role, // Map tool to user
+      content:
+        typeof msg.content === 'string'
+          ? msg.content
+          : msg.content.map((block) => {
+              if (block.type === 'text') {
+                return { type: 'text', text: block.text };
+              } else if (block.type === 'image') {
+                return {
+                  type: 'image_url',
+                  image_url: {
+                    url:
+                      block.source.type === 'url'
+                        ? block.source.url
+                        : `data:${block.source.mediaType};base64,${block.source.data}`,
+                  },
+                };
+              }
+              return { type: 'text', text: JSON.stringify(block) };
+            }),
     }));
 
     const perplexityRequest: PerplexityRequest = {
-      model: request.parameters?.model || this.config.defaultModel || 'llama-3.1-sonar-small-128k-online',
+      model:
+        request.parameters?.model ||
+        this.config.defaultModel ||
+        'llama-3.1-sonar-small-128k-online',
       messages: perplexityMessages,
       temperature: request.parameters?.temperature,
       max_tokens: request.parameters?.maxTokens,
@@ -188,7 +189,8 @@ export class PerplexityBackendAdapter implements BackendAdapter<PerplexityReques
 
     // Add Perplexity-specific parameters if provided in custom config
     if (request.parameters?.custom?.search_domain_filter) {
-      perplexityRequest.search_domain_filter = request.parameters.custom.search_domain_filter as string[];
+      perplexityRequest.search_domain_filter = request.parameters.custom
+        .search_domain_filter as string[];
     }
     if (request.parameters?.custom?.return_citations !== undefined) {
       perplexityRequest.return_citations = request.parameters.custom.return_citations as boolean;
@@ -197,7 +199,8 @@ export class PerplexityBackendAdapter implements BackendAdapter<PerplexityReques
       perplexityRequest.return_images = request.parameters.custom.return_images as boolean;
     }
     if (request.parameters?.custom?.search_recency_filter) {
-      perplexityRequest.search_recency_filter = request.parameters.custom.search_recency_filter as string;
+      perplexityRequest.search_recency_filter = request.parameters.custom
+        .search_recency_filter as string;
     }
 
     return perplexityRequest;
@@ -206,7 +209,11 @@ export class PerplexityBackendAdapter implements BackendAdapter<PerplexityReques
   /**
    * Convert Perplexity response to IR.
    */
-  public toIR(response: PerplexityResponse, originalRequest: IRChatRequest, latencyMs: number): IRChatResponse {
+  public toIR(
+    response: PerplexityResponse,
+    originalRequest: IRChatRequest,
+    latencyMs: number
+  ): IRChatResponse {
     const choice = response.choices[0];
     if (!choice) {
       throw new ProviderError({
@@ -219,24 +226,27 @@ export class PerplexityBackendAdapter implements BackendAdapter<PerplexityReques
 
     const message: IRMessage = {
       role: choice.message.role === 'assistant' ? 'assistant' : 'user',
-      content: typeof choice.message.content === 'string'
-        ? choice.message.content
-        : choice.message.content.map((c: any) => c.type === 'text' ? c.text : '').join(''),
+      content:
+        typeof choice.message.content === 'string'
+          ? choice.message.content
+          : choice.message.content.map((c: any) => (c.type === 'text' ? c.text : '')).join(''),
     };
 
     const finishReasonMap: Record<string, FinishReason> = {
-      'stop': 'stop',
-      'length': 'length',
+      stop: 'stop',
+      length: 'length',
     };
 
     return {
       message,
       finishReason: finishReasonMap[choice.finish_reason || 'stop'] || 'stop',
-      usage: response.usage ? {
-        promptTokens: response.usage.prompt_tokens,
-        completionTokens: response.usage.completion_tokens,
-        totalTokens: response.usage.total_tokens,
-      } : undefined,
+      usage: response.usage
+        ? {
+            promptTokens: response.usage.prompt_tokens,
+            completionTokens: response.usage.completion_tokens,
+            totalTokens: response.usage.total_tokens,
+          }
+        : undefined,
       metadata: {
         ...originalRequest.metadata,
         providerResponseId: response.id,
@@ -247,7 +257,9 @@ export class PerplexityBackendAdapter implements BackendAdapter<PerplexityReques
         custom: {
           ...originalRequest.metadata.custom,
           latencyMs,
-          ...(response.citations && response.citations.length > 0 ? { citations: response.citations } : {}),
+          ...(response.citations && response.citations.length > 0
+            ? { citations: response.citations }
+            : {}),
         },
       },
       raw: response as unknown as Record<string, unknown>,
@@ -305,11 +317,7 @@ export class PerplexityBackendAdapter implements BackendAdapter<PerplexityReques
       perplexityRequest.stream = true;
 
       const streamingConfig = mergeStreamingConfig(this.config.streaming);
-      const effectiveMode = getEffectiveStreamMode(
-        request.streamMode,
-        undefined,
-        streamingConfig
-      );
+      const effectiveMode = getEffectiveStreamMode(request.streamMode, undefined, streamingConfig);
       const includeBoth = streamingConfig.includeBoth || effectiveMode === 'accumulated';
 
       const response = await fetch(`${this.baseURL}/chat/completions`, {
@@ -359,17 +367,23 @@ export class PerplexityBackendAdapter implements BackendAdapter<PerplexityReques
       try {
         while (true) {
           const { done, value } = await reader.read();
-          if (done) break;
+          if (done) {
+            break;
+          }
 
           buffer += decoder.decode(value, { stream: true });
           const lines = buffer.split('\n');
           buffer = lines.pop() || '';
 
           for (const line of lines) {
-            if (!line.trim() || !line.startsWith('data: ')) continue;
+            if (!line.trim() || !line.startsWith('data: ')) {
+              continue;
+            }
 
             const data = line.slice(6).trim();
-            if (data === '[DONE]') continue;
+            if (data === '[DONE]') {
+              continue;
+            }
 
             try {
               const chunk = JSON.parse(data) as PerplexityStreamChunk;
@@ -399,8 +413,8 @@ export class PerplexityBackendAdapter implements BackendAdapter<PerplexityReques
 
               if (chunk.choices[0]?.finish_reason) {
                 const finishReasonMap: Record<string, FinishReason> = {
-                  'stop': 'stop',
-                  'length': 'length',
+                  stop: 'stop',
+                  length: 'length',
                 };
 
                 const doneChunk: IRStreamChunk = {
@@ -443,7 +457,7 @@ export class PerplexityBackendAdapter implements BackendAdapter<PerplexityReques
   private getHeaders(): Record<string, string> {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${this.config.apiKey}`,
+      Authorization: `Bearer ${this.config.apiKey}`,
     };
 
     return { ...headers, ...this.config.headers };
@@ -468,20 +482,20 @@ export class PerplexityBackendAdapter implements BackendAdapter<PerplexityReques
   /**
    * Estimate cost.
    */
-  async estimateCost(request: IRChatRequest): Promise<number | null> {
+  estimateCost(request: IRChatRequest): Promise<number | null> {
     const pricing: Record<string, { input: number; output: number }> = {
-      'llama-3.1-sonar-small-128k-online': { input: 0.20, output: 0.20 },
-      'llama-3.1-sonar-large-128k-online': { input: 1.00, output: 1.00 },
-      'llama-3.1-sonar-huge-128k-online': { input: 5.00, output: 5.00 },
-      'llama-3.1-sonar-small-128k-chat': { input: 0.20, output: 0.20 },
-      'llama-3.1-sonar-large-128k-chat': { input: 1.00, output: 1.00 },
+      'llama-3.1-sonar-small-128k-online': { input: 0.2, output: 0.2 },
+      'llama-3.1-sonar-large-128k-online': { input: 1.0, output: 1.0 },
+      'llama-3.1-sonar-huge-128k-online': { input: 5.0, output: 5.0 },
+      'llama-3.1-sonar-small-128k-chat': { input: 0.2, output: 0.2 },
+      'llama-3.1-sonar-large-128k-chat': { input: 1.0, output: 1.0 },
     };
 
     const model = request.parameters?.model || this.config.defaultModel || '';
     const modelPricing = pricing[model];
 
     if (!modelPricing) {
-      return null;
+      return Promise.resolve(null);
     }
 
     const inputTokens = request.messages.reduce((sum, msg) => {
@@ -494,6 +508,6 @@ export class PerplexityBackendAdapter implements BackendAdapter<PerplexityReques
     const inputCost = (inputTokens / 1_000_000) * modelPricing.input;
     const outputCost = (outputTokens / 1_000_000) * modelPricing.output;
 
-    return inputCost + outputCost;
+    return Promise.resolve(inputCost + outputCost);
   }
 }

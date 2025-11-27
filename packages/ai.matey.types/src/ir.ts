@@ -174,7 +174,14 @@ export interface IRMessage {
 /**
  * JSON Schema type definitions.
  */
-export type JSONSchemaType = 'string' | 'number' | 'integer' | 'boolean' | 'object' | 'array' | 'null';
+export type JSONSchemaType =
+  | 'string'
+  | 'number'
+  | 'integer'
+  | 'boolean'
+  | 'object'
+  | 'array'
+  | 'null';
 
 /**
  * JSON Schema for tool parameters.
@@ -347,7 +354,11 @@ export interface IRParameters {
 /**
  * System message handling strategy.
  */
-export type SystemMessageStrategy = 'separate-parameter' | 'in-messages' | 'prepend-user' | 'not-supported';
+export type SystemMessageStrategy =
+  | 'separate-parameter'
+  | 'in-messages'
+  | 'prepend-user'
+  | 'not-supported';
 
 /**
  * Adapter capabilities metadata.
@@ -718,7 +729,13 @@ export interface IRChatRequest {
 /**
  * Finish reason for generation.
  */
-export type FinishReason = 'stop' | 'length' | 'tool_calls' | 'content_filter' | 'error' | 'cancelled';
+export type FinishReason =
+  | 'stop'
+  | 'length'
+  | 'tool_calls'
+  | 'content_filter'
+  | 'error'
+  | 'cancelled';
 
 /**
  * Token usage statistics.

@@ -16,11 +16,7 @@ import type {
   IRStreamChunk,
   FinishReason,
 } from 'ai.matey.types';
-import type {
-  AIModel,
-  ListModelsOptions,
-  ListModelsResult,
-} from 'ai.matey.types';
+import type { AIModel, ListModelsOptions, ListModelsResult } from 'ai.matey.types';
 import {
   AdapterConversionError,
   NetworkError,
@@ -31,10 +27,7 @@ import {
 } from 'ai.matey.errors';
 import { normalizeSystemMessages } from 'ai.matey.utils';
 import { getModelCache } from 'ai.matey.utils';
-import {
-  getEffectiveStreamMode,
-  mergeStreamingConfig,
-} from 'ai.matey.utils';
+import { getEffectiveStreamMode, mergeStreamingConfig } from 'ai.matey.utils';
 import {
   estimateTokens,
   buildStaticResult,
@@ -272,11 +265,7 @@ export class OpenAIBackendAdapter implements BackendAdapter<OpenAIRequest, OpenA
 
       // Get effective streaming configuration
       const streamingConfig = mergeStreamingConfig(this.config.streaming);
-      const effectiveMode = getEffectiveStreamMode(
-        request.streamMode,
-        undefined,
-        streamingConfig
-      );
+      const effectiveMode = getEffectiveStreamMode(request.streamMode, undefined, streamingConfig);
       const includeBoth = streamingConfig.includeBoth || effectiveMode === 'accumulated';
 
       // Make streaming HTTP request
@@ -289,14 +278,9 @@ export class OpenAIBackendAdapter implements BackendAdapter<OpenAIRequest, OpenA
 
       if (!response.ok) {
         const errorBody = await response.text();
-        throw createErrorFromHttpResponse(
-          response.status,
-          response.statusText,
-          errorBody,
-          {
-            backend: this.metadata.name,
-          }
-        );
+        throw createErrorFromHttpResponse(response.status, response.statusText, errorBody, {
+          backend: this.metadata.name,
+        });
       }
 
       if (!response.body) {
@@ -313,7 +297,9 @@ export class OpenAIBackendAdapter implements BackendAdapter<OpenAIRequest, OpenA
       let sequence = 0;
       let contentBuffer = '';
       let finishReasonReceived: FinishReason | null = null;
-      let usage: { promptTokens: number; completionTokens: number; totalTokens: number } | undefined;
+      let usage:
+        | { promptTokens: number; completionTokens: number; totalTokens: number }
+        | undefined;
 
       // Yield start chunk
       yield {
@@ -336,7 +322,9 @@ export class OpenAIBackendAdapter implements BackendAdapter<OpenAIRequest, OpenA
       try {
         while (true) {
           const { done, value } = await reader.read();
-          if (done) break;
+          if (done) {
+            break;
+          }
 
           buffer += decoder.decode(value, { stream: true });
           const lines = buffer.split('\n');
@@ -344,7 +332,9 @@ export class OpenAIBackendAdapter implements BackendAdapter<OpenAIRequest, OpenA
 
           for (const line of lines) {
             // Skip empty lines
-            if (!line.trim()) continue;
+            if (!line.trim()) {
+              continue;
+            }
 
             if (line.startsWith('data: ')) {
               const data = line.slice(6).trim();
@@ -378,7 +368,9 @@ export class OpenAIBackendAdapter implements BackendAdapter<OpenAIRequest, OpenA
                 }
 
                 const choice = chunk.choices[0];
-                if (!choice) continue;
+                if (!choice) {
+                  continue;
+                }
 
                 // Content delta
                 if (choice.delta.content) {
@@ -490,11 +482,11 @@ export class OpenAIBackendAdapter implements BackendAdapter<OpenAIRequest, OpenA
   /**
    * Estimate cost for a request (rough heuristic).
    */
-  async estimateCost(request: IRChatRequest): Promise<number | null> {
+  estimateCost(request: IRChatRequest): Promise<number | null> {
     // Use shared token estimation utility
     const estimatedInputTokens = estimateTokens(request);
     // Rough cost: $0.01 per 1000 tokens (varies by model)
-    return (estimatedInputTokens / 1000) * 0.01;
+    return Promise.resolve((estimatedInputTokens / 1000) * 0.01);
   }
 
   /**
@@ -619,7 +611,9 @@ export class OpenAIBackendAdapter implements BackendAdapter<OpenAIRequest, OpenA
       );
 
       // Convert messages
-      const openaiMessages: OpenAIMessage[] = messages.map((msg) => this.convertMessageToOpenAI(msg));
+      const openaiMessages: OpenAIMessage[] = messages.map((msg) =>
+        this.convertMessageToOpenAI(msg)
+      );
 
       // Build OpenAI request
       const openaiRequest: OpenAIRequest = {
@@ -654,7 +648,11 @@ export class OpenAIBackendAdapter implements BackendAdapter<OpenAIRequest, OpenA
    *
    * Public method for testing and debugging - parse OpenAI responses manually.
    */
-  public toIR(response: OpenAIResponse, originalRequest: IRChatRequest, latencyMs: number): IRChatResponse {
+  public toIR(
+    response: OpenAIResponse,
+    originalRequest: IRChatRequest,
+    latencyMs: number
+  ): IRChatResponse {
     try {
       const choice = response.choices[0];
       if (!choice) {
@@ -806,14 +804,9 @@ export class OpenAIBackendAdapter implements BackendAdapter<OpenAIRequest, OpenA
 
       if (!response.ok) {
         const errorBody = await response.text();
-        throw createErrorFromHttpResponse(
-          response.status,
-          response.statusText,
-          errorBody,
-          {
-            backend: this.metadata.name,
-          }
-        );
+        throw createErrorFromHttpResponse(response.status, response.statusText, errorBody, {
+          backend: this.metadata.name,
+        });
       }
 
       const data = (await response.json()) as OpenAIResponse;
@@ -839,7 +832,7 @@ export class OpenAIBackendAdapter implements BackendAdapter<OpenAIRequest, OpenA
   private getHeaders(): Record<string, string> {
     return {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${this.config.apiKey}`,
+      Authorization: `Bearer ${this.config.apiKey}`,
       ...this.config.headers,
     };
   }

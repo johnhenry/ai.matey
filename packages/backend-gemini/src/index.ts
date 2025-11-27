@@ -25,10 +25,7 @@ import {
   createErrorFromHttpResponse,
 } from 'ai.matey.errors';
 import { normalizeSystemMessages } from 'ai.matey.utils';
-import {
-  getEffectiveStreamMode,
-  mergeStreamingConfig,
-} from 'ai.matey.utils';
+import { getEffectiveStreamMode, mergeStreamingConfig } from 'ai.matey.utils';
 
 // ============================================================================
 // Gemini API Types
@@ -126,7 +123,9 @@ export class GeminiBackendAdapter implements BackendAdapter<GeminiRequest, Gemin
       const data = (await response.json()) as GeminiResponse;
       return this.toIR(data, request, Date.now() - startTime);
     } catch (error) {
-      if (error instanceof NetworkError || error instanceof ProviderError) throw error;
+      if (error instanceof NetworkError || error instanceof ProviderError) {
+        throw error;
+      }
       throw new ProviderError({
         code: ErrorCode.PROVIDER_ERROR,
         message: `Gemini request failed: ${error instanceof Error ? error.message : String(error)}`,
@@ -145,11 +144,7 @@ export class GeminiBackendAdapter implements BackendAdapter<GeminiRequest, Gemin
 
       // Get effective streaming configuration
       const streamingConfig = mergeStreamingConfig(this.config.streaming);
-      const effectiveMode = getEffectiveStreamMode(
-        request.streamMode,
-        undefined,
-        streamingConfig
-      );
+      const effectiveMode = getEffectiveStreamMode(request.streamMode, undefined, streamingConfig);
       const includeBoth = streamingConfig.includeBoth || effectiveMode === 'accumulated';
 
       const response = await fetch(endpoint, {
@@ -166,13 +161,22 @@ export class GeminiBackendAdapter implements BackendAdapter<GeminiRequest, Gemin
         });
       }
 
-      if (!response.body) throw new StreamError({ code: ErrorCode.STREAM_ERROR, message: 'No response body', provenance: { backend: this.metadata.name } });
+      if (!response.body) {
+        throw new StreamError({
+          code: ErrorCode.STREAM_ERROR,
+          message: 'No response body',
+          provenance: { backend: this.metadata.name },
+        });
+      }
 
       let sequence = 0;
       yield {
         type: 'start',
         sequence: sequence++,
-        metadata: { ...request.metadata, provenance: { ...request.metadata.provenance, backend: this.metadata.name } },
+        metadata: {
+          ...request.metadata,
+          provenance: { ...request.metadata.provenance, backend: this.metadata.name },
+        },
       } as IRStreamChunk;
 
       const reader = response.body.getReader();
@@ -183,20 +187,26 @@ export class GeminiBackendAdapter implements BackendAdapter<GeminiRequest, Gemin
       try {
         while (true) {
           const { done, value } = await reader.read();
-          if (done) break;
+          if (done) {
+            break;
+          }
 
           buffer += decoder.decode(value, { stream: true });
           const lines = buffer.split('\n');
           buffer = lines.pop() || '';
 
           for (const line of lines) {
-            if (!line.trim() || !line.startsWith('data: ')) continue;
+            if (!line.trim() || !line.startsWith('data: ')) {
+              continue;
+            }
             const data = line.slice(6).trim();
 
             try {
               const chunk: GeminiResponse = JSON.parse(data);
               const candidate = chunk.candidates?.[0];
-              if (!candidate) continue;
+              if (!candidate) {
+                continue;
+              }
 
               const content = candidate.content?.parts?.[0];
               if (content && 'text' in content) {
@@ -224,11 +234,13 @@ export class GeminiBackendAdapter implements BackendAdapter<GeminiRequest, Gemin
                   type: 'done',
                   sequence: sequence++,
                   finishReason: this.mapFinishReason(candidate.finishReason),
-                  usage: chunk.usageMetadata ? {
-                    promptTokens: chunk.usageMetadata.promptTokenCount,
-                    completionTokens: chunk.usageMetadata.candidatesTokenCount,
-                    totalTokens: chunk.usageMetadata.totalTokenCount,
-                  } : undefined,
+                  usage: chunk.usageMetadata
+                    ? {
+                        promptTokens: chunk.usageMetadata.promptTokenCount,
+                        completionTokens: chunk.usageMetadata.candidatesTokenCount,
+                        totalTokens: chunk.usageMetadata.totalTokenCount,
+                      }
+                    : undefined,
                   message,
                 } as IRStreamChunk;
               }
@@ -244,7 +256,10 @@ export class GeminiBackendAdapter implements BackendAdapter<GeminiRequest, Gemin
       yield {
         type: 'error',
         sequence: 0,
-        error: { code: error instanceof Error ? error.name : 'UNKNOWN_ERROR', message: error instanceof Error ? error.message : String(error) },
+        error: {
+          code: error instanceof Error ? error.name : 'UNKNOWN_ERROR',
+          message: error instanceof Error ? error.message : String(error),
+        },
       } as IRStreamChunk;
     }
   }
@@ -261,8 +276,8 @@ export class GeminiBackendAdapter implements BackendAdapter<GeminiRequest, Gemin
     }
   }
 
-  async estimateCost(_request: IRChatRequest): Promise<number | null> {
-    return null; // Cost estimation not implemented for Gemini
+  estimateCost(_request: IRChatRequest): Promise<number | null> {
+    return Promise.resolve(null); // Cost estimation not implemented for Gemini
   }
 
   /**
@@ -279,7 +294,12 @@ export class GeminiBackendAdapter implements BackendAdapter<GeminiRequest, Gemin
 
     const contents: GeminiContent[] = messages.map((msg) => ({
       role: msg.role === 'assistant' ? 'model' : 'user',
-      parts: typeof msg.content === 'string' ? [{ text: msg.content }] : msg.content.map((c) => (c.type === 'text' ? { text: c.text } : { text: JSON.stringify(c) })),
+      parts:
+        typeof msg.content === 'string'
+          ? [{ text: msg.content }]
+          : msg.content.map((c) =>
+              c.type === 'text' ? { text: c.text } : { text: JSON.stringify(c) }
+            ),
     }));
 
     const systemInstruction = systemParameter ? { parts: [{ text: systemParameter }] } : undefined;
@@ -288,11 +308,15 @@ export class GeminiBackendAdapter implements BackendAdapter<GeminiRequest, Gemin
       contents,
       systemInstruction,
       generationConfig: {
-        temperature: request.parameters?.temperature ? request.parameters.temperature / 2 : undefined,
+        temperature: request.parameters?.temperature
+          ? request.parameters.temperature / 2
+          : undefined,
         topP: request.parameters?.topP,
         topK: request.parameters?.topK,
         maxOutputTokens: request.parameters?.maxTokens,
-        stopSequences: request.parameters?.stopSequences ? [...request.parameters.stopSequences] : undefined,
+        stopSequences: request.parameters?.stopSequences
+          ? [...request.parameters.stopSequences]
+          : undefined,
       },
     };
   }
@@ -302,9 +326,19 @@ export class GeminiBackendAdapter implements BackendAdapter<GeminiRequest, Gemin
    *
    * Public method for testing and debugging - parse Gemini responses manually.
    */
-  public toIR(response: GeminiResponse, originalRequest: IRChatRequest, latencyMs: number): IRChatResponse {
+  public toIR(
+    response: GeminiResponse,
+    originalRequest: IRChatRequest,
+    latencyMs: number
+  ): IRChatResponse {
     const candidate = response.candidates[0];
-    if (!candidate) throw new AdapterConversionError({ code: ErrorCode.ADAPTER_CONVERSION_ERROR, message: 'No candidates in Gemini response', provenance: { backend: this.metadata.name } });
+    if (!candidate) {
+      throw new AdapterConversionError({
+        code: ErrorCode.ADAPTER_CONVERSION_ERROR,
+        message: 'No candidates in Gemini response',
+        provenance: { backend: this.metadata.name },
+      });
+    }
 
     const content = candidate.content.parts.map((p) => ('text' in p ? p.text : '')).join('');
     const message: IRMessage = { role: 'assistant', content };
@@ -312,11 +346,13 @@ export class GeminiBackendAdapter implements BackendAdapter<GeminiRequest, Gemin
     return {
       message,
       finishReason: this.mapFinishReason(candidate.finishReason),
-      usage: response.usageMetadata ? {
-        promptTokens: response.usageMetadata.promptTokenCount,
-        completionTokens: response.usageMetadata.candidatesTokenCount,
-        totalTokens: response.usageMetadata.totalTokenCount,
-      } : undefined,
+      usage: response.usageMetadata
+        ? {
+            promptTokens: response.usageMetadata.promptTokenCount,
+            completionTokens: response.usageMetadata.candidatesTokenCount,
+            totalTokens: response.usageMetadata.totalTokenCount,
+          }
+        : undefined,
       metadata: {
         ...originalRequest.metadata,
         providerResponseId: undefined, // Gemini does not provide a response ID
@@ -329,10 +365,14 @@ export class GeminiBackendAdapter implements BackendAdapter<GeminiRequest, Gemin
 
   private mapFinishReason(reason: string): FinishReason {
     switch (reason) {
-      case 'STOP': return 'stop';
-      case 'MAX_TOKENS': return 'length';
-      case 'SAFETY': return 'content_filter';
-      default: return 'stop';
+      case 'STOP':
+        return 'stop';
+      case 'MAX_TOKENS':
+        return 'length';
+      case 'SAFETY':
+        return 'content_filter';
+      default:
+        return 'stop';
     }
   }
 }

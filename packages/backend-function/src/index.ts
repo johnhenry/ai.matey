@@ -7,21 +7,9 @@
  * @module
  */
 
-import type {
-  BackendAdapter,
-  AdapterMetadata,
-  IRCapabilities,
-} from 'ai.matey.types';
-import type {
-  IRChatRequest,
-  IRChatResponse,
-  IRChatStream,
-  IRStreamChunk,
-} from 'ai.matey.types';
-import type {
-  ListModelsOptions,
-  ListModelsResult,
-} from 'ai.matey.types';
+import type { BackendAdapter, AdapterMetadata, IRCapabilities } from 'ai.matey.types';
+import type { IRChatRequest, IRChatResponse, IRChatStream, IRStreamChunk } from 'ai.matey.types';
+import type { ListModelsOptions, ListModelsResult } from 'ai.matey.types';
 
 // ============================================================================
 // Function Types
@@ -202,17 +190,21 @@ export class FunctionBackendAdapter<TRequest = IRChatRequest, TResponse = IRChat
 
     // Set up conversion functions with defaults
     this.fromIRFn = config.fromIR || ((request) => request as unknown as TRequest);
-    this.toIRFn = config.toIR || ((response, _request, _latency) => response as unknown as IRChatResponse);
+    this.toIRFn =
+      config.toIR || ((response, _request, _latency) => response as unknown as IRChatResponse);
 
     // Set up optional functions with defaults
-    this.healthCheckFn = config.healthCheck || (async () => true);
-    this.estimateCostFn = config.estimateCost || (async () => null);
-    this.listModelsFn = config.listModels || (async () => ({
-      models: [],
-      source: 'static' as const,
-      fetchedAt: Date.now(),
-      isComplete: true,
-    }));
+    this.healthCheckFn = config.healthCheck || (() => Promise.resolve(true));
+    this.estimateCostFn = config.estimateCost || (() => Promise.resolve(null));
+    this.listModelsFn =
+      config.listModels ||
+      (() =>
+        Promise.resolve({
+          models: [],
+          source: 'static' as const,
+          fetchedAt: Date.now(),
+          isComplete: true,
+        }));
 
     // Build metadata
     const customMetadata = config.metadata || {};
@@ -228,7 +220,8 @@ export class FunctionBackendAdapter<TRequest = IRChatRequest, TResponse = IRChat
         tools: customMetadata.capabilities?.tools ?? false,
         maxContextTokens: customMetadata.capabilities?.maxContextTokens ?? 128000,
         systemMessageStrategy: customMetadata.capabilities?.systemMessageStrategy ?? 'in-messages',
-        supportsMultipleSystemMessages: customMetadata.capabilities?.supportsMultipleSystemMessages ?? true,
+        supportsMultipleSystemMessages:
+          customMetadata.capabilities?.supportsMultipleSystemMessages ?? true,
         supportsTemperature: customMetadata.capabilities?.supportsTemperature ?? true,
         supportsTopP: customMetadata.capabilities?.supportsTopP ?? true,
         supportsTopK: customMetadata.capabilities?.supportsTopK ?? false,
@@ -305,7 +298,8 @@ export class FunctionBackendAdapter<TRequest = IRChatRequest, TResponse = IRChat
         sequence: 0,
         error: {
           code: 'STREAMING_NOT_SUPPORTED',
-          message: 'This function backend does not support streaming. Provide an executeStream function in the config.',
+          message:
+            'This function backend does not support streaming. Provide an executeStream function in the config.',
         },
       } as IRStreamChunk;
       return;
@@ -381,13 +375,14 @@ export function createFunctionBackend(
  */
 export function createEchoBackend(prefix = 'Echo: '): FunctionBackendAdapter {
   return new FunctionBackendAdapter({
-    execute: async (request) => {
-      const userMessage = request.messages.find(m => m.role === 'user');
-      const content = typeof userMessage?.content === 'string'
-        ? userMessage.content
-        : JSON.stringify(userMessage?.content || '');
+    execute: (request) => {
+      const userMessage = request.messages.find((m) => m.role === 'user');
+      const content =
+        typeof userMessage?.content === 'string'
+          ? userMessage.content
+          : JSON.stringify(userMessage?.content || '');
 
-      return {
+      return Promise.resolve({
         message: { role: 'assistant', content: `${prefix}${content}` },
         finishReason: 'stop',
         metadata: {
@@ -395,7 +390,7 @@ export function createEchoBackend(prefix = 'Echo: '): FunctionBackendAdapter {
           timestamp: Date.now(),
           provenance: {},
         },
-      };
+      });
     },
     metadata: { name: 'echo-backend' },
   });
@@ -414,15 +409,16 @@ export function createEchoBackend(prefix = 'Echo: '): FunctionBackendAdapter {
  */
 export function createStaticBackend(response: string): FunctionBackendAdapter {
   return new FunctionBackendAdapter({
-    execute: async (request) => ({
-      message: { role: 'assistant', content: response },
-      finishReason: 'stop',
-      metadata: {
-        requestId: request.metadata.requestId,
-        timestamp: Date.now(),
-        provenance: {},
-      },
-    }),
+    execute: (request) =>
+      Promise.resolve({
+        message: { role: 'assistant', content: response },
+        finishReason: 'stop',
+        metadata: {
+          requestId: request.metadata.requestId,
+          timestamp: Date.now(),
+          provenance: {},
+        },
+      }),
     metadata: { name: 'static-backend' },
   });
 }
