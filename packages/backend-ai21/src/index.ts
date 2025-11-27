@@ -24,10 +24,7 @@ import {
   createErrorFromHttpResponse,
 } from 'ai.matey.errors';
 import { normalizeSystemMessages } from 'ai.matey.utils';
-import {
-  getEffectiveStreamMode,
-  mergeStreamingConfig,
-} from 'ai.matey.utils';
+import { getEffectiveStreamMode, mergeStreamingConfig } from 'ai.matey.utils';
 
 // ============================================================================
 // AI21 Labs API Types (OpenAI-compatible)
@@ -35,7 +32,7 @@ import {
 
 export interface AI21Message {
   role: 'system' | 'user' | 'assistant';
-  content: string;  // AI21 only supports text content
+  content: string; // AI21 only supports text content
 }
 
 export interface AI21Request {
@@ -49,8 +46,9 @@ export interface AI21Request {
   stop?: string[];
   stream?: boolean;
   // AI21-specific parameters
-  n?: number;                    // Number of completions
-  documents?: Array<{            // Documents for RAG
+  n?: number; // Number of completions
+  documents?: Array<{
+    // Documents for RAG
     content: string;
     metadata?: Record<string, any>;
   }>;
@@ -117,9 +115,9 @@ export class AI21BackendAdapter implements BackendAdapter<AI21Request, AI21Respo
       provider: 'AI21 Labs',
       capabilities: {
         streaming: true,
-        multiModal: false,  // Text-only
-        tools: false,       // No function calling
-        maxContextTokens: 256000,  // Jamba 1.5 has 256K context
+        multiModal: false, // Text-only
+        tools: false, // No function calling
+        maxContextTokens: 256000, // Jamba 1.5 has 256K context
         systemMessageStrategy: 'in-messages',
         supportsMultipleSystemMessages: true,
         supportsTemperature: true,
@@ -148,10 +146,11 @@ export class AI21BackendAdapter implements BackendAdapter<AI21Request, AI21Respo
 
     // AI21 only supports text content, so extract text from multi-modal content
     const ai21Messages: AI21Message[] = messages.map((msg) => ({
-      role: msg.role === 'tool' ? 'user' : msg.role,  // Map tool to user
-      content: typeof msg.content === 'string'
-        ? msg.content
-        : msg.content.map((block) => block.type === 'text' ? block.text : '').join(''),
+      role: msg.role === 'tool' ? 'user' : msg.role, // Map tool to user
+      content:
+        typeof msg.content === 'string'
+          ? msg.content
+          : msg.content.map((block) => (block.type === 'text' ? block.text : '')).join(''),
     }));
 
     const ai21Request: AI21Request = {
@@ -168,7 +167,10 @@ export class AI21BackendAdapter implements BackendAdapter<AI21Request, AI21Respo
 
     // Add AI21-specific parameters if provided
     if (request.parameters?.custom?.documents) {
-      ai21Request.documents = request.parameters.custom.documents as Array<{ content: string; metadata?: Record<string, any> }>;
+      ai21Request.documents = request.parameters.custom.documents as Array<{
+        content: string;
+        metadata?: Record<string, any>;
+      }>;
     }
     if (request.parameters?.custom?.n) {
       ai21Request.n = request.parameters.custom.n as number;
@@ -180,7 +182,11 @@ export class AI21BackendAdapter implements BackendAdapter<AI21Request, AI21Respo
   /**
    * Convert AI21 response to IR.
    */
-  public toIR(response: AI21Response, originalRequest: IRChatRequest, latencyMs: number): IRChatResponse {
+  public toIR(
+    response: AI21Response,
+    originalRequest: IRChatRequest,
+    latencyMs: number
+  ): IRChatResponse {
     const choice = response.choices[0];
     if (!choice) {
       throw new ProviderError({
@@ -197,18 +203,20 @@ export class AI21BackendAdapter implements BackendAdapter<AI21Request, AI21Respo
     };
 
     const finishReasonMap: Record<string, FinishReason> = {
-      'stop': 'stop',
-      'length': 'length',
+      stop: 'stop',
+      length: 'length',
     };
 
     return {
       message,
       finishReason: finishReasonMap[choice.finish_reason || 'stop'] || 'stop',
-      usage: response.usage ? {
-        promptTokens: response.usage.prompt_tokens,
-        completionTokens: response.usage.completion_tokens,
-        totalTokens: response.usage.total_tokens,
-      } : undefined,
+      usage: response.usage
+        ? {
+            promptTokens: response.usage.prompt_tokens,
+            completionTokens: response.usage.completion_tokens,
+            totalTokens: response.usage.total_tokens,
+          }
+        : undefined,
       metadata: {
         ...originalRequest.metadata,
         providerResponseId: response.id,
@@ -276,11 +284,7 @@ export class AI21BackendAdapter implements BackendAdapter<AI21Request, AI21Respo
       ai21Request.stream = true;
 
       const streamingConfig = mergeStreamingConfig(this.config.streaming);
-      const effectiveMode = getEffectiveStreamMode(
-        request.streamMode,
-        undefined,
-        streamingConfig
-      );
+      const effectiveMode = getEffectiveStreamMode(request.streamMode, undefined, streamingConfig);
       const includeBoth = streamingConfig.includeBoth || effectiveMode === 'accumulated';
 
       const response = await fetch(`${this.baseURL}/chat/completions`, {
@@ -329,17 +333,23 @@ export class AI21BackendAdapter implements BackendAdapter<AI21Request, AI21Respo
       try {
         while (true) {
           const { done, value } = await reader.read();
-          if (done) break;
+          if (done) {
+            break;
+          }
 
           buffer += decoder.decode(value, { stream: true });
           const lines = buffer.split('\n');
           buffer = lines.pop() || '';
 
           for (const line of lines) {
-            if (!line.trim() || !line.startsWith('data: ')) continue;
+            if (!line.trim() || !line.startsWith('data: ')) {
+              continue;
+            }
 
             const data = line.slice(6).trim();
-            if (data === '[DONE]') continue;
+            if (data === '[DONE]') {
+              continue;
+            }
 
             try {
               const chunk = JSON.parse(data) as AI21StreamChunk;
@@ -364,8 +374,8 @@ export class AI21BackendAdapter implements BackendAdapter<AI21Request, AI21Respo
 
               if (chunk.choices[0]?.finish_reason) {
                 const finishReasonMap: Record<string, FinishReason> = {
-                  'stop': 'stop',
-                  'length': 'length',
+                  stop: 'stop',
+                  length: 'length',
                 };
 
                 yield {
@@ -401,7 +411,7 @@ export class AI21BackendAdapter implements BackendAdapter<AI21Request, AI21Respo
   private getHeaders(): Record<string, string> {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${this.config.apiKey}`,
+      Authorization: `Bearer ${this.config.apiKey}`,
     };
 
     return { ...headers, ...this.config.headers };
@@ -426,18 +436,18 @@ export class AI21BackendAdapter implements BackendAdapter<AI21Request, AI21Respo
   /**
    * Estimate cost.
    */
-  async estimateCost(request: IRChatRequest): Promise<number | null> {
+  estimateCost(request: IRChatRequest): Promise<number | null> {
     const pricing: Record<string, { input: number; output: number }> = {
-      'jamba-instruct': { input: 0.50, output: 0.70 },
-      'jamba-1.5-mini': { input: 0.20, output: 0.40 },
-      'jamba-1.5-large': { input: 2.00, output: 8.00 },
+      'jamba-instruct': { input: 0.5, output: 0.7 },
+      'jamba-1.5-mini': { input: 0.2, output: 0.4 },
+      'jamba-1.5-large': { input: 2.0, output: 8.0 },
     };
 
     const model = request.parameters?.model || this.config.defaultModel || '';
     const modelPricing = pricing[model];
 
     if (!modelPricing) {
-      return null;
+      return Promise.resolve(null);
     }
 
     const inputTokens = request.messages.reduce((sum, msg) => {
@@ -450,6 +460,6 @@ export class AI21BackendAdapter implements BackendAdapter<AI21Request, AI21Respo
     const inputCost = (inputTokens / 1_000_000) * modelPricing.input;
     const outputCost = (outputTokens / 1_000_000) * modelPricing.output;
 
-    return inputCost + outputCost;
+    return Promise.resolve(inputCost + outputCost);
   }
 }
