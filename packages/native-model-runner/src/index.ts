@@ -504,14 +504,12 @@ export abstract class GenericModelRunnerBackend extends EventEmitter implements 
   // Communication Methods (Stubs - To be implemented)
   // ==========================================================================
 
-  // @ts-expect-error - Stub method parameters are intentionally unused
   protected executeStdio(_request: IRChatRequest, _signal?: AbortSignal): Promise<IRChatResponse> {
     return Promise.reject(
       new Error('stdio communication not yet implemented - subclass must override')
     );
   }
 
-  // @ts-expect-error - Stub method parameters are intentionally unused
   protected async *executeStreamStdio(
     _request: IRChatRequest,
     _signal?: AbortSignal
@@ -519,14 +517,12 @@ export abstract class GenericModelRunnerBackend extends EventEmitter implements 
     yield Promise.reject(new Error('stdio streaming not yet implemented - subclass must override'));
   }
 
-  // @ts-expect-error - Stub method parameters are intentionally unused
   protected executeHttp(_request: IRChatRequest, _signal?: AbortSignal): Promise<IRChatResponse> {
     return Promise.reject(
       new Error('HTTP communication not yet implemented - subclass must override')
     );
   }
 
-  // @ts-expect-error - Stub method parameters are intentionally unused
   protected async *executeStreamHttp(_request: IRChatRequest, _signal?: AbortSignal): IRChatStream {
     yield Promise.reject(new Error('HTTP streaming not yet implemented - subclass must override'));
   }
