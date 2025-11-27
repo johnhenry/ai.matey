@@ -105,7 +105,9 @@ export interface OpenAIStreamChunk {
 /**
  * Frontend adapter for OpenAI Chat Completions API.
  */
-export class OpenAIFrontendAdapter implements FrontendAdapter<OpenAIRequest, OpenAIResponse, OpenAIStreamChunk> {
+export class OpenAIFrontendAdapter
+  implements FrontendAdapter<OpenAIRequest, OpenAIResponse, OpenAIStreamChunk>
+{
   readonly metadata: AdapterMetadata = {
     name: 'openai-frontend',
     version: '1.0.0',
@@ -261,7 +263,7 @@ export class OpenAIFrontendAdapter implements FrontendAdapter<OpenAIRequest, Ope
             };
             break;
 
-          case 'done':
+          case 'done': {
             // Emit finish chunk
             const finishReason = this.mapFinishReason(chunk.finishReason);
             yield {
@@ -278,14 +280,14 @@ export class OpenAIFrontendAdapter implements FrontendAdapter<OpenAIRequest, Ope
               ],
             };
             break;
-
+          }
           case 'error':
             // OpenAI doesn't have a standard error event in SSE
             // We'll just stop the stream
             break;
         }
       }
-    } catch (error) {
+    } catch {
       // Silently end stream on error
       // OpenAI SSE format doesn't have a standard error event
     }
@@ -374,7 +376,9 @@ export class OpenAIFrontendAdapter implements FrontendAdapter<OpenAIRequest, Ope
   /**
    * Map IR finish reason to OpenAI finish reason.
    */
-  private mapFinishReason(finishReason: string): 'stop' | 'length' | 'tool_calls' | 'content_filter' | null {
+  private mapFinishReason(
+    finishReason: string
+  ): 'stop' | 'length' | 'tool_calls' | 'content_filter' | null {
     switch (finishReason) {
       case 'stop':
         return 'stop';
