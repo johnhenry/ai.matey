@@ -113,9 +113,9 @@ export class LMStudioBackendAdapter extends OpenAIBackendAdapter {
   /**
    * Estimate cost for LM Studio (always $0 - local inference).
    */
-  async estimateCost(_request: IRChatRequest): Promise<number | null> {
+  estimateCost(_request: IRChatRequest): Promise<number | null> {
     // LM Studio is free - runs locally
-    return 0;
+    return Promise.resolve(0);
   }
 }
 
@@ -139,6 +139,8 @@ export class LMStudioBackendAdapter extends OpenAIBackendAdapter {
  * });
  * ```
  */
-export function createLMStudioAdapter(config: Partial<BackendAdapterConfig> = {}): LMStudioBackendAdapter {
+export function createLMStudioAdapter(
+  config: Partial<BackendAdapterConfig> = {}
+): LMStudioBackendAdapter {
   return new LMStudioBackendAdapter(config as BackendAdapterConfig);
 }
