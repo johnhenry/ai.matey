@@ -164,9 +164,10 @@ export interface ConversationHistoryManager {
  * });
  * ```
  */
-export function createConversationHistoryMiddleware(
-  config: ConversationHistoryConfig = {}
-): { middleware: Middleware; manager: ConversationHistoryManager } {
+export function createConversationHistoryMiddleware(config: ConversationHistoryConfig = {}): {
+  middleware: Middleware;
+  manager: ConversationHistoryManager;
+} {
   const {
     maxHistorySize = -1,
     strategy = 'smart',
@@ -235,7 +236,9 @@ export function createConversationHistoryMiddleware(
       // Filter out duplicate system messages from request if history already has them
       const requestMessages = request.messages.filter((msg) => {
         // Keep all non-system messages
-        if (msg.role !== 'system') return true;
+        if (msg.role !== 'system') {
+          return true;
+        }
 
         // For system messages, only keep if not already in history
         const existingSystemMessage = currentHistory.find(
