@@ -56,10 +56,9 @@ export class ExpressRequestAdapter implements GenericRequest {
         query[key] = value;
       } else if (Array.isArray(value)) {
         const primitives = value.filter(
-          (v): v is string | number | boolean =>
-            typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean'
-        );
-        query[key] = primitives.map((v) => (v as string | number | boolean).toString()).join(',');
+          (v) => typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean'
+        ) as (string | number | boolean)[];
+        query[key] = primitives.map((v) => v.toString()).join(',');
       } else if (value !== undefined && typeof value !== 'object') {
         query[key] = String(value);
       }
