@@ -549,7 +549,7 @@ export class AnthropicBackendAdapter
   listModels(options?: ListModelsOptions): Promise<ListModelsResult> {
     // 1. Check static config first
     if (this.config.models) {
-      return buildStaticResult(this.config.models, 'anthropic');
+      return Promise.resolve(buildStaticResult(this.config.models, 'anthropic'));
     }
 
     // 2. Use default Anthropic models
@@ -561,7 +561,7 @@ export class AnthropicBackendAdapter
     };
 
     // 3. Apply filter if requested
-    return applyModelFilter(result, options?.filter as ModelCapabilityFilter);
+    return Promise.resolve(applyModelFilter(result, options?.filter as ModelCapabilityFilter));
   }
 
   // ==========================================================================
