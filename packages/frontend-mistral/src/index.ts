@@ -9,7 +9,40 @@
 import type { FrontendAdapter, AdapterMetadata } from 'ai.matey.types';
 import type { IRChatRequest, IRChatResponse, IRStreamChunk, IRMessage } from 'ai.matey.types';
 import type { StreamConversionOptions } from 'ai.matey.types';
-import type { MistralRequest, MistralResponse, MistralMessage } from 'ai.matey.backend.mistral';
+
+// Mistral API Types (defined locally to avoid cross-package type warnings)
+export interface MistralMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+export interface MistralRequest {
+  model: string;
+  messages: MistralMessage[];
+  temperature?: number;
+  max_tokens?: number;
+  top_p?: number;
+  stream?: boolean;
+  safe_mode?: boolean;
+  random_seed?: number;
+}
+
+export interface MistralResponse {
+  id: string;
+  object: 'chat.completion';
+  created: number;
+  model: string;
+  choices: Array<{
+    index: number;
+    message: MistralMessage;
+    finish_reason: 'stop' | 'length' | 'model_length' | null;
+  }>;
+  usage: {
+    prompt_tokens: number;
+    completion_tokens: number;
+    total_tokens: number;
+  };
+}
 
 export class MistralFrontendAdapter implements FrontendAdapter<MistralRequest, MistralResponse> {
   readonly metadata: AdapterMetadata = {
