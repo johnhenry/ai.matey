@@ -193,7 +193,11 @@ export function createTelemetryMiddleware(config: TelemetryConfig): Middleware {
             sink.recordMetric(MetricNames.TOKEN_PROMPT, response.usage.promptTokens, responseTags);
           }
           if (response.usage.completionTokens) {
-            sink.recordMetric(MetricNames.TOKEN_COMPLETION, response.usage.completionTokens, responseTags);
+            sink.recordMetric(
+              MetricNames.TOKEN_COMPLETION,
+              response.usage.completionTokens,
+              responseTags
+            );
           }
           if (response.usage.totalTokens) {
             sink.recordMetric(MetricNames.TOKEN_TOTAL, response.usage.totalTokens, responseTags);
