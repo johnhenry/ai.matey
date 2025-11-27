@@ -30,8 +30,8 @@ import type {
   IRChatResponse,
   IRChatStream,
   IRStreamChunk,
+  StreamConversionOptions,
 } from 'ai.matey.types';
-import type { StreamConversionOptions } from 'ai.matey.types';
 
 // ============================================================================
 // Configuration
@@ -135,29 +135,29 @@ export class GenericFrontendAdapter
    *
    * Optionally adds provenance tracking if enabled.
    */
-  async toIR(request: IRChatRequest): Promise<IRChatRequest> {
+  toIR(request: IRChatRequest): Promise<IRChatRequest> {
     // Optionally add provenance
     if (this.config.trackProvenance !== false) {
-      return {
+      return Promise.resolve({
         ...request,
         metadata: {
           ...request.metadata,
           provenance: {
-            ...request.metadata.provenance,
+            ...(request.metadata.provenance as Record<string, unknown>),
             frontend: this.metadata.name,
           },
         },
-      };
+      });
     }
 
-    return request;
+    return Promise.resolve(request);
   }
 
   /**
    * Pass through IR response (no conversion needed).
    */
-  async fromIR(response: IRChatResponse): Promise<IRChatResponse> {
-    return response;
+  fromIR(response: IRChatResponse): Promise<IRChatResponse> {
+    return Promise.resolve(response);
   }
 
   /**
@@ -177,23 +177,25 @@ export class GenericFrontendAdapter
    *
    * Only performs validation if `validateRequests` is enabled in config.
    */
-  async validate(request: IRChatRequest): Promise<void> {
+  validate(request: IRChatRequest): Promise<void> {
     if (!this.config.validateRequests) {
-      return;
+      return Promise.resolve();
     }
 
     // Basic validation
     if (!request.messages || request.messages.length === 0) {
-      throw new Error('Request must contain at least one message');
+      return Promise.reject(new Error('Request must contain at least one message'));
     }
 
     if (!request.metadata?.requestId) {
-      throw new Error('Request must have a requestId in metadata');
+      return Promise.reject(new Error('Request must have a requestId in metadata'));
     }
 
     if (typeof request.metadata.timestamp !== 'number') {
-      throw new Error('Request must have a numeric timestamp in metadata');
+      return Promise.reject(new Error('Request must have a numeric timestamp in metadata'));
     }
+
+    return Promise.resolve();
   }
 }
 
@@ -215,9 +217,7 @@ export class GenericFrontendAdapter
  * });
  * ```
  */
-export function createGenericFrontend(
-  config?: GenericFrontendConfig
-): GenericFrontendAdapter {
+export function createGenericFrontend(config?: GenericFrontendConfig): GenericFrontendAdapter {
   return new GenericFrontendAdapter(config);
 }
 

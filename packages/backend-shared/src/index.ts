@@ -7,11 +7,7 @@
  * @module
  */
 
-import type {
-  IRChatRequest,
-  AIModel,
-  ListModelsResult,
-} from 'ai.matey.types';
+import type { IRChatRequest, AIModel, ListModelsResult } from 'ai.matey.types';
 
 // ============================================================================
 // Token Estimation
@@ -150,11 +146,17 @@ export function applyModelFilter(
     }
 
     // Check each filter criterion
-    if (filter.supportsStreaming !== undefined && capabilities.supportsStreaming !== filter.supportsStreaming) {
+    if (
+      filter.supportsStreaming !== undefined &&
+      capabilities.supportsStreaming !== filter.supportsStreaming
+    ) {
       return false;
     }
 
-    if (filter.supportsVision !== undefined && capabilities.supportsVision !== filter.supportsVision) {
+    if (
+      filter.supportsVision !== undefined &&
+      capabilities.supportsVision !== filter.supportsVision
+    ) {
       return false;
     }
 
@@ -207,11 +209,7 @@ export interface CostRates {
  * // cost ≈ $0.0105
  * ```
  */
-export function estimateCost(
-  inputTokens: number,
-  outputTokens: number,
-  rates: CostRates
-): number {
+export function estimateCost(inputTokens: number, outputTokens: number, rates: CostRates): number {
   const inputCost = (inputTokens / 1_000_000) * rates.inputPer1M;
   const outputCost = (outputTokens / 1_000_000) * rates.outputPer1M;
   return inputCost + outputCost;

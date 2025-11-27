@@ -6,6 +6,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
+import { randomUUID } from 'node:crypto';
 import { Router } from 'ai.matey.core';
 import type { BackendAdapter, AdapterMetadata } from 'ai.matey.types';
 import type { IRChatRequest, IRChatResponse, IRStreamChunk, IRCapabilities } from 'ai.matey.types';
@@ -158,7 +159,7 @@ describe('Router - Round-Robin Strategy', () => {
       parameters: { model: 'test-model' },
       stream: false,
       metadata: {
-        requestId: crypto.randomUUID(),
+        requestId: randomUUID(),
         timestamp: Date.now(),
       },
     };
@@ -194,7 +195,7 @@ describe('Router - Default Backend Strategy', () => {
       parameters: { model: 'test-model' },
       stream: false,
       metadata: {
-        requestId: crypto.randomUUID(),
+        requestId: randomUUID(),
         timestamp: Date.now(),
       },
     };
@@ -227,7 +228,7 @@ describe('Router - Random Strategy', () => {
       parameters: { model: 'test-model' },
       stream: false,
       metadata: {
-        requestId: crypto.randomUUID(),
+        requestId: randomUUID(),
         timestamp: Date.now(),
       },
     };
@@ -264,7 +265,7 @@ describe('Router - Custom Strategy', () => {
       parameters: { model: 'test-model' },
       stream: false,
       metadata: {
-        requestId: crypto.randomUUID(),
+        requestId: randomUUID(),
         timestamp: Date.now(),
       },
     };
@@ -292,7 +293,7 @@ describe('Router - Sequential Fallback', () => {
       parameters: { model: 'test-model' },
       stream: false,
       metadata: {
-        requestId: crypto.randomUUID(),
+        requestId: randomUUID(),
         timestamp: Date.now(),
       },
     };
@@ -315,7 +316,7 @@ describe('Router - Sequential Fallback', () => {
       parameters: { model: 'test-model' },
       stream: false,
       metadata: {
-        requestId: crypto.randomUUID(),
+        requestId: randomUUID(),
         timestamp: Date.now(),
       },
     };
@@ -339,7 +340,7 @@ describe('Router - Parallel Fallback', () => {
       parameters: { model: 'test-model' },
       stream: false,
       metadata: {
-        requestId: crypto.randomUUID(),
+        requestId: randomUUID(),
         timestamp: Date.now(),
       },
     };
@@ -363,7 +364,7 @@ describe('Router - Parallel Fallback', () => {
       parameters: { model: 'test-model' },
       stream: false,
       metadata: {
-        requestId: crypto.randomUUID(),
+        requestId: randomUUID(),
         timestamp: Date.now(),
       },
     };
@@ -391,7 +392,7 @@ describe('Router - Custom Fallback', () => {
       parameters: { model: 'test-model' },
       stream: false,
       metadata: {
-        requestId: crypto.randomUUID(),
+        requestId: randomUUID(),
         timestamp: Date.now(),
       },
     };
@@ -421,7 +422,7 @@ describe('Router - Model Mapping', () => {
       parameters: { model: 'gpt-4' },
       stream: false,
       metadata: {
-        requestId: crypto.randomUUID(),
+        requestId: randomUUID(),
         timestamp: Date.now(),
       },
     };
@@ -431,7 +432,7 @@ describe('Router - Model Mapping', () => {
       parameters: { model: 'claude-3' },
       stream: false,
       metadata: {
-        requestId: crypto.randomUUID(),
+        requestId: randomUUID(),
         timestamp: Date.now(),
       },
     };
@@ -454,7 +455,7 @@ describe('Router - Streaming Support', () => {
       parameters: { model: 'test-model' },
       stream: true,
       metadata: {
-        requestId: crypto.randomUUID(),
+        requestId: randomUUID(),
         timestamp: Date.now(),
       },
     };
@@ -484,7 +485,7 @@ describe('Router - Streaming Support', () => {
       parameters: { model: 'test-model' },
       stream: true,
       metadata: {
-        requestId: crypto.randomUUID(),
+        requestId: randomUUID(),
         timestamp: Date.now(),
       },
     };
@@ -514,7 +515,7 @@ describe('Router - Health Tracking', () => {
       parameters: { model: 'test-model' },
       stream: false,
       metadata: {
-        requestId: crypto.randomUUID(),
+        requestId: randomUUID(),
         timestamp: Date.now(),
       },
     };
@@ -540,7 +541,7 @@ describe('Router - Health Tracking', () => {
       parameters: { model: 'test-model' },
       stream: false,
       metadata: {
-        requestId: crypto.randomUUID(),
+        requestId: randomUUID(),
         timestamp: Date.now(),
       },
     };
@@ -561,7 +562,7 @@ describe('Router - Error Handling', () => {
       parameters: { model: 'test-model' },
       stream: false,
       metadata: {
-        requestId: crypto.randomUUID(),
+        requestId: randomUUID(),
         timestamp: Date.now(),
       },
     };
@@ -580,7 +581,7 @@ describe('Router - Error Handling', () => {
       parameters: { model: 'test-model' },
       stream: false,
       metadata: {
-        requestId: crypto.randomUUID(),
+        requestId: randomUUID(),
         timestamp: Date.now(),
       },
     };
@@ -604,7 +605,7 @@ describe('Router - Error Handling', () => {
       parameters: { model: 'unknown-model' }, // Not in mapping
       stream: false,
       metadata: {
-        requestId: crypto.randomUUID(),
+        requestId: randomUUID(),
         timestamp: Date.now(),
       },
     };
@@ -627,7 +628,7 @@ describe('Router - Single Backend Edge Cases', () => {
       parameters: { model: 'test-model' },
       stream: false,
       metadata: {
-        requestId: crypto.randomUUID(),
+        requestId: randomUUID(),
         timestamp: Date.now(),
       },
     };
@@ -650,7 +651,7 @@ describe('Router - Single Backend Edge Cases', () => {
       parameters: { model: 'test-model' },
       stream: false,
       metadata: {
-        requestId: crypto.randomUUID(),
+        requestId: randomUUID(),
         timestamp: Date.now(),
       },
     };
