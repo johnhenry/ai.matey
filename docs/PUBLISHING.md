@@ -93,7 +93,7 @@ This runs `turbo run build && changeset publish`, which:
 
 ## First-Time Publish
 
-For an initial publish of all packages:
+For an initial publish of all ~70 packages.
 
 ### Option A: Using Changesets (Recommended)
 
@@ -117,6 +117,94 @@ npm run build
 # Publish all packages from workspace
 npm exec --workspaces -- npm publish --access public
 ```
+
+### Staggered Rollout (Avoiding Rate Limits)
+
+When publishing 70+ packages for the first time, npm may rate limit you. To avoid this, publish in batches with delays:
+
+**Option 1: Publish by category with delays**
+
+```bash
+# Build everything first
+npm run build
+
+# Core packages first (these are dependencies)
+for pkg in ai.matey.types ai.matey.errors ai.matey.utils ai.matey.core ai.matey; do
+  npm publish --workspace=$pkg --access public
+  sleep 5
+done
+
+# Wait before next batch
+sleep 30
+
+# Backend packages
+for pkg in packages/backend-*/; do
+  name=$(node -p "require('./$pkg/package.json').name")
+  npm publish --workspace=$name --access public
+  sleep 3
+done
+
+# Continue with other categories...
+```
+
+**Option 2: Simple staggered publish script**
+
+Create a file `scripts/staggered-publish.sh`:
+
+```bash
+#!/bin/bash
+# Staggered publish to avoid npm rate limits
+
+DELAY_BETWEEN_PACKAGES=5  # seconds
+DELAY_BETWEEN_BATCHES=60  # seconds
+BATCH_SIZE=10
+
+packages=($(npm query .workspace | jq -r '.[].name'))
+count=0
+
+for pkg in "${packages[@]}"; do
+  echo "Publishing $pkg..."
+  npm publish --workspace="$pkg" --access public
+
+  count=$((count + 1))
+
+  if [ $((count % BATCH_SIZE)) -eq 0 ]; then
+    echo "Batch complete. Waiting ${DELAY_BETWEEN_BATCHES}s..."
+    sleep $DELAY_BETWEEN_BATCHES
+  else
+    sleep $DELAY_BETWEEN_PACKAGES
+  fi
+done
+
+echo "Done! Published $count packages."
+```
+
+Run with:
+```bash
+chmod +x scripts/staggered-publish.sh
+./scripts/staggered-publish.sh
+```
+
+**Option 3: Use npm's built-in retry**
+
+If you get rate limited, npm will show an error with a retry-after time. You can:
+
+```bash
+# Retry failed publishes after waiting
+npm run release 2>&1 | tee publish.log
+
+# Check which packages failed
+grep -i "error" publish.log
+
+# Retry specific packages
+npm publish --workspace=ai.matey.backend.openai --access public
+```
+
+**Rate limit tips:**
+- npm typically allows ~100 publishes per hour for verified accounts
+- New accounts may have stricter limits
+- Wait 1-2 hours if you hit limits, then resume
+- Consider publishing over multiple sessions for very large initial releases
 
 ## Configuration
 
@@ -269,6 +357,226 @@ The monorepo contains ~70 packages organized by category:
 | Wrappers | `ai.matey.wrapper.openai-sdk`, `ai.matey.wrapper.anthropic-sdk` |
 | Native | `ai.matey.native.model-runner`, `ai.matey.native.node-llamacpp` |
 
+## Adding New Packages
+
+To add a new package to the monorepo:
+
+### 1. Create Package Directory
+
+```bash
+mkdir -p packages/my-new-package/src
+```
+
+### 2. Create package.json
+
+```bash
+cat > packages/my-new-package/package.json << 'EOF'
+{
+  "name": "ai.matey.my-new-package",
+  "version": "1.0.0",
+  "description": "Description of your package",
+  "type": "module",
+  "main": "./dist/cjs/index.js",
+  "module": "./dist/esm/index.js",
+  "types": "./dist/types/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/types/index.d.ts",
+        "default": "./dist/esm/index.js"
+      },
+      "require": {
+        "types": "./dist/types/index.d.ts",
+        "default": "./dist/cjs/index.js"
+      }
+    }
+  },
+  "files": [
+    "dist",
+    "readme.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "npm run build:esm && npm run build:cjs && npm run build:types",
+    "build:esm": "tsc -p tsconfig.esm.json",
+    "build:cjs": "tsc -p tsconfig.cjs.json",
+    "build:types": "tsc -p tsconfig.types.json",
+    "clean": "rm -rf dist",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src --ext .ts",
+    "lint:fix": "eslint src --ext .ts --fix"
+  },
+  "dependencies": {
+    "ai.matey.types": "*"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4"
+  },
+  "keywords": ["ai", "llm", "ai-matey"],
+  "author": "AI Matey",
+  "license": "MIT",
+  "homepage": "https://github.com/johnhenry/ai.matey#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/johnhenry/ai.matey.git",
+    "directory": "packages/my-new-package"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
+EOF
+```
+
+### 3. Create TypeScript Configs
+
+```bash
+# tsconfig.json (base)
+cat > packages/my-new-package/tsconfig.json << 'EOF'
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "noEmit": true
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules", "dist"]
+}
+EOF
+
+# tsconfig.esm.json
+cat > packages/my-new-package/tsconfig.esm.json << 'EOF'
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "ESNext",
+    "outDir": "./dist/esm",
+    "noEmit": false,
+    "declaration": false
+  }
+}
+EOF
+
+# tsconfig.cjs.json
+cat > packages/my-new-package/tsconfig.cjs.json << 'EOF'
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "CommonJS",
+    "outDir": "./dist/cjs",
+    "noEmit": false,
+    "declaration": false
+  }
+}
+EOF
+
+# tsconfig.types.json
+cat > packages/my-new-package/tsconfig.types.json << 'EOF'
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "outDir": "./dist/types",
+    "emitDeclarationOnly": true,
+    "noEmit": false
+  }
+}
+EOF
+```
+
+### 4. Create Source File
+
+```bash
+cat > packages/my-new-package/src/index.ts << 'EOF'
+/**
+ * My New Package
+ *
+ * @module
+ */
+
+export function hello(): string {
+  return 'Hello from my new package!';
+}
+EOF
+```
+
+### 5. Create readme.md
+
+```bash
+cat > packages/my-new-package/readme.md << 'EOF'
+# ai.matey.my-new-package
+
+Description of your package.
+
+## Installation
+
+```bash
+npm install ai.matey.my-new-package
+```
+
+## Usage
+
+```typescript
+import { hello } from 'ai.matey.my-new-package';
+
+console.log(hello());
+```
+EOF
+```
+
+### 6. Install Dependencies and Build
+
+```bash
+# Install workspace dependencies (links the new package)
+npm install
+
+# Build to verify everything works
+npm run build --workspace=ai.matey.my-new-package
+```
+
+### 7. Add to Version Control
+
+```bash
+git add packages/my-new-package
+git commit -m "Add ai.matey.my-new-package"
+```
+
+### Package Naming Conventions
+
+| Type | Naming Pattern | Example |
+|------|----------------|---------|
+| Backend adapter | `ai.matey.backend.<provider>` | `ai.matey.backend.openai` |
+| Frontend adapter | `ai.matey.frontend.<provider>` | `ai.matey.frontend.openai` |
+| Middleware | `ai.matey.middleware.<name>` | `ai.matey.middleware.retry` |
+| HTTP framework | `ai.matey.http.<framework>` | `ai.matey.http.express` |
+| React package | `ai.matey.react.<name>` | `ai.matey.react.hooks` |
+| Wrapper | `ai.matey.wrapper.<sdk>` | `ai.matey.wrapper.openai-sdk` |
+| Native | `ai.matey.native.<name>` | `ai.matey.native.model-runner` |
+| Core/Utility | `ai.matey.<name>` | `ai.matey.utils` |
+
+### Internal Dependencies
+
+To depend on other monorepo packages, use `"*"` as the version:
+
+```json
+{
+  "dependencies": {
+    "ai.matey.types": "*",
+    "ai.matey.errors": "*"
+  }
+}
+```
+
+Changesets will automatically update these to real versions during publishing.
+
 ## Best Practices
 
 1. **Always create changesets for user-facing changes** - Even small fixes deserve changelog entries
@@ -288,3 +596,5 @@ The monorepo contains ~70 packages organized by category:
    ```
 
 5. **Review version changes** - Check `git diff` after `version-packages` before committing
+
+6. **Use lowercase `readme.md`** - For cross-platform consistency
