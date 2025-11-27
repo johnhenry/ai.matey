@@ -142,5 +142,5 @@ export class LMStudioBackendAdapter extends OpenAIBackendAdapter {
 export function createLMStudioAdapter(
   config: Partial<BackendAdapterConfig> = {}
 ): LMStudioBackendAdapter {
-  return new LMStudioBackendAdapter(config as BackendAdapterConfig);
+  return new LMStudioBackendAdapter(config);
 }
