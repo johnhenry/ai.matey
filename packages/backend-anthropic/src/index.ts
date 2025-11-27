@@ -17,11 +17,7 @@ import type {
   FinishReason,
   MessageContent,
 } from 'ai.matey.types';
-import type {
-  AIModel,
-  ListModelsOptions,
-  ListModelsResult,
-} from 'ai.matey.types';
+import type { AIModel, ListModelsOptions, ListModelsResult } from 'ai.matey.types';
 import {
   AdapterConversionError,
   NetworkError,
@@ -31,10 +27,7 @@ import {
   createErrorFromHttpResponse,
 } from 'ai.matey.errors';
 import { normalizeSystemMessages } from 'ai.matey.utils';
-import {
-  getEffectiveStreamMode,
-  mergeStreamingConfig,
-} from 'ai.matey.utils';
+import { getEffectiveStreamMode, mergeStreamingConfig } from 'ai.matey.utils';
 import {
   estimateTokens,
   buildStaticResult,
@@ -51,9 +44,16 @@ import {
  */
 export type AnthropicContentBlock =
   | { type: 'text'; text: string }
-  | { type: 'image'; source: { type: 'url'; url: string } | { type: 'base64'; media_type: string; data: string } }
+  | {
+      type: 'image';
+      source: { type: 'url'; url: string } | { type: 'base64'; media_type: string; data: string };
+    }
   | { type: 'tool_use'; id: string; name: string; input: Record<string, unknown> }
-  | { type: 'tool_result'; tool_use_id: string; content: string | { type: 'text'; text: string }[] };
+  | {
+      type: 'tool_result';
+      tool_use_id: string;
+      content: string | { type: 'text'; text: string }[];
+    };
 
 /**
  * Anthropic message.
@@ -102,12 +102,31 @@ export interface AnthropicResponse {
  * Anthropic SSE stream event.
  */
 export type AnthropicStreamEvent =
-  | { type: 'message_start'; message: { id: string; type: 'message'; role: 'assistant'; model: string; usage: { input_tokens: number; output_tokens: number } } }
+  | {
+      type: 'message_start';
+      message: {
+        id: string;
+        type: 'message';
+        role: 'assistant';
+        model: string;
+        usage: { input_tokens: number; output_tokens: number };
+      };
+    }
   | { type: 'content_block_start'; index: number; content_block: AnthropicContentBlock }
   | { type: 'ping' }
-  | { type: 'content_block_delta'; index: number; delta: { type: 'text_delta'; text: string } | { type: 'input_json_delta'; partial_json: string } }
+  | {
+      type: 'content_block_delta';
+      index: number;
+      delta:
+        | { type: 'text_delta'; text: string }
+        | { type: 'input_json_delta'; partial_json: string };
+    }
   | { type: 'content_block_stop'; index: number }
-  | { type: 'message_delta'; delta: { stop_reason: string; stop_sequence?: string | null }; usage: { output_tokens: number } }
+  | {
+      type: 'message_delta';
+      delta: { stop_reason: string; stop_sequence?: string | null };
+      usage: { output_tokens: number };
+    }
   | { type: 'message_stop' }
   | { type: 'error'; error: { type: string; message: string } };
 
@@ -199,7 +218,9 @@ const DEFAULT_ANTHROPIC_MODELS: readonly AIModel[] = [
 /**
  * Backend adapter for Anthropic Messages API.
  */
-export class AnthropicBackendAdapter implements BackendAdapter<AnthropicRequest, AnthropicResponse> {
+export class AnthropicBackendAdapter
+  implements BackendAdapter<AnthropicRequest, AnthropicResponse>
+{
   readonly metadata: AdapterMetadata;
   private readonly config: BackendAdapterConfig;
   private readonly baseURL: string;
@@ -282,11 +303,7 @@ export class AnthropicBackendAdapter implements BackendAdapter<AnthropicRequest,
 
       // Get effective streaming configuration
       const streamingConfig = mergeStreamingConfig(this.config.streaming);
-      const effectiveMode = getEffectiveStreamMode(
-        request.streamMode,
-        undefined,
-        streamingConfig
-      );
+      const effectiveMode = getEffectiveStreamMode(request.streamMode, undefined, streamingConfig);
       const includeBoth = streamingConfig.includeBoth || effectiveMode === 'accumulated';
 
       // Make streaming HTTP request
@@ -299,14 +316,9 @@ export class AnthropicBackendAdapter implements BackendAdapter<AnthropicRequest,
 
       if (!response.ok) {
         const errorBody = await response.text();
-        throw createErrorFromHttpResponse(
-          response.status,
-          response.statusText,
-          errorBody,
-          {
-            backend: this.metadata.name,
-          }
-        );
+        throw createErrorFromHttpResponse(response.status, response.statusText, errorBody, {
+          backend: this.metadata.name,
+        });
       }
 
       if (!response.body) {
@@ -324,7 +336,9 @@ export class AnthropicBackendAdapter implements BackendAdapter<AnthropicRequest,
       let contentBuffer = '';
       let messageId = '';
       let model = '';
-      let usage: { promptTokens: number; completionTokens: number; totalTokens: number } | undefined;
+      let usage:
+        | { promptTokens: number; completionTokens: number; totalTokens: number }
+        | undefined;
 
       // Read stream
       const reader = response.body.getReader();
@@ -334,7 +348,9 @@ export class AnthropicBackendAdapter implements BackendAdapter<AnthropicRequest,
       try {
         while (true) {
           const { done, value } = await reader.read();
-          if (done) break;
+          if (done) {
+            break;
+          }
 
           buffer += decoder.decode(value, { stream: true });
           const lines = buffer.split('\n');
@@ -350,7 +366,9 @@ export class AnthropicBackendAdapter implements BackendAdapter<AnthropicRequest,
             if (line.startsWith('data:')) {
               const data = line.slice(5).trim();
 
-              if (!data) continue;
+              if (!data) {
+                continue;
+              }
 
               try {
                 const event: AnthropicStreamEvent = JSON.parse(data);
@@ -428,7 +446,7 @@ export class AnthropicBackendAdapter implements BackendAdapter<AnthropicRequest,
                     }
                     break;
 
-                  case 'message_stop':
+                  case 'message_stop': {
                     // Stream complete
                     const finishReason = this.mapStopReason(contentBuffer ? 'end_turn' : 'stop');
 
@@ -446,6 +464,7 @@ export class AnthropicBackendAdapter implements BackendAdapter<AnthropicRequest,
                       message,
                     } as IRStreamChunk;
                     break;
+                  }
 
                   case 'ping':
                     // Keep-alive ping, ignore
@@ -513,11 +532,11 @@ export class AnthropicBackendAdapter implements BackendAdapter<AnthropicRequest,
   /**
    * Estimate cost for a request (rough heuristic).
    */
-  async estimateCost(request: IRChatRequest): Promise<number | null> {
+  estimateCost(request: IRChatRequest): Promise<number | null> {
     // Use shared token estimation utility
     const estimatedInputTokens = estimateTokens(request);
     // Rough cost: $0.015 per 1000 tokens for Claude 3.5 Sonnet
-    return (estimatedInputTokens / 1000) * 0.015;
+    return Promise.resolve((estimatedInputTokens / 1000) * 0.015);
   }
 
   /**
@@ -527,7 +546,7 @@ export class AnthropicBackendAdapter implements BackendAdapter<AnthropicRequest,
    * 1. Static config (config.models) - if provided
    * 2. Default model list - built-in list of Claude models
    */
-  async listModels(options?: ListModelsOptions): Promise<ListModelsResult> {
+  listModels(options?: ListModelsOptions): Promise<ListModelsResult> {
     // 1. Check static config first
     if (this.config.models) {
       return buildStaticResult(this.config.models, 'anthropic');
@@ -564,14 +583,17 @@ export class AnthropicBackendAdapter implements BackendAdapter<AnthropicRequest,
       );
 
       // Convert messages
-      const anthropicMessages: AnthropicMessage[] = messages.map((msg) => this.convertMessageToAnthropic(msg));
+      const anthropicMessages: AnthropicMessage[] = messages.map((msg) =>
+        this.convertMessageToAnthropic(msg)
+      );
 
       // Validate max_tokens is present (required by Anthropic)
       const maxTokens = request.parameters?.maxTokens || 4096;
 
       // Build Anthropic request
       const anthropicRequest: AnthropicRequest = {
-        model: request.parameters?.model || this.config.defaultModel || 'claude-3-5-sonnet-20241022',
+        model:
+          request.parameters?.model || this.config.defaultModel || 'claude-3-5-sonnet-20241022',
         messages: anthropicMessages,
         system: systemParameter || undefined,
         max_tokens: maxTokens,
@@ -582,9 +604,10 @@ export class AnthropicBackendAdapter implements BackendAdapter<AnthropicRequest,
           ? [...request.parameters.stopSequences].slice(0, 4) // Anthropic max is 4
           : undefined,
         stream: request.stream,
-        metadata: request.metadata.custom?.userId
-          ? { user_id: String(request.metadata.custom.userId) }
-          : undefined,
+        metadata:
+          request.metadata.custom?.userId !== undefined
+            ? { user_id: String(request.metadata.custom.userId) }
+            : undefined,
       };
 
       return anthropicRequest;
@@ -633,7 +656,8 @@ export class AnthropicBackendAdapter implements BackendAdapter<AnthropicRequest,
       const firstBlock = contentBlocks[0];
       const message: IRMessage = {
         role: 'assistant',
-        content: contentBlocks.length === 1 && firstBlock?.type === 'text' ? textContent : contentBlocks,
+        content:
+          contentBlocks.length === 1 && firstBlock?.type === 'text' ? textContent : contentBlocks,
       };
 
       // Map stop reason
@@ -733,9 +757,14 @@ export class AnthropicBackendAdapter implements BackendAdapter<AnthropicRequest,
             return {
               type: 'tool_result',
               tool_use_id: block.toolUseId,
-              content: typeof block.content === 'string'
-                ? block.content
-                : block.content.map(c => (c.type === 'text' ? { type: 'text', text: c.text } : { type: 'text', text: '' })),
+              content:
+                typeof block.content === 'string'
+                  ? block.content
+                  : block.content.map((c) =>
+                      c.type === 'text'
+                        ? { type: 'text', text: c.text }
+                        : { type: 'text', text: '' }
+                    ),
             };
 
           default:
@@ -772,7 +801,10 @@ export class AnthropicBackendAdapter implements BackendAdapter<AnthropicRequest,
   /**
    * Make HTTP request to Anthropic API.
    */
-  private async makeRequest(request: AnthropicRequest, signal?: AbortSignal): Promise<AnthropicResponse> {
+  private async makeRequest(
+    request: AnthropicRequest,
+    signal?: AbortSignal
+  ): Promise<AnthropicResponse> {
     try {
       const response = await fetch(`${this.baseURL}/messages`, {
         method: 'POST',
@@ -783,14 +815,9 @@ export class AnthropicBackendAdapter implements BackendAdapter<AnthropicRequest,
 
       if (!response.ok) {
         const errorBody = await response.text();
-        throw createErrorFromHttpResponse(
-          response.status,
-          response.statusText,
-          errorBody,
-          {
-            backend: this.metadata.name,
-          }
-        );
+        throw createErrorFromHttpResponse(response.status, response.statusText, errorBody, {
+          backend: this.metadata.name,
+        });
       }
 
       const data = (await response.json()) as AnthropicResponse;

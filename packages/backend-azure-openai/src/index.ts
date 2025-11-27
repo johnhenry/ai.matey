@@ -25,10 +25,7 @@ import {
   createErrorFromHttpResponse,
 } from 'ai.matey.errors';
 import { normalizeSystemMessages } from 'ai.matey.utils';
-import {
-  getEffectiveStreamMode,
-  mergeStreamingConfig,
-} from 'ai.matey.utils';
+import { getEffectiveStreamMode, mergeStreamingConfig } from 'ai.matey.utils';
 
 // ============================================================================
 // Azure OpenAI API Types (OpenAI-compatible with Azure extensions)
@@ -77,7 +74,7 @@ export interface AzureOpenAIResponse {
     index: number;
     message: AzureOpenAIMessage;
     finish_reason: 'stop' | 'length' | 'tool_calls' | 'content_filter' | null;
-    content_filter_results?: any;  // Azure content filtering
+    content_filter_results?: any; // Azure content filtering
   }>;
   usage?: {
     prompt_tokens: number;
@@ -103,9 +100,9 @@ export interface AzureOpenAIStreamChunk {
 }
 
 export interface AzureOpenAIConfig extends BackendAdapterConfig {
-  resourceName?: string;      // Azure resource name
-  deploymentId?: string;       // Azure deployment ID
-  apiVersion?: string;         // Azure API version (default: '2024-02-15-preview')
+  resourceName?: string; // Azure resource name
+  deploymentId?: string; // Azure deployment ID
+  apiVersion?: string; // Azure API version (default: '2024-02-15-preview')
 }
 
 // ============================================================================
@@ -124,7 +121,9 @@ export interface AzureOpenAIConfig extends BackendAdapterConfig {
  * - Seed support for reproducibility
  * - Enterprise pricing with consumption-based billing
  */
-export class AzureOpenAIBackendAdapter implements BackendAdapter<AzureOpenAIRequest, AzureOpenAIResponse> {
+export class AzureOpenAIBackendAdapter
+  implements BackendAdapter<AzureOpenAIRequest, AzureOpenAIResponse>
+{
   readonly metadata: AdapterMetadata;
   private readonly config: AzureOpenAIConfig;
   private readonly resourceName: string;
@@ -159,8 +158,8 @@ export class AzureOpenAIBackendAdapter implements BackendAdapter<AzureOpenAIRequ
       provider: 'Azure OpenAI',
       capabilities: {
         streaming: true,
-        multiModal: true,  // Vision models available
-        tools: true,       // Function calling
+        multiModal: true, // Vision models available
+        tools: true, // Function calling
         maxContextTokens: 128000,
         systemMessageStrategy: 'in-messages',
         supportsMultipleSystemMessages: true,
@@ -207,24 +206,26 @@ export class AzureOpenAIBackendAdapter implements BackendAdapter<AzureOpenAIRequ
 
     const azureMessages: AzureOpenAIMessage[] = messages.map((msg) => ({
       role: msg.role,
-      content: typeof msg.content === 'string'
-        ? msg.content
-        : msg.content.map((block) => {
-            if (block.type === 'text') {
-              return { type: 'text', text: block.text };
-            } else if (block.type === 'image') {
-              return {
-                type: 'image_url',
-                image_url: {
-                  url: block.source.type === 'url'
-                    ? block.source.url
-                    : `data:${block.source.mediaType};base64,${block.source.data}`,
-                  detail: 'auto'
-                }
-              };
-            }
-            return { type: 'text', text: JSON.stringify(block) };
-          }),
+      content:
+        typeof msg.content === 'string'
+          ? msg.content
+          : msg.content.map((block) => {
+              if (block.type === 'text') {
+                return { type: 'text', text: block.text };
+              } else if (block.type === 'image') {
+                return {
+                  type: 'image_url',
+                  image_url: {
+                    url:
+                      block.source.type === 'url'
+                        ? block.source.url
+                        : `data:${block.source.mediaType};base64,${block.source.data}`,
+                    detail: 'auto',
+                  },
+                };
+              }
+              return { type: 'text', text: JSON.stringify(block) };
+            }),
     }));
 
     const azureRequest: AzureOpenAIRequest = {
@@ -249,7 +250,11 @@ export class AzureOpenAIBackendAdapter implements BackendAdapter<AzureOpenAIRequ
   /**
    * Convert Azure OpenAI response to IR.
    */
-  public toIR(response: AzureOpenAIResponse, originalRequest: IRChatRequest, latencyMs: number): IRChatResponse {
+  public toIR(
+    response: AzureOpenAIResponse,
+    originalRequest: IRChatRequest,
+    latencyMs: number
+  ): IRChatResponse {
     const choice = response.choices[0];
     if (!choice) {
       throw new ProviderError({
@@ -262,26 +267,29 @@ export class AzureOpenAIBackendAdapter implements BackendAdapter<AzureOpenAIRequ
 
     const message: IRMessage = {
       role: choice.message.role === 'assistant' ? 'assistant' : 'user',
-      content: typeof choice.message.content === 'string'
-        ? choice.message.content
-        : choice.message.content.map((c: any) => c.type === 'text' ? c.text : '').join(''),
+      content:
+        typeof choice.message.content === 'string'
+          ? choice.message.content
+          : choice.message.content.map((c: any) => (c.type === 'text' ? c.text : '')).join(''),
     };
 
     const finishReasonMap: Record<string, FinishReason> = {
-      'stop': 'stop',
-      'length': 'length',
-      'tool_calls': 'tool_calls',
-      'content_filter': 'stop',  // Map content_filter to stop
+      stop: 'stop',
+      length: 'length',
+      tool_calls: 'tool_calls',
+      content_filter: 'stop', // Map content_filter to stop
     };
 
     return {
       message,
       finishReason: finishReasonMap[choice.finish_reason || 'stop'] || 'stop',
-      usage: response.usage ? {
-        promptTokens: response.usage.prompt_tokens,
-        completionTokens: response.usage.completion_tokens,
-        totalTokens: response.usage.total_tokens,
-      } : undefined,
+      usage: response.usage
+        ? {
+            promptTokens: response.usage.prompt_tokens,
+            completionTokens: response.usage.completion_tokens,
+            totalTokens: response.usage.total_tokens,
+          }
+        : undefined,
       metadata: {
         ...originalRequest.metadata,
         providerResponseId: response.id,
@@ -292,7 +300,9 @@ export class AzureOpenAIBackendAdapter implements BackendAdapter<AzureOpenAIRequ
         custom: {
           ...originalRequest.metadata.custom,
           latencyMs,
-          ...(choice.content_filter_results ? { azure_content_filter: choice.content_filter_results } : {}),
+          ...(choice.content_filter_results
+            ? { azure_content_filter: choice.content_filter_results }
+            : {}),
         },
       },
       raw: response as unknown as Record<string, unknown>,
@@ -353,11 +363,7 @@ export class AzureOpenAIBackendAdapter implements BackendAdapter<AzureOpenAIRequ
       azureRequest.stream = true;
 
       const streamingConfig = mergeStreamingConfig(this.config.streaming);
-      const effectiveMode = getEffectiveStreamMode(
-        request.streamMode,
-        undefined,
-        streamingConfig
-      );
+      const effectiveMode = getEffectiveStreamMode(request.streamMode, undefined, streamingConfig);
       const includeBoth = streamingConfig.includeBoth || effectiveMode === 'accumulated';
 
       const deploymentId = this.getDeploymentId(request);
@@ -409,17 +415,23 @@ export class AzureOpenAIBackendAdapter implements BackendAdapter<AzureOpenAIRequ
       try {
         while (true) {
           const { done, value } = await reader.read();
-          if (done) break;
+          if (done) {
+            break;
+          }
 
           buffer += decoder.decode(value, { stream: true });
           const lines = buffer.split('\n');
           buffer = lines.pop() || '';
 
           for (const line of lines) {
-            if (!line.trim() || !line.startsWith('data: ')) continue;
+            if (!line.trim() || !line.startsWith('data: ')) {
+              continue;
+            }
 
             const data = line.slice(6).trim();
-            if (data === '[DONE]') continue;
+            if (data === '[DONE]') {
+              continue;
+            }
 
             try {
               const chunk = JSON.parse(data) as AzureOpenAIStreamChunk;
@@ -444,9 +456,9 @@ export class AzureOpenAIBackendAdapter implements BackendAdapter<AzureOpenAIRequ
 
               if (chunk.choices[0]?.finish_reason) {
                 const finishReasonMap: Record<string, FinishReason> = {
-                  'stop': 'stop',
-                  'length': 'length',
-                  'content_filter': 'stop',
+                  stop: 'stop',
+                  length: 'length',
+                  content_filter: 'stop',
                 };
 
                 const doneChunk: IRStreamChunk = {
@@ -490,7 +502,7 @@ export class AzureOpenAIBackendAdapter implements BackendAdapter<AzureOpenAIRequ
   private getHeaders(): Record<string, string> {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      'api-key': this.config.apiKey,  // Azure-specific header
+      'api-key': this.config.apiKey, // Azure-specific header
     };
 
     return { ...headers, ...this.config.headers };
@@ -525,20 +537,20 @@ export class AzureOpenAIBackendAdapter implements BackendAdapter<AzureOpenAIRequ
    * Azure pricing varies by region and deployment.
    * These are approximate US East costs.
    */
-  async estimateCost(request: IRChatRequest): Promise<number | null> {
+  estimateCost(request: IRChatRequest): Promise<number | null> {
     const pricing: Record<string, { input: number; output: number }> = {
-      'gpt-4o': { input: 2.50, output: 10.00 },
-      'gpt-4o-mini': { input: 0.15, output: 0.60 },
-      'gpt-4': { input: 30.00, output: 60.00 },
-      'gpt-4-turbo': { input: 10.00, output: 30.00 },
-      'gpt-35-turbo': { input: 0.50, output: 1.50 },
+      'gpt-4o': { input: 2.5, output: 10.0 },
+      'gpt-4o-mini': { input: 0.15, output: 0.6 },
+      'gpt-4': { input: 30.0, output: 60.0 },
+      'gpt-4-turbo': { input: 10.0, output: 30.0 },
+      'gpt-35-turbo': { input: 0.5, output: 1.5 },
     };
 
     const deploymentId = this.getDeploymentId(request);
     const modelPricing = pricing[deploymentId];
 
     if (!modelPricing) {
-      return null;
+      return Promise.resolve(null);
     }
 
     const inputTokens = request.messages.reduce((sum, msg) => {
@@ -551,6 +563,6 @@ export class AzureOpenAIBackendAdapter implements BackendAdapter<AzureOpenAIRequ
     const inputCost = (inputTokens / 1_000_000) * modelPricing.input;
     const outputCost = (outputTokens / 1_000_000) * modelPricing.output;
 
-    return inputCost + outputCost;
+    return Promise.resolve(inputCost + outputCost);
   }
 }
