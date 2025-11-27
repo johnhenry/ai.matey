@@ -277,6 +277,7 @@ Accept requests in any format and translate to internal IR.
 | [`ai.matey.frontend.ollama`](./packages/frontend-ollama) | Ollama format | [README](./packages/frontend-ollama/README.md) |
 | [`ai.matey.frontend.mistral`](./packages/frontend-mistral) | Mistral format | [README](./packages/frontend-mistral/README.md) |
 | [`ai.matey.frontend.chrome-ai`](./packages/frontend-chrome-ai) | Chrome AI format | [README](./packages/frontend-chrome-ai/README.md) |
+| [`ai.matey.frontend.generic`](./packages/frontend-generic) | IR passthrough (universal) | [README](./packages/frontend-generic/readme.md) |
 
 ### HTTP Integrations
 
@@ -331,6 +332,7 @@ Drop-in replacements for official SDKs.
 | [`ai.matey.wrapper.chrome-ai`](./packages/wrapper-chrome-ai) | Chrome AI API | [README](./packages/wrapper-chrome-ai/README.md) |
 | [`ai.matey.wrapper.chrome-ai-legacy`](./packages/wrapper-chrome-ai-legacy) | Chrome AI (legacy) | [README](./packages/wrapper-chrome-ai-legacy/README.md) |
 | [`ai.matey.wrapper.anymethod`](./packages/wrapper-anymethod) | Dynamic wrapper | [README](./packages/wrapper-anymethod/README.md) |
+| [`ai.matey.wrapper.ir`](./packages/wrapper-ir) | IR-native chat client | [README](./packages/wrapper-ir/readme.md) |
 
 ### Native Backends
 
