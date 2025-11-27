@@ -485,7 +485,7 @@ export class Bridge<TFrontend extends FrontendAdapter = FrontendAdapter>
     const getPercentile = (p: number): number => {
       if (len === 0) return 0;
       const index = Math.ceil((p / 100) * len) - 1;
-      return sortedLatencies[Math.max(0, Math.min(index, len - 1))];
+      return sortedLatencies[Math.max(0, Math.min(index, len - 1))] ?? 0;
     };
 
     const avgLatency = len > 0
