@@ -102,9 +102,10 @@ function trimHistorySmart(history: readonly IRMessage[], maxPairs: number): IRMe
 
   // Trim conversation to last N pairs
   const maxConversationMessages = maxPairs * 2;
-  const trimmedConversation = conversationMessages.length <= maxConversationMessages
-    ? conversationMessages
-    : conversationMessages.slice(-maxConversationMessages);
+  const trimmedConversation =
+    conversationMessages.length <= maxConversationMessages
+      ? conversationMessages
+      : conversationMessages.slice(-maxConversationMessages);
 
   // Combine: system messages first, then conversation
   return [...systemMessages, ...trimmedConversation];
@@ -128,7 +129,7 @@ function trimHistorySmart(history: readonly IRMessage[], maxPairs: number): IRMe
  * ```
  */
 export function countMessagePairs(history: readonly IRMessage[]): number {
-  const nonSystemMessages = history.filter(m => m.role !== 'system');
+  const nonSystemMessages = history.filter((m) => m.role !== 'system');
   return Math.floor(nonSystemMessages.length / 2);
 }
 

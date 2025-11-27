@@ -94,10 +94,7 @@ export function normalizeTopP(topP: number | undefined): number | undefined {
  * @param maxTopK Maximum topK supported by provider
  * @returns Clamped topK
  */
-export function normalizeTopK(
-  topK: number | undefined,
-  maxTopK: number = 100
-): number | undefined {
+export function normalizeTopK(topK: number | undefined, maxTopK: number = 100): number | undefined {
   if (topK === undefined) {
     return undefined;
   }
@@ -196,7 +193,10 @@ export function filterUnsupportedParameters(
     filtered.topK = parameters.topK;
   }
 
-  if (capabilities.supportsFrequencyPenalty !== false && parameters.frequencyPenalty !== undefined) {
+  if (
+    capabilities.supportsFrequencyPenalty !== false &&
+    parameters.frequencyPenalty !== undefined
+  ) {
     filtered.frequencyPenalty = parameters.frequencyPenalty;
   }
 
@@ -259,7 +259,9 @@ export function mergeParameters(...parameterSets: Array<IRParameters | undefined
   const merged: Partial<IRParameters> = {};
 
   for (const params of parameterSets) {
-    if (!params) continue;
+    if (!params) {
+      continue;
+    }
 
     Object.assign(merged, params);
   }
@@ -418,7 +420,7 @@ export function normalizeTemperatureWithWarnings(
   }
 
   const original = temperature;
-  let clamped = Math.max(0, Math.min(2, temperature));
+  const clamped = Math.max(0, Math.min(2, temperature));
 
   // Warn if clamped
   if (clamped !== original) {
@@ -504,7 +506,9 @@ export function filterUnsupportedParametersWithWarnings(
     if (capabilities.supportsTemperature !== false) {
       filtered.temperature = parameters.temperature;
     } else {
-      warnings.push(createUnsupportedParameterWarning('temperature', parameters.temperature, source));
+      warnings.push(
+        createUnsupportedParameterWarning('temperature', parameters.temperature, source)
+      );
     }
   }
 

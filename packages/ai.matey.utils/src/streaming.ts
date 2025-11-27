@@ -280,10 +280,10 @@ export function splitStream(stream: IRChatStream, consumerCount: number): IRChat
   }));
 
   let streamDone = false;
-  let activeConsumers = consumerCount;
+  const activeConsumers = consumerCount;
 
   // Start consuming the source stream
-  (async () => {
+  void (async () => {
     try {
       for await (const chunk of stream) {
         chunks.push(chunk);
@@ -433,7 +433,9 @@ export function isErrorChunk(chunk: IRStreamChunk): chunk is StreamErrorChunk {
  * @param stream Stream to process
  * @returns Stream of just content deltas
  */
-export async function* getContentDeltas(stream: IRChatStream): AsyncGenerator<string, void, undefined> {
+export async function* getContentDeltas(
+  stream: IRChatStream
+): AsyncGenerator<string, void, undefined> {
   for await (const chunk of stream) {
     if (chunk.type === 'content') {
       yield chunk.delta;
@@ -485,7 +487,7 @@ export interface SequenceValidationResult {
 }
 
 export function validateChunkSequence(chunks: IRStreamChunk[]): SequenceValidationResult {
-  const sequences = chunks.map(c => c.sequence).filter((s): s is number => s !== undefined);
+  const sequences = chunks.map((c) => c.sequence).filter((s): s is number => s !== undefined);
   const gaps: number[] = [];
   const duplicates: number[] = [];
   let outOfOrder = false;
@@ -495,7 +497,9 @@ export function validateChunkSequence(chunks: IRStreamChunk[]): SequenceValidati
 
   for (let i = 0; i < sequences.length; i++) {
     const seq = sequences[i];
-    if (seq === undefined) continue;
+    if (seq === undefined) {
+      continue;
+    }
 
     // Check for duplicates
     if (seen.has(seq)) {
@@ -567,12 +571,7 @@ export async function* validateStream(
   stream: IRChatStream,
   options: StreamValidationOptions = {}
 ): IRChatStream {
-  const {
-    strictSequence = true,
-    rejectDuplicates = true,
-    maxGap = 0,
-    onWarning,
-  } = options;
+  const { strictSequence = true, rejectDuplicates = true, maxGap = 0, onWarning } = options;
 
   let expectedSequence = 0;
   const seen = new Set<number>();
@@ -683,12 +682,12 @@ export async function* streamWithBackpressure(
   let sourceError: Error | null = null;
 
   // Start consuming source stream in background
-  (async () => {
+  void (async () => {
     try {
       for await (const chunk of stream) {
         // Wait if buffer is full
         while (buffer.length >= bufferSize) {
-          await new Promise(resolve => setTimeout(resolve, 10));
+          await new Promise((resolve) => setTimeout(resolve, 10));
         }
         buffer.push(chunk);
       }
@@ -702,14 +701,14 @@ export async function* streamWithBackpressure(
   // Yield chunks with backpressure
   while (!sourceComplete || buffer.length > 0 || sourceError) {
     if (sourceError) {
-      throw sourceError;
+      throw new Error(sourceError.message);
     }
 
     if (buffer.length > 0) {
       yield buffer.shift()!;
     } else if (!sourceComplete) {
       // Wait for more chunks
-      await new Promise(resolve => setTimeout(resolve, 10));
+      await new Promise((resolve) => setTimeout(resolve, 10));
     } else {
       break;
     }
@@ -737,7 +736,7 @@ export async function* rateLimitStream(
     const timeSinceLastYield = now - lastYieldTime;
 
     if (timeSinceLastYield < delayMs) {
-      await new Promise(resolve => setTimeout(resolve, delayMs - timeSinceLastYield));
+      await new Promise((resolve) => setTimeout(resolve, delayMs - timeSinceLastYield));
     }
 
     lastYieldTime = Date.now();
@@ -905,10 +904,11 @@ export async function processStream(
           message = chunk.message;
           break;
 
-        case 'error':
+        case 'error': {
           const error = new Error(chunk.error.message);
           options.onError?.(error);
           throw error;
+        }
       }
     }
 
@@ -984,10 +984,7 @@ export async function* streamToLines(
  * }
  * ```
  */
-export async function* throttleStream(
-  stream: IRChatStream,
-  intervalMs: number
-): IRChatStream {
+export async function* throttleStream(stream: IRChatStream, intervalMs: number): IRChatStream {
   let lastYield = 0;
   let pendingChunk: IRStreamChunk | null = null;
 
@@ -1007,7 +1004,7 @@ export async function* throttleStream(
 
     // For content chunks, throttle
     if (now - lastYield >= intervalMs) {
-      if (pendingChunk && pendingChunk.type === 'content') {
+      if (pendingChunk?.type === 'content') {
         // Merge pending with current
         const merged: IRStreamChunk = {
           type: 'content',
@@ -1023,7 +1020,7 @@ export async function* throttleStream(
       lastYield = now;
     } else {
       // Accumulate into pending
-      if (pendingChunk && pendingChunk.type === 'content') {
+      if (pendingChunk?.type === 'content') {
         pendingChunk = {
           type: 'content',
           sequence: chunk.sequence,
@@ -1061,17 +1058,14 @@ export async function* throttleStream(
  * ]);
  * ```
  */
-export function teeStream(
-  stream: IRChatStream,
-  count: number = 2
-): IRChatStream[] {
+export function teeStream(stream: IRChatStream, count: number = 2): IRChatStream[] {
   const queues: IRStreamChunk[][] = Array.from({ length: count }, () => []);
   const resolvers: Array<(() => void) | null> = Array(count).fill(null);
   let done = false;
   let error: Error | null = null;
 
   // Start consuming the source stream
-  (async () => {
+  void (async () => {
     try {
       for await (const chunk of stream) {
         for (let i = 0; i < count; i++) {
@@ -1108,7 +1102,9 @@ export function teeStream(
 
         // Check if done
         if (done) {
-          if (error) throw error;
+          if (error) {
+            throw error;
+          }
           return;
         }
 

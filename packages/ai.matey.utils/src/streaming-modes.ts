@@ -8,11 +8,7 @@
  */
 
 import type { IRChatStream, StreamContentChunk } from 'ai.matey.types';
-import type {
-  StreamMode,
-  StreamConversionOptions,
-  StreamingConfig,
-} from 'ai.matey.types';
+import type { StreamMode, StreamConversionOptions, StreamingConfig } from 'ai.matey.types';
 import { DEFAULT_CONVERSION_OPTIONS, DEFAULT_STREAMING_CONFIG } from 'ai.matey.types';
 
 // ============================================================================
@@ -243,12 +239,7 @@ export function getEffectiveStreamMode(
   conversionMode?: StreamMode,
   config?: StreamingConfig
 ): StreamMode {
-  return (
-    requestMode ||
-    conversionMode ||
-    config?.mode ||
-    DEFAULT_STREAMING_CONFIG.mode
-  );
+  return requestMode || conversionMode || config?.mode || DEFAULT_STREAMING_CONFIG.mode;
 }
 
 /**
@@ -265,7 +256,9 @@ export function mergeStreamingConfig(
   // Apply configs in reverse order (last has lowest priority)
   for (let i = configs.length - 1; i >= 0; i--) {
     const config = configs[i];
-    if (!config) continue;
+    if (!config) {
+      continue;
+    }
 
     if (config.mode !== undefined) {
       result.mode = config.mode;
@@ -294,10 +287,7 @@ export function mergeStreamingConfig(
  * @param mode Required mode
  * @returns Stream with all chunks in required mode
  */
-export async function* ensureStreamMode(
-  stream: IRChatStream,
-  mode: StreamMode
-): IRChatStream {
+export async function* ensureStreamMode(stream: IRChatStream, mode: StreamMode): IRChatStream {
   yield* convertStreamMode(stream, { mode, preserveIfMatch: true });
 }
 
@@ -309,9 +299,7 @@ export async function* ensureStreamMode(
  * @param stream Source stream (delta-only)
  * @returns Stream with both delta and accumulated in content chunks
  */
-export async function* addAccumulatedToStream(
-  stream: IRChatStream
-): IRChatStream {
+export async function* addAccumulatedToStream(stream: IRChatStream): IRChatStream {
   const state = createAccumulatorState();
 
   for await (const chunk of stream) {
@@ -336,12 +324,10 @@ export async function* addAccumulatedToStream(
  * @param stream Source stream
  * @returns Stream with only delta in content chunks
  */
-export async function* stripAccumulatedFromStream(
-  stream: IRChatStream
-): IRChatStream {
+export async function* stripAccumulatedFromStream(stream: IRChatStream): IRChatStream {
   for await (const chunk of stream) {
     if (chunk.type === 'content') {
-      const { accumulated, ...deltaOnly } = chunk;
+      const { accumulated: _accumulated, ...deltaOnly } = chunk;
       yield deltaOnly as StreamContentChunk;
     } else {
       yield chunk;

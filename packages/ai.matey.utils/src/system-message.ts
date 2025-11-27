@@ -49,7 +49,10 @@ export function extractSystemMessages(messages: readonly IRMessage[]): {
  * @param separator Separator between messages (default: double newline)
  * @returns Combined system message content
  */
-export function combineSystemMessages(systemMessages: readonly IRMessage[], separator = '\n\n'): string {
+export function combineSystemMessages(
+  systemMessages: readonly IRMessage[],
+  separator = '\n\n'
+): string {
   return systemMessages
     .map((msg) => {
       if (typeof msg.content === 'string') {
@@ -122,7 +125,7 @@ export function normalizeSystemMessages(
       // System messages go in separate parameter
       const systemContent = supportsMultiple
         ? combineSystemMessages(systemMessages)
-        : getFirstSystemMessage(messages) ?? '';
+        : (getFirstSystemMessage(messages) ?? '');
 
       return {
         messages: otherMessages,

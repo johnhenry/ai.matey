@@ -122,7 +122,10 @@ export function validateMessageContent(content: unknown, provenance?: ErrorProve
 /**
  * Validate a single message.
  */
-export function validateMessage(message: unknown, provenance?: ErrorProvenance): asserts message is IRMessage {
+export function validateMessage(
+  message: unknown,
+  provenance?: ErrorProvenance
+): asserts message is IRMessage {
   if (!message || typeof message !== 'object') {
     throw new ValidationError({
       code: ErrorCodeEnum.INVALID_MESSAGE_FORMAT,
@@ -161,7 +164,7 @@ export function validateMessage(message: unknown, provenance?: ErrorProvenance):
   if (!isValidMessageRole(msg.role)) {
     throw new ValidationError({
       code: ErrorCodeEnum.INVALID_MESSAGE_FORMAT,
-      message: `Invalid message role: ${msg.role}`,
+      message: `Invalid message role: ${String(msg.role)}`,
       validationDetails: [
         {
           field: 'role',
@@ -197,7 +200,10 @@ export function validateMessage(message: unknown, provenance?: ErrorProvenance):
 /**
  * Validate messages array.
  */
-export function validateMessages(messages: unknown, provenance?: ErrorProvenance): asserts messages is IRMessage[] {
+export function validateMessages(
+  messages: unknown,
+  provenance?: ErrorProvenance
+): asserts messages is IRMessage[] {
   if (!Array.isArray(messages)) {
     throw new ValidationError({
       code: ErrorCodeEnum.INVALID_MESSAGE_FORMAT,
@@ -382,7 +388,10 @@ export function validateTopP(topP: unknown, provenance?: ErrorProvenance): void 
 /**
  * Validate parameters object.
  */
-export function validateParameters(parameters: unknown, provenance?: ErrorProvenance): asserts parameters is IRParameters {
+export function validateParameters(
+  parameters: unknown,
+  provenance?: ErrorProvenance
+): asserts parameters is IRParameters {
   if (parameters === undefined || parameters === null) {
     return;
   }
@@ -431,7 +440,11 @@ export function validateParameters(parameters: unknown, provenance?: ErrorProven
 
   // Validate penalties
   if (params.frequencyPenalty !== undefined && params.frequencyPenalty !== null) {
-    if (typeof params.frequencyPenalty !== 'number' || params.frequencyPenalty < -2 || params.frequencyPenalty > 2) {
+    if (
+      typeof params.frequencyPenalty !== 'number' ||
+      params.frequencyPenalty < -2 ||
+      params.frequencyPenalty > 2
+    ) {
       throw new ValidationError({
         code: ErrorCodeEnum.INVALID_PARAMETERS,
         message: 'frequencyPenalty must be between -2 and 2',
@@ -449,7 +462,11 @@ export function validateParameters(parameters: unknown, provenance?: ErrorProven
   }
 
   if (params.presencePenalty !== undefined && params.presencePenalty !== null) {
-    if (typeof params.presencePenalty !== 'number' || params.presencePenalty < -2 || params.presencePenalty > 2) {
+    if (
+      typeof params.presencePenalty !== 'number' ||
+      params.presencePenalty < -2 ||
+      params.presencePenalty > 2
+    ) {
       throw new ValidationError({
         code: ErrorCodeEnum.INVALID_PARAMETERS,
         message: 'presencePenalty must be between -2 and 2',
@@ -474,7 +491,10 @@ export function validateParameters(parameters: unknown, provenance?: ErrorProven
 /**
  * Validate IR chat request.
  */
-export function validateIRChatRequest(request: unknown, provenance?: ErrorProvenance): asserts request is IRChatRequest {
+export function validateIRChatRequest(
+  request: unknown,
+  provenance?: ErrorProvenance
+): asserts request is IRChatRequest {
   if (!request || typeof request !== 'object') {
     throw new ValidationError({
       code: ErrorCodeEnum.INVALID_REQUEST,

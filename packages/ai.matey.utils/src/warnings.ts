@@ -63,7 +63,8 @@ export function createNormalizationWarning(
 ): IRWarning {
   return createWarning(
     'parameter-normalized',
-    message || `Parameter '${field}' normalized from ${originalValue} to ${transformedValue}`,
+    message ||
+      `Parameter '${field}' normalized from ${String(originalValue)} to ${String(transformedValue)}`,
     {
       severity: 'info',
       field,
@@ -95,7 +96,7 @@ export function createClampingWarning(
 ): IRWarning {
   return createWarning(
     'parameter-clamped',
-    `Parameter '${field}' clamped from ${originalValue} to ${clampedValue} (valid range: ${min}-${max})`,
+    `Parameter '${field}' clamped from ${String(originalValue)} to ${String(clampedValue)} (valid range: ${min}-${max})`,
     {
       severity: 'warning',
       field,
@@ -122,7 +123,7 @@ export function createUnsupportedParameterWarning(
 ): IRWarning {
   return createWarning(
     'parameter-unsupported',
-    `Parameter '${field}' is not supported by provider (value: ${value})`,
+    `Parameter '${field}' is not supported by provider (value: ${String(value)})`,
     {
       severity: 'warning',
       field,
@@ -139,10 +140,7 @@ export function createUnsupportedParameterWarning(
  * @param source Source adapter
  * @returns Warning object
  */
-export function createUnsupportedCapabilityWarning(
-  capability: string,
-  source?: string
-): IRWarning {
+export function createUnsupportedCapabilityWarning(capability: string, source?: string): IRWarning {
   return createWarning(
     'capability-unsupported',
     `Capability '${capability}' is not supported by provider`,
@@ -214,12 +212,16 @@ export function createStopSequencesTruncatedWarning(
  * @param warningArrays Arrays of warnings to merge
  * @returns Merged and deduplicated warnings
  */
-export function mergeWarnings(...warningArrays: Array<readonly IRWarning[] | undefined>): IRWarning[] {
+export function mergeWarnings(
+  ...warningArrays: Array<readonly IRWarning[] | undefined>
+): IRWarning[] {
   const warnings: IRWarning[] = [];
   const seen = new Set<string>();
 
   for (const array of warningArrays) {
-    if (!array) continue;
+    if (!array) {
+      continue;
+    }
 
     for (const warning of array) {
       // Create a key for deduplication
@@ -254,7 +256,7 @@ export function filterWarningsBySeverity(
 
   const minLevel = severityOrder[minSeverity];
 
-  return warnings.filter(w => severityOrder[w.severity] >= minLevel);
+  return warnings.filter((w) => severityOrder[w.severity] >= minLevel);
 }
 
 /**
@@ -269,7 +271,7 @@ export function filterWarningsByCategory(
   categories: readonly WarningCategory[]
 ): IRWarning[] {
   const categorySet = new Set(categories);
-  return warnings.filter(w => categorySet.has(w.category));
+  return warnings.filter((w) => categorySet.has(w.category));
 }
 
 /**
@@ -305,10 +307,12 @@ export function hasWarning(
   category: WarningCategory,
   field?: string
 ): boolean {
-  if (!warnings) return false;
+  if (!warnings) {
+    return false;
+  }
 
   return warnings.some(
-    w => w.category === category && (field === undefined || w.field === field)
+    (w) => w.category === category && (field === undefined || w.field === field)
   );
 }
 
@@ -334,8 +338,12 @@ export function formatWarning(warning: IRWarning, includeDetails = false): strin
   const parts = [
     `${prefix} ${warning.message}${source}`,
     warning.field ? `  Field: ${warning.field}` : null,
-    warning.originalValue !== undefined ? `  Original: ${JSON.stringify(warning.originalValue)}` : null,
-    warning.transformedValue !== undefined ? `  Transformed: ${JSON.stringify(warning.transformedValue)}` : null,
+    warning.originalValue !== undefined
+      ? `  Original: ${JSON.stringify(warning.originalValue)}`
+      : null,
+    warning.transformedValue !== undefined
+      ? `  Transformed: ${JSON.stringify(warning.transformedValue)}`
+      : null,
     warning.details ? `  Details: ${JSON.stringify(warning.details)}` : null,
   ].filter(Boolean);
 
@@ -354,7 +362,7 @@ export function formatWarnings(warnings: readonly IRWarning[], includeDetails = 
     return 'No warnings';
   }
 
-  const formatted = warnings.map(w => formatWarning(w, includeDetails));
+  const formatted = warnings.map((w) => formatWarning(w, includeDetails));
   return formatted.join('\n');
 }
 
@@ -364,9 +372,7 @@ export function formatWarnings(warnings: readonly IRWarning[], includeDetails = 
  * @param warnings Warnings to summarize
  * @returns Summary object with counts
  */
-export function getWarningSummary(
-  warnings: readonly IRWarning[]
-): {
+export function getWarningSummary(warnings: readonly IRWarning[]): {
   total: number;
   byCategory: Record<WarningCategory, number>;
   bySeverity: Record<WarningSeverity, number>;
