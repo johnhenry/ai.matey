@@ -10,7 +10,7 @@
 import type {
   BackendAdapter,
   AdapterMetadata,
-  AdapterCapabilities,
+  IRCapabilities,
 } from 'ai.matey.types';
 import type {
   IRChatRequest,
@@ -19,7 +19,6 @@ import type {
   IRStreamChunk,
 } from 'ai.matey.types';
 import type {
-  AIModel,
   ListModelsOptions,
   ListModelsResult,
 } from 'ai.matey.types';
@@ -88,7 +87,7 @@ export interface FunctionBackendMetadata {
   /** Provider name (default: 'Function') */
   provider?: string;
   /** Custom capabilities */
-  capabilities?: Partial<AdapterCapabilities>;
+  capabilities?: Partial<IRCapabilities>;
 }
 
 /**
@@ -393,6 +392,7 @@ export function createEchoBackend(prefix = 'Echo: '): FunctionBackendAdapter {
         finishReason: 'stop',
         metadata: {
           requestId: request.metadata.requestId,
+          timestamp: Date.now(),
           provenance: {},
         },
       };
@@ -419,6 +419,7 @@ export function createStaticBackend(response: string): FunctionBackendAdapter {
       finishReason: 'stop',
       metadata: {
         requestId: request.metadata.requestId,
+        timestamp: Date.now(),
         provenance: {},
       },
     }),
