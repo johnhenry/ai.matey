@@ -221,7 +221,7 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
         // Stream the response
         const response = await chat.stream(lastMessage.content, {
           signal,
-          onChunk: ({ accumulated }) => {
+          onChunk: ({ accumulated }: { accumulated: string; delta: string; sequence: number }) => {
             setMessages((prev) =>
               prev.map((msg) =>
                 msg.id === assistantId
