@@ -185,6 +185,35 @@ function ChatComponent() {
 }
 ```
 
+### React Hooks - Direct Mode
+
+Use backend adapters directly without HTTP (great for Electron, browser extensions, testing):
+
+```tsx
+import { useChat } from 'ai.matey.react.core';
+import { OpenAIBackend } from 'ai.matey.backend.openai';
+
+const backend = new OpenAIBackend({ apiKey: process.env.REACT_APP_OPENAI_API_KEY });
+
+function ChatComponent() {
+  const { messages, input, handleInputChange, handleSubmit } = useChat({
+    direct: {
+      backend,
+      systemPrompt: 'You are a helpful assistant.',
+    },
+  });
+
+  return (
+    <form onSubmit={handleSubmit}>
+      {messages.map((m) => (
+        <div key={m.id}>{m.content}</div>
+      ))}
+      <input value={input} onChange={handleInputChange} />
+    </form>
+  );
+}
+```
+
 ### SDK Wrapper
 
 Use OpenAI SDK-style code with any backend:
