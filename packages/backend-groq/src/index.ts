@@ -98,7 +98,7 @@ export class GroqBackendAdapter extends OpenAIBackendAdapter {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.config.apiKey}`,
+          Authorization: `Bearer ${this.config.apiKey}`,
           ...this.config.headers,
         },
         signal: AbortSignal.timeout(5000),
@@ -115,11 +115,11 @@ export class GroqBackendAdapter extends OpenAIBackendAdapter {
   async estimateCost(request: IRChatRequest): Promise<number | null> {
     // Groq pricing: ~$0.05 per 1M input tokens, ~$0.10 per 1M output tokens
     // (Extremely competitive pricing)
-    const estimatedInputTokens = await super.estimateCost(request) || 0;
+    const estimatedInputTokens = (await super.estimateCost(request)) || 0;
     const estimatedOutputTokens = Math.min(request.parameters?.maxTokens || 1000, 4000);
 
-    const inputCost = (estimatedInputTokens * 1000) * 0.05 / 1_000_000;
-    const outputCost = (estimatedOutputTokens / 1_000_000) * 0.10;
+    const inputCost = (estimatedInputTokens * 1000 * 0.05) / 1_000_000;
+    const outputCost = (estimatedOutputTokens / 1_000_000) * 0.1;
 
     return inputCost + outputCost;
   }
