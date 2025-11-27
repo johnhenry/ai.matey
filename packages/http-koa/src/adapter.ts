@@ -101,7 +101,9 @@ export class KoaResponseAdapter implements GenericResponse {
   }
 
   send(data: any): void {
-    if (!this.isWritable()) return;
+    if (!this.isWritable()) {
+      return;
+    }
 
     this._headersSent = true;
 
@@ -117,7 +119,9 @@ export class KoaResponseAdapter implements GenericResponse {
   }
 
   async stream(generator: AsyncGenerator<any, void, undefined>): Promise<void> {
-    if (!this.isWritable()) return;
+    if (!this.isWritable()) {
+      return;
+    }
 
     this._headersSent = true;
 
@@ -133,7 +137,9 @@ export class KoaResponseAdapter implements GenericResponse {
     try {
       // Stream chunks
       for await (const chunk of generator) {
-        if (!this.isWritable()) break;
+        if (!this.isWritable()) {
+          break;
+        }
         sendSSEChunk(nodeRes, chunk);
       }
 

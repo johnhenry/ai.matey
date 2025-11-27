@@ -24,18 +24,15 @@ import {
   createErrorFromHttpResponse,
 } from 'ai.matey.errors';
 import { normalizeSystemMessages } from 'ai.matey.utils';
-import {
-  getEffectiveStreamMode,
-  mergeStreamingConfig,
-} from 'ai.matey.utils';
+import { getEffectiveStreamMode, mergeStreamingConfig } from 'ai.matey.utils';
 
 // ============================================================================
 // Replicate API Types (Predictions API)
 // ============================================================================
 
 export interface ReplicateInput {
-  prompt?: string;              // For most chat models
-  system_prompt?: string;       // System message
+  prompt?: string; // For most chat models
+  system_prompt?: string; // System message
   temperature?: number;
   max_tokens?: number;
   top_p?: number;
@@ -47,7 +44,7 @@ export interface ReplicatePrediction {
   id: string;
   status: 'starting' | 'processing' | 'succeeded' | 'failed' | 'canceled';
   input: ReplicateInput;
-  output?: string | string[];  // Can be string or array of strings
+  output?: string | string[]; // Can be string or array of strings
   error?: string;
   metrics?: {
     predict_time?: number;
@@ -59,7 +56,7 @@ export interface ReplicatePrediction {
 }
 
 export interface ReplicateRequest {
-  version: string;  // Model version ID
+  version: string; // Model version ID
   input: ReplicateInput;
   stream?: boolean;
 }
@@ -82,12 +79,14 @@ export interface ReplicateRequest {
  * Note: This adapter uses a simplified synchronous approach by polling.
  * For production, consider using webhooks or proper async patterns.
  */
-export class ReplicateBackendAdapter implements BackendAdapter<ReplicateRequest, ReplicatePrediction> {
+export class ReplicateBackendAdapter
+  implements BackendAdapter<ReplicateRequest, ReplicatePrediction>
+{
   readonly metadata: AdapterMetadata;
   private readonly config: BackendAdapterConfig;
   private readonly baseURL: string;
-  private readonly maxPollAttempts: number = 60;  // Max 60 attempts (60 seconds)
-  private readonly pollInterval: number = 1000;   // Poll every 1 second
+  private readonly maxPollAttempts: number = 60; // Max 60 attempts (60 seconds)
+  private readonly pollInterval: number = 1000; // Poll every 1 second
 
   constructor(config: BackendAdapterConfig) {
     this.config = config;
@@ -97,11 +96,11 @@ export class ReplicateBackendAdapter implements BackendAdapter<ReplicateRequest,
       version: '1.0.0',
       provider: 'Replicate',
       capabilities: {
-        streaming: true,  // Limited streaming support
-        multiModal: false,  // Varies by model
-        tools: false,       // No function calling
-        maxContextTokens: 4096,  // Varies by model
-        systemMessageStrategy: 'separate-parameter',  // Uses system_prompt
+        streaming: true, // Limited streaming support
+        multiModal: false, // Varies by model
+        tools: false, // No function calling
+        maxContextTokens: 4096, // Varies by model
+        systemMessageStrategy: 'separate-parameter', // Uses system_prompt
         supportsMultipleSystemMessages: false,
         supportsTemperature: true,
         supportsTopP: true,
@@ -128,12 +127,15 @@ export class ReplicateBackendAdapter implements BackendAdapter<ReplicateRequest,
     );
 
     // Build prompt from conversation history
-    const prompt = messages.map((msg) => {
-      const content = typeof msg.content === 'string'
-        ? msg.content
-        : msg.content.map((block) => block.type === 'text' ? block.text : '').join('');
-      return `${msg.role === 'user' ? 'User' : 'Assistant'}: ${content}`;
-    }).join('\n\n');
+    const prompt = messages
+      .map((msg) => {
+        const content =
+          typeof msg.content === 'string'
+            ? msg.content
+            : msg.content.map((block) => (block.type === 'text' ? block.text : '')).join('');
+        return `${msg.role === 'user' ? 'User' : 'Assistant'}: ${content}`;
+      })
+      .join('\n\n');
 
     const input: ReplicateInput = {
       prompt,
@@ -145,13 +147,17 @@ export class ReplicateBackendAdapter implements BackendAdapter<ReplicateRequest,
 
     // Add system prompt
     if (systemParameter) {
-      input.system_prompt = typeof systemParameter === 'string'
-        ? systemParameter
-        : (systemParameter as any[]).map((msg: any) => msg.type === 'text' ? msg.text : '').join('');
+      input.system_prompt =
+        typeof systemParameter === 'string'
+          ? systemParameter
+          : (systemParameter as any[])
+              .map((msg: any) => (msg.type === 'text' ? msg.text : ''))
+              .join('');
     }
 
     return {
-      version: request.parameters?.model || this.config.defaultModel || 'meta/llama-2-70b-chat:latest',
+      version:
+        request.parameters?.model || this.config.defaultModel || 'meta/llama-2-70b-chat:latest',
       input,
       stream: request.stream || false,
     };
@@ -160,7 +166,11 @@ export class ReplicateBackendAdapter implements BackendAdapter<ReplicateRequest,
   /**
    * Convert Replicate prediction to IR.
    */
-  public toIR(prediction: ReplicatePrediction, originalRequest: IRChatRequest, latencyMs: number): IRChatResponse {
+  public toIR(
+    prediction: ReplicatePrediction,
+    originalRequest: IRChatRequest,
+    latencyMs: number
+  ): IRChatResponse {
     let content = '';
 
     if (typeof prediction.output === 'string') {
@@ -175,15 +185,15 @@ export class ReplicateBackendAdapter implements BackendAdapter<ReplicateRequest,
     };
 
     const finishReasonMap: Record<string, FinishReason> = {
-      'succeeded': 'stop',
-      'failed': 'stop',
-      'canceled': 'stop',
+      succeeded: 'stop',
+      failed: 'stop',
+      canceled: 'stop',
     };
 
     return {
       message,
       finishReason: finishReasonMap[prediction.status] || 'stop',
-      usage: undefined,  // Replicate doesn't provide token counts
+      usage: undefined, // Replicate doesn't provide token counts
       metadata: {
         ...originalRequest.metadata,
         providerResponseId: prediction.id,
@@ -193,7 +203,9 @@ export class ReplicateBackendAdapter implements BackendAdapter<ReplicateRequest,
         },
         custom: {
           ...originalRequest.metadata.custom,
-          latencyMs: prediction.metrics?.predict_time ? prediction.metrics.predict_time * 1000 : latencyMs,
+          latencyMs: prediction.metrics?.predict_time
+            ? prediction.metrics.predict_time * 1000
+            : latencyMs,
         },
       },
       raw: prediction as unknown as Record<string, unknown>,
@@ -302,18 +314,14 @@ export class ReplicateBackendAdapter implements BackendAdapter<ReplicateRequest,
       replicateRequest.stream = true;
 
       const streamingConfig = mergeStreamingConfig(this.config.streaming);
-      const effectiveMode = getEffectiveStreamMode(
-        request.streamMode,
-        undefined,
-        streamingConfig
-      );
+      const effectiveMode = getEffectiveStreamMode(request.streamMode, undefined, streamingConfig);
       const includeBoth = streamingConfig.includeBoth || effectiveMode === 'accumulated';
 
       const response = await fetch(`${this.baseURL}/predictions`, {
         method: 'POST',
         headers: {
           ...this.getHeaders(),
-          'Prefer': 'wait',  // Request streaming
+          Prefer: 'wait', // Request streaming
         },
         body: JSON.stringify(replicateRequest),
         signal,
@@ -358,7 +366,9 @@ export class ReplicateBackendAdapter implements BackendAdapter<ReplicateRequest,
       try {
         while (true) {
           const { done, value } = await reader.read();
-          if (done) break;
+          if (done) {
+            break;
+          }
 
           buffer += decoder.decode(value, { stream: true });
 
@@ -411,7 +421,7 @@ export class ReplicateBackendAdapter implements BackendAdapter<ReplicateRequest,
   private getHeaders(): Record<string, string> {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      'Authorization': `Token ${this.config.apiKey}`,
+      Authorization: `Token ${this.config.apiKey}`,
     };
 
     return { ...headers, ...this.config.headers };
@@ -437,9 +447,9 @@ export class ReplicateBackendAdapter implements BackendAdapter<ReplicateRequest,
    * Estimate cost.
    * Replicate pricing varies significantly per model.
    */
-  async estimateCost(_request: IRChatRequest): Promise<number | null> {
+  estimateCost(_request: IRChatRequest): Promise<number | null> {
     // Replicate pricing is complex and per-second, not per-token
     // Returning null as cost estimation is not reliable
-    return null;
+    return Promise.resolve(null);
   }
 }

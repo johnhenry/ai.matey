@@ -49,22 +49,17 @@ export function KoaMiddleware(
 
   const coreHandler = new CoreHTTPHandler({
     bridge,
-    cors: (cors === false || cors === undefined) ? undefined : (cors === true ? {} : cors),
-    ...restOptions as any, // HTTPListenerOptions types are compatible with CoreHandlerOptions at runtime
+    cors: cors === false || cors === undefined ? undefined : cors === true ? {} : cors,
+    ...(restOptions as any), // HTTPListenerOptions types are compatible with CoreHandlerOptions at runtime
   });
 
   // Return Koa middleware
   return async (ctx: Context, _next: Next): Promise<void> => {
-    try {
-      // Create adapters
-      const genericReq = new KoaRequestAdapter(ctx);
-      const genericRes = new KoaResponseAdapter(ctx);
+    // Create adapters
+    const genericReq = new KoaRequestAdapter(ctx);
+    const genericRes = new KoaResponseAdapter(ctx);
 
-      // Handle request through core handler
-      await coreHandler.handle(genericReq, genericRes);
-    } catch (error) {
-      // Pass error to Koa error handling
-      throw error;
-    }
+    // Handle request through core handler
+    await coreHandler.handle(genericReq, genericRes);
   };
 }
