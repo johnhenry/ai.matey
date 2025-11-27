@@ -8,7 +8,7 @@
  */
 
 import { OpenAIBackendAdapter } from 'ai.matey.backend.openai';
-import type { BackendAdapterConfig, IRChatRequest } from 'ai.matey.types';
+import type { BackendAdapterConfig } from 'ai.matey.types';
 
 /**
  * Backend adapter for DeepSeek API.
