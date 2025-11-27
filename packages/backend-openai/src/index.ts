@@ -297,7 +297,7 @@ export class OpenAIBackendAdapter implements BackendAdapter<OpenAIRequest, OpenA
       let sequence = 0;
       let contentBuffer = '';
 
-      let finishReasonReceived: FinishReason | null = null;
+      let finishReasonReceived: FinishReason | null | undefined;
       let usage:
         | { promptTokens: number; completionTokens: number; totalTokens: number }
         | undefined;

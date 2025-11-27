@@ -701,7 +701,7 @@ export async function* streamWithBackpressure(
   // Yield chunks with backpressure
   while (!sourceComplete || buffer.length > 0 || sourceError) {
     if (sourceError) {
-      throw new Error(sourceError.message);
+      throw sourceError;
     }
 
     if (buffer.length > 0) {
