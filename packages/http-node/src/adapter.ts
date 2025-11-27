@@ -20,6 +20,7 @@ import {
  * Adapter that converts Node.js IncomingMessage to GenericRequest
  */
 export class NodeRequestAdapter implements GenericRequest {
+  // eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents
   private _parsed: Awaited<ReturnType<typeof parseRequest>> | null = null;
   private _parsePromise: Promise<void> | null = null;
 
