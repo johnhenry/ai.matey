@@ -37,11 +37,7 @@ export type {
 } from './types.js';
 
 // Request parsing
-export {
-  parseRequest,
-  extractBearerToken,
-  getClientIP,
-} from './request-parser.js';
+export { parseRequest, extractBearerToken, getClientIP } from './request-parser.js';
 
 // Response formatting
 export {
@@ -58,12 +54,7 @@ export {
 } from './response-formatter.js';
 
 // CORS
-export {
-  normalizeCORSOptions,
-  handleCORS,
-  handlePreflight,
-  isPreflight,
-} from './cors.js';
+export { normalizeCORSOptions, handleCORS, handlePreflight, isPreflight } from './cors.js';
 
 // Authentication
 export {

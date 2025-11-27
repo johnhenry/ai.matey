@@ -112,12 +112,14 @@ export function createAPIKeyValidator(
  * Create basic auth validator
  */
 export function createBasicAuthValidator(
-  credentials: Map<string, string> | ((username: string, password: string) => boolean | Promise<boolean>)
+  credentials:
+    | Map<string, string>
+    | ((username: string, password: string) => boolean | Promise<boolean>)
 ): AuthValidator {
   return async (req: IncomingMessage): Promise<boolean> => {
     const auth = req.headers.authorization;
 
-    if (!auth || !auth.startsWith('Basic ')) {
+    if (!auth?.startsWith('Basic ')) {
       return false;
     }
 

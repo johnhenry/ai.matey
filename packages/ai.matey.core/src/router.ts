@@ -8,16 +8,8 @@
  * @module
  */
 
-import type {
-  BackendAdapter,
-  AdapterMetadata,
-} from 'ai.matey.types';
-import type {
-  IRChatRequest,
-  IRChatResponse,
-  IRChatStream,
-  IRStreamChunk,
-} from 'ai.matey.types';
+import type { BackendAdapter, AdapterMetadata } from 'ai.matey.types';
+import type { IRChatRequest, IRChatResponse, IRChatStream, IRStreamChunk } from 'ai.matey.types';
 import type {
   Router as IRouter,
   RouterConfig,
@@ -30,10 +22,7 @@ import type {
   ParallelDispatchOptions,
   ParallelDispatchResult,
 } from 'ai.matey.types';
-import {
-  AdapterError,
-  ErrorCode,
-} from 'ai.matey.errors';
+import { AdapterError, ErrorCode } from 'ai.matey.errors';
 import type { TranslationResult } from './model-translation.js';
 import type { AIModel } from 'ai.matey.types';
 import type { CapabilityRequirements, BackendModel } from './capability-matcher.js';
@@ -253,7 +242,9 @@ export class Router implements IRouter {
   getBackendInfo(name?: string): BackendInfo | BackendInfo[] | undefined {
     if (name !== undefined) {
       const state = this.backends.get(name);
-      if (!state) return undefined;
+      if (!state) {
+        return undefined;
+      }
       return this.createBackendInfo(name, state);
     }
 
@@ -587,7 +578,7 @@ export class Router implements IRouter {
       if (translationResult.wasTranslated) {
         console.log(
           `[Router] Model translated: ${originalModel} → ${translationResult.translated} ` +
-          `(source: ${translationResult.source}, backend: ${primaryBackend})`
+            `(source: ${translationResult.source}, backend: ${primaryBackend})`
         );
       }
 
@@ -650,7 +641,7 @@ export class Router implements IRouter {
       if (translationResult.wasTranslated) {
         console.log(
           `[Router] Model translated: ${originalModel} → ${translationResult.translated} ` +
-          `(source: ${translationResult.source}, backend: ${primaryBackend})`
+            `(source: ${translationResult.source}, backend: ${primaryBackend})`
         );
       }
 
@@ -696,9 +687,10 @@ export class Router implements IRouter {
     } = options;
 
     // Determine which backends to use
-    const backendsToUse = targetBackends && targetBackends.length > 0
-      ? targetBackends.filter(name => this.isBackendAvailable(name))
-      : this.getAvailableBackends();
+    const backendsToUse =
+      targetBackends && targetBackends.length > 0
+        ? targetBackends.filter((name) => this.isBackendAvailable(name))
+        : this.getAvailableBackends();
 
     if (backendsToUse.length === 0) {
       throw new AdapterError({
@@ -741,7 +733,7 @@ export class Router implements IRouter {
         }
       });
 
-      let results: Awaited<typeof promises[0]>[];
+      let results: Awaited<(typeof promises)[0]>[];
 
       if (strategy === 'first') {
         // Return first successful response
@@ -756,10 +748,10 @@ export class Router implements IRouter {
       }
 
       // Process results
-      const successful = results.filter(r => r.success);
+      const successful = results.filter((r) => r.success);
       const failed = results
-        .filter(r => !r.success)
-        .map(r => ({
+        .filter((r) => !r.success)
+        .map((r) => ({
           backend: r.backend,
           error: r.error as AdapterError,
         }));
@@ -767,14 +759,14 @@ export class Router implements IRouter {
       if (successful.length === 0) {
         throw new AdapterError({
           code: ErrorCode.ALL_BACKENDS_FAILED,
-          message: `All parallel backends failed: ${failed.map(f => f.backend).join(', ')}`,
+          message: `All parallel backends failed: ${failed.map((f) => f.backend).join(', ')}`,
           isRetryable: true,
           provenance: { router: this.metadata.name },
         });
       }
 
       const firstSuccess = successful[0];
-      if (!firstSuccess || !firstSuccess.response) {
+      if (!firstSuccess?.response) {
         throw new AdapterError({
           code: ErrorCode.INTERNAL_ERROR,
           message: 'No successful response in parallel dispatch',
@@ -785,14 +777,15 @@ export class Router implements IRouter {
 
       return {
         response: firstSuccess.response,
-        allResponses: strategy === 'all'
-          ? successful.map(s => ({
-              backend: s.backend,
-              response: s.response!,
-              latencyMs: s.latencyMs!,
-            }))
-          : undefined,
-        successfulBackends: successful.map(s => s.backend),
+        allResponses:
+          strategy === 'all'
+            ? successful.map((s) => ({
+                backend: s.backend,
+                response: s.response!,
+                latencyMs: s.latencyMs!,
+              }))
+            : undefined,
+        successfulBackends: successful.map((s) => s.backend),
         failedBackends: failed,
         totalTimeMs: Date.now() - startTime,
       };
@@ -815,12 +808,12 @@ export class Router implements IRouter {
   async checkHealth(name?: string): Promise<boolean | Record<string, boolean>> {
     if (name !== undefined) {
       const state = this.backends.get(name);
-      if (!state) return false;
+      if (!state) {
+        return false;
+      }
 
       try {
-        const healthy = state.adapter.healthCheck
-          ? await state.adapter.healthCheck()
-          : true;
+        const healthy = state.adapter.healthCheck ? await state.adapter.healthCheck() : true;
         state.isHealthy = healthy;
         state.lastHealthCheck = Date.now();
         return healthy;
@@ -835,9 +828,7 @@ export class Router implements IRouter {
     const results: Record<string, boolean> = {};
     const promises = Array.from(this.backends.entries()).map(async ([backendName, state]) => {
       try {
-        const healthy = state.adapter.healthCheck
-          ? await state.adapter.healthCheck()
-          : true;
+        const healthy = state.adapter.healthCheck ? await state.adapter.healthCheck() : true;
         state.isHealthy = healthy;
         state.lastHealthCheck = Date.now();
         results[backendName] = healthy;
@@ -984,7 +975,9 @@ export class Router implements IRouter {
    */
   getBackendStats(name: string): BackendStats | undefined {
     const state = this.backends.get(name);
-    if (!state) return undefined;
+    if (!state) {
+      return undefined;
+    }
     return this.calculateBackendStats(state);
   }
 
@@ -1143,7 +1136,7 @@ export class Router implements IRouter {
       return this.fallbackParallel(request, attemptedBackends, signal);
     } else if (strategy === 'custom' && this.config.customFallback) {
       const available = this.getAvailableBackends().filter(
-        name => !attemptedBackends.includes(name)
+        (name) => !attemptedBackends.includes(name)
       );
       const nextBackend = await this.config.customFallback(
         request,
@@ -1167,10 +1160,7 @@ export class Router implements IRouter {
    *
    * Applies translation strategy: backend-specific exact → global exact → pattern → default → passthrough
    */
-  private translateModelForBackend(
-    modelName: string,
-    backendName: string
-  ): TranslationResult {
+  private translateModelForBackend(modelName: string, backendName: string): TranslationResult {
     const strategy = this.config.modelTranslation?.strategy ?? 'hybrid';
     const strictMode = this.config.modelTranslation?.strictMode ?? false;
 
@@ -1272,13 +1262,14 @@ export class Router implements IRouter {
     signal?: AbortSignal
   ): Promise<IRChatResponse> {
     const available = this.getAvailableBackends().filter(
-      name => !attemptedBackends.includes(name)
+      (name) => !attemptedBackends.includes(name)
     );
 
     // Use fallback chain if configured
-    const candidates = this.fallbackChain.length > 0
-      ? this.fallbackChain.filter(name => available.includes(name))
-      : available;
+    const candidates =
+      this.fallbackChain.length > 0
+        ? this.fallbackChain.filter((name) => available.includes(name))
+        : available;
 
     let lastError: Error | undefined;
 
@@ -1303,7 +1294,7 @@ export class Router implements IRouter {
         if (translationResult.wasTranslated) {
           console.log(
             `[Router] Model translated: ${originalModel} → ${translationResult.translated} ` +
-            `(source: ${translationResult.source}, backend: ${backendName})`
+              `(source: ${translationResult.source}, backend: ${backendName})`
           );
         }
 
@@ -1314,12 +1305,15 @@ export class Router implements IRouter {
       }
     }
 
-    throw lastError || new AdapterError({
-      code: ErrorCode.ALL_BACKENDS_FAILED,
-      message: 'All fallback backends failed',
-      isRetryable: false,
-      provenance: { router: this.metadata.name },
-    });
+    throw (
+      lastError ||
+      new AdapterError({
+        code: ErrorCode.ALL_BACKENDS_FAILED,
+        message: 'All fallback backends failed',
+        isRetryable: false,
+        provenance: { router: this.metadata.name },
+      })
+    );
   }
 
   /**
@@ -1331,7 +1325,7 @@ export class Router implements IRouter {
     signal?: AbortSignal
   ): Promise<IRChatResponse> {
     const available = this.getAvailableBackends().filter(
-      name => !attemptedBackends.includes(name)
+      (name) => !attemptedBackends.includes(name)
     );
 
     if (available.length === 0) {
@@ -1345,7 +1339,7 @@ export class Router implements IRouter {
 
     // Create promises with model translation for each backend
     const originalModel = request.parameters?.model ?? '';
-    const promises = available.map(backendName => {
+    const promises = available.map((backendName) => {
       // Translate model for this backend
       const translationResult = this.translateModelForBackend(originalModel, backendName);
 
@@ -1362,7 +1356,7 @@ export class Router implements IRouter {
       if (translationResult.wasTranslated) {
         console.log(
           `[Router] Model translated: ${originalModel} → ${translationResult.translated} ` +
-          `(source: ${translationResult.source}, backend: ${backendName})`
+            `(source: ${translationResult.source}, backend: ${backendName})`
         );
       }
 
@@ -1416,7 +1410,9 @@ export class Router implements IRouter {
    */
   private isBackendAvailable(name: string): boolean {
     const state = this.backends.get(name);
-    if (!state) return false;
+    if (!state) {
+      return false;
+    }
     return state.isHealthy && state.circuitBreakerState !== 'open';
   }
 
@@ -1435,7 +1431,9 @@ export class Router implements IRouter {
    */
   private routeByModel(request: IRChatRequest): string | null {
     const model = request.parameters?.model;
-    if (!model) return null;
+    if (!model) {
+      return null;
+    }
 
     // Check exact mapping
     const exactMatch = this.modelMapping.get(model);
@@ -1457,13 +1455,17 @@ export class Router implements IRouter {
    * Routing: cost-optimized selection.
    */
   private routeByCost(_request: IRChatRequest): string | null {
-    if (!this.config.trackCost) return null;
+    if (!this.config.trackCost) {
+      return null;
+    }
 
     let bestBackend: string | null = null;
     let lowestAvgCost = Infinity;
 
     for (const [name, state] of this.backends.entries()) {
-      if (!this.isBackendAvailable(name)) continue;
+      if (!this.isBackendAvailable(name)) {
+        continue;
+      }
 
       const stats = this.calculateBackendStats(state);
       const avgCost = stats.averageCost || 0;
@@ -1481,13 +1483,17 @@ export class Router implements IRouter {
    * Routing: latency-optimized selection.
    */
   private routeByLatency(): string | null {
-    if (!this.config.trackLatency) return null;
+    if (!this.config.trackLatency) {
+      return null;
+    }
 
     let bestBackend: string | null = null;
     let lowestLatency = Infinity;
 
     for (const [name, state] of this.backends.entries()) {
-      if (!this.isBackendAvailable(name)) continue;
+      if (!this.isBackendAvailable(name)) {
+        continue;
+      }
 
       const stats = this.calculateBackendStats(state);
       const avgLatency = stats.averageLatencyMs;
@@ -1506,7 +1512,9 @@ export class Router implements IRouter {
    */
   private routeRoundRobin(): string | null {
     const available = this.getAvailableBackends();
-    if (available.length === 0) return null;
+    if (available.length === 0) {
+      return null;
+    }
 
     const backend = available[this.roundRobinIndex % available.length];
     this.roundRobinIndex++;
@@ -1519,7 +1527,9 @@ export class Router implements IRouter {
    */
   private routeRandom(): string | null {
     const available = this.getAvailableBackends();
-    if (available.length === 0) return null;
+    if (available.length === 0) {
+      return null;
+    }
 
     const index = Math.floor(Math.random() * available.length);
     return available[index] || null;
@@ -1531,7 +1541,9 @@ export class Router implements IRouter {
    */
   private async selectBackendByCapabilities(request: IRChatRequest): Promise<string | null> {
     // Extract capability requirements from request metadata
-    const capabilityRequirements = request.metadata?.custom?.capabilityRequirements as CapabilityRequirements | undefined;
+    const capabilityRequirements = request.metadata?.custom?.capabilityRequirements as
+      | CapabilityRequirements
+      | undefined;
 
     // Build requirements from config if not provided
     const requirements: CapabilityRequirements = {
@@ -1546,7 +1558,9 @@ export class Router implements IRouter {
 
     for (const backendName of this.getAvailableBackends()) {
       const backend = this.backends.get(backendName)?.adapter;
-      if (!backend) continue;
+      if (!backend) {
+        continue;
+      }
 
       // Try to get models from backend's listModels()
       if (typeof backend.listModels === 'function') {
@@ -1588,7 +1602,7 @@ export class Router implements IRouter {
     // Find best match
     const bestMatch = findBestModel(requirements, availableModels);
 
-    if (!bestMatch || !bestMatch.meetsRequirements) {
+    if (!bestMatch?.meetsRequirements) {
       return null;
     }
 
@@ -1599,22 +1613,20 @@ export class Router implements IRouter {
    * Calculate backend statistics.
    */
   private calculateBackendStats(state: BackendState): BackendStats {
-    const successRate = state.totalRequests > 0
-      ? (state.successfulRequests / state.totalRequests) * 100
-      : 0;
+    const successRate =
+      state.totalRequests > 0 ? (state.successfulRequests / state.totalRequests) * 100 : 0;
 
     const sortedLatencies = [...state.latencies].sort((a, b) => a - b);
-    const avgLatency = sortedLatencies.length > 0
-      ? sortedLatencies.reduce((a, b) => a + b, 0) / sortedLatencies.length
-      : 0;
+    const avgLatency =
+      sortedLatencies.length > 0
+        ? sortedLatencies.reduce((a, b) => a + b, 0) / sortedLatencies.length
+        : 0;
 
     const p50 = sortedLatencies[Math.floor(sortedLatencies.length * 0.5)] || 0;
     const p95 = sortedLatencies[Math.floor(sortedLatencies.length * 0.95)] || 0;
     const p99 = sortedLatencies[Math.floor(sortedLatencies.length * 0.99)] || 0;
 
-    const avgCost = state.totalRequests > 0
-      ? state.totalCost / state.totalRequests
-      : 0;
+    const avgCost = state.totalRequests > 0 ? state.totalCost / state.totalRequests : 0;
 
     return {
       totalRequests: state.totalRequests,
@@ -1650,10 +1662,14 @@ export class Router implements IRouter {
    * Start periodic health checking.
    */
   private startHealthChecking(): void {
-    if (this.healthCheckInterval) return;
+    if (this.healthCheckInterval) {
+      return;
+    }
 
     const interval = this.config.healthCheckInterval || 0;
-    if (interval <= 0) return;
+    if (interval <= 0) {
+      return;
+    }
 
     this.healthCheckInterval = setInterval(() => {
       this.checkHealth().catch(() => {

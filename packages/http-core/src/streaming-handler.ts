@@ -8,7 +8,13 @@
 
 import type { ServerResponse } from 'http';
 import type { Bridge } from 'ai.matey.core';
-import { sendSSEHeaders, sendSSEChunk, sendSSEDone, sendSSEError, sendSSEEvent } from './response-formatter.js';
+import {
+  sendSSEHeaders,
+  sendSSEChunk,
+  sendSSEDone,
+  sendSSEError,
+  sendSSEEvent,
+} from './response-formatter.js';
 
 /**
  * Handle streaming request
@@ -53,11 +59,7 @@ export async function handleStreamingRequest(
     }
   } catch (error) {
     // Send error in stream
-    sendSSEError(
-      res,
-      error instanceof Error ? error : new Error(String(error)),
-      format
-    );
+    sendSSEError(res, error instanceof Error ? error : new Error(String(error)), format);
   }
 }
 
@@ -106,10 +108,7 @@ export class SSEKeepAlive {
 /**
  * Handle client disconnect
  */
-export function onClientDisconnect(
-  res: ServerResponse,
-  callback: () => void
-): void {
+export function onClientDisconnect(res: ServerResponse, callback: () => void): void {
   res.on('close', callback);
   res.on('finish', callback);
   res.on('error', callback);

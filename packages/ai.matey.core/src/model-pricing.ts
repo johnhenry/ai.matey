@@ -13,7 +13,7 @@ import type { ModelCapabilities } from 'ai.matey.types';
  * Pricing data for a specific model.
  */
 export interface ModelPricing {
-  readonly input: number;  // Cost per 1k input tokens (USD)
+  readonly input: number; // Cost per 1k input tokens (USD)
   readonly output: number; // Cost per 1k output tokens (USD)
 }
 

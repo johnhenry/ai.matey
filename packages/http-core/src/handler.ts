@@ -24,7 +24,9 @@ import { detectProviderFormat } from './response-formatter.js';
  */
 export class CoreHTTPHandler {
   private readonly bridge: Bridge;
-  private readonly options: Required<Omit<CoreHandlerOptions, 'validateAuth' | 'onError' | 'rateLimit' | 'routes' | 'cors'>> & {
+  private readonly options: Required<
+    Omit<CoreHandlerOptions, 'validateAuth' | 'onError' | 'rateLimit' | 'routes' | 'cors'>
+  > & {
     validateAuth?: CoreHandlerOptions['validateAuth'];
     onError?: CoreHandlerOptions['onError'];
     rateLimit?: CoreHandlerOptions['rateLimit'];
@@ -64,7 +66,9 @@ export class CoreHTTPHandler {
 
     // Create rate limiter if configured
     // TODO: Refactor RateLimiter to use generic types
-    this.rateLimiter = this.options.rateLimit ? new RateLimiter(this.options.rateLimit as any) : null;
+    this.rateLimiter = this.options.rateLimit
+      ? new RateLimiter(this.options.rateLimit as any)
+      : null;
 
     // Create route matcher if routes configured
     this.routeMatcher = this.options.routes ? new RouteMatcher(this.options.routes) : null;
@@ -97,7 +101,10 @@ export class CoreHTTPHandler {
         }
 
         // Set CORS headers
-        if (typeof this.options.corsOptions.origin === 'string' && this.options.corsOptions.origin === '*') {
+        if (
+          typeof this.options.corsOptions.origin === 'string' &&
+          this.options.corsOptions.origin === '*'
+        ) {
           res.header('Access-Control-Allow-Origin', '*');
         } else if (origin) {
           res.header('Access-Control-Allow-Origin', origin);
@@ -108,7 +115,10 @@ export class CoreHTTPHandler {
           res.header('Access-Control-Allow-Credentials', 'true');
         }
 
-        if (this.options.corsOptions.exposedHeaders && this.options.corsOptions.exposedHeaders.length > 0) {
+        if (
+          this.options.corsOptions.exposedHeaders &&
+          this.options.corsOptions.exposedHeaders.length > 0
+        ) {
           res.header(
             'Access-Control-Expose-Headers',
             Array.isArray(this.options.corsOptions.exposedHeaders)
@@ -121,7 +131,8 @@ export class CoreHTTPHandler {
         const isPreflightRequest =
           req.method === 'OPTIONS' &&
           origin &&
-          (req.headers['access-control-request-method'] || req.headers['Access-Control-Request-Method']);
+          (req.headers['access-control-request-method'] ||
+            req.headers['Access-Control-Request-Method']);
 
         if (isPreflightRequest) {
           // Set preflight headers
@@ -133,7 +144,8 @@ export class CoreHTTPHandler {
           );
 
           const requestHeaders =
-            req.headers['access-control-request-headers'] || req.headers['Access-Control-Request-Headers'];
+            req.headers['access-control-request-headers'] ||
+            req.headers['Access-Control-Request-Headers'];
           if (requestHeaders) {
             res.header('Access-Control-Allow-Headers', requestHeaders);
           } else if (this.options.corsOptions.allowedHeaders) {
@@ -289,7 +301,11 @@ export class CoreHTTPHandler {
   /**
    * Handle errors
    */
-  private async handleError(error: Error, req: GenericRequest, res: GenericResponse): Promise<void> {
+  private async handleError(
+    error: Error,
+    req: GenericRequest,
+    res: GenericResponse
+  ): Promise<void> {
     // Log error if enabled
     if (this.options.logging && this.options.log) {
       this.options.log(`Error: ${req.method} ${req.url}`, error);

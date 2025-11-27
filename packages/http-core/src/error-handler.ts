@@ -22,7 +22,7 @@ import {
 /**
  * Default error handler
  */
-export const defaultErrorHandler: ErrorHandler = async (
+export const defaultErrorHandler: ErrorHandler = (
   error: Error,
   req: IncomingMessage,
   res: ServerResponse
@@ -40,6 +40,7 @@ export const defaultErrorHandler: ErrorHandler = async (
 
   // Send error response
   sendError(res, error, statusCode, format);
+  return Promise.resolve();
 };
 
 /**
@@ -126,7 +127,7 @@ export function createReportingErrorHandler(
 ): ErrorHandler {
   return async (error: Error, req: IncomingMessage, res: ServerResponse): Promise<void> => {
     // Report error asynchronously (don't wait)
-    reporter(error, req).catch(reportError => {
+    reporter(error, req).catch((reportError) => {
       console.error('Error reporting failed:', reportError);
     });
 
@@ -140,7 +141,12 @@ export function createReportingErrorHandler(
  */
 export function wrapErrorHandler(
   baseHandler: ErrorHandler,
-  wrapper: (error: Error, req: IncomingMessage, res: ServerResponse, next: () => Promise<void>) => Promise<void>
+  wrapper: (
+    error: Error,
+    req: IncomingMessage,
+    res: ServerResponse,
+    next: () => Promise<void>
+  ) => Promise<void>
 ): ErrorHandler {
   return async (error: Error, req: IncomingMessage, res: ServerResponse): Promise<void> => {
     await wrapper(error, req, res, async () => {
@@ -157,10 +163,7 @@ export function isRetryableError(error: Error): boolean {
     return error.isRetryable;
   }
 
-  if (
-    error instanceof NetworkError ||
-    error instanceof ProviderError
-  ) {
+  if (error instanceof NetworkError || error instanceof ProviderError) {
     return true;
   }
 

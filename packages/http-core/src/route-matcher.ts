@@ -58,7 +58,7 @@ export class RouteMatcher {
    * Remove a route
    */
   removeRoute(path: string): boolean {
-    const index = this.routes.findIndex(r => r.path === path);
+    const index = this.routes.findIndex((r) => r.path === path);
     if (index >= 0) {
       this.routes.splice(index, 1);
       return true;
@@ -157,9 +157,7 @@ function matchParameterizedPath(path: string, pattern: string): PathMatch | null
 /**
  * Create default routes for common provider endpoints
  */
-export function createDefaultRoutes(
-  frontendAdapters: Map<string, any>
-): RouteConfig[] {
+export function createDefaultRoutes(frontendAdapters: Map<string, any>): RouteConfig[] {
   const routes: RouteConfig[] = [];
 
   // OpenAI endpoint
@@ -206,7 +204,7 @@ export function normalizePath(path: string): string {
 export function applyPathPrefix(routes: RouteConfig[], prefix: string): RouteConfig[] {
   const normalizedPrefix = normalizePath(prefix);
 
-  return routes.map(route => ({
+  return routes.map((route) => ({
     ...route,
     path: normalizedPrefix + normalizePath(route.path),
   }));

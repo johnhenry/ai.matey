@@ -186,9 +186,11 @@ export function tokenKeyGenerator(req: IncomingMessage): string {
 /**
  * Create key generator that combines multiple factors
  */
-export function combineKeyGenerators(...generators: ((req: IncomingMessage) => string)[]): (req: IncomingMessage) => string {
+export function combineKeyGenerators(
+  ...generators: ((req: IncomingMessage) => string)[]
+): (req: IncomingMessage) => string {
   return (req: IncomingMessage): string => {
-    const parts = generators.map(gen => gen(req));
+    const parts = generators.map((gen) => gen(req));
     return parts.join(':');
   };
 }

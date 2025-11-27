@@ -20,10 +20,10 @@ export type ModelMapping = Record<string, string>;
  * Translation strategy for Router fallback.
  */
 export type ModelTranslationStrategy =
-  | 'exact'    // Only exact matches in modelMapping
-  | 'pattern'  // Exact + regex pattern matching
-  | 'hybrid'   // Exact + pattern + backend default
-  | 'none';    // No translation (passthrough)
+  | 'exact' // Only exact matches in modelMapping
+  | 'pattern' // Exact + regex pattern matching
+  | 'hybrid' // Exact + pattern + backend default
+  | 'none'; // No translation (passthrough)
 
 /**
  * Configuration for model translation behavior.
@@ -121,7 +121,7 @@ export function translateModel(
   const { mapping, defaultModel, strategy = 'exact', strictMode = false } = options;
 
   // 1. Try exact match (all strategies except 'none')
-  if (strategy !== 'none' && mapping && mapping[modelName]) {
+  if (strategy !== 'none' && mapping?.[modelName]) {
     return {
       translated: mapping[modelName],
       source: 'exact',

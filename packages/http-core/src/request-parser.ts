@@ -49,7 +49,9 @@ export async function parseRequest(
         try {
           body = JSON.parse(rawBody);
         } catch (error) {
-          throw new Error(`Invalid JSON body: ${error instanceof Error ? error.message : String(error)}`);
+          throw new Error(
+            `Invalid JSON body: ${error instanceof Error ? error.message : String(error)}`
+          );
         }
       } else if (contentType.includes('application/x-www-form-urlencoded')) {
         body = parseFormData(rawBody);

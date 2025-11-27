@@ -115,10 +115,7 @@ export class HealthCheck {
   private startTime: number;
   private router?: Router;
 
-  constructor(
-    bridgeOrRouter: Bridge | Router,
-    config: HealthCheckConfig = {}
-  ) {
+  constructor(bridgeOrRouter: Bridge | Router, config: HealthCheckConfig = {}) {
     this.config = {
       serviceName: 'ai.matey',
       version: '1.0.0',
@@ -329,10 +326,7 @@ export function createReadinessCheck(
  *
  * Returns 200 if service is alive (even if degraded).
  */
-export function createLivenessCheck(): (
-  req: GenericRequest,
-  res: GenericResponse
-) => void {
+export function createLivenessCheck(): (req: GenericRequest, res: GenericResponse) => void {
   const startTime = Date.now();
 
   return (_req: GenericRequest, res: GenericResponse): void => {

@@ -144,10 +144,7 @@ function getAnthropicErrorType(statusCode: number): string {
 /**
  * Send Server-Sent Events (SSE) headers
  */
-export function sendSSEHeaders(
-  res: ServerResponse,
-  headers: Record<string, string> = {}
-): void {
+export function sendSSEHeaders(res: ServerResponse, headers: Record<string, string> = {}): void {
   res.statusCode = 200;
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
@@ -173,11 +170,7 @@ export function sendSSEChunk(res: ServerResponse, data: any): void {
 /**
  * Send SSE event with custom event type
  */
-export function sendSSEEvent(
-  res: ServerResponse,
-  event: string,
-  data: any
-): void {
+export function sendSSEEvent(res: ServerResponse, event: string, data: any): void {
   const json = JSON.stringify(data);
   res.write(`event: ${event}\ndata: ${json}\n\n`);
 }

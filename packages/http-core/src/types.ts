@@ -324,18 +324,13 @@ export interface CoreHandlerOptions {
 /**
  * HTTP request handler compatible with Node.js http.createServer
  */
-export type HTTPRequestHandler = (
-  req: IncomingMessage,
-  res: ServerResponse
-) => Promise<void>;
+export type HTTPRequestHandler = (req: IncomingMessage, res: ServerResponse) => Promise<void>;
 
 /**
  * Auth validator function (Node.js-specific)
  * @deprecated Use GenericAuthValidator for framework-agnostic code
  */
-export type AuthValidator = (
-  req: IncomingMessage
-) => boolean | Promise<boolean>;
+export type AuthValidator = (req: IncomingMessage) => boolean | Promise<boolean>;
 
 /**
  * Error handler function (Node.js-specific)

@@ -24,8 +24,8 @@ export interface CapabilityRequirements {
    * Models not meeting these will be excluded.
    */
   required?: {
-    contextWindow?: number;      // Minimum context window
-    maxTokens?: number;          // Minimum max tokens
+    contextWindow?: number; // Minimum context window
+    maxTokens?: number; // Minimum max tokens
     supportsStreaming?: boolean;
     supportsVision?: boolean;
     supportsTools?: boolean;
@@ -37,10 +37,10 @@ export interface CapabilityRequirements {
    * Models closer to these values score higher.
    */
   preferred?: {
-    maxCostPer1kTokens?: number;  // Maximum acceptable cost
-    maxLatencyMs?: number;         // Maximum acceptable latency (p95)
-    minQualityScore?: number;      // Minimum quality score
-    minContextWindow?: number;     // Preferred minimum context
+    maxCostPer1kTokens?: number; // Maximum acceptable cost
+    maxLatencyMs?: number; // Maximum acceptable latency (p95)
+    minQualityScore?: number; // Minimum quality score
+    minContextWindow?: number; // Preferred minimum context
   };
 
   /**
@@ -54,9 +54,9 @@ export interface CapabilityRequirements {
    * Must sum to 1.0.
    */
   weights?: {
-    cost: number;     // 0-1
-    speed: number;    // 0-1
-    quality: number;  // 0-1
+    cost: number; // 0-1
+    speed: number; // 0-1
+    quality: number; // 0-1
   };
 }
 
@@ -75,9 +75,9 @@ export interface ScoredModel {
 
   /** Score breakdown */
   breakdown: {
-    costScore: number;     // 0-100
-    speedScore: number;    // 0-100
-    qualityScore: number;  // 0-100
+    costScore: number; // 0-100
+    speedScore: number; // 0-100
+    qualityScore: number; // 0-100
   };
 
   /** Reason for this match/score */
@@ -98,7 +98,10 @@ export interface BackendModel {
 /**
  * Default scoring weights by optimization strategy.
  */
-const OPTIMIZATION_WEIGHTS: Record<OptimizationStrategy, { cost: number; speed: number; quality: number }> = {
+const OPTIMIZATION_WEIGHTS: Record<
+  OptimizationStrategy,
+  { cost: number; speed: number; quality: number }
+> = {
   cost: { cost: 0.6, speed: 0.2, quality: 0.2 },
   speed: { cost: 0.2, speed: 0.6, quality: 0.2 },
   quality: { cost: 0.2, speed: 0.2, quality: 0.6 },
@@ -155,8 +158,8 @@ function scoreModel(
   requirements: CapabilityRequirements
 ): ScoredModel {
   // Get scoring weights
-  const weights = requirements.weights ||
-    OPTIMIZATION_WEIGHTS[requirements.optimization || 'balanced'];
+  const weights =
+    requirements.weights || OPTIMIZATION_WEIGHTS[requirements.optimization || 'balanced'];
 
   // Calculate individual scores
   const costScore = scoreCost(capabilities, requirements.preferred);
@@ -165,9 +168,7 @@ function scoreModel(
 
   // Calculate weighted total
   const totalScore = Math.round(
-    costScore * weights.cost +
-    speedScore * weights.speed +
-    qualityScore * weights.quality
+    costScore * weights.cost + speedScore * weights.speed + qualityScore * weights.quality
   );
 
   // Determine match reason
@@ -216,7 +217,7 @@ function scoreCost(
 
   // Otherwise, score based on absolute cost (cheaper = better)
   // Assume $0.10/1k tokens is expensive (score=0), free is perfect (score=100)
-  const maxExpensiveCost = 0.10;
+  const maxExpensiveCost = 0.1;
   const score = Math.max(0, 100 * (1 - avgCost / maxExpensiveCost));
   return Math.round(score);
 }
@@ -286,27 +287,43 @@ function determineMatchReason(
 
   // Determine which metric is prioritized
   if (optimization === 'cost') {
-    if (costScore >= 80) return 'Best cost efficiency';
-    if (costScore >= 60) return 'Good cost/quality balance';
+    if (costScore >= 80) {
+      return 'Best cost efficiency';
+    }
+    if (costScore >= 60) {
+      return 'Good cost/quality balance';
+    }
     return 'Meets cost requirements';
   }
 
   if (optimization === 'speed') {
-    if (speedScore >= 80) return 'Fastest response time';
-    if (speedScore >= 60) return 'Good speed/quality balance';
+    if (speedScore >= 80) {
+      return 'Fastest response time';
+    }
+    if (speedScore >= 60) {
+      return 'Good speed/quality balance';
+    }
     return 'Meets speed requirements';
   }
 
   if (optimization === 'quality') {
-    if (qualityScore >= 90) return 'Highest quality';
-    if (qualityScore >= 80) return 'Excellent quality';
+    if (qualityScore >= 90) {
+      return 'Highest quality';
+    }
+    if (qualityScore >= 80) {
+      return 'Excellent quality';
+    }
     return 'Good quality';
   }
 
   // Balanced strategy
   const avgScore = (costScore + speedScore + qualityScore) / 3;
-  if (avgScore >= 80) return 'Best overall balance';
-  if (avgScore >= 60) return 'Good balance of cost/speed/quality';
+  if (avgScore >= 80) {
+    return 'Best overall balance';
+  }
+  if (avgScore >= 60) {
+    return 'Good balance of cost/speed/quality';
+  }
   return 'Meets requirements';
 }
 
@@ -317,7 +334,9 @@ export function filterByRequirements(
   availableModels: BackendModel[],
   requirements: CapabilityRequirements['required']
 ): BackendModel[] {
-  if (!requirements) return availableModels;
+  if (!requirements) {
+    return availableModels;
+  }
 
   return availableModels.filter(({ model }) => {
     const capabilities = model.capabilities || inferCapabilities(model.id, model.metadata);

@@ -27,11 +27,12 @@ import type {
 } from 'ai.matey.types';
 import { BridgeEventType } from 'ai.matey.types';
 import type { Middleware } from 'ai.matey.types';
-import type {
-  ListModelsOptions,
-  ListModelsResult,
-} from 'ai.matey.types';
-import { MiddlewareStack, createMiddlewareContext, createStreamingMiddlewareContext } from './middleware-stack.js';
+import type { ListModelsOptions, ListModelsResult } from 'ai.matey.types';
+import {
+  MiddlewareStack,
+  createMiddlewareContext,
+  createStreamingMiddlewareContext,
+} from './middleware-stack.js';
 import { AdapterError, ErrorCode, ValidationError } from 'ai.matey.errors';
 import { validateIRChatRequest } from 'ai.matey.utils';
 
@@ -72,11 +73,7 @@ export class Bridge<TFrontend extends FrontendAdapter = FrontendAdapter>
    * @param backend Backend adapter
    * @param config Bridge configuration
    */
-  constructor(
-    frontend: TFrontend,
-    backend: BackendAdapter,
-    config: Partial<BridgeConfig> = {}
-  ) {
+  constructor(frontend: TFrontend, backend: BackendAdapter, config: Partial<BridgeConfig> = {}) {
     this.frontend = frontend;
     this.backend = backend;
     this.config = {
@@ -341,7 +338,9 @@ export class Bridge<TFrontend extends FrontendAdapter = FrontendAdapter>
    */
   async hasModel(modelId: string): Promise<boolean> {
     const result = await this.listModels();
-    if (!result) return true; // Can't check, assume available
+    if (!result) {
+      return true;
+    } // Can't check, assume available
 
     return result.models.some((m) => m.id === modelId);
   }
@@ -483,22 +482,21 @@ export class Bridge<TFrontend extends FrontendAdapter = FrontendAdapter>
     const len = sortedLatencies.length;
 
     const getPercentile = (p: number): number => {
-      if (len === 0) return 0;
+      if (len === 0) {
+        return 0;
+      }
       const index = Math.ceil((p / 100) * len) - 1;
       return sortedLatencies[Math.max(0, Math.min(index, len - 1))] ?? 0;
     };
 
-    const avgLatency = len > 0
-      ? sortedLatencies.reduce((a, b) => a + b, 0) / len
-      : 0;
+    const avgLatency = len > 0 ? sortedLatencies.reduce((a, b) => a + b, 0) / len : 0;
 
     return {
       totalRequests: this._totalRequests,
       successfulRequests: this._successfulRequests,
       failedRequests: this._failedRequests,
-      successRate: this._totalRequests > 0
-        ? (this._successfulRequests / this._totalRequests) * 100
-        : 100,
+      successRate:
+        this._totalRequests > 0 ? (this._successfulRequests / this._totalRequests) * 100 : 100,
       streamingRequests: this._streamingRequests,
       averageLatencyMs: Math.round(avgLatency),
       p50LatencyMs: getPercentile(50),
@@ -581,10 +579,7 @@ export class Bridge<TFrontend extends FrontendAdapter = FrontendAdapter>
   /**
    * Enrich request with metadata (requestId, timestamp, provenance) and apply defaults.
    */
-  private enrichRequest(
-    request: IRChatRequest,
-    options?: RequestOptions
-  ): IRChatRequest {
+  private enrichRequest(request: IRChatRequest, options?: RequestOptions): IRChatRequest {
     // Always generate requestId if missing (frontend adapters should provide it)
     const requestId = request.metadata?.requestId || this.generateRequestId();
 
@@ -618,10 +613,7 @@ export class Bridge<TFrontend extends FrontendAdapter = FrontendAdapter>
   /**
    * Enrich response with provenance and timing.
    */
-  private enrichResponse(
-    response: IRChatResponse,
-    request: IRChatRequest
-  ): IRChatResponse {
+  private enrichResponse(response: IRChatResponse, request: IRChatRequest): IRChatResponse {
     return {
       ...response,
       metadata: {

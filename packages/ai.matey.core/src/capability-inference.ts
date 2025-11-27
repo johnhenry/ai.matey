@@ -37,17 +37,13 @@ export function inferCapabilities(
   const modelFamily = detectModelFamily(normalized);
 
   // Infer capabilities by family
-  const familyCapabilities = modelFamily
-    ? getDefaultCapabilitiesByFamily(modelFamily)
-    : {};
+  const familyCapabilities = modelFamily ? getDefaultCapabilitiesByFamily(modelFamily) : {};
 
   // Override with pattern-specific capabilities
   const patternCapabilities = inferFromPatterns(normalized);
 
   // Apply metadata if provided
-  const metadataCapabilities = metadata
-    ? inferFromMetadata(metadata)
-    : {};
+  const metadataCapabilities = metadata ? inferFromMetadata(metadata) : {};
 
   // Merge all sources
   return {
@@ -62,34 +58,70 @@ export function inferCapabilities(
  */
 function detectModelFamily(normalizedName: string): string | undefined {
   // GPT family
-  if (normalizedName.includes('gpt-4o')) return 'gpt-4';
-  if (normalizedName.includes('gpt-4')) return 'gpt-4';
-  if (normalizedName.includes('gpt-3.5')) return 'gpt-3.5';
-  if (normalizedName.includes('gpt-3')) return 'gpt-3';
+  if (normalizedName.includes('gpt-4o')) {
+    return 'gpt-4';
+  }
+  if (normalizedName.includes('gpt-4')) {
+    return 'gpt-4';
+  }
+  if (normalizedName.includes('gpt-3.5')) {
+    return 'gpt-3.5';
+  }
+  if (normalizedName.includes('gpt-3')) {
+    return 'gpt-3';
+  }
 
   // Claude family
-  if (normalizedName.includes('claude-3.5')) return 'claude-3';
-  if (normalizedName.includes('claude-3')) return 'claude-3';
-  if (normalizedName.includes('claude-2')) return 'claude-2';
+  if (normalizedName.includes('claude-3.5')) {
+    return 'claude-3';
+  }
+  if (normalizedName.includes('claude-3')) {
+    return 'claude-3';
+  }
+  if (normalizedName.includes('claude-2')) {
+    return 'claude-2';
+  }
 
   // Gemini family
-  if (normalizedName.includes('gemini-1.5')) return 'gemini-1.5';
-  if (normalizedName.includes('gemini-1.0')) return 'gemini-1.0';
-  if (normalizedName.includes('gemini')) return 'gemini-1.5';
+  if (normalizedName.includes('gemini-1.5')) {
+    return 'gemini-1.5';
+  }
+  if (normalizedName.includes('gemini-1.0')) {
+    return 'gemini-1.0';
+  }
+  if (normalizedName.includes('gemini')) {
+    return 'gemini-1.5';
+  }
 
   // Mistral family
-  if (normalizedName.includes('mistral')) return 'mistral';
+  if (normalizedName.includes('mistral')) {
+    return 'mistral';
+  }
 
   // Llama family
-  if (normalizedName.includes('llama-3')) return 'llama-3';
-  if (normalizedName.includes('llama-2')) return 'llama-2';
-  if (normalizedName.includes('llama')) return 'llama-2';
+  if (normalizedName.includes('llama-3')) {
+    return 'llama-3';
+  }
+  if (normalizedName.includes('llama-2')) {
+    return 'llama-2';
+  }
+  if (normalizedName.includes('llama')) {
+    return 'llama-2';
+  }
 
   // Other families
-  if (normalizedName.includes('deepseek')) return 'deepseek';
-  if (normalizedName.includes('qwen')) return 'qwen';
-  if (normalizedName.includes('phi')) return 'phi';
-  if (normalizedName.includes('mixtral')) return 'mixtral';
+  if (normalizedName.includes('deepseek')) {
+    return 'deepseek';
+  }
+  if (normalizedName.includes('qwen')) {
+    return 'qwen';
+  }
+  if (normalizedName.includes('phi')) {
+    return 'phi';
+  }
+  if (normalizedName.includes('mixtral')) {
+    return 'mixtral';
+  }
 
   return undefined;
 }
@@ -140,7 +172,7 @@ function getDefaultCapabilitiesByFamily(family: string): Partial<ModelCapabiliti
       supportsJSON: true,
       qualityScore: 88,
     },
-    'mistral': {
+    mistral: {
       contextWindow: 32000,
       maxTokens: 4096,
       supportsStreaming: true,
@@ -164,7 +196,7 @@ function getDefaultCapabilitiesByFamily(family: string): Partial<ModelCapabiliti
       supportsJSON: false,
       qualityScore: 70,
     },
-    'deepseek': {
+    deepseek: {
       contextWindow: 64000,
       maxTokens: 4096,
       supportsStreaming: true,
@@ -264,7 +296,9 @@ export function mergeCapabilities(
   const merged: Partial<ModelCapabilities> = {};
 
   for (const source of sources) {
-    if (!source) continue;
+    if (!source) {
+      continue;
+    }
 
     Object.assign(merged, source);
   }
@@ -280,10 +314,18 @@ export function meetsRequirements(
   requirements: Partial<ModelCapabilities>
 ): boolean {
   // Check boolean capabilities
-  if (requirements.supportsStreaming && !capabilities.supportsStreaming) return false;
-  if (requirements.supportsVision && !capabilities.supportsVision) return false;
-  if (requirements.supportsTools && !capabilities.supportsTools) return false;
-  if (requirements.supportsJSON && !capabilities.supportsJSON) return false;
+  if (requirements.supportsStreaming && !capabilities.supportsStreaming) {
+    return false;
+  }
+  if (requirements.supportsVision && !capabilities.supportsVision) {
+    return false;
+  }
+  if (requirements.supportsTools && !capabilities.supportsTools) {
+    return false;
+  }
+  if (requirements.supportsJSON && !capabilities.supportsJSON) {
+    return false;
+  }
 
   // Check numeric capabilities (minimums)
   if (
@@ -324,24 +366,33 @@ export function calculateCapabilitySimilarity(
   for (const field of booleanFields) {
     if (caps1[field] !== undefined || caps2[field] !== undefined) {
       total++;
-      if (caps1[field] === caps2[field]) matches++;
+      if (caps1[field] === caps2[field]) {
+        matches++;
+      }
     }
   }
 
   // Compare model family
   if (caps1.modelFamily || caps2.modelFamily) {
     total++;
-    if (caps1.modelFamily === caps2.modelFamily) matches++;
+    if (caps1.modelFamily === caps2.modelFamily) {
+      matches++;
+    }
   }
 
   // Compare numeric ranges (within 20% = similar)
   if (caps1.contextWindow && caps2.contextWindow) {
     total++;
-    const ratio = Math.min(caps1.contextWindow, caps2.contextWindow) /
-                  Math.max(caps1.contextWindow, caps2.contextWindow);
-    if (ratio >= 0.8) matches++;
+    const ratio =
+      Math.min(caps1.contextWindow, caps2.contextWindow) /
+      Math.max(caps1.contextWindow, caps2.contextWindow);
+    if (ratio >= 0.8) {
+      matches++;
+    }
   }
 
-  if (total === 0) return 0;
+  if (total === 0) {
+    return 0;
+  }
   return (matches / total) * 100;
 }
