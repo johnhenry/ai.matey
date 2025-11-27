@@ -48,8 +48,8 @@ export function ExpressMiddleware(
 
   const coreHandler = new CoreHTTPHandler({
     bridge,
-    cors: (cors === false || cors === undefined) ? undefined : (cors === true ? {} : cors),
-    ...restOptions as any, // HTTPListenerOptions types are compatible with CoreHandlerOptions at runtime
+    cors: cors === false || cors === undefined ? undefined : cors === true ? {} : cors,
+    ...(restOptions as any), // HTTPListenerOptions types are compatible with CoreHandlerOptions at runtime
   });
 
   // Return Express middleware

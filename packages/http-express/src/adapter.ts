@@ -55,8 +55,11 @@ export class ExpressRequestAdapter implements GenericRequest {
       if (typeof value === 'string') {
         query[key] = value;
       } else if (Array.isArray(value)) {
-        query[key] = value.join(',');
-      } else if (value !== undefined) {
+        query[key] = value
+          .filter((v): v is string | number | boolean => typeof v !== 'object' || v === null)
+          .map((v) => String(v))
+          .join(',');
+      } else if (value !== undefined && typeof value !== 'object') {
         query[key] = String(value);
       }
     }
@@ -100,7 +103,9 @@ export class ExpressResponseAdapter implements GenericResponse {
   }
 
   send(data: any): void {
-    if (!this.isWritable()) return;
+    if (!this.isWritable()) {
+      return;
+    }
 
     this._headersSent = true;
 
@@ -115,7 +120,9 @@ export class ExpressResponseAdapter implements GenericResponse {
   }
 
   async stream(generator: AsyncGenerator<any, void, undefined>): Promise<void> {
-    if (!this.isWritable()) return;
+    if (!this.isWritable()) {
+      return;
+    }
 
     this._headersSent = true;
 
@@ -128,7 +135,9 @@ export class ExpressResponseAdapter implements GenericResponse {
     try {
       // Stream chunks
       for await (const chunk of generator) {
-        if (!this.isWritable()) break;
+        if (!this.isWritable()) {
+          break;
+        }
         sendSSEChunk(nodeRes, chunk);
       }
 
