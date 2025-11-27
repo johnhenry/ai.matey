@@ -99,27 +99,27 @@ export class InMemoryCacheStorage implements CacheStorage {
     this.maxSize = maxSize;
   }
 
-  async get(key: string): Promise<IRChatResponse | undefined> {
+  get(key: string): Promise<IRChatResponse | undefined> {
     const entry = this.cache.get(key);
 
     if (!entry) {
-      return undefined;
+      return Promise.resolve(undefined);
     }
 
     // Check if expired
     if (Date.now() > entry.expiresAt) {
       this.cache.delete(key);
       this.removeFromAccessOrder(key);
-      return undefined;
+      return Promise.resolve(undefined);
     }
 
     // Update access order (LRU)
     this.updateAccessOrder(key);
 
-    return entry.value;
+    return Promise.resolve(entry.value);
   }
 
-  async set(key: string, value: IRChatResponse, ttl: number = 3600000): Promise<void> {
+  set(key: string, value: IRChatResponse, ttl: number = 3600000): Promise<void> {
     // Evict if at max size
     if (this.cache.size >= this.maxSize && !this.cache.has(key)) {
       this.evictLRU();
@@ -133,33 +133,36 @@ export class InMemoryCacheStorage implements CacheStorage {
 
     // Update access order
     this.updateAccessOrder(key);
+
+    return Promise.resolve();
   }
 
-  async has(key: string): Promise<boolean> {
+  has(key: string): Promise<boolean> {
     const entry = this.cache.get(key);
 
     if (!entry) {
-      return false;
+      return Promise.resolve(false);
     }
 
     // Check if expired
     if (Date.now() > entry.expiresAt) {
       this.cache.delete(key);
       this.removeFromAccessOrder(key);
-      return false;
+      return Promise.resolve(false);
     }
 
-    return true;
+    return Promise.resolve(true);
   }
 
-  async delete(key: string): Promise<boolean> {
+  delete(key: string): Promise<boolean> {
     this.removeFromAccessOrder(key);
-    return this.cache.delete(key);
+    return Promise.resolve(this.cache.delete(key));
   }
 
-  async clear(): Promise<void> {
+  clear(): Promise<void> {
     this.cache.clear();
     this.accessOrder = [];
+    return Promise.resolve();
   }
 
   /**
