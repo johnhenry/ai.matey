@@ -1,949 +1,412 @@
+<p align="center">
+  <img src="logo.png" alt="ai.matey logo" width="200" />
+</p>
+
 # ai.matey - Universal AI Adapter System
 
-<img src="https://raw.githubusercontent.com/johnhenry/ai.matey/main/logo.png" alt="AI.Matey Logo" style="width:256px; height:256px">
+Provider-agnostic interface for AI APIs. Write once, run anywhere.
 
-> Provider-agnostic interface for AI APIs. Write once, run with any provider.
+## Why ai.matey?
 
-[![NPM Version](https://img.shields.io/npm/v/ai.matey.svg)](https://www.npmjs.com/package/ai.matey)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue.svg)](https://www.typescriptlang.org/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+**Same code, any provider.** Switch between OpenAI, Anthropic, Gemini, Ollama, and 20+ other providers without changing your application code.
 
-## Overview
+```typescript
+// Your code stays the same...
+const response = await bridge.chat({
+  model: 'gpt-4',
+  messages: [{ role: 'user', content: 'Hello!' }],
+});
 
-The **ai.matey** Universal AI Adapter System provides a unified interface for interacting with multiple AI providers (OpenAI, Anthropic, Google, DeepSeek, Groq, and more) through a common Intermediate Representation (IR).
-
-**Key Features:**
-- 🔄 **Provider Agnostic**: Write code once, switch providers without changes
-- 🎯 **Type Safe**: Full TypeScript support with strict typing
-- 🚀 **Zero Dependencies**: Core library has no runtime dependencies
-- 🔌 **Extensible**: Easy to add new providers through adapter pattern
-- 📊 **Observable**: Built-in events, middleware, and statistics
-- 🌊 **Stream First**: Native streaming support across all providers
-- 💰 **Cost Tracking**: Monitor API costs across all providers
-- 🛡️ **Security**: Built-in PII detection, prompt injection prevention, input validation
-- 🔧 **Production Ready**: Middleware for logging, caching, retry, telemetry, and more
-
-## Pirate Overview
-
-Ahoy, me hearty! **ai.matey** be a Universal AI Adapter System fer scallywags wantin' ter talk to any AI provider without rewritin' their code. Ye write once, an' sail across the seven seas of AI providers (OpenAI, Anthropic, Google, DeepSeek, Groq, an' more) through a common Intermediate Representation (IR).
-
-**What treasures await ye:**
-- 🔄 **Provider Agnostic**: Chart yer course once, switch providers without changin' yer map
-- 🎯 **Type Safe**: Full TypeScript support, strict as a ship's log
-- 🚀 **Zero Dependencies**: Light as a feather, no barnacles weighin' ye down
-- 🔌 **Extensible**: Add new providers easier than recruitin' a new crew member
-- 📊 **Observable**: Built-in events, middleware, an' statistics to watch yer voyage
-- 🌊 **Stream First**: Native streamin' support across all waters
-- 💰 **Cost Tracking**: Count yer doubloons an' monitor API costs across all providers
-- 🛡️ **Security**: Built-in defenses against PII leaks, prompt injection attacks, an' invalid cargo
-- 🔧 **Production Ready**: Battle-tested middleware fer loggin', cachin', retry, telemetry, an' more
-
-## Compatibility Matrix
-
-| Feature | Browser | Node.js | Import Path |
-|---------|---------|---------|-------------|
-| HTTP Backends | ✅ | ✅ | `ai.matey/adapters/backend` |
-| Model Runners | ❌ | ✅ | `ai.matey/adapters/backend-native/model-runners` |
-| Frontend Adapters | ✅ | ✅ | `ai.matey/adapters/frontend` |
-| Bridge & Router | ✅ | ✅ | `ai.matey` |
-| Middleware | ✅ | ✅ | `ai.matey/middleware` |
-| Types | ✅ | ✅ | `ai.matey/types` |
-
-## Project Evolution
-
-**ai.matey** has evolved significantly from its original purpose:
-
-### Original Scope (v0.0.x)
-The project began as a **polyfill and documentation tool** for Chrome's experimental `window.ai` API:
-- Provided mock implementations of the unstable Chrome AI API
-- Created API-compatible clients that mirrored `window.ai` structure
-- Focused on browser compatibility and CORS workarounds
-- Simple polyfill: `if (!window.ai) window.ai = ai`
-
-### Current Scope (v0.1.0+)
-ai.matey has grown into a **full-fledged universal AI framework** with enterprise features:
-- Universal Intermediate Representation (IR) for provider independence
-- Production-ready middleware (logging, caching, security, cost tracking)
-- Intelligent routing with fallback chains and circuit breakers
-- HTTP server integration for all major frameworks
-- CLI tools for model management and format conversion
-- Comprehensive testing and debugging infrastructure
-
-The Chrome AI compatibility is now one of many supported formats, and the focus has shifted from polyfilling an unstable browser API to providing a robust, provider-agnostic abstraction layer for production AI applications.
-
-## Installation
-
-### NPM
-
-```bash
-npm install ai.matey
+// ...only the backend changes
+new OpenAIBackendAdapter({ apiKey: '...' })      // → OpenAI
+new AnthropicBackendAdapter({ apiKey: '...' })   // → Anthropic
+new GeminiBackendAdapter({ apiKey: '...' })      // → Google Gemini
+new OllamaBackendAdapter({ baseURL: '...' })     // → Local Ollama
+new GroqBackendAdapter({ apiKey: '...' })        // → Groq (fast inference)
 ```
-
-### CDN
-
-For browser usage without a build step, you can use CDN imports:
-
-#### ESM (Modern Browsers)
-
-```html
-<!-- Latest version -->
-<script type="module">
-  import { Bridge, OpenAIBackendAdapter } from 'https://cdn.jsdelivr.net/npm/ai.matey/+esm';
-
-  const backend = new OpenAIBackendAdapter({ apiKey: 'your-key' });
-  // ...
-</script>
-
-<!-- Specific version (recommended) -->
-<script type="module">
-  import { Bridge, OpenAIBackendAdapter } from 'https://cdn.jsdelivr.net/npm/ai.matey@0.1.0/+esm';
-</script>
-
-<!-- Alternative CDNs -->
-<script type="module">
-  // unpkg
-  import { Bridge } from 'https://unpkg.com/ai.matey@0.1.0/dist/esm/index.js';
-
-  // esm.sh
-  import { Bridge } from 'https://esm.sh/ai.matey@0.1.0';
-</script>
-```
-
-#### UMD (Legacy Browsers)
-
-```html
-<!-- Load from CDN -->
-<script src="https://cdn.jsdelivr.net/npm/ai.matey@0.1.0/dist/umd/ai-matey.min.js"></script>
-<script>
-  // Available as global AIMatey
-  const { Bridge, OpenAIBackendAdapter } = AIMatey;
-
-  const backend = new OpenAIBackendAdapter({ apiKey: 'your-key' });
-  // ...
-</script>
-```
-
-#### Import Maps (Recommended for Multiple Imports)
-
-```html
-<script type="importmap">
-{
-  "imports": {
-    "ai.matey": "https://cdn.jsdelivr.net/npm/ai.matey@0.1.0/+esm",
-    "ai.matey/": "https://cdn.jsdelivr.net/npm/ai.matey@0.1.0/"
-  }
-}
-</script>
-
-<script type="module">
-  import { Bridge } from 'ai.matey';
-  import { OpenAIBackendAdapter } from 'ai.matey/adapters/backend';
-
-  // Your code here
-</script>
-```
-
-**Security Note:** Always specify a version (e.g., `@0.1.0`) in production to avoid breaking changes from automatic updates. Never expose API keys in client-side code - use proxy servers for production applications.
 
 ## Quick Start
 
-### Basic Usage
+### Basic Bridge
+
+Accept requests in one format, execute on any provider:
 
 ```typescript
-import { Bridge, OpenAIFrontendAdapter, AnthropicBackendAdapter } from 'ai.matey';
+import { Bridge } from 'ai.matey.core';
+import { OpenAIFrontendAdapter } from 'ai.matey.frontend.openai';
+import { AnthropicBackendAdapter } from 'ai.matey.backend.anthropic';
 
-// Create a bridge: OpenAI format → Anthropic backend
+// Accept OpenAI format → Execute on Anthropic
 const bridge = new Bridge(
   new OpenAIFrontendAdapter(),
   new AnthropicBackendAdapter({ apiKey: process.env.ANTHROPIC_API_KEY })
 );
 
-// Use OpenAI format, execute on Anthropic
+const response = await bridge.chat({
+  model: 'gpt-4',  // Mapped to claude-3-5-sonnet automatically
+  messages: [{ role: 'user', content: 'Hello!' }],
+});
+```
+
+### Streaming
+
+```typescript
+const stream = await bridge.chatStream({
+  model: 'gpt-4',
+  messages: [{ role: 'user', content: 'Tell me a story' }],
+  stream: true,
+});
+
+for await (const chunk of stream) {
+  process.stdout.write(chunk.choices[0]?.delta?.content || '');
+}
+```
+
+### Router with Fallback
+
+Route requests to multiple backends with automatic fallback:
+
+```typescript
+import { Bridge, createRouter } from 'ai.matey.core';
+import { OpenAIFrontendAdapter } from 'ai.matey.frontend.openai';
+import { OpenAIBackendAdapter } from 'ai.matey.backend.openai';
+import { AnthropicBackendAdapter } from 'ai.matey.backend.anthropic';
+
+// Create router and register backends
+const router = createRouter({
+  routingStrategy: 'model-based',
+  fallbackStrategy: 'sequential',
+})
+  .register('openai', new OpenAIBackendAdapter({ apiKey: process.env.OPENAI_API_KEY }))
+  .register('anthropic', new AnthropicBackendAdapter({ apiKey: process.env.ANTHROPIC_API_KEY }))
+  .setFallbackChain(['openai', 'anthropic']);
+
+// Use router as a backend in a Bridge
+const bridge = new Bridge(new OpenAIFrontendAdapter(), router);
+
+// If OpenAI fails, automatically falls back to Anthropic
 const response = await bridge.chat({
   model: 'gpt-4',
-  messages: [{ role: 'user', content: 'Hello!' }]
+  messages: [{ role: 'user', content: 'Hello!' }],
+});
+```
+
+### Parallel Dispatch
+
+Query multiple models simultaneously for comparison or consensus:
+
+```typescript
+import { createRouter } from 'ai.matey.core';
+import { OpenAIBackendAdapter } from 'ai.matey.backend.openai';
+import { AnthropicBackendAdapter } from 'ai.matey.backend.anthropic';
+import { GeminiBackendAdapter } from 'ai.matey.backend.gemini';
+
+// Create router with multiple backends
+const router = createRouter()
+  .register('openai', new OpenAIBackendAdapter({ apiKey: process.env.OPENAI_API_KEY }))
+  .register('anthropic', new AnthropicBackendAdapter({ apiKey: process.env.ANTHROPIC_API_KEY }))
+  .register('gemini', new GeminiBackendAdapter({ apiKey: process.env.GEMINI_API_KEY }));
+
+// Create IR request
+const request = {
+  messages: [{ role: 'user', content: 'What is 2+2?' }],
+  parameters: { model: 'gpt-4' },
+  metadata: { requestId: crypto.randomUUID(), timestamp: Date.now(), provenance: {} },
+};
+
+// Get responses from ALL backends in parallel
+const result = await router.dispatchParallel(request, {
+  strategy: 'all',
+  backends: ['openai', 'anthropic', 'gemini'],
+});
+
+result.allResponses?.forEach(({ backend, response, latencyMs }) => {
+  console.log(`${backend}: ${response.message.content} (${latencyMs}ms)`);
+});
+```
+
+### Middleware
+
+Add logging, caching, retry logic, and more:
+
+```typescript
+import { createLoggingMiddleware } from 'ai.matey.middleware.logging';
+import { createRetryMiddleware } from 'ai.matey.middleware.retry';
+import { createCachingMiddleware } from 'ai.matey.middleware.caching';
+
+bridge
+  .use(createLoggingMiddleware({ level: 'info' }))
+  .use(createRetryMiddleware({ maxAttempts: 3, backoffMultiplier: 2 }))
+  .use(createCachingMiddleware({ ttl: 3600 }));
+```
+
+### HTTP Server
+
+Serve an OpenAI-compatible API with any backend:
+
+```typescript
+import express from 'express';
+import { ExpressMiddleware } from 'ai.matey.http.express';
+import { Bridge } from 'ai.matey.core';
+import { OpenAIFrontendAdapter } from 'ai.matey.frontend.openai';
+import { AnthropicBackendAdapter } from 'ai.matey.backend.anthropic';
+
+const bridge = new Bridge(
+  new OpenAIFrontendAdapter(),
+  new AnthropicBackendAdapter({ apiKey: process.env.ANTHROPIC_API_KEY })
+);
+
+const app = express();
+app.use(express.json());
+app.use('/v1/chat/completions', ExpressMiddleware(bridge, { streaming: true }));
+app.listen(3000);
+
+// Now clients can use OpenAI SDK pointed at localhost:3000
+```
+
+### React Hooks
+
+```tsx
+import { useChat } from 'ai.matey.react.core';
+
+function ChatComponent() {
+  const { messages, input, handleInputChange, handleSubmit } = useChat({
+    api: '/api/chat',
+  });
+
+  return (
+    <form onSubmit={handleSubmit}>
+      {messages.map((m) => (
+        <div key={m.id}>{m.content}</div>
+      ))}
+      <input value={input} onChange={handleInputChange} />
+    </form>
+  );
+}
+```
+
+### SDK Wrapper
+
+Use OpenAI SDK-style code with any backend:
+
+```typescript
+import { OpenAI } from 'ai.matey.wrapper.openai-sdk';
+import { AnthropicBackendAdapter } from 'ai.matey.backend.anthropic';
+
+// Create a backend adapter
+const backend = new AnthropicBackendAdapter({ apiKey: process.env.ANTHROPIC_API_KEY });
+
+// Wrap it with OpenAI SDK interface
+const client = OpenAI(backend);
+
+// Use familiar OpenAI SDK patterns - works with any backend!
+const response = await client.chat.completions.create({
+  model: 'claude-3-5-sonnet',
+  messages: [{ role: 'user', content: 'Hello!' }],
 });
 
 console.log(response.choices[0].message.content);
 ```
 
-### With Middleware
+## Documentation
+
+| Document | Description |
+|----------|-------------|
+| [API Reference](./docs/api.md) | Complete API documentation for all components |
+| [Feature Guides](./docs/GUIDES.md) | In-depth guides for parallel dispatch, CLI tools, response conversion |
+| [Roadmap](./docs/ROADMAP.md) | Project roadmap and planned features |
+
+## Package Reference
+
+### Core Packages
+
+| Package | Description | Documentation |
+|---------|-------------|---------------|
+| [`ai.matey`](./packages/ai.matey) | Main umbrella package | [README](./packages/ai.matey/README.md) |
+| [`ai.matey.core`](./packages/ai.matey.core) | Bridge, Router, MiddlewareStack | [README](./packages/ai.matey.core/README.md) |
+| [`ai.matey.types`](./packages/ai.matey.types) | TypeScript type definitions | [README](./packages/ai.matey.types/README.md) |
+| [`ai.matey.errors`](./packages/ai.matey.errors) | Error classes and utilities | [README](./packages/ai.matey.errors/README.md) |
+| [`ai.matey.utils`](./packages/ai.matey.utils) | Shared utility functions | [README](./packages/ai.matey.utils/README.md) |
+| [`ai.matey.testing`](./packages/ai.matey.testing) | Testing utilities and mocks | [README](./packages/ai.matey.testing/README.md) |
+| [`ai.matey.cli`](./packages/cli) | CLI and conversion utilities | [README](./packages/cli/README.md) |
+
+### Backend Adapters
+
+Connect to any AI provider with a unified interface.
+
+| Package | Provider | Documentation |
+|---------|----------|---------------|
+| [`ai.matey.backend.openai`](./packages/backend-openai) | OpenAI (GPT-4, GPT-3.5) | [README](./packages/backend-openai/README.md) |
+| [`ai.matey.backend.anthropic`](./packages/backend-anthropic) | Anthropic (Claude) | [README](./packages/backend-anthropic/README.md) |
+| [`ai.matey.backend.gemini`](./packages/backend-gemini) | Google Gemini | [README](./packages/backend-gemini/README.md) |
+| [`ai.matey.backend.groq`](./packages/backend-groq) | Groq (fast inference) | [README](./packages/backend-groq/README.md) |
+| [`ai.matey.backend.mistral`](./packages/backend-mistral) | Mistral AI | [README](./packages/backend-mistral/README.md) |
+| [`ai.matey.backend.ollama`](./packages/backend-ollama) | Ollama (local) | [README](./packages/backend-ollama/README.md) |
+| [`ai.matey.backend.deepseek`](./packages/backend-deepseek) | DeepSeek | [README](./packages/backend-deepseek/README.md) |
+| [`ai.matey.backend.cohere`](./packages/backend-cohere) | Cohere | [README](./packages/backend-cohere/README.md) |
+| [`ai.matey.backend.huggingface`](./packages/backend-huggingface) | Hugging Face | [README](./packages/backend-huggingface/README.md) |
+| [`ai.matey.backend.nvidia`](./packages/backend-nvidia) | NVIDIA NIM | [README](./packages/backend-nvidia/README.md) |
+| [`ai.matey.backend.lmstudio`](./packages/backend-lmstudio) | LM Studio (local) | [README](./packages/backend-lmstudio/README.md) |
+| [`ai.matey.backend.azure-openai`](./packages/backend-azure-openai) | Azure OpenAI | [README](./packages/backend-azure-openai/README.md) |
+| [`ai.matey.backend.aws-bedrock`](./packages/backend-aws-bedrock) | AWS Bedrock | [README](./packages/backend-aws-bedrock/README.md) |
+| [`ai.matey.backend.cloudflare`](./packages/backend-cloudflare) | Cloudflare Workers AI | [README](./packages/backend-cloudflare/README.md) |
+| [`ai.matey.backend.together-ai`](./packages/backend-together-ai) | Together AI | [README](./packages/backend-together-ai/README.md) |
+| [`ai.matey.backend.fireworks`](./packages/backend-fireworks) | Fireworks AI | [README](./packages/backend-fireworks/README.md) |
+| [`ai.matey.backend.replicate`](./packages/backend-replicate) | Replicate | [README](./packages/backend-replicate/README.md) |
+| [`ai.matey.backend.perplexity`](./packages/backend-perplexity) | Perplexity | [README](./packages/backend-perplexity/README.md) |
+| [`ai.matey.backend.openrouter`](./packages/backend-openrouter) | OpenRouter | [README](./packages/backend-openrouter/README.md) |
+| [`ai.matey.backend.anyscale`](./packages/backend-anyscale) | Anyscale | [README](./packages/backend-anyscale/README.md) |
+| [`ai.matey.backend.deepinfra`](./packages/backend-deepinfra) | DeepInfra | [README](./packages/backend-deepinfra/README.md) |
+| [`ai.matey.backend.cerebras`](./packages/backend-cerebras) | Cerebras | [README](./packages/backend-cerebras/README.md) |
+| [`ai.matey.backend.ai21`](./packages/backend-ai21) | AI21 Labs | [README](./packages/backend-ai21/README.md) |
+| [`ai.matey.backend.xai`](./packages/backend-xai) | xAI (Grok) | [README](./packages/backend-xai/README.md) |
+| [`ai.matey.backend.chrome-ai`](./packages/backend-chrome-ai) | Chrome AI | [README](./packages/backend-chrome-ai/README.md) |
+| [`ai.matey.backend.mock`](./packages/backend-mock) | Mock (testing) | [README](./packages/backend-mock/README.md) |
+| [`ai.matey.backend.function`](./packages/backend-function) | Function-based (testing) | [README](./packages/backend-function/README.md) |
+| [`ai.matey.backend.shared`](./packages/backend-shared) | Shared utilities | [README](./packages/backend-shared/README.md) |
+
+### Frontend Adapters
+
+Accept requests in any format and translate to internal IR.
+
+| Package | Format | Documentation |
+|---------|--------|---------------|
+| [`ai.matey.frontend.openai`](./packages/frontend-openai) | OpenAI format | [README](./packages/frontend-openai/README.md) |
+| [`ai.matey.frontend.anthropic`](./packages/frontend-anthropic) | Anthropic format | [README](./packages/frontend-anthropic/README.md) |
+| [`ai.matey.frontend.gemini`](./packages/frontend-gemini) | Gemini format | [README](./packages/frontend-gemini/README.md) |
+| [`ai.matey.frontend.ollama`](./packages/frontend-ollama) | Ollama format | [README](./packages/frontend-ollama/README.md) |
+| [`ai.matey.frontend.mistral`](./packages/frontend-mistral) | Mistral format | [README](./packages/frontend-mistral/README.md) |
+| [`ai.matey.frontend.chrome-ai`](./packages/frontend-chrome-ai) | Chrome AI format | [README](./packages/frontend-chrome-ai/README.md) |
+
+### HTTP Integrations
+
+Serve AI endpoints with your favorite framework.
+
+| Package | Framework | Documentation |
+|---------|-----------|---------------|
+| [`ai.matey.http.express`](./packages/http-express) | Express.js | [README](./packages/http-express/README.md) |
+| [`ai.matey.http.fastify`](./packages/http-fastify) | Fastify | [README](./packages/http-fastify/README.md) |
+| [`ai.matey.http.hono`](./packages/http-hono) | Hono | [README](./packages/http-hono/README.md) |
+| [`ai.matey.http.koa`](./packages/http-koa) | Koa | [README](./packages/http-koa/README.md) |
+| [`ai.matey.http.node`](./packages/http-node) | Node.js http | [README](./packages/http-node/README.md) |
+| [`ai.matey.http.deno`](./packages/http-deno) | Deno | [README](./packages/http-deno/README.md) |
+| [`ai.matey.http.core`](./packages/http-core) | Core utilities | [README](./packages/http-core/README.md) |
+
+### Middleware
+
+Add cross-cutting concerns to your AI pipeline.
+
+| Package | Purpose | Documentation |
+|---------|---------|---------------|
+| [`ai.matey.middleware.logging`](./packages/middleware-logging) | Request/response logging | [README](./packages/middleware-logging/README.md) |
+| [`ai.matey.middleware.caching`](./packages/middleware-caching) | Response caching | [README](./packages/middleware-caching/README.md) |
+| [`ai.matey.middleware.retry`](./packages/middleware-retry) | Automatic retries | [README](./packages/middleware-retry/README.md) |
+| [`ai.matey.middleware.transform`](./packages/middleware-transform) | Request/response transforms | [README](./packages/middleware-transform/README.md) |
+| [`ai.matey.middleware.validation`](./packages/middleware-validation) | Request validation | [README](./packages/middleware-validation/README.md) |
+| [`ai.matey.middleware.telemetry`](./packages/middleware-telemetry) | Metrics collection | [README](./packages/middleware-telemetry/README.md) |
+| [`ai.matey.middleware.opentelemetry`](./packages/middleware-opentelemetry) | OpenTelemetry tracing | [README](./packages/middleware-opentelemetry/README.md) |
+| [`ai.matey.middleware.cost-tracking`](./packages/middleware-cost-tracking) | Usage & cost tracking | [README](./packages/middleware-cost-tracking/README.md) |
+| [`ai.matey.middleware.security`](./packages/middleware-security) | Rate limiting & security | [README](./packages/middleware-security/README.md) |
+| [`ai.matey.middleware.conversation-history`](./packages/middleware-conversation-history) | Context management | [README](./packages/middleware-conversation-history/README.md) |
+
+### React Integration
 
-```typescript
-import {
-  Bridge,
-  OpenAIFrontendAdapter,
-  createLoggingMiddleware,
-  createCostTrackingMiddleware,
-  createValidationMiddleware,
-  AnthropicBackendAdapter,
-} from 'ai.matey';
+Build AI-powered React applications.
 
-const frontend = new OpenAIFrontendAdapter();
-const backend = new AnthropicBackendAdapter({ apiKey: process.env.ANTHROPIC_API_KEY });
+| Package | Purpose | Documentation |
+|---------|---------|---------------|
+| [`ai.matey.react.core`](./packages/react-core) | Core hooks (useChat, useCompletion) | [README](./packages/react-core/README.md) |
+| [`ai.matey.react.hooks`](./packages/react-hooks) | Additional hooks | [README](./packages/react-hooks/README.md) |
+| [`ai.matey.react.stream`](./packages/react-stream) | Streaming components | [README](./packages/react-stream/README.md) |
+| [`ai.matey.react.nextjs`](./packages/react-nextjs) | Next.js App Router | [README](./packages/react-nextjs/README.md) |
 
-const bridge = new Bridge(frontend, backend)
-  .use(createLoggingMiddleware({ level: 'info' }))
-  .use(createCostTrackingMiddleware({ logCosts: true }))
-  .use(createValidationMiddleware({ detectPII: true, piiAction: 'redact' }));
+### SDK Wrappers
 
-const response = await bridge.chat({
-  model: 'gpt-4',
-  messages: [{ role: 'user', content: 'What is 2+2?' }],
-  temperature: 0.7,
-});
-```
+Drop-in replacements for official SDKs.
 
-### Router with Multiple Providers
+| Package | SDK | Documentation |
+|---------|-----|---------------|
+| [`ai.matey.wrapper.openai-sdk`](./packages/wrapper-openai-sdk) | OpenAI SDK | [README](./packages/wrapper-openai-sdk/README.md) |
+| [`ai.matey.wrapper.anthropic-sdk`](./packages/wrapper-anthropic-sdk) | Anthropic SDK | [README](./packages/wrapper-anthropic-sdk/README.md) |
+| [`ai.matey.wrapper.chrome-ai`](./packages/wrapper-chrome-ai) | Chrome AI API | [README](./packages/wrapper-chrome-ai/README.md) |
+| [`ai.matey.wrapper.chrome-ai-legacy`](./packages/wrapper-chrome-ai-legacy) | Chrome AI (legacy) | [README](./packages/wrapper-chrome-ai-legacy/README.md) |
+| [`ai.matey.wrapper.anymethod`](./packages/wrapper-anymethod) | Dynamic wrapper | [README](./packages/wrapper-anymethod/README.md) |
 
-```typescript
-import {
-  Router,
-  Bridge,
-  OpenAIFrontendAdapter,
-  OpenAIBackendAdapter,
-  AnthropicBackendAdapter,
-  GroqBackendAdapter,
-  RoutingStrategy
-} from 'ai.matey';
+### Native Backends
 
-const router = new Router({
-  routingStrategy: RoutingStrategy.COST_OPTIMIZED,
-  fallbackStrategy: 'sequential',
-})
-  .register('openai', new OpenAIBackendAdapter({ apiKey: process.env.OPENAI_API_KEY }))
-  .register('anthropic', new AnthropicBackendAdapter({ apiKey: process.env.ANTHROPIC_API_KEY }))
-  .register('groq', new GroqBackendAdapter({ apiKey: process.env.GROQ_API_KEY }))
-  .setFallbackChain(['openai', 'anthropic', 'groq']);
+Run models locally.
 
-const frontend = new OpenAIFrontendAdapter();
-const bridge = new Bridge(frontend, router);
-```
+| Package | Runtime | Documentation |
+|---------|---------|---------------|
+| [`ai.matey.native.node-llamacpp`](./packages/native-node-llamacpp) | llama.cpp via Node | [README](./packages/native-node-llamacpp/README.md) |
+| [`ai.matey.native.apple`](./packages/native-apple) | Apple MLX (macOS 15+) | [README](./packages/native-apple/README.md) |
+| [`ai.matey.native.model-runner`](./packages/native-model-runner) | Generic model runner | [README](./packages/native-model-runner/README.md) |
 
-## Supported Providers
-
-### All Providers
-
-| Provider | Frontend | Backend | Wrapper | Streaming | Multi-Modal | Tools | Cost |
-|----------|----------|---------|---------|-----------|-------------|-------|------|
-| **OpenAI** | ✅ | ✅ | ✅ SDK | ✅ | ✅ | ✅ | $$ |
-| **Anthropic** | ✅ | ✅ | ✅ SDK | ✅ | ✅ | ✅ | $$ |
-| **Google Gemini** | ✅ | ✅ | — | ✅ | ✅ | ✅ | $ |
-| **Mistral AI** | ✅ | ✅ | — | ✅ | ❌ | ✅ | $$ |
-| **DeepSeek** | — | ✅ | — | ✅ | ❌ | ✅ | ¢ |
-| **Groq** | — | ✅ | — | ✅ | ❌ | ✅ | ¢ |
-| **Ollama** | ✅ | ✅ | — | ✅ | ❌ | ❌ | Free |
-| **LM Studio** | — | ✅ | — | ✅ | ❌ | ✅ | Free |
-| **Hugging Face** | — | ✅ | — | ✅ | ❌ | ❌ | Free* |
-| **NVIDIA NIM** | — | ✅ | — | ✅ | ❌ | ✅ | $$ |
-| **Chrome AI** | ✅ | ✅ | — | ✅ | ❌ | ❌ | Free |
-| **Chrome AI (Current)** | — | — | ✅ | ✅ | ❌ | ❌ | Free |
-| **Chrome AI (Legacy)** | — | — | ✅ | ✅ | ❌ | ❌ | Free |
-| **Node Llama.cpp** | — | ✅ | — | ✅ | ❌ | ❌ | Free |
-| **Apple Foundation Models** | — | ✅ | — | ✅ | ✅ | ✅ | Free |
-| **Mock** | — | ✅ | — | ✅ | ✅ | ✅ | Free |
-| **Together AI** | — | ✅ | — | ✅ | ✅ | ✅ | ¢ |
-| **Fireworks AI** | — | ✅ | — | ✅ | ✅ | ✅ | ¢ |
-| **DeepInfra** | — | ✅ | — | ✅ | ❌ | ✅ | ¢ |
-| **xAI (Grok)** | — | ✅ | — | ✅ | ❌ | ✅ | $$$ |
-| **Cerebras** | — | ✅ | — | ✅ | ❌ | ✅ | $ |
-| **Azure OpenAI** | — | ✅ | — | ✅ | ✅ | ✅ | $$$ |
-| **Cloudflare Workers AI** | — | ✅ | — | ✅ | ✅ | ✅ | ¢ |
-| **Perplexity AI** | — | ✅ | — | ✅ | ❌ | ✅ | $$ |
-| **OpenRouter** | — | ✅ | — | ✅ | ✅ | ✅ | varies |
-| **AI21 Labs** | — | ✅ | — | ✅ | ❌ | ❌ | $$ |
-| **Cohere** | — | ✅ | — | ✅ | ❌ | ✅ | $$ |
-| **AWS Bedrock** | — | ✅ | — | ✅ | ✅ | ✅ | $$$ |
-| **Anyscale** | — | ✅ | — | ✅ | ❌ | ❌ | $ |
-| **Replicate** | — | ✅ | — | ✅ | ❌ | ❌ | varies |
-
-*Free tier available with rate limits
-
-**Wrapper Types:**
-- **SDK** - Drop-in replacement for official SDK (OpenAI, Anthropic)
-- **Chrome AI wrappers** - API compatibility layers for current and legacy Chrome AI APIs
-
-### Provider Highlights
-
-**Currently Available:**
-- **DeepSeek**: Ultra-low cost ($0.14/$0.28 per 1M tokens), strong reasoning
-- **Groq**: Ultra-fast inference (<100ms), very low cost ($0.05/$0.10 per 1M tokens)
-- **LM Studio**: Run models locally, zero cost, complete privacy
-- **Hugging Face**: Access thousands of models, free tier available
-- **NVIDIA NIM**: Optimized inference, self-hosted or cloud
-- **Together AI**: 200+ open-source models, starting at $0.06 per 1M tokens, OpenAI-compatible
-- **Fireworks AI**: 100+ models, fastest APIs, topK support, batch inference discount
-- **DeepInfra**: Cost estimation in responses, all models via one API, $0.40+ per 1M tokens
-- **xAI (Grok)**: Real-time web & X search, 2M context window, reasoning models
-- **Cerebras**: World's fastest inference (969 tokens/s), specialized AI hardware, seed support
-- **Azure OpenAI**: Enterprise-grade, deployment-based routing, content filtering, SLA support
-- **Cloudflare Workers AI**: Edge deployment, neuron-based pricing, global network
-- **Perplexity AI**: Real-time search with citations, domain/recency filtering
-- **OpenRouter**: Unified access to 100+ models, automatic fallback, pass-through pricing
-- **AI21 Labs**: Jamba models (256K context), efficient tokenization, RAG support
-- **Cohere**: Custom chat API, RAG-optimized, citations, document support
-- **AWS Bedrock**: Unified Converse API, multi-model access, AWS SigV4 auth, enterprise features
-- **Anyscale**: Platform-oriented, Llama-2 models, endpoint-based routing
-- **Replicate**: Async predictions API, per-model variations, wide model selection
-- **Node Llama.cpp**: Run GGUF models locally via llama.cpp (subprocess-based)
-- **Apple Foundation Models**: On-device AI for macOS 15+ (Apple Silicon)
-
-### Browser Compatibility Notes
-
-Most providers support direct browser access, but some require:
-- **CORS Configuration**: Use a proxy server for providers without browser CORS support (Anthropic uses the anthropic-dangerous-direct-browser-access header)
-- **API Key Security**: Never expose API keys in client-side code - use proxy servers for production
-
-
-## Core Features
-
-### 1. Adapters
-
-#### Frontend Adapters
-
-Convert provider-specific request formats to Universal IR:
-
-```typescript
-import {
-  OpenAIFrontendAdapter,
-  AnthropicFrontendAdapter,
-  GeminiFrontendAdapter,
-  OllamaFrontendAdapter,
-  MistralFrontendAdapter,
-  ChromeAIFrontendAdapter,
-} from 'ai.matey';
-```
-
-**Example:**
-```typescript
-const frontend = new OpenAIFrontendAdapter();
-const irRequest = await frontend.toIR({
-  model: 'gpt-4',
-  messages: [{ role: 'user', content: 'Hello' }],
-});
-```
-
-#### Backend Adapters
-
-Execute requests against AI provider APIs:
-
-```typescript
-import {
-  OpenAIBackendAdapter,
-  AnthropicBackendAdapter,
-  GeminiBackendAdapter,
-  MistralBackendAdapter,
-  OllamaBackendAdapter,
-  ChromeAIBackendAdapter,
-  DeepSeekBackendAdapter,
-  GroqBackendAdapter,
-  LMStudioBackendAdapter,
-  HuggingFaceBackendAdapter,
-  NVIDIABackendAdapter,
-  MockBackendAdapter,
-} from 'ai.matey';
-
-// Native backends (Node.js only, require native binaries)
-import {
-  NodeLlamaCppBackend,
-  AppleBackend,
-} from 'ai.matey/adapters/backend-native';
-```
-
-> **⚠️ Important: Optional Peer Dependencies**
->
-> Native backends (`AppleBackend`, `NodeLlamaCppBackend`) require **optional peer dependencies** that are NOT automatically installed. ai.matey maintains zero runtime dependencies by default.
->
-> **To use native backends, manually install the required packages:**
->
-> ```bash
-> # For Apple Foundation Models (macOS 15+ only)
-> npm install apple-foundation-models
->
-> # For Node Llama.cpp
-> npm install node-llama-cpp
-> ```
->
-> **Why optional?** This keeps the core library lightweight (~0 dependencies). Most users only need HTTP-based backends (OpenAI, Anthropic, etc.) which work without any additional packages.
->
-> If you try to use a native backend without installing its peer dependency, you'll get a clear error message with installation instructions.
-
-**Example:**
-```typescript
-const backend = new DeepSeekBackendAdapter({
-  apiKey: process.env.DEEPSEEK_API_KEY,
-});
-
-const response = await backend.execute(irRequest);
-
-// Native backend example (Node.js only)
-const llamaBackend = new NodeLlamaCppBackend({
-  modelPath: './models/llama-3.1-8b.gguf',
-  contextSize: 4096,
-});
-await llamaBackend.start();
-
-const appleBackend = new AppleBackend({
-  maximumResponseTokens: 2048,
-  temperature: 0.7,
-});
-```
-
-### 2. Bridge
-
-Connect frontend adapters to backends with middleware support:
-
-```typescript
-import { Bridge } from 'ai.matey';
-
-// Create bridge with frontend and backend
-const bridge = new Bridge(frontend, backend);
-
-// Add middleware
-bridge
-  .use(loggingMiddleware)
-  .use(costTrackingMiddleware);
-```
-
-### 3. Router
-
-Intelligent routing across multiple backends:
-
-```typescript
-import { Router, RoutingStrategy } from 'ai.matey';
-
-const router = new Router({
-  routingStrategy: RoutingStrategy.COST_OPTIMIZED,
-  fallbackStrategy: 'sequential',
-  enableCircuitBreaker: true,
-  circuitBreakerThreshold: 5,
-  circuitBreakerTimeout: 60000,
-})
-  .register('fast', groqBackend)
-  .register('smart', anthropicBackend)
-  .register('cheap', deepseekBackend)
-  .setFallbackChain(['fast', 'smart', 'cheap']);
-```
-
-**Routing Strategies:**
-- `EXPLICIT` - Route by explicit backend name
-- `MODEL_BASED` - Route based on model name
-- `COST_OPTIMIZED` - Route to lowest cost provider
-- `LATENCY_OPTIMIZED` - Route to fastest provider
-- `ROUND_ROBIN` - Distribute requests evenly
-- `RANDOM` - Random selection
-- `CUSTOM` - Custom routing function
-
-### 4. Middleware
-
-#### Logging Middleware
-
-Track requests and responses:
-
-```typescript
-import { createLoggingMiddleware } from 'ai.matey';
-
-bridge.use(createLoggingMiddleware({
-  level: 'info', // 'debug' | 'info' | 'warn' | 'error'
-  includeRequests: true,
-  includeResponses: true,
-  includeMetadata: true,
-}));
-```
-
-#### Cost Tracking Middleware
-
-Monitor API costs in real-time:
-
-```typescript
-import { createCostTrackingMiddleware, getCostStats } from 'ai.matey';
-
-const storage = new InMemoryCostStorage();
-
-bridge.use(createCostTrackingMiddleware({
-  storage,
-  logCosts: true,
-  requestThreshold: 0.10,  // Warn if request > $0.10
-  hourlyThreshold: 10.00,  // Warn if hourly cost > $10
-  dailyThreshold: 100.00,  // Warn if daily cost > $100
-  onCost: (cost) => {
-    console.log(`Request cost: $${cost.totalCost.toFixed(6)}`);
-  },
-  onThresholdExceeded: (cost, threshold) => {
-    console.warn(`Cost threshold exceeded!`);
-  },
-}));
-
-// Get statistics
-const stats = await getCostStats(storage, 24); // Last 24 hours
-console.log(stats); // { total, byProvider, byModel }
-```
-
-#### Validation & Sanitization Middleware
-
-Protect against security issues:
-
-```typescript
-import { createValidationMiddleware } from 'ai.matey';
-
-bridge.use(createValidationMiddleware({
-  // PII Detection & Redaction
-  detectPII: true,
-  piiAction: 'redact', // 'block' | 'redact' | 'warn' | 'log'
-  piiPatterns: {
-    email: /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g,
-    ssn: /\b\d{3}-\d{2}-\d{4}\b/g,
-    creditCard: /\b\d{4}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4}\b/g,
-  },
-
-  // Prompt Injection Prevention
-  preventPromptInjection: true,
-
-  // Token Limits
-  maxMessages: 100,
-  maxTotalTokens: 128000,
-  maxTokensPerMessage: 32000,
-
-  // Content Moderation
-  moderationCallback: async (content) => {
-    // Call external moderation API
-    const result = await moderationAPI.check(content);
-    return {
-      flagged: result.flagged,
-      categories: result.categories,
-    };
-  },
-  blockFlaggedContent: true,
-
-  // Custom Validation
-  customValidator: async (request) => {
-    // Your custom validation logic
-    const errors = [];
-    // ... validate request
-    return errors;
-  },
-}));
-```
-
-#### Caching Middleware
-
-Cache responses for identical requests:
-
-```typescript
-import { createCachingMiddleware, InMemoryCacheStorage } from 'ai.matey';
-
-bridge.use(createCachingMiddleware({
-  storage: new InMemoryCacheStorage(),
-  ttl: 60 * 60 * 1000, // 1 hour
-  keyGenerator: (request) => JSON.stringify(request.messages),
-  shouldCache: (request, response) => response.finishReason === 'stop',
-}));
-```
-
-#### Retry Middleware
-
-Automatic retry with exponential backoff:
-
-```typescript
-import { createRetryMiddleware, isRateLimitError } from 'ai.matey';
-
-bridge.use(createRetryMiddleware({
-  maxRetries: 3,
-  initialDelay: 1000,
-  maxDelay: 10000,
-  backoffMultiplier: 2,
-  shouldRetry: (error) => isRateLimitError(error) || isNetworkError(error),
-}));
-```
-
-#### Telemetry Middleware
-
-Collect metrics and events:
-
-```typescript
-import { createTelemetryMiddleware, InMemoryTelemetrySink } from 'ai.matey';
-
-const sink = new InMemoryTelemetrySink();
-
-bridge.use(createTelemetryMiddleware({
-  sink,
-  includeMetrics: true,
-  includeEvents: true,
-}));
-
-// View metrics
-const metrics = sink.getMetrics();
-console.log(metrics.get('request.duration'));
-```
-
-##### OpenTelemetry Integration
-
-For production observability with industry-standard distributed tracing:
-
-```typescript
-import { createOpenTelemetryMiddleware } from 'ai.matey/middleware';
-
-const otel = await createOpenTelemetryMiddleware({
-  serviceName: 'my-ai-service',
-  endpoint: 'http://localhost:4318/v1/traces', // OTLP endpoint
-  samplingRate: 0.1, // Sample 10% of requests in production
-  resourceAttributes: {
-    'deployment.environment': 'production',
-    'service.version': '1.0.0',
-  },
-});
-
-bridge.use(otel);
-```
-
-> **⚠️ Important: Optional Peer Dependencies**
->
-> OpenTelemetry integration requires **optional peer dependencies** that are NOT automatically installed:
->
-> ```bash
-> npm install @opentelemetry/api \
->   @opentelemetry/sdk-trace-base \
->   @opentelemetry/exporter-trace-otlp-http \
->   @opentelemetry/resources \
->   @opentelemetry/semantic-conventions
-> ```
->
-> **Why optional?** This keeps the core library at zero dependencies. Most users don't need OpenTelemetry, but it's available when you need production-grade distributed tracing.
->
-> See [OpenTelemetry documentation](./docs/opentelemetry.md) for integration guides with Jaeger, Zipkin, Datadog, Honeycomb, and New Relic.
-
-#### Transform Middleware
-
-Modify requests and responses:
-
-```typescript
-import {
-  createTransformMiddleware,
-  createPromptRewriter,
-  createSystemMessageInjector,
-} from 'ai.matey';
-
-bridge.use(createTransformMiddleware({
-  requestTransformers: [
-    createSystemMessageInjector('You are a helpful assistant.'),
-    createPromptRewriter((text) => text + ' Please be concise.'),
-  ],
-  responseTransformers: [
-    (response) => {
-      // Custom response transformation
-      return response;
-    },
-  ],
-}));
-```
-
-#### Security Middleware
-
-Add security headers and protection:
-
-```typescript
-import { createSecurityMiddleware, createProductionSecurityMiddleware } from 'ai.matey';
-
-// Production preset
-bridge.use(createProductionSecurityMiddleware());
-
-// Custom configuration
-bridge.use(createSecurityMiddleware({
-  contentSecurityPolicy: "default-src 'self'",
-  frameOptions: 'DENY',
-  hsts: 'max-age=31536000; includeSubDomains',
-}));
-```
-
-### 5. Wrappers
-
-#### Chrome AI Wrapper (Current API)
-
-Mimic the current Chrome AI API with any backend:
-
-```typescript
-import { ChromeAILanguageModel } from 'ai.matey';
-
-const languageModel = ChromeAILanguageModel(backend);
-
-const session = await languageModel.create({
-  temperature: 0.8,
-  topK: 40,
-});
-
-const response = await session.prompt('Hello!');
-
-// Streaming
-const stream = session.promptStreaming('Tell me a story');
-for await (const chunk of stream) {
-  process.stdout.write(chunk);
-}
-```
-
-#### Legacy Chrome AI Wrapper (Old API)
-
-Full compatibility with the original Chrome AI API:
-
-```typescript
-import { LegacyChromeAILanguageModel, polyfillLegacyWindowAI } from 'ai.matey';
-
-const languageModel = LegacyChromeAILanguageModel(backend);
-
-const session = await languageModel.create();
-const response = await session.prompt('Hello!');
-
-// Token tracking
-console.log(session.tokensSoFar);
-console.log(session.tokensLeft);
-
-// Polyfill window.ai globally
-polyfillLegacyWindowAI(backend);
-const session = await window.ai.languageModel.create();
-```
-
-#### OpenAI SDK Wrapper
-
-Drop-in replacement for OpenAI SDK:
-
-```typescript
-import { OpenAI } from 'ai.matey';
-
-const client = new OpenAI(backend);
-
-const completion = await client.chat.completions.create({
-  model: 'gpt-4',
-  messages: [{ role: 'user', content: 'Hello!' }],
-});
-```
-
-#### Anthropic SDK Wrapper
-
-Drop-in replacement for Anthropic SDK:
-
-```typescript
-import { Anthropic } from 'ai.matey';
-
-const client = new Anthropic(backend);
-
-const message = await client.messages.create({
-  model: 'claude-3-sonnet',
-  messages: [{ role: 'user', content: 'Hello!' }],
-});
-```
-
-### 6. HTTP Server Support
-
-Create HTTP endpoints for your AI services:
-
-```typescript
-import { createServer } from 'http';
-import { Bridge, OpenAIFrontendAdapter, AnthropicBackendAdapter } from 'ai.matey';
-import { NodeHTTPListener } from 'ai.matey/http';
-
-// Create bridge first
-const frontend = new OpenAIFrontendAdapter();
-const backend = new AnthropicBackendAdapter({ apiKey: process.env.ANTHROPIC_API_KEY });
-const bridge = new Bridge(frontend, backend);
-
-// Create HTTP listener
-const listener = NodeHTTPListener(bridge, {
-  cors: true,
-  streaming: true,
-  rateLimit: {
-    windowMs: 60000,
-    maxRequests: 100,
-  },
-});
-
-createServer(listener).listen(8080);
-```
-
-**Framework Support:**
-- Node.js: `import { NodeHTTPListener } from 'ai.matey/http/node'`
-- Express: `import { ExpressMiddleware } from 'ai.matey/http/express'`
-- Koa: `import { KoaMiddleware } from 'ai.matey/http/koa'`
-- Hono: `import { HonoMiddleware } from 'ai.matey/http/hono'`
-- Fastify: `import { FastifyHandler } from 'ai.matey/http/fastify'`
-- Deno: `import { DenoHandler } from 'ai.matey/http/deno'`
-
-### 7. CLI Tools
-
-ai.matey includes powerful command-line tools for various tasks:
-
-#### Ollama CLI Emulator
-
-Run Ollama-compatible commands with any backend:
+## CLI Tools
 
 ```bash
-# Download GGUF models from Ollama registry
-ai-matey emulate-ollama pull phi3:3.8b
+# Install globally
+npm install -g ai.matey.cli
 
-# Create a backend adapter
-ai-matey create-backend --provider openai
+# Start an OpenAI-compatible proxy with any backend
+ai-matey proxy --backend ./my-backend.mjs --port 3000
 
-# Run with your backend
-ai-matey emulate-ollama --backend ./backend.mjs run llama3.1
-ai-matey emulate-ollama --backend ./backend.mjs run llama3.1 "What is 2+2?"
+# Emulate Ollama CLI with any backend
+ai-matey emulate-ollama --backend ./backend.mjs run llama3.1 "Hello!"
 
-# Other Ollama commands
-ai-matey emulate-ollama --backend ./backend.mjs list
-ai-matey emulate-ollama --backend ./backend.mjs ps
-ai-matey emulate-ollama --backend ./backend.mjs show llama3.1
-```
+# Convert requests between formats
+ai-matey convert-request --from openai --to anthropic --input request.json
 
-#### Backend Generator
-
-Generate backend adapter templates:
-
-```bash
-# Interactive wizard
-ai-matey create-backend
-
-# Quick generation
-ai-matey create-backend --provider openai --output ./backend.mjs
-ai-matey create-backend --provider node-llamacpp --output ./llama-backend.mjs
-ai-matey create-backend --provider apple --output ./apple-backend.mjs
-```
-
-#### Format Converters
-
-Convert between Universal IR and provider formats:
-
-```bash
-# Convert IR response to provider format
+# Convert responses between formats
 ai-matey convert-response --format openai --input response.json
-ai-matey convert-response --format anthropic --input response.json --output out.json
 
-# Convert request formats
-ai-matey convert-request --from openai --to ir --input request.json
-ai-matey convert-request --from ir --to anthropic --input request.json
-
-# Convert to all formats (for comparison)
-ai-matey convert-response --format all --input response.json
+# Create a backend adapter template
+ai-matey create-backend --provider groq --output ./groq-backend.mjs
 ```
-
-#### Proxy Server
-
-Start an OpenAI-compatible HTTP proxy with any backend:
-
-```bash
-# Start proxy server
-ai-matey proxy --backend ./backend.mjs --port 3000
-
-# Now you can use it like OpenAI API
-curl http://localhost:3000/v1/chat/completions \
-  -H "Content-Type: application/json" \
-  -d '{"model":"gpt-4","messages":[{"role":"user","content":"Hello!"}]}'
-```
-
-See [docs/GUIDES.md](./docs/GUIDES.md) for detailed documentation on all CLI tools and features.
-
-## Import Paths
-
-### Main Package
-
-```typescript
-import { Bridge, Router, createBridge } from 'ai.matey';
-```
-
-### Subpath Imports
-
-For better tree-shaking and organization:
-
-```typescript
-// Middleware only
-import { createLoggingMiddleware, createCostTrackingMiddleware } from 'ai.matey/middleware';
-
-// Wrappers only
-import { ChromeAILanguageModel, OpenAI } from 'ai.matey/wrappers';
-
-// Backend adapters only
-import { OpenAIBackendAdapter, GroqBackendAdapter } from 'ai.matey/adapters/backend';
-
-// Frontend adapters only
-import { OpenAIFrontendAdapter } from 'ai.matey/adapters/frontend';
-
-// HTTP utilities
-import { NodeHTTPListener } from 'ai.matey/http';
-import { ExpressMiddleware } from 'ai.matey/http/express';
-
-// Types only
-import type { IRChatRequest, IRChatResponse } from 'ai.matey/types';
-
-// Errors only
-import { AdapterError, NetworkError } from 'ai.matey/errors';
-
-// Utils only
-import { validateMessage, normalizeTemperature } from 'ai.matey/utils';
-```
-
-## API Reference
-
-See [docs/API.md](./docs/API.md) for complete API reference including all exported functions, classes, types, and HTTP integration details.
-
-## Examples
-
-See the [examples/](./examples) directory for complete examples:
-
-- `basic/` - Basic bridge and adapter usage
-- `routing/` - Router with multiple providers
-- `middleware/` - Middleware pipeline examples
-- `http/` - HTTP server integrations
-- `wrappers/` - SDK wrapper examples
-- `chrome-ai-wrapper.js` - Chrome AI compatibility layer
-- `chrome-ai-legacy-wrapper.js` - Legacy Chrome AI API wrapper
-- `middleware-demo.ts` - Complete middleware demonstration
 
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────┐
-│           Your Application                  │
-│      (Provider-Specific Format)             │
-└──────────────────┬──────────────────────────┘
-                   │
-                   ▼
-┌─────────────────────────────────────────────┐
-│         Frontend Adapter                    │
-│     (Convert to Universal IR)               │
-└──────────────────┬──────────────────────────┘
-                   │
-                   ▼
-┌─────────────────────────────────────────────┐
-│              Bridge                         │
-│  ┌────────────────────────────────────────┐ │
-│  │      Middleware Pipeline               │ │
-│  │  • Logging                             │ │
-│  │  • Cost Tracking                       │ │
-│  │  • Validation & Sanitization           │ │
-│  │  • Caching                             │ │
-│  │  • Retry                               │ │
-│  │  • Transform                           │ │
-│  │  • Telemetry                           │ │
-│  └────────────────────────────────────────┘ │
-└──────────────────┬──────────────────────────┘
-                   │
-                   ▼
-┌─────────────────────────────────────────────┐
-│    Router (Optional)                        │
-│  • Cost-Optimized Routing                   │
-│  • Latency-Optimized Routing                │
-│  • Model-Based Routing                      │
-│  • Fallback Chain                           │
-│  • Circuit Breaker                          │
-└──────────────────┬──────────────────────────┘
-                   │
-                   ▼
-┌─────────────────────────────────────────────┐
-│         Backend Adapter                     │
-│    (Execute on Provider API)                │
-└──────────────────┬──────────────────────────┘
-                   │
-                   ▼
-┌─────────────────────────────────────────────┐
-│          AI Provider API                    │
-│  (OpenAI, Anthropic, Gemini, etc.)          │
-└─────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│                         Client                              │
+│  (OpenAI format, Anthropic format, Gemini format, etc.)     │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│                    Frontend Adapter                         │
+│  Translates client format → Internal IR                     │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│                      Bridge / Router                        │
+│  Middleware stack, routing, fallback                        │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│                    Backend Adapter                          │
+│  Translates Internal IR → Provider API                      │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│                      AI Provider                            │
+│  (OpenAI, Anthropic, Gemini, Ollama, etc.)                  │
+└─────────────────────────────────────────────────────────────┘
+```
+
+## Examples
+
+See the [examples directory](./examples) and [demo directory](./demo) for comprehensive usage:
+
+```bash
+# Run the main demo
+node demo/demo.mjs
+
+# Run the router demo
+npx tsx demo/router-demo.ts
 ```
 
 ## Development
@@ -952,139 +415,16 @@ See the [examples/](./examples) directory for complete examples:
 # Install dependencies
 npm install
 
-# Build
+# Build all packages
 npm run build
 
-# Type check
-npm run typecheck
-
-# Lint
-npm run lint
-
-# Format
-npm run format
-
-# Test
+# Run tests
 npm test
 
-# Test with coverage
-npm run test:coverage
-
-# Clean
-npm run clean
+# Run linter
+npm run lint
 ```
-
-## Contributing
-
-Thank you for your interest in contributing to ai.matey! We welcome contributions of all kinds.
-
-### Getting Started
-
-1. Fork the repository and clone locally
-2. Install dependencies: `npm install`
-3. Create a branch: `git checkout -b feature/my-feature`
-4. Make your changes and add tests
-5. Run tests: `npm test`
-6. Run linter: `npm run lint`
-7. Build: `npm run build`
-8. Submit a pull request
-
-### What to Contribute
-
-- **Bug fixes** - Check issues labeled `bug`
-- **Features** - Check issues labeled `enhancement` or `help wanted`
-- **Documentation** - Improve docs, add examples, fix typos
-- **Tests** - Add missing tests, improve coverage
-- **Adapters** - Add new provider adapters
-- **Benchmarks** - Performance testing and optimization
-- **Developer Experience** - Tooling (Broswer/VS Code Extension), CLI improvements, DX enhancements
-- **Integration** - New HTTP frameworks, serverless platforms, React/Next.js hooks
-- **Multi-modal support** - Image, audio, video handling
-
-Look for issues labeled `good first issue` for beginner-friendly tasks.
-
-### Coding Standards
-
-- Use TypeScript with strict mode enabled
-- Follow ESLint/Prettier configuration
-- Write JSDoc comments for public APIs
-- Add tests for new features
-- Maintain 80%+ test coverage
-- Use conventional commit messages
-
-### Commit Message Format
-
-Follow [Conventional Commits](https://www.conventionalcommits.org/):
-
-```
-type(scope): subject
-
-Examples:
-- feat(adapters): add Gemini backend adapter
-- fix(http): handle empty body in OPTIONS requests
-- docs(examples): add caching middleware example
-```
-
-### Pull Request Process
-
-1. Update documentation as needed
-2. Ensure all tests pass
-3. Update CHANGELOG if applicable
-4. Request review from maintainers
-5. Address feedback promptly
-
-For detailed guidelines, see our [Code of Conduct](https://www.contributor-covenant.org/version/2/1/code_of_conduct/).
-
-## Roadmap
-
-**Current Version:** 0.1.0 (Foundation Complete)
-
-**Next Releases:**
-- **v0.2.0** - Router fallback model translation (Q1 2025)
-- **v0.3.0** - Capability-based routing (Q2 2025)
-- **v0.4.0** - Developer experience improvements (Q2 2025)
-- **v1.0.0** - Production ready (Q3 2025)
-
-For the complete roadmap including future features, competitive analysis, and release schedule, see [ROADMAP.md](./docs/ROADMAP.md).
 
 ## License
 
-MIT © [AI Matey](https://github.com/johnhenry/ai.matey)
-
-## Documentation
-
-Complete documentation is available:
-
-- **[Examples](./EXAMPLES.md)** - 18+ working examples with complete code:
-  - Basic usage (simple bridge, streaming, reverse bridge)
-  - Middleware (logging, retry, caching, transform)
-  - Routing (round-robin, fallback)
-  - HTTP servers (Node.js, Express, Hono)
-  - SDK wrappers (OpenAI, Anthropic)
-  - Browser APIs (Chrome AI, legacy Chrome AI)
-  - Model runners (LlamaCpp for local GGUF models)
-  - Browser compatibility guide
-
-- **[API Reference](./docs/API.md)** - Complete API documentation:
-  - Core components (Bridge, Router, MiddlewareStack)
-  - All adapters (frontend and backend)
-  - Middleware (logging, caching, retry, transform, telemetry, security)
-  - HTTP integration for all frameworks (Express, Fastify, Koa, Hono, Deno)
-  - SDK wrappers (OpenAI, Anthropic, Chrome AI)
-  - Complete export reference and import paths
-  - Types and error handling
-
-- **[Feature Guides](./docs/GUIDES.md)** - Comprehensive guides:
-  - Parallel dispatch (query multiple backends simultaneously)
-  - Response conversion (debugging and testing utilities)
-  - CLI tools (Ollama emulation, backend generator, format converters, proxy server)
-
-## Support
-
-- 📖 [Documentation](./docs)
-- 🐛 [Issue Tracker](https://github.com/johnhenry/ai.matey/issues)
-- 💬 [Discussions](https://github.com/johnhenry/ai.matey/discussions)
-
----
-
-**Made with ❤️ for the AI community**
+MIT

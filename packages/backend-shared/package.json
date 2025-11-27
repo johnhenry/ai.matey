@@ -20,7 +20,7 @@
   },
   "files": [
     "dist",
-    "README.md",
+    "readme.md",
     "CHANGELOG.md",
     "LICENSE"
   ],
