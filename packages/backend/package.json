@@ -1,0 +1,157 @@
+{
+  "name": "ai.matey.backend",
+  "version": "1.0.0",
+  "description": "Backend provider adapters for AI Matey - Universal AI Adapter System",
+  "type": "module",
+  "main": "./dist/cjs/index.js",
+  "module": "./dist/esm/index.js",
+  "types": "./dist/types/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/types/index.d.ts",
+        "default": "./dist/esm/index.js"
+      },
+      "require": {
+        "types": "./dist/types/index.d.ts",
+        "default": "./dist/cjs/index.js"
+      }
+    },
+    "./openai": {
+      "import": {
+        "types": "./dist/types/providers/openai.d.ts",
+        "default": "./dist/esm/providers/openai.js"
+      },
+      "require": {
+        "types": "./dist/types/providers/openai.d.ts",
+        "default": "./dist/cjs/providers/openai.js"
+      }
+    },
+    "./anthropic": {
+      "import": {
+        "types": "./dist/types/providers/anthropic.d.ts",
+        "default": "./dist/esm/providers/anthropic.js"
+      },
+      "require": {
+        "types": "./dist/types/providers/anthropic.d.ts",
+        "default": "./dist/cjs/providers/anthropic.js"
+      }
+    },
+    "./gemini": {
+      "import": {
+        "types": "./dist/types/providers/gemini.d.ts",
+        "default": "./dist/esm/providers/gemini.js"
+      },
+      "require": {
+        "types": "./dist/types/providers/gemini.d.ts",
+        "default": "./dist/cjs/providers/gemini.js"
+      }
+    },
+    "./mistral": {
+      "import": {
+        "types": "./dist/types/providers/mistral.d.ts",
+        "default": "./dist/esm/providers/mistral.js"
+      },
+      "require": {
+        "types": "./dist/types/providers/mistral.d.ts",
+        "default": "./dist/cjs/providers/mistral.js"
+      }
+    },
+    "./cohere": {
+      "import": {
+        "types": "./dist/types/providers/cohere.d.ts",
+        "default": "./dist/esm/providers/cohere.js"
+      },
+      "require": {
+        "types": "./dist/types/providers/cohere.d.ts",
+        "default": "./dist/cjs/providers/cohere.js"
+      }
+    },
+    "./groq": {
+      "import": {
+        "types": "./dist/types/providers/groq.d.ts",
+        "default": "./dist/esm/providers/groq.js"
+      },
+      "require": {
+        "types": "./dist/types/providers/groq.d.ts",
+        "default": "./dist/cjs/providers/groq.js"
+      }
+    },
+    "./ollama": {
+      "import": {
+        "types": "./dist/types/providers/ollama.d.ts",
+        "default": "./dist/esm/providers/ollama.js"
+      },
+      "require": {
+        "types": "./dist/types/providers/ollama.d.ts",
+        "default": "./dist/cjs/providers/ollama.js"
+      }
+    },
+    "./shared": {
+      "import": {
+        "types": "./dist/types/shared.d.ts",
+        "default": "./dist/esm/shared.js"
+      },
+      "require": {
+        "types": "./dist/types/shared.d.ts",
+        "default": "./dist/cjs/shared.js"
+      }
+    }
+  },
+  "files": [
+    "dist",
+    "readme.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "npm run build:esm && npm run build:cjs && npm run build:types",
+    "build:esm": "tsc -p tsconfig.esm.json",
+    "build:cjs": "tsc -p tsconfig.cjs.json",
+    "build:types": "tsc -p tsconfig.types.json",
+    "clean": "rm -rf dist",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src --ext .ts",
+    "lint:fix": "eslint src --ext .ts --fix",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "ai.matey.types": "*",
+    "ai.matey.errors": "*",
+    "ai.matey.utils": "*"
+  },
+  "devDependencies": {
+    "ai.matey.testing": "*",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4"
+  },
+  "keywords": [
+    "ai",
+    "llm",
+    "backend",
+    "adapter",
+    "openai",
+    "anthropic",
+    "gemini",
+    "mistral",
+    "cohere",
+    "groq",
+    "ollama",
+    "ai-matey"
+  ],
+  "author": "AI Matey",
+  "license": "MIT",
+  "homepage": "https://github.com/johnhenry/ai.matey#readme",
+  "bugs": {
+    "url": "https://github.com/johnhenry/ai.matey/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/johnhenry/ai.matey.git",
+    "directory": "packages/backend"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

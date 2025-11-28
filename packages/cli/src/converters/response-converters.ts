@@ -13,15 +13,15 @@ import {
   OpenAIFrontendAdapter,
   type OpenAIResponse,
   type OpenAIStreamChunk,
-} from 'ai.matey.frontend.openai';
+} from 'ai.matey.frontend';
 import {
   AnthropicFrontendAdapter,
   type AnthropicResponse,
   type AnthropicStreamEvent,
-} from 'ai.matey.frontend.anthropic';
-import { GeminiFrontendAdapter } from 'ai.matey.frontend.gemini';
-import { OllamaFrontendAdapter } from 'ai.matey.frontend.ollama';
-import { MistralFrontendAdapter } from 'ai.matey.frontend.mistral';
+} from 'ai.matey.frontend';
+import { GeminiFrontendAdapter } from 'ai.matey.frontend';
+import { OllamaFrontendAdapter } from 'ai.matey.frontend';
+import { MistralFrontendAdapter } from 'ai.matey.frontend';
 
 // ============================================================================
 // Non-Streaming Converters

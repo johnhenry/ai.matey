@@ -8,7 +8,7 @@
  */
 
 import { useState, useCallback, useRef, useId, useEffect } from 'react';
-import { Chat, createChat } from 'ai.matey.wrapper.ir';
+import { Chat, createChat } from 'ai.matey.wrapper';
 import type { IRMessage } from 'ai.matey.types';
 import type {
   Message,

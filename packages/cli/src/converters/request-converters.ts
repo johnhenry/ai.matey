@@ -23,23 +23,23 @@ import type { IRChatRequest } from 'ai.matey.types';
 import {
   OpenAIBackendAdapter,
   type OpenAIRequest,
-} from 'ai.matey.backend.openai';
+} from 'ai.matey.backend';
 import {
   AnthropicBackendAdapter,
   type AnthropicRequest,
-} from 'ai.matey.backend.anthropic';
+} from 'ai.matey.backend';
 import {
   GeminiBackendAdapter,
   type GeminiRequest,
-} from 'ai.matey.backend.gemini';
+} from 'ai.matey.backend';
 import {
   OllamaBackendAdapter,
   type OllamaRequest,
-} from 'ai.matey.backend.ollama';
+} from 'ai.matey.backend';
 import {
   MistralBackendAdapter,
   type MistralRequest,
-} from 'ai.matey.backend.mistral';
+} from 'ai.matey.backend';
 
 // ============================================================================
 // Individual Request Converters

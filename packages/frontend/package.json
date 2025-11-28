@@ -1,7 +1,7 @@
 {
-  "name": "ai.matey.http-core",
+  "name": "ai.matey.frontend",
   "version": "1.0.0",
-  "description": "Framework-agnostic HTTP core utilities for AI Matey",
+  "description": "Frontend adapters for AI Matey - Universal AI Adapter System",
   "type": "module",
   "main": "./dist/cjs/index.js",
   "module": "./dist/esm/index.js",
@@ -15,6 +15,46 @@
       "require": {
         "types": "./dist/types/index.d.ts",
         "default": "./dist/cjs/index.js"
+      }
+    },
+    "./openai": {
+      "import": {
+        "types": "./dist/types/adapters/openai.d.ts",
+        "default": "./dist/esm/adapters/openai.js"
+      },
+      "require": {
+        "types": "./dist/types/adapters/openai.d.ts",
+        "default": "./dist/cjs/adapters/openai.js"
+      }
+    },
+    "./anthropic": {
+      "import": {
+        "types": "./dist/types/adapters/anthropic.d.ts",
+        "default": "./dist/esm/adapters/anthropic.js"
+      },
+      "require": {
+        "types": "./dist/types/adapters/anthropic.d.ts",
+        "default": "./dist/cjs/adapters/anthropic.js"
+      }
+    },
+    "./gemini": {
+      "import": {
+        "types": "./dist/types/adapters/gemini.d.ts",
+        "default": "./dist/esm/adapters/gemini.js"
+      },
+      "require": {
+        "types": "./dist/types/adapters/gemini.d.ts",
+        "default": "./dist/cjs/adapters/gemini.js"
+      }
+    },
+    "./generic": {
+      "import": {
+        "types": "./dist/types/adapters/generic.d.ts",
+        "default": "./dist/esm/adapters/generic.js"
+      },
+      "require": {
+        "types": "./dist/types/adapters/generic.d.ts",
+        "default": "./dist/cjs/adapters/generic.js"
       }
     }
   },
@@ -39,21 +79,22 @@
   "dependencies": {
     "ai.matey.types": "*",
     "ai.matey.errors": "*",
-    "ai.matey.core": "*"
+    "ai.matey.utils": "*",
+    "ai.matey.backend": "*"
   },
   "devDependencies": {
     "ai.matey.testing": "*",
-    "@types/node": "^24.7.2",
     "typescript": "^5.9.3",
     "vitest": "^3.2.4"
   },
   "keywords": [
     "ai",
     "llm",
-    "http",
-    "server",
+    "frontend",
     "adapter",
-    "framework-agnostic",
+    "openai",
+    "anthropic",
+    "gemini",
     "ai-matey"
   ],
   "author": "AI Matey",
@@ -65,7 +106,7 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/johnhenry/ai.matey.git",
-    "directory": "packages/http-core"
+    "directory": "packages/frontend"
   },
   "engines": {
     "node": ">=18.0.0"
