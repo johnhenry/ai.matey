@@ -6,7 +6,9 @@
 
 import express from 'express';
 import { ExpressMiddleware } from 'ai.matey.http/express';
-import { Bridge, OpenAIFrontendAdapter, AnthropicBackendAdapter } from 'ai.matey';
+import { Bridge } from 'ai.matey.core';
+import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
+import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
 
 async function main() {
   const app = express();

@@ -4,13 +4,10 @@
  * Shows how to transform requests and responses.
  */
 
-import {
-  Bridge,
-  OpenAIFrontendAdapter,
-  AnthropicBackendAdapter,
-  createTransformMiddleware,
-  createSystemMessageInjector,
-} from 'ai.matey';
+import { Bridge } from 'ai.matey.core';
+import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
+import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
+import { createTransformMiddleware, createSystemMessageInjector } from 'ai.matey.middleware/transform';
 
 async function main() {
   const bridge = new Bridge(

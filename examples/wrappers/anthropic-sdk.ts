@@ -5,7 +5,9 @@
  */
 
 import { Anthropic } from 'ai.matey.wrapper/anthropic';
-import { Bridge, AnthropicFrontendAdapter, OpenAIBackendAdapter } from 'ai.matey';
+import { Bridge } from 'ai.matey.core';
+import { AnthropicFrontendAdapter } from 'ai.matey.frontend/anthropic';
+import { OpenAIBackendAdapter } from 'ai.matey.backend/openai';
 
 async function main() {
   // Create bridge with OpenAI backend

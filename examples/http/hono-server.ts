@@ -6,7 +6,9 @@
 
 import { Hono } from 'hono';
 import { HonoMiddleware } from 'ai.matey.http/hono';
-import { Bridge, OpenAIFrontendAdapter, AnthropicBackendAdapter } from 'ai.matey';
+import { Bridge } from 'ai.matey.core';
+import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
+import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
 
 const app = new Hono();
 

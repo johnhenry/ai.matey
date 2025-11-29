@@ -46,16 +46,16 @@ import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
 import { createLoggingMiddleware } from 'ai.matey.middleware';
 ```
 
-### Backwards Compatible (For Existing Projects)
+### Specific Package Imports (Alternative Style)
 ```typescript
-// Import from umbrella package
-import {
-  Bridge,
-  OpenAIFrontendAdapter,
-  AnthropicBackendAdapter,
-  createLoggingMiddleware,
-} from 'ai.matey';
+// Import from specific subpackage paths
+import { Bridge } from 'ai.matey.core';
+import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
+import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
+import { createLoggingMiddleware } from 'ai.matey.middleware/logging';
 ```
+
+Note: The umbrella package `ai.matey` only exports `VERSION` for version checking. Always import from specific packages as shown above.
 
 ## Running Examples
 

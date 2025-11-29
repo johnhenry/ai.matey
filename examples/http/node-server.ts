@@ -6,7 +6,9 @@
 
 import http from 'http';
 import { NodeHTTPListener } from 'ai.matey.http';
-import { Bridge, OpenAIFrontendAdapter, AnthropicBackendAdapter } from 'ai.matey';
+import { Bridge } from 'ai.matey.core';
+import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
+import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
 
 async function main() {
   // Create bridge

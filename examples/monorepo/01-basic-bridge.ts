@@ -10,8 +10,8 @@ import { Bridge } from 'ai.matey.core';
 import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
 import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
 
-// Or use the umbrella package for backwards compatibility:
-// import { Bridge, OpenAIFrontendAdapter, AnthropicBackendAdapter } from 'ai.matey';
+// Note: The umbrella package 'ai.matey' only exports VERSION.
+// Always import from specific packages as shown above.
 
 async function main() {
   // Create bridge: OpenAI-compatible frontend -> Anthropic backend
