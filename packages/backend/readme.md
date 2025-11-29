@@ -12,25 +12,45 @@ npm install ai.matey.backend
 
 ## Included Providers
 
-This package includes adapters for the following AI providers:
+This package includes adapters for **24 AI providers**:
 
-- **OpenAI** - GPT-4, GPT-3.5, etc.
-- **Anthropic** - Claude 3, Claude 2, etc.
+### Commercial APIs
+- **OpenAI** - GPT-4, GPT-4 Turbo, GPT-3.5
+- **Anthropic** - Claude 3 Opus, Claude 3 Sonnet, Claude 3 Haiku
 - **Google Gemini** - Gemini Pro, Gemini Ultra
-- **Mistral** - Mistral Large, Medium, Small
-- **Cohere** - Command, Command-Light
-- **Groq** - LLaMA, Mixtral (fast inference)
-- **Ollama** - Local model hosting
+- **Mistral AI** - Mistral Large, Medium, Small
+- **Cohere** - Command, Command-Light, Command-R
+- **xAI** - Grok models
+- **AI21 Labs** - Jurassic models
+
+### Cloud Providers
 - **AWS Bedrock** - Amazon's managed AI service
 - **Azure OpenAI** - Microsoft's OpenAI deployment
-- **DeepSeek** - DeepSeek models
-- **Fireworks** - Fast inference platform
-- **Together AI** - Open model hosting
-- **Perplexity** - Search-augmented models
-- **OpenRouter** - Multi-provider routing
-- **And more...**
+- **Cloudflare Workers AI** - Edge AI deployment
 
-For browser-compatible adapters (Chrome AI, Function, Mock), see [`ai.matey.backend.browser`](https://www.npmjs.com/package/ai.matey.backend.browser).
+### Fast Inference
+- **Groq** - Ultra-fast LLaMA, Mixtral inference
+- **Fireworks AI** - Fast inference platform
+- **Together AI** - Open model hosting
+- **Anyscale** - Fast endpoints
+- **DeepInfra** - High-performance inference
+- **Cerebras** - AI supercomputer inference
+
+### Aggregators
+- **OpenRouter** - Multi-provider routing and fallback
+- **Perplexity** - Search-augmented models
+
+### Specialized
+- **Replicate** - ML model deployment
+- **NVIDIA NIM** - NVIDIA inference microservices
+- **Hugging Face** - Open model inference
+- **DeepSeek** - Research models
+
+### Local/Development
+- **Ollama** - Local model hosting
+- **LM Studio** - Local desktop inference
+
+For browser-compatible adapters (Chrome AI, Function, Mock), see [`ai.matey.backend.browser`](../backend-browser).
 
 ## Usage
 
