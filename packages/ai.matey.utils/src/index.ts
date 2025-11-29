@@ -29,3 +29,6 @@ export * from './conversation-history.js';
 
 // Model cache utilities
 export * from './model-cache.js';
+
+// Structured output utilities (Zod integration)
+export * from './structured-output.js';
