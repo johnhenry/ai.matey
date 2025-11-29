@@ -24,10 +24,11 @@
  *    npx tsx examples/opentelemetry/multi-provider.ts
  */
 
-import { Router } from '../../src/index.js';
-import { createOpenAIFrontendAdapter } from '../../src/adapters/frontend/index.js';
-import { createOpenAIBackendAdapter, createAnthropicBackendAdapter } from '../../src/adapters/backend/index.js';
-import { createOpenTelemetryMiddleware, shutdownOpenTelemetry } from '../../src/middleware/index.js';
+import { Router } from 'ai.matey.core';
+import { createOpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
+import { createOpenAIBackendAdapter } from 'ai.matey.backend/openai';
+import { createAnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
+import { createOpenTelemetryMiddleware, shutdownOpenTelemetry } from 'ai.matey.middleware/opentelemetry';
 
 async function main() {
   console.log('🌐 OpenTelemetry Multi-Provider Example\n');

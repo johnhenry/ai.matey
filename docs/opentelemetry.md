@@ -66,10 +66,10 @@ npm install @opentelemetry/api \
 ### Basic Usage
 
 ```typescript
-import { Bridge } from 'ai.matey';
-import { createOpenAIFrontendAdapter } from 'ai.matey/adapters/frontend';
-import { createOpenAIBackendAdapter } from 'ai.matey/adapters/backend';
-import { createOpenTelemetryMiddleware } from 'ai.matey/middleware';
+import { Bridge } from 'ai.matey.core';
+import { createOpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
+import { createOpenAIBackendAdapter } from 'ai.matey.backend/openai';
+import { createOpenTelemetryMiddleware } from 'ai.matey.middleware/opentelemetry';
 
 async function main() {
   // Create bridge
@@ -102,7 +102,7 @@ main().catch(console.error);
 You can check if OpenTelemetry packages are installed:
 
 ```typescript
-import { isOpenTelemetryAvailable, isOpenTelemetryLoaded } from 'ai.matey/middleware';
+import { isOpenTelemetryAvailable, isOpenTelemetryLoaded } from 'ai.matey.middleware';
 
 // Async check with dynamic import
 if (await isOpenTelemetryAvailable()) {
@@ -125,7 +125,7 @@ if (isOpenTelemetryLoaded()) {
 For production applications, ensure proper shutdown:
 
 ```typescript
-import { shutdownOpenTelemetry } from 'ai.matey/middleware';
+import { shutdownOpenTelemetry } from 'ai.matey.middleware';
 
 // Graceful shutdown
 process.on('SIGTERM', async () => {
@@ -225,7 +225,7 @@ docker run -d --name jaeger \
 **2. Configure ai.matey:**
 
 ```typescript
-import { createOpenTelemetryMiddleware } from 'ai.matey/middleware';
+import { createOpenTelemetryMiddleware } from 'ai.matey.middleware';
 
 const otel = createOpenTelemetryMiddleware({
   serviceName: 'my-ai-service',
@@ -254,7 +254,7 @@ docker run -d -p 9411:9411 openzipkin/zipkin
 ```typescript
 // Note: Zipkin uses a different endpoint format
 // You'll need to use the Zipkin exporter instead
-import { createOpenTelemetryMiddleware } from 'ai.matey/middleware';
+import { createOpenTelemetryMiddleware } from 'ai.matey.middleware';
 
 const otel = createOpenTelemetryMiddleware({
   serviceName: 'my-ai-service',
@@ -279,7 +279,7 @@ Follow [Datadog's installation guide](https://docs.datadoghq.com/agent/).
 **2. Configure ai.matey:**
 
 ```typescript
-import { createOpenTelemetryMiddleware } from 'ai.matey/middleware';
+import { createOpenTelemetryMiddleware } from 'ai.matey.middleware';
 
 const otel = createOpenTelemetryMiddleware({
   serviceName: 'my-ai-service',
@@ -311,7 +311,7 @@ Sign up at https://honeycomb.io and get your API key.
 **2. Configure ai.matey:**
 
 ```typescript
-import { createOpenTelemetryMiddleware } from 'ai.matey/middleware';
+import { createOpenTelemetryMiddleware } from 'ai.matey.middleware';
 
 const otel = createOpenTelemetryMiddleware({
   serviceName: 'my-ai-service',
@@ -339,7 +339,7 @@ Get your New Relic license key from the dashboard.
 **2. Configure ai.matey:**
 
 ```typescript
-import { createOpenTelemetryMiddleware } from 'ai.matey/middleware';
+import { createOpenTelemetryMiddleware } from 'ai.matey.middleware';
 
 const otel = createOpenTelemetryMiddleware({
   serviceName: 'my-ai-service',
@@ -363,7 +363,7 @@ bridge.use(otel);
 Access span attributes used by ai.matey:
 
 ```typescript
-import { OpenTelemetryAttributes } from 'ai.matey/middleware';
+import { OpenTelemetryAttributes } from 'ai.matey.middleware';
 
 console.log(OpenTelemetryAttributes.REQUEST_ID); // 'ai.request.id'
 console.log(OpenTelemetryAttributes.TOKENS_TOTAL); // 'ai.tokens.total'
@@ -395,7 +395,7 @@ import {
   createOpenTelemetryMiddleware,
   createTelemetryMiddleware,
   ConsoleTelemetrySink,
-} from 'ai.matey/middleware';
+} from 'ai.matey.middleware';
 
 // OpenTelemetry for distributed tracing
 bridge.use(
@@ -421,7 +421,7 @@ Use OpenTelemetry with the regular telemetry middleware:
 import {
   createTelemetryMiddleware,
   OpenTelemetryTelemetrySink,
-} from 'ai.matey/middleware';
+} from 'ai.matey.middleware';
 
 const sink = new OpenTelemetryTelemetrySink({
   serviceName: 'my-ai-service',
@@ -470,7 +470,7 @@ const otel = createOpenTelemetryMiddleware({
 Always shutdown OpenTelemetry gracefully:
 
 ```typescript
-import { shutdownOpenTelemetry } from 'ai.matey/middleware';
+import { shutdownOpenTelemetry } from 'ai.matey.middleware';
 
 async function shutdown() {
   console.log('Shutting down...');
@@ -495,7 +495,7 @@ Track key metrics:
 Only initialize OpenTelemetry if packages are installed:
 
 ```typescript
-import { isOpenTelemetryAvailable, createOpenTelemetryMiddleware } from 'ai.matey/middleware';
+import { isOpenTelemetryAvailable, createOpenTelemetryMiddleware } from 'ai.matey.middleware';
 
 async function setupTracing() {
   if (await isOpenTelemetryAvailable()) {

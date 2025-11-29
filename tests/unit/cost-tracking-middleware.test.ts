@@ -6,9 +6,9 @@ import {
   calculateCost,
   getCostStats,
   DEFAULT_PRICING,
-} from '../../src/middleware/cost-tracking.js';
-import type { IRChatRequest, IRChatResponse, IRStreamChunk } from '../../src/types/ir.js';
-import type { MiddlewareContext, StreamingMiddlewareContext } from '../../src/types/middleware.js';
+} from 'ai.matey.middleware';
+import type { IRChatRequest, IRChatResponse, IRStreamChunk } from 'ai.matey.types';
+import type { MiddlewareContext, StreamingMiddlewareContext } from 'ai.matey.types';
 
 describe('Cost Tracking Middleware', () => {
   const mockRequest: IRChatRequest = {
@@ -429,10 +429,10 @@ describe('Cost Tracking Middleware', () => {
     });
 
     it('should log costs when enabled', async () => {
-      // Spy on console.log
-      const originalLog = console.log;
+      // Spy on console.warn
+      const originalWarn = console.warn;
       const logs: string[] = [];
-      console.log = (...args: any[]) => logs.push(args.join(' '));
+      console.warn = (...args: any[]) => logs.push(args.join(' '));
 
       const middleware = createCostTrackingMiddleware({
         storage,
@@ -444,8 +444,8 @@ describe('Cost Tracking Middleware', () => {
 
       await middleware(context, next);
 
-      // Restore console.log
-      console.log = originalLog;
+      // Restore console.warn
+      console.warn = originalWarn;
 
       expect(logs.length).toBeGreaterThan(0);
       expect(logs.some((log) => log.includes('cost') || log.includes('Cost'))).toBe(true);

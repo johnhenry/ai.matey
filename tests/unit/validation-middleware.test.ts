@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import {
   createValidationMiddleware,
   createProductionValidationMiddleware,
@@ -11,9 +11,9 @@ import {
   sanitizeRequest,
   DEFAULT_PII_PATTERNS,
   DEFAULT_INJECTION_PATTERNS,
-} from '../../src/middleware/validation.js';
-import type { IRChatRequest, IRChatResponse } from '../../src/types/ir.js';
-import type { MiddlewareContext } from '../../src/types/middleware.js';
+} from 'ai.matey.middleware';
+import type { IRChatRequest, IRChatResponse } from 'ai.matey.types';
+import type { MiddlewareContext } from 'ai.matey.types';
 
 describe('Validation Middleware', () => {
   const mockRequest: IRChatRequest = {
@@ -433,9 +433,6 @@ describe('Validation Middleware', () => {
         model: 'test',
         metadata: { requestId: 'test', timestamp: Date.now() },
       };
-
-      const context = createContext(requestWithPII);
-      const next = async () => mockResponse;
 
       // Both should handle the request, but production might be stricter
       // This depends on the actual configuration in the preset functions

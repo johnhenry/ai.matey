@@ -4,13 +4,11 @@
  * Shows how to distribute requests across multiple backends.
  */
 
-import {
-  Router,
-  OpenAIFrontendAdapter,
-  AnthropicBackendAdapter,
-  OpenAIBackendAdapter,
-  GeminiBackendAdapter,
-} from 'ai.matey';
+import { Router } from 'ai.matey.core';
+import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
+import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
+import { OpenAIBackendAdapter } from 'ai.matey.backend/openai';
+import { GeminiBackendAdapter } from 'ai.matey.backend/gemini';
 
 async function main() {
   // Create router with multiple backends

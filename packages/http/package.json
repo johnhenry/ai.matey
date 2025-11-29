@@ -1,0 +1,160 @@
+{
+  "name": "ai.matey.http",
+  "version": "1.0.0",
+  "description": "HTTP framework adapters for AI Matey - Universal AI Adapter System",
+  "type": "module",
+  "main": "./dist/cjs/index.js",
+  "module": "./dist/esm/index.js",
+  "types": "./dist/types/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/types/index.d.ts",
+        "default": "./dist/esm/index.js"
+      },
+      "require": {
+        "types": "./dist/types/index.d.ts",
+        "default": "./dist/cjs/index.js"
+      }
+    },
+    "./express": {
+      "import": {
+        "types": "./dist/types/express/index.d.ts",
+        "default": "./dist/esm/express/index.js"
+      },
+      "require": {
+        "types": "./dist/types/express/index.d.ts",
+        "default": "./dist/cjs/express/index.js"
+      }
+    },
+    "./fastify": {
+      "import": {
+        "types": "./dist/types/fastify/index.d.ts",
+        "default": "./dist/esm/fastify/index.js"
+      },
+      "require": {
+        "types": "./dist/types/fastify/index.d.ts",
+        "default": "./dist/cjs/fastify/index.js"
+      }
+    },
+    "./hono": {
+      "import": {
+        "types": "./dist/types/hono/index.d.ts",
+        "default": "./dist/esm/hono/index.js"
+      },
+      "require": {
+        "types": "./dist/types/hono/index.d.ts",
+        "default": "./dist/cjs/hono/index.js"
+      }
+    },
+    "./koa": {
+      "import": {
+        "types": "./dist/types/koa/index.d.ts",
+        "default": "./dist/esm/koa/index.js"
+      },
+      "require": {
+        "types": "./dist/types/koa/index.d.ts",
+        "default": "./dist/cjs/koa/index.js"
+      }
+    },
+    "./node": {
+      "import": {
+        "types": "./dist/types/node/index.d.ts",
+        "default": "./dist/esm/node/index.js"
+      },
+      "require": {
+        "types": "./dist/types/node/index.d.ts",
+        "default": "./dist/cjs/node/index.js"
+      }
+    },
+    "./deno": {
+      "import": {
+        "types": "./dist/types/deno/index.d.ts",
+        "default": "./dist/esm/deno/index.js"
+      },
+      "require": {
+        "types": "./dist/types/deno/index.d.ts",
+        "default": "./dist/cjs/deno/index.js"
+      }
+    }
+  },
+  "files": [
+    "dist",
+    "readme.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "npm run build:esm && npm run build:cjs && npm run build:types",
+    "build:esm": "tsc -p tsconfig.esm.json",
+    "build:cjs": "tsc -p tsconfig.cjs.json",
+    "build:types": "tsc -p tsconfig.types.json",
+    "clean": "rm -rf dist",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src --ext .ts",
+    "lint:fix": "eslint src --ext .ts --fix",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "ai.matey.types": "*",
+    "ai.matey.core": "*",
+    "ai.matey.http.core": "*"
+  },
+  "peerDependencies": {
+    "express": "^4.0.0 || ^5.0.0",
+    "fastify": "^4.0.0 || ^5.0.0",
+    "hono": "^3.0.0 || ^4.0.0",
+    "koa": "^2.0.0"
+  },
+  "peerDependenciesMeta": {
+    "express": {
+      "optional": true
+    },
+    "fastify": {
+      "optional": true
+    },
+    "hono": {
+      "optional": true
+    },
+    "koa": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "ai.matey.testing": "*",
+    "@types/express": "^5.0.3",
+    "@types/koa": "^3.0.0",
+    "@types/node": "^24.7.2",
+    "express": "^5.1.0",
+    "fastify": "^5.6.1",
+    "hono": "^4.9.12",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4"
+  },
+  "keywords": [
+    "ai",
+    "llm",
+    "http",
+    "express",
+    "fastify",
+    "hono",
+    "koa",
+    "adapter",
+    "ai-matey"
+  ],
+  "author": "AI Matey",
+  "license": "MIT",
+  "homepage": "https://github.com/johnhenry/ai.matey#readme",
+  "bugs": {
+    "url": "https://github.com/johnhenry/ai.matey/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/johnhenry/ai.matey.git",
+    "directory": "packages/http"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

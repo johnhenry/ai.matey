@@ -1,0 +1,132 @@
+{
+  "name": "ai.matey.wrapper",
+  "version": "1.0.0",
+  "description": "SDK wrappers for AI Matey - Use familiar SDK patterns with any provider",
+  "type": "module",
+  "main": "./dist/cjs/index.js",
+  "module": "./dist/esm/index.js",
+  "types": "./dist/types/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/types/index.d.ts",
+        "default": "./dist/esm/index.js"
+      },
+      "require": {
+        "types": "./dist/types/index.d.ts",
+        "default": "./dist/cjs/index.js"
+      }
+    },
+    "./openai": {
+      "import": {
+        "types": "./dist/types/openai-sdk.d.ts",
+        "default": "./dist/esm/openai-sdk.js"
+      },
+      "require": {
+        "types": "./dist/types/openai-sdk.d.ts",
+        "default": "./dist/cjs/openai-sdk.js"
+      }
+    },
+    "./anthropic": {
+      "import": {
+        "types": "./dist/types/anthropic-sdk.d.ts",
+        "default": "./dist/esm/anthropic-sdk.js"
+      },
+      "require": {
+        "types": "./dist/types/anthropic-sdk.d.ts",
+        "default": "./dist/cjs/anthropic-sdk.js"
+      }
+    },
+    "./ir": {
+      "import": {
+        "types": "./dist/types/ir-index.d.ts",
+        "default": "./dist/esm/ir-index.js"
+      },
+      "require": {
+        "types": "./dist/types/ir-index.d.ts",
+        "default": "./dist/cjs/ir-index.js"
+      }
+    },
+    "./chrome-ai": {
+      "import": {
+        "types": "./dist/types/chrome-ai.d.ts",
+        "default": "./dist/esm/chrome-ai.js"
+      },
+      "require": {
+        "types": "./dist/types/chrome-ai.d.ts",
+        "default": "./dist/cjs/chrome-ai.js"
+      }
+    },
+    "./chat": {
+      "import": {
+        "types": "./dist/types/chat.d.ts",
+        "default": "./dist/esm/chat.js"
+      },
+      "require": {
+        "types": "./dist/types/chat.d.ts",
+        "default": "./dist/cjs/chat.js"
+      }
+    },
+    "./anymethod": {
+      "import": {
+        "types": "./dist/types/anymethod.d.ts",
+        "default": "./dist/esm/anymethod.js"
+      },
+      "require": {
+        "types": "./dist/types/anymethod.d.ts",
+        "default": "./dist/cjs/anymethod.js"
+      }
+    }
+  },
+  "files": [
+    "dist",
+    "readme.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "npm run build:esm && npm run build:cjs && npm run build:types",
+    "build:esm": "tsc -p tsconfig.esm.json",
+    "build:cjs": "tsc -p tsconfig.cjs.json",
+    "build:types": "tsc -p tsconfig.types.json",
+    "clean": "rm -rf dist",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src --ext .ts",
+    "lint:fix": "eslint src --ext .ts --fix",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "ai.matey.types": "*",
+    "ai.matey.utils": "*",
+    "ai.matey.frontend": "*"
+  },
+  "devDependencies": {
+    "ai.matey.testing": "*",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4"
+  },
+  "keywords": [
+    "ai",
+    "llm",
+    "wrapper",
+    "openai",
+    "anthropic",
+    "sdk",
+    "ai-matey"
+  ],
+  "author": "AI Matey",
+  "license": "MIT",
+  "homepage": "https://github.com/johnhenry/ai.matey#readme",
+  "bugs": {
+    "url": "https://github.com/johnhenry/ai.matey/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/johnhenry/ai.matey.git",
+    "directory": "packages/wrapper"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

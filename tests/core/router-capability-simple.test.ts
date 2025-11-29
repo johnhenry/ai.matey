@@ -3,10 +3,10 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { Router } from '../../src/core/router.js';
-import { MockBackendAdapter } from '../../src/adapters/backend/mock.js';
-import type { IRChatRequest } from '../../src/types/ir.js';
-import type { AIModel, ListModelsResult } from '../../src/types/models.js';
+import { Router } from 'ai.matey.core';
+import { MockBackendAdapter } from 'ai.matey.backend.browser';
+import type { IRChatRequest } from 'ai.matey.types';
+import type { AIModel, ListModelsResult } from 'ai.matey.types';
 
 describe('Router Capability-Based Routing (Simple)', () => {
   it('should select backend using capability-based routing', async () => {

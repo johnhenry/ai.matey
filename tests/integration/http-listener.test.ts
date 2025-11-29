@@ -8,13 +8,12 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { IncomingMessage, ServerResponse } from 'http';
 import { Readable } from 'stream';
-import { NodeHTTPListener, createSimpleListener } from '../../src/http/listener.js';
-import { Bridge } from '../../src/core/bridge.js';
-import { AnthropicFrontendAdapter } from '../../src/adapters/frontend/anthropic.js';
-import { OpenAIFrontendAdapter } from '../../src/adapters/frontend/openai.js';
-import type { BackendAdapter } from '../../src/types/adapters.js';
-import type { IRChatRequest, IRChatResponse } from '../../src/types/ir.js';
-import { createBearerTokenValidator } from '../../src/http/auth.js';
+import { NodeHTTPListener, createSimpleListener } from 'ai.matey.http';
+import { Bridge } from 'ai.matey.core';
+import { AnthropicFrontendAdapter, OpenAIFrontendAdapter } from 'ai.matey.frontend';
+import type { BackendAdapter } from 'ai.matey.types';
+import type { IRChatRequest, IRChatResponse } from 'ai.matey.types';
+import { createBearerTokenValidator } from 'ai.matey.http.core';
 
 // ============================================================================
 // Mock Backend Adapter

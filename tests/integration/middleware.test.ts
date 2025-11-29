@@ -5,20 +5,19 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { Bridge } from '../../src/core/bridge.js';
-import { AnthropicFrontendAdapter } from '../../src/adapters/frontend/anthropic.js';
-import { OpenAIBackendAdapter } from '../../src/adapters/backend/openai.js';
-import type { IRChatRequest, IRChatResponse } from '../../src/types/ir.js';
-import type { BackendAdapter } from '../../src/types/adapters.js';
+import { Bridge } from 'ai.matey.core';
+import { AnthropicFrontendAdapter } from 'ai.matey.frontend';
+import type { IRChatRequest, IRChatResponse } from 'ai.matey.types';
+import type { BackendAdapter } from 'ai.matey.types';
 import {
   createLoggingMiddleware,
   createTelemetryMiddleware,
+  InMemoryTelemetrySink,
   createCachingMiddleware,
+  InMemoryCacheStorage,
   createRetryMiddleware,
   createTransformMiddleware,
-  InMemoryTelemetrySink,
-  InMemoryCacheStorage,
-} from '../../src/middleware/index.js';
+} from 'ai.matey.middleware';
 
 // ============================================================================
 // Mock Backend Adapter
@@ -251,22 +250,20 @@ describe('Middleware Integration', () => {
       );
 
       // First request - should miss cache
-      const response1 = await bridge.chat({
+      await bridge.chat({
         model: 'claude-3-opus-20240229',
         messages: [{ role: 'user', content: 'Hello' }],
       });
 
       expect(backend.executionCount).toBe(1);
-      // Note: response1 doesn't have metadata.custom because it gets converted to frontend format
 
       // Second request - should hit cache
-      const response2 = await bridge.chat({
+      await bridge.chat({
         model: 'claude-3-opus-20240229',
         messages: [{ role: 'user', content: 'Hello' }],
       });
 
       expect(backend.executionCount).toBe(1); // No additional backend call - this proves caching worked
-      // Note: response2 doesn't have metadata.custom because it gets converted to frontend format
     });
 
     it('should not cache different requests', async () => {
@@ -432,13 +429,13 @@ describe('Middleware Integration', () => {
       );
 
       // First request
-      const response1 = await bridge.chat({
+      await bridge.chat({
         model: 'claude-3-opus-20240229',
         messages: [{ role: 'user', content: 'Hello' }],
       });
 
       // Second request (should hit cache)
-      const response2 = await bridge.chat({
+      await bridge.chat({
         model: 'claude-3-opus-20240229',
         messages: [{ role: 'user', content: 'Hello' }],
       });

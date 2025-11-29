@@ -1,0 +1,203 @@
+{
+  "name": "ai.matey.middleware",
+  "version": "1.0.0",
+  "description": "Middleware components for AI Matey - Universal AI Adapter System",
+  "type": "module",
+  "main": "./dist/cjs/index.js",
+  "module": "./dist/esm/index.js",
+  "types": "./dist/types/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/types/index.d.ts",
+        "default": "./dist/esm/index.js"
+      },
+      "require": {
+        "types": "./dist/types/index.d.ts",
+        "default": "./dist/cjs/index.js"
+      }
+    },
+    "./caching": {
+      "import": {
+        "types": "./dist/types/caching.d.ts",
+        "default": "./dist/esm/caching.js"
+      },
+      "require": {
+        "types": "./dist/types/caching.d.ts",
+        "default": "./dist/cjs/caching.js"
+      }
+    },
+    "./retry": {
+      "import": {
+        "types": "./dist/types/retry.d.ts",
+        "default": "./dist/esm/retry.js"
+      },
+      "require": {
+        "types": "./dist/types/retry.d.ts",
+        "default": "./dist/cjs/retry.js"
+      }
+    },
+    "./logging": {
+      "import": {
+        "types": "./dist/types/logging.d.ts",
+        "default": "./dist/esm/logging.js"
+      },
+      "require": {
+        "types": "./dist/types/logging.d.ts",
+        "default": "./dist/cjs/logging.js"
+      }
+    },
+    "./security": {
+      "import": {
+        "types": "./dist/types/security.d.ts",
+        "default": "./dist/esm/security.js"
+      },
+      "require": {
+        "types": "./dist/types/security.d.ts",
+        "default": "./dist/cjs/security.js"
+      }
+    },
+    "./validation": {
+      "import": {
+        "types": "./dist/types/validation.d.ts",
+        "default": "./dist/esm/validation.js"
+      },
+      "require": {
+        "types": "./dist/types/validation.d.ts",
+        "default": "./dist/cjs/validation.js"
+      }
+    },
+    "./conversation-history": {
+      "import": {
+        "types": "./dist/types/conversation-history.d.ts",
+        "default": "./dist/esm/conversation-history.js"
+      },
+      "require": {
+        "types": "./dist/types/conversation-history.d.ts",
+        "default": "./dist/cjs/conversation-history.js"
+      }
+    },
+    "./cost-tracking": {
+      "import": {
+        "types": "./dist/types/cost-tracking.d.ts",
+        "default": "./dist/esm/cost-tracking.js"
+      },
+      "require": {
+        "types": "./dist/types/cost-tracking.d.ts",
+        "default": "./dist/cjs/cost-tracking.js"
+      }
+    },
+    "./opentelemetry": {
+      "import": {
+        "types": "./dist/types/opentelemetry.d.ts",
+        "default": "./dist/esm/opentelemetry.js"
+      },
+      "require": {
+        "types": "./dist/types/opentelemetry.d.ts",
+        "default": "./dist/cjs/opentelemetry.js"
+      }
+    },
+    "./telemetry": {
+      "import": {
+        "types": "./dist/types/telemetry.d.ts",
+        "default": "./dist/esm/telemetry.js"
+      },
+      "require": {
+        "types": "./dist/types/telemetry.d.ts",
+        "default": "./dist/cjs/telemetry.js"
+      }
+    },
+    "./transform": {
+      "import": {
+        "types": "./dist/types/transform.d.ts",
+        "default": "./dist/esm/transform.js"
+      },
+      "require": {
+        "types": "./dist/types/transform.d.ts",
+        "default": "./dist/cjs/transform.js"
+      }
+    }
+  },
+  "files": [
+    "dist",
+    "readme.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "npm run build:esm && npm run build:cjs && npm run build:types",
+    "build:esm": "tsc -p tsconfig.esm.json",
+    "build:cjs": "tsc -p tsconfig.cjs.json",
+    "build:types": "tsc -p tsconfig.types.json",
+    "clean": "rm -rf dist",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src --ext .ts",
+    "lint:fix": "eslint src --ext .ts --fix",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "ai.matey.types": "*",
+    "ai.matey.errors": "*",
+    "ai.matey.utils": "*",
+    "ai.matey.core": "*"
+  },
+  "peerDependencies": {
+    "@opentelemetry/api": "^1.7.0",
+    "@opentelemetry/sdk-trace-base": "^1.30.0",
+    "@opentelemetry/exporter-trace-otlp-http": "^0.200.0",
+    "@opentelemetry/resources": "^1.30.0",
+    "@opentelemetry/semantic-conventions": "^1.30.0"
+  },
+  "peerDependenciesMeta": {
+    "@opentelemetry/api": {
+      "optional": true
+    },
+    "@opentelemetry/sdk-trace-base": {
+      "optional": true
+    },
+    "@opentelemetry/exporter-trace-otlp-http": {
+      "optional": true
+    },
+    "@opentelemetry/resources": {
+      "optional": true
+    },
+    "@opentelemetry/semantic-conventions": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@opentelemetry/api": "^1.9.0",
+    "@opentelemetry/sdk-trace-base": "^1.30.0",
+    "@opentelemetry/exporter-trace-otlp-http": "^0.200.0",
+    "@opentelemetry/resources": "^1.30.0",
+    "@opentelemetry/semantic-conventions": "^1.30.0",
+    "ai.matey.testing": "*",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4"
+  },
+  "keywords": [
+    "ai",
+    "llm",
+    "middleware",
+    "caching",
+    "retry",
+    "logging",
+    "security",
+    "ai-matey"
+  ],
+  "author": "AI Matey",
+  "license": "MIT",
+  "homepage": "https://github.com/johnhenry/ai.matey#readme",
+  "bugs": {
+    "url": "https://github.com/johnhenry/ai.matey/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/johnhenry/ai.matey.git",
+    "directory": "packages/middleware"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

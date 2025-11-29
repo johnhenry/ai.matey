@@ -4,12 +4,10 @@
  * Shows how to add logging to track requests and responses.
  */
 
-import {
-  Bridge,
-  OpenAIFrontendAdapter,
-  AnthropicBackendAdapter,
-  createLoggingMiddleware,
-} from 'ai.matey';
+import { Bridge } from 'ai.matey.core';
+import { OpenAIFrontendAdapter } from 'ai.matey.frontend';
+import { AnthropicBackendAdapter } from 'ai.matey.backend';
+import { createLoggingMiddleware } from 'ai.matey.middleware';
 
 async function main() {
   const bridge = new Bridge(

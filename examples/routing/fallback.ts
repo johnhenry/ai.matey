@@ -4,12 +4,10 @@
  * Shows automatic failover to backup backends.
  */
 
-import {
-  Router,
-  OpenAIFrontendAdapter,
-  AnthropicBackendAdapter,
-  OpenAIBackendAdapter,
-} from 'ai.matey';
+import { Router } from 'ai.matey.core';
+import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
+import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
+import { OpenAIBackendAdapter } from 'ai.matey.backend/openai';
 
 async function main() {
   const router = new Router(new OpenAIFrontendAdapter(), {

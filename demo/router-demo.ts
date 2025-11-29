@@ -11,12 +11,12 @@
  * - Integration with Bridge
  */
 
-import { Router, createRouter } from './src/core/router.js';
-import { OpenAIBackendAdapter } from './src/adapters/backend/openai.js';
-import { AnthropicBackendAdapter } from './src/adapters/backend/anthropic.js';
-import { Bridge } from './src/core/bridge.js';
-import { AnthropicFrontendAdapter } from './src/adapters/frontend/anthropic.js';
-import type { IRChatRequest } from './src/types/ir.js';
+// Import from monorepo packages
+import { Router, createRouter, Bridge } from 'ai.matey.core';
+import { OpenAIBackendAdapter } from 'ai.matey.backend/openai';
+import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
+import { AnthropicFrontendAdapter } from 'ai.matey.frontend/anthropic';
+import type { IRChatRequest } from 'ai.matey.types';
 
 // ============================================================================
 // Helper Functions

@@ -4,7 +4,9 @@
  * Use Anthropic format with OpenAI backend - swap the frontend/backend!
  */
 
-import { Bridge, AnthropicFrontendAdapter, OpenAIBackendAdapter } from 'ai.matey';
+import { Bridge } from 'ai.matey.core';
+import { AnthropicFrontendAdapter } from 'ai.matey.frontend';
+import { OpenAIBackendAdapter } from 'ai.matey.backend';
 
 async function main() {
   // Create bridge: Anthropic format -> OpenAI execution

@@ -1,0 +1,327 @@
+{
+  "name": "ai.matey.backend",
+  "version": "1.0.0",
+  "description": "Backend provider adapters for AI Matey - Universal AI Adapter System",
+  "type": "module",
+  "main": "./dist/cjs/index.js",
+  "module": "./dist/esm/index.js",
+  "types": "./dist/types/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/types/index.d.ts",
+        "default": "./dist/esm/index.js"
+      },
+      "require": {
+        "types": "./dist/types/index.d.ts",
+        "default": "./dist/cjs/index.js"
+      }
+    },
+    "./openai": {
+      "import": {
+        "types": "./dist/types/providers/openai.d.ts",
+        "default": "./dist/esm/providers/openai.js"
+      },
+      "require": {
+        "types": "./dist/types/providers/openai.d.ts",
+        "default": "./dist/cjs/providers/openai.js"
+      }
+    },
+    "./anthropic": {
+      "import": {
+        "types": "./dist/types/providers/anthropic.d.ts",
+        "default": "./dist/esm/providers/anthropic.js"
+      },
+      "require": {
+        "types": "./dist/types/providers/anthropic.d.ts",
+        "default": "./dist/cjs/providers/anthropic.js"
+      }
+    },
+    "./gemini": {
+      "import": {
+        "types": "./dist/types/providers/gemini.d.ts",
+        "default": "./dist/esm/providers/gemini.js"
+      },
+      "require": {
+        "types": "./dist/types/providers/gemini.d.ts",
+        "default": "./dist/cjs/providers/gemini.js"
+      }
+    },
+    "./mistral": {
+      "import": {
+        "types": "./dist/types/providers/mistral.d.ts",
+        "default": "./dist/esm/providers/mistral.js"
+      },
+      "require": {
+        "types": "./dist/types/providers/mistral.d.ts",
+        "default": "./dist/cjs/providers/mistral.js"
+      }
+    },
+    "./cohere": {
+      "import": {
+        "types": "./dist/types/providers/cohere.d.ts",
+        "default": "./dist/esm/providers/cohere.js"
+      },
+      "require": {
+        "types": "./dist/types/providers/cohere.d.ts",
+        "default": "./dist/cjs/providers/cohere.js"
+      }
+    },
+    "./groq": {
+      "import": {
+        "types": "./dist/types/providers/groq.d.ts",
+        "default": "./dist/esm/providers/groq.js"
+      },
+      "require": {
+        "types": "./dist/types/providers/groq.d.ts",
+        "default": "./dist/cjs/providers/groq.js"
+      }
+    },
+    "./ollama": {
+      "import": {
+        "types": "./dist/types/providers/ollama.d.ts",
+        "default": "./dist/esm/providers/ollama.js"
+      },
+      "require": {
+        "types": "./dist/types/providers/ollama.d.ts",
+        "default": "./dist/cjs/providers/ollama.js"
+      }
+    },
+    "./ai21": {
+      "import": {
+        "types": "./dist/types/providers/ai21.d.ts",
+        "default": "./dist/esm/providers/ai21.js"
+      },
+      "require": {
+        "types": "./dist/types/providers/ai21.d.ts",
+        "default": "./dist/cjs/providers/ai21.js"
+      }
+    },
+    "./anyscale": {
+      "import": {
+        "types": "./dist/types/providers/anyscale.d.ts",
+        "default": "./dist/esm/providers/anyscale.js"
+      },
+      "require": {
+        "types": "./dist/types/providers/anyscale.d.ts",
+        "default": "./dist/cjs/providers/anyscale.js"
+      }
+    },
+    "./aws-bedrock": {
+      "import": {
+        "types": "./dist/types/providers/aws-bedrock.d.ts",
+        "default": "./dist/esm/providers/aws-bedrock.js"
+      },
+      "require": {
+        "types": "./dist/types/providers/aws-bedrock.d.ts",
+        "default": "./dist/cjs/providers/aws-bedrock.js"
+      }
+    },
+    "./azure-openai": {
+      "import": {
+        "types": "./dist/types/providers/azure-openai.d.ts",
+        "default": "./dist/esm/providers/azure-openai.js"
+      },
+      "require": {
+        "types": "./dist/types/providers/azure-openai.d.ts",
+        "default": "./dist/cjs/providers/azure-openai.js"
+      }
+    },
+    "./cerebras": {
+      "import": {
+        "types": "./dist/types/providers/cerebras.d.ts",
+        "default": "./dist/esm/providers/cerebras.js"
+      },
+      "require": {
+        "types": "./dist/types/providers/cerebras.d.ts",
+        "default": "./dist/cjs/providers/cerebras.js"
+      }
+    },
+    "./cloudflare": {
+      "import": {
+        "types": "./dist/types/providers/cloudflare.d.ts",
+        "default": "./dist/esm/providers/cloudflare.js"
+      },
+      "require": {
+        "types": "./dist/types/providers/cloudflare.d.ts",
+        "default": "./dist/cjs/providers/cloudflare.js"
+      }
+    },
+    "./deepinfra": {
+      "import": {
+        "types": "./dist/types/providers/deepinfra.d.ts",
+        "default": "./dist/esm/providers/deepinfra.js"
+      },
+      "require": {
+        "types": "./dist/types/providers/deepinfra.d.ts",
+        "default": "./dist/cjs/providers/deepinfra.js"
+      }
+    },
+    "./deepseek": {
+      "import": {
+        "types": "./dist/types/providers/deepseek.d.ts",
+        "default": "./dist/esm/providers/deepseek.js"
+      },
+      "require": {
+        "types": "./dist/types/providers/deepseek.d.ts",
+        "default": "./dist/cjs/providers/deepseek.js"
+      }
+    },
+    "./fireworks": {
+      "import": {
+        "types": "./dist/types/providers/fireworks.d.ts",
+        "default": "./dist/esm/providers/fireworks.js"
+      },
+      "require": {
+        "types": "./dist/types/providers/fireworks.d.ts",
+        "default": "./dist/cjs/providers/fireworks.js"
+      }
+    },
+    "./huggingface": {
+      "import": {
+        "types": "./dist/types/providers/huggingface.d.ts",
+        "default": "./dist/esm/providers/huggingface.js"
+      },
+      "require": {
+        "types": "./dist/types/providers/huggingface.d.ts",
+        "default": "./dist/cjs/providers/huggingface.js"
+      }
+    },
+    "./lmstudio": {
+      "import": {
+        "types": "./dist/types/providers/lmstudio.d.ts",
+        "default": "./dist/esm/providers/lmstudio.js"
+      },
+      "require": {
+        "types": "./dist/types/providers/lmstudio.d.ts",
+        "default": "./dist/cjs/providers/lmstudio.js"
+      }
+    },
+    "./nvidia": {
+      "import": {
+        "types": "./dist/types/providers/nvidia.d.ts",
+        "default": "./dist/esm/providers/nvidia.js"
+      },
+      "require": {
+        "types": "./dist/types/providers/nvidia.d.ts",
+        "default": "./dist/cjs/providers/nvidia.js"
+      }
+    },
+    "./openrouter": {
+      "import": {
+        "types": "./dist/types/providers/openrouter.d.ts",
+        "default": "./dist/esm/providers/openrouter.js"
+      },
+      "require": {
+        "types": "./dist/types/providers/openrouter.d.ts",
+        "default": "./dist/cjs/providers/openrouter.js"
+      }
+    },
+    "./perplexity": {
+      "import": {
+        "types": "./dist/types/providers/perplexity.d.ts",
+        "default": "./dist/esm/providers/perplexity.js"
+      },
+      "require": {
+        "types": "./dist/types/providers/perplexity.d.ts",
+        "default": "./dist/cjs/providers/perplexity.js"
+      }
+    },
+    "./replicate": {
+      "import": {
+        "types": "./dist/types/providers/replicate.d.ts",
+        "default": "./dist/esm/providers/replicate.js"
+      },
+      "require": {
+        "types": "./dist/types/providers/replicate.d.ts",
+        "default": "./dist/cjs/providers/replicate.js"
+      }
+    },
+    "./together-ai": {
+      "import": {
+        "types": "./dist/types/providers/together-ai.d.ts",
+        "default": "./dist/esm/providers/together-ai.js"
+      },
+      "require": {
+        "types": "./dist/types/providers/together-ai.d.ts",
+        "default": "./dist/cjs/providers/together-ai.js"
+      }
+    },
+    "./xai": {
+      "import": {
+        "types": "./dist/types/providers/xai.d.ts",
+        "default": "./dist/esm/providers/xai.js"
+      },
+      "require": {
+        "types": "./dist/types/providers/xai.d.ts",
+        "default": "./dist/cjs/providers/xai.js"
+      }
+    },
+    "./shared": {
+      "import": {
+        "types": "./dist/types/shared.d.ts",
+        "default": "./dist/esm/shared.js"
+      },
+      "require": {
+        "types": "./dist/types/shared.d.ts",
+        "default": "./dist/cjs/shared.js"
+      }
+    }
+  },
+  "files": [
+    "dist",
+    "readme.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "npm run build:esm && npm run build:cjs && npm run build:types",
+    "build:esm": "tsc -p tsconfig.esm.json",
+    "build:cjs": "tsc -p tsconfig.cjs.json",
+    "build:types": "tsc -p tsconfig.types.json",
+    "clean": "rm -rf dist",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src --ext .ts",
+    "lint:fix": "eslint src --ext .ts --fix",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "ai.matey.types": "*",
+    "ai.matey.errors": "*",
+    "ai.matey.utils": "*"
+  },
+  "devDependencies": {
+    "ai.matey.testing": "*",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4"
+  },
+  "keywords": [
+    "ai",
+    "llm",
+    "backend",
+    "adapter",
+    "openai",
+    "anthropic",
+    "gemini",
+    "mistral",
+    "cohere",
+    "groq",
+    "ollama",
+    "ai-matey"
+  ],
+  "author": "AI Matey",
+  "license": "MIT",
+  "homepage": "https://github.com/johnhenry/ai.matey#readme",
+  "bugs": {
+    "url": "https://github.com/johnhenry/ai.matey/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/johnhenry/ai.matey.git",
+    "directory": "packages/backend"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

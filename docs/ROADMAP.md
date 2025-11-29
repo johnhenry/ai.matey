@@ -1,419 +1,636 @@
 # ai.matey Roadmap
 
-Development roadmap and future plans for the Universal AI Adapter System.
+Development roadmap and strategic direction for the Universal AI Adapter System.
 
-## Current Version
+## Architecture Overview
 
-**Foundation Complete:**
-- Universal IR (Intermediate Representation)
-- 6 Frontend Adapters (OpenAI, Anthropic, Gemini, Ollama, Mistral, Chrome AI)
-- 29 Backend Adapters (including DeepSeek, Groq, LM Studio, Hugging Face, NVIDIA, Apple, Node Llama.cpp + 14 cloud providers)
-- 14 Cloud Provider Integrations (Together AI, Fireworks AI, DeepInfra, xAI, Cerebras, Azure OpenAI, Cloudflare, Perplexity, OpenRouter, AI21 Labs, Cohere, AWS Bedrock, Anyscale, Replicate)
-- Bridge with middleware support
-- Router with 7 routing strategies
-- 8 Middleware types (logging, telemetry, caching, retry, transform, security, cost tracking, validation)
-- Streaming support across all adapters
-- SDK wrappers (OpenAI, Anthropic, Chrome AI)
-- HTTP server integrations (6+ frameworks)
-- Model runner backend system
-- CLI tools (Ollama emulation, backend generator, proxy server)
-- Router model translation on fallback
-- Hybrid model translation strategy
-- Pattern-based model matching
-- Backend default with warnings
-- Integration tests for cross-provider fallback
-- Backend model capability declaration
-- Intelligent fallback without explicit mappings
-- Cost/speed/context optimization
-- Automatic adaptation to new models
-- Request/response fixtures for all providers (80+ scenarios)
-- Test helpers and contract testing utilities
-- Debug mode with pipeline visibility
-- Performance profiling tools
-- Property-based testing setup
-- CLI pipeline inspector
-- Multiple cloud providers
+**Monorepo Structure:**
+- 21 consolidated packages
+- 165 TypeScript source files
+- 32,019 lines of TypeScript code
+- Turbo-based build system with caching
+- Dual-format distribution: ESM and CommonJS
+- Full TypeScript declarations
 
-## Competitive Positioning & Strategic Priorities
+## Current Capabilities
 
-### Market Position
+### Core Foundation
+- ✅ Universal IR (Intermediate Representation)
+- ✅ Bridge architecture with middleware support
+- ✅ Router with 7 routing strategies (explicit, model-based, cost-optimized, latency-optimized, round-robin, random, custom)
+- ✅ Circuit breaker pattern with health checking
+- ✅ Fallback chains (sequential and parallel)
+- ✅ Provider-agnostic request/response handling
 
-ai.matey.universal occupies a unique position in the AI tooling ecosystem as a **provider-agnostic abstraction layer** with production-grade features. Our competitive advantages include:
+### Providers
+- ✅ **24 Backend Providers** in `ai.matey.backend`:
+  OpenAI, Anthropic, Gemini, Mistral, Cohere, Groq, Ollama, AI21, Anyscale, AWS Bedrock, Azure OpenAI, Cerebras, Cloudflare, DeepInfra, DeepSeek, Fireworks, HuggingFace, LMStudio, NVIDIA, OpenRouter, Perplexity, Replicate, Together AI, XAI
+- ✅ **7 Frontend Adapters** in `ai.matey.frontend`:
+  OpenAI, Anthropic, Gemini, Mistral, Ollama, Chrome AI, Generic
+- ✅ **3 Browser Backends** in `ai.matey.backend.browser`:
+  Chrome AI, Function-based, Mock provider
+- ✅ **Native adapters** in `ai.matey.native.*`:
+  Apple Silicon (MLX), node-llamacpp, model-runner
 
-**Technical Differentiation:**
-- ✅ **Zero runtime dependencies** (unique among comprehensive solutions)
-- ✅ **Advanced routing** (7 strategies including cost/latency optimization)
-- ✅ **Circuit breaker pattern** (rare in this space)
-- ✅ **Universal IR** (provider-agnostic intermediate representation)
-- ✅ **HTTP framework integration** (6+ frameworks)
+### Middleware & Cross-Cutting Concerns
+All 10 middleware types in `ai.matey.middleware`:
+- **logging** - Request/response logging
+- **telemetry** - Metrics collection
+- **opentelemetry** - Distributed tracing (OpenTelemetry standard)
+- **caching** - Response caching
+- **retry** - Automatic retries with backoff
+- **transform** - Request/response transforms
+- **security** - Rate limiting & security
+- **cost-tracking** - Usage & cost tracking
+- **validation** - Input validation & sanitization
+- **conversation-history** - Context management
 
-**Strategic Focus:**
+### HTTP Integration
+- ✅ **Consolidated package** `ai.matey.http` with subpath imports for 6 frameworks:
+  - `ai.matey.http/express`
+  - `ai.matey.http/fastify`
+  - `ai.matey.http/hono`
+  - `ai.matey.http/koa`
+  - `ai.matey.http/node`
+  - `ai.matey.http/deno`
+- ✅ **Shared utilities** in `ai.matey.http.core`: auth, CORS, error-handler, health-check, rate-limiter, streaming-handler
+- ✅ **OpenAI-compatible** API endpoints
+
+### React Integration
+**Core Hooks** (`ai.matey.react.core`):
+- useChat, useCompletion, useObject
+
+**Extended Hooks** (`ai.matey.react.hooks`):
+- useAssistant, useStream, useTokenCount
+
+**Streaming Components** (`ai.matey.react.stream`):
+- StreamProvider component
+
+**Next.js** (`ai.matey.react.nextjs`):
+- App Router integration
+- Server Actions support
+- Client and server utilities
+
+### SDK Wrappers
+`ai.matey.wrapper` provides compatibility layers:
+- OpenAI SDK-compatible wrapper
+- Anthropic SDK-compatible wrapper
+- Chrome AI legacy support
+- AnyMethod wrapper
+
+### CLI Tools
+`ai.matey.cli` includes:
+- Proxy server
+- Format converters (request/response)
+- Ollama command emulation (list, ps, pull, run, show)
+- Backend loader
+- Pipeline inspector
+- Model translation utilities
+
+### Developer Experience
+- ✅ Comprehensive TypeScript types with discriminated unions
+- ✅ Type inference from adapters
+- ✅ Debug mode with pipeline visibility
+- ✅ Performance profiling tools
+- ✅ Semantic drift warnings
+- ✅ Provenance tracking throughout request chain
+
+## Package Structure
+
+### Foundation (5 packages)
+- `ai.matey` - Main umbrella package
+- `ai.matey.types` - TypeScript type definitions
+- `ai.matey.errors` - Error classes and codes
+- `ai.matey.utils` - Utilities and helpers
+- `ai.matey.core` - Bridge, Router, Middleware core
+
+### Providers (3 packages)
+- `ai.matey.backend` - All 24 backend provider adapters
+- `ai.matey.backend.browser` - Browser-only backends
+- `ai.matey.frontend` - All 7 frontend adapters
+
+### Infrastructure (4 packages)
+- `ai.matey.middleware` - All 10 middleware types
+- `ai.matey.http` - HTTP framework adapters (subpath imports for express, fastify, hono, koa, node, deno)
+- `ai.matey.http.core` - HTTP core utilities
+- `ai.matey.testing` - Testing utilities and fixtures
+
+
+### React Integration (4 packages)
+- `ai.matey.react.core` - Core hooks
+- `ai.matey.react.hooks` - Extended hooks
+- `ai.matey.react.stream` - Streaming components
+- `ai.matey.react.nextjs` - Next.js integration
+
+### Native/Advanced (3 packages)
+- `ai.matey.native.apple` - Apple MLX integration
+- `ai.matey.native.node-llamacpp` - Node Llama.cpp
+- `ai.matey.native.model-runner` - Local model runner
+
+### Utilities (2 packages)
+- `ai.matey.wrapper` - SDK compatibility wrappers
+- `ai.matey.cli` - Command-line interface
+
+## Installation & Usage
+
+### Core Installation
+
+```bash
+npm install ai.matey.core ai.matey.types
+```
+
+### Add Providers
+
+```bash
+# All backend providers in one package
+npm install ai.matey.backend
+
+# All frontend adapters in one package
+npm install ai.matey.frontend
+
+# All middleware in one package
+npm install ai.matey.middleware
+```
+
+### Basic Usage
+
+```typescript
+import { Bridge } from 'ai.matey.core';
+import { OpenAIBackendAdapter } from 'ai.matey.backend';
+import { createLoggingMiddleware, createRetryMiddleware } from 'ai.matey.middleware';
+
+const bridge = new Bridge({
+  backend: new OpenAIBackendAdapter({
+    apiKey: process.env.OPENAI_API_KEY
+  })
+});
+
+bridge
+  .use(createLoggingMiddleware({ level: 'info' }))
+  .use(createRetryMiddleware({ maxAttempts: 3 }));
+
+const response = await bridge.execute({
+  messages: [{ role: 'user', content: 'Hello!' }],
+  model: 'gpt-4'
+});
+```
+
+### React Usage
+
+```bash
+npm install ai.matey.react.core react
+```
+
+```typescript
+import { useChat } from 'ai.matey.react.core';
+
+function ChatComponent() {
+  const { messages, input, handleInputChange, handleSubmit } = useChat({
+    api: '/api/chat'
+  });
+
+  return (
+    <div>
+      {messages.map(m => (
+        <div key={m.id}>{m.content}</div>
+      ))}
+      <form onSubmit={handleSubmit}>
+        <input value={input} onChange={handleInputChange} />
+      </form>
+    </div>
+  );
+}
+```
+
+## Market Position
+
+ai.matey occupies a unique position as a **provider-agnostic abstraction layer** with production-grade features.
+
+### Market Landscape
+
+The AI tooling ecosystem has 6 distinct categories:
+
+**1. Orchestration Frameworks** (LangChain.js, LlamaIndex.TS, Mastra)
+- Focus: Complex AI workflows, agents, RAG systems
+- **ai.matey Position**: Can serve as provider abstraction layer underneath these frameworks
+
+**2. UI/Frontend Frameworks** (Vercel AI SDK, AI SDK Foundations)
+- Focus: Building AI-powered user interfaces
+- **ai.matey Position**: Can power the backend APIs that these UIs consume
+
+**3. Provider Abstraction Libraries** (LiteLLM.js, llm.js, llm-bridge)
+- Focus: Normalizing LLM provider APIs
+- **ai.matey Position**: Direct competitor with superior routing, middleware, production features
+
+**4. Specialized Tools** (Instructor-JS, Portkey, ModelFusion, Token.js)
+- Focus: Specific capabilities (structured output, gateways, cost tracking)
+- **ai.matey Position**: Can integrate with or replace depending on use case
+
+**5. Local/Browser Solutions** (Ollama, WebLLM, Chrome AI, Node Llama.cpp)
+- Focus: Running models locally or in browsers
+- **ai.matey Position**: Supports these as backends (Ollama, Chrome AI adapters included)
+
+**6. Infrastructure & Gateways** (MCP, OpenAI Agents.js, any-llm)
+- Focus: Production deployment, routing, observability
+- **ai.matey Position**: Can complement MCP or replace simpler gateways
+
+### Ecosystem Positioning
+
+```
+┌─────────────────────────────────────────┐
+│         Application Layer               │
+│  (React, Next.js, Vue, CLI, etc.)      │
+└──────────────────┬──────────────────────┘
+                   │
+┌──────────────────▼──────────────────────┐
+│      UI Frameworks (Optional)           │
+│  Vercel AI SDK, React hooks            │
+└──────────────────┬──────────────────────┘
+                   │
+┌──────────────────▼──────────────────────┐
+│   Orchestration Layer (Optional)        │
+│  LangChain, LlamaIndex, Mastra         │
+└──────────────────┬──────────────────────┘
+                   │
+┌──────────────────▼──────────────────────┐
+│    ✨ ai.matey ✨                       │
+│  Provider Abstraction & Routing        │
+└──────────────────┬──────────────────────┘
+                   │
+         ┌─────────┴──────────┐
+         ▼                    ▼
+   ┌──────────┐        ┌──────────┐
+   │ Cloud    │        │  Local   │
+   │ (OpenAI, │        │ (Ollama, │
+   │ Anthropic│        │ Chrome   │
+   │ Gemini)  │        │ AI, etc.)│
+   └──────────┘        └──────────┘
+```
+
+**ai.matey sits at the provider abstraction layer**, enabling everything above it to be provider-agnostic.
+
+### Strategic Focus
 - ✅ **Provider abstraction** (not orchestration like LangChain)
-- ✅ **Backend infrastructure** (not UI like Vercel AI SDK)
+- ✅ **Backend infrastructure** (not just UI like Vercel AI SDK)
 - ✅ **Production reliability** (not just prototyping like LiteLLM.js)
 - ✅ **Self-hosted** (not managed service like Portkey)
+- ✅ **Library approach** (embedded in your app, not gateway service)
 
-### Competitive Gaps to Fill
+### Competitive Landscape
 
-Based on competitive analysis, these features would strengthen our position:
+**Vercel AI SDK** - UI Framework
+- ⭐ **Our Edge**: Provider abstraction, routing, middleware, zero vendor lock-in
+- ✅ **Matched**: Full React integration, Structured output with Zod
 
-**High Priority (Match Competitors):**
-1. **React hooks** (`useChat`, `useCompletion`) - Match Vercel AI SDK
-2. **Structured output** (Zod integration) - Match Instructor-JS
-3. **OpenTelemetry** - Match enterprise observability standards
-4. **Better documentation** - Match LangChain quality
+**LangChain.js** - Orchestration Framework
+- ⭐ **Our Edge**: Simpler for provider switching
+- 🤝 **Complementary**: Use LangChain for orchestration, ai.matey for provider layer
 
-**Medium Priority (Differentiation):**
-1. **Semantic caching** - Unique in provider abstraction space
-2. **Agent runtime** - Light orchestration without LangChain complexity
-3. **RAG pipeline** - Basic support without full LlamaIndex scope
-4. **Geographic routing** - Enterprise feature few competitors have
+**Portkey** - Gateway Service
+- ⭐ **Our Edge**: Privacy-first (no external service), full control, zero service dependencies
+- 🔄 **Different Architecture**: Library (embedded) vs Gateway (proxy)
 
-**Low Priority (Nice to Have):**
-1. **Browser integration** - WebLLM support
-2. **VSCode extension** - Developer experience enhancement
-3. **Community marketplace** - Long-term ecosystem play
+**Instructor-JS** - Structured Output
+- ⭐ **Our Edge**: Full provider abstraction, routing, middleware, React integration
+- ✅ **Matched**: Zod integration with generateObject() and streamObject()
+- 🤝 **Complementary**: Could work together
 
-### Strategic Roadmap Alignment
+**LiteLLM.js / llm.js** - Simple Wrappers
+- ⭐ **Our Edge**: Production-grade features, advanced routing, comprehensive middleware
+- ⚖️ **Trade-off**: More powerful but higher complexity
 
-Our roadmap focuses on features that:
-1. ✅ **Strengthen core competency** (provider abstraction)
-2. ✅ **Fill competitive gaps** (React hooks, structured output)
-3. ✅ **Add unique value** (semantic caching, geo routing)
-4. ❌ **Avoid scope creep** (won't compete on full orchestration/RAG)
+### Detailed Feature Comparison
 
-See [competitive-analysis.md](./competitive-analysis.md) for detailed positioning.
+Legend: ⭐⭐ = Excellent (best-in-class), ⭐ = Good (competitive), ⚠️ = Limited (basic support), ❌ = Not available, N/A = Not applicable
+
+| Feature | ai.matey | LangChain | Vercel AI | LiteLLM.js | Portkey | **Roadmap to ⭐⭐** |
+|---------|----------|-----------|-----------|------------|---------|-----------------|
+| Provider abstraction | ⭐⭐ | ⚠️ | ⚠️ | ⭐ | ⭐ | ✅ Already excellent |
+| Advanced routing | ⭐⭐ | ❌ | ❌ | ❌ | ⭐ | ✅ Already excellent |
+| Circuit breaker | ⭐ | ❌ | ❌ | ❌ | ⭐ | 🎯 See "Circuit Breaker Enhancement" below |
+| Zero dependencies | ⭐⭐ | ❌ | ❌ | ⭐ | N/A | ✅ Already excellent |
+| HTTP server support | ⭐ | ❌ | ❌ | ❌ | N/A | 🎯 See "HTTP Improvements" below |
+| Middleware system | ⭐⭐ | ⚠️ | ⚠️ | ❌ | ⭐ | ✅ Already excellent |
+| React integration | ⭐⭐ | ⚠️ | ⭐⭐ | ❌ | ❌ | ✅ Already excellent |
+| Self-hosted | ⭐⭐ | ⭐ | ⭐ | ⭐ | ❌ | ✅ Already excellent |
+| Structured output | ⭐⭐ | ⭐ | ⭐⭐ | ❌ | ⚠️ | ✅ Already excellent |
+
+### When to Choose ai.matey
+
+**✅ Choose ai.matey when:**
+- Provider independence is critical
+- You need production-grade routing and failover
+- You want cost/latency optimization
+- You're building an API server or gateway
+- You need comprehensive middleware
+- You want zero runtime dependencies
+- You're migrating between providers
+
+**⚠️ Consider alternatives when:**
+- You need RAG/agents → **LangChain.js**
+- You only need React hooks → **Vercel AI SDK**
+- You need structured output only → **Instructor-JS**
+- You want managed service → **Portkey**
+- You need local models only → **Ollama**
+
+### Unique Strengths
+
+| Capability | ai.matey | Others |
+|------------|----------|--------|
+| Zero runtime dependencies | ⭐⭐⭐⭐⭐ | ⭐⭐ |
+| Advanced routing (7 strategies) | ⭐⭐⭐⭐⭐ | ⭐ |
+| Circuit breaker pattern | ⭐⭐⭐⭐⭐ | ❌ |
+| Provider abstraction | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ |
+| React integration | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ |
+| Middleware pipeline | ⭐⭐⭐⭐⭐ | ⭐⭐ |
+| Self-hosted | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ |
+
+## Development Priorities
+
+### Code Quality Improvements
+
+#### Re-enable Suppressed TypeScript ESLint Rules
+
+**Context**: During the monorepo migration, several strict TypeScript ESLint rules were temporarily disabled to allow the migration to complete without blocking on type safety issues. These suppressions are documented in `eslint.config.js` (lines 65-75) with a TODO comment indicating they should be re-enabled in follow-up work.
+
+**Goal**: Systematically re-enable each suppressed rule and fix all violations to improve type safety across the codebase.
+
+**Suppressed Rules** (9 total):
+1. `@typescript-eslint/no-unsafe-assignment` - Prevents assignments from `any` typed values
+2. `@typescript-eslint/no-unsafe-member-access` - Prevents accessing properties on `any` typed values
+3. `@typescript-eslint/no-unsafe-call` - Prevents calling functions with `any` typed values
+4. `@typescript-eslint/no-unsafe-return` - Prevents returning `any` typed values
+5. `@typescript-eslint/no-unsafe-argument` - Prevents passing `any` typed values as arguments
+6. `@typescript-eslint/no-explicit-any` - Prevents explicit use of `any` type
+7. `@typescript-eslint/prefer-nullish-coalescing` - Enforces nullish coalescing (`??`) over logical OR (`||`)
+8. `@typescript-eslint/require-await` - Requires `async` functions to contain `await` expressions
+9. `@typescript-eslint/no-redundant-type-constituents` - Prevents redundant types in union/intersection types
+
+**Approach**:
+1. Re-enable one rule at a time
+2. Run `npx turbo run lint --force` to bypass cache and see all violations
+3. Fix all violations for that rule across the monorepo
+4. Verify tests still pass with `npm test`
+5. Commit the changes
+6. Move to next rule
+
+**Priority Order** (suggested):
+- Start with simpler rules like `require-await` and `no-redundant-type-constituents`
+- Then tackle `prefer-nullish-coalescing`
+- Finally address the stricter `any`-related rules which may require more significant refactoring
+
+**Reference**: See `eslint.config.js` lines 65-75 for current suppressions.
+
+**Related Work**:
+- Several type assertion issues were already fixed in commits 5b667eb and 226fcc2
+- The `@typescript-eslint/no-unnecessary-type-assertion` rule was successfully re-enabled
 
 ---
 
-## Future Considerations (Post-1.0)
-
-**OpenTelemetry Integration:**
-- Industry-standard distributed tracing
-- Span creation and context propagation
-- Metrics export (request count, latency, error rate)
-- Integration examples (Jaeger, Zipkin, Datadog, Honeycomb)
-
-**Interactive Learning:**
-- Interactive code playground (web-based)
-- 42 video tutorials covering all features
-- Step-by-step tutorials
-- "Awesome ai.matey" community list
-
-**Machine Learning Optimization:**
-- Learn optimal models from usage patterns
-- Predict best model for specific tasks
-- Collaborative filtering for quality scores
-
-**Advanced Capability Matching:**
-- Semantic capability matching (not just boolean)
-- Capability ranges (min/max/optimal)
-- Multi-dimensional optimization
-
-**Model Recommendations:**
-- Suggest better models based on usage
-- Alert when cheaper equivalent available
-- A/B testing recommendations
-
-**Dynamic Pricing:**
-- Real-time pricing API integration
-- Cost prediction based on usage patterns
-
-**Advanced Debugging & Testing:**
-- Time-travel debugging
-- Request replay and diff tools
-- Visual regression testing
-- Load testing framework
-- Chaos engineering tools
-
-**Observability:**
-- Prometheus metrics export
-- Grafana dashboards
-- Alert rules and monitoring
-
-**Ecosystem:**
-- Official CLI tool
-- Browser debugging extension
-- VSCode extension with snippets
-- Community adapter registry
-- Community adapter marketplace
-- Community fixtures repository
-- Plugin system
-
-**Prompt Engineering:**
-- Prompt template system
-- Template variables and composition
-- Version control for prompts
-- Prompt optimization suggestions
-
-**RAG (Retrieval Augmented Generation):**
-- Built-in RAG pipeline
-- Vector store integration (Pinecone, Weaviate, Qdrant, Chroma)
-- Document chunking and embedding
-- Semantic search and retrieval
-
-**Competitive Context:** LangChain.js and LlamaIndex.TS dominate RAG with extensive vector store integrations. We should provide **basic RAG support** for simple use cases without competing on the full scope. Target: simple document Q&A, not complex multi-step retrieval workflows.
-
-**Structured Output:**
-- Zod integration for structured output
-- JSON schema validation
-- Type-safe response parsing
-
-**Competitive Context:** Instructor-JS specializes in structured output with excellent Zod integration. Vercel AI SDK has `generateObject()`. Adding this would close a key feature gap. **High priority** for developers building data extraction systems.
-
-**Enhanced Multi-Modal:**
-- Audio processing (speech-to-text, text-to-speech)
-- Image generation (DALL-E, Stable Diffusion)
-- Advanced vision capabilities
-- Video understanding
-- Embeddings (vector generation)
-
-**Agent Runtime:**
-- Agent orchestration framework
-- Tool calling and function execution
-- Multi-step reasoning
-- Memory and state management
-
-**Competitive Context:** LangChain's LangGraph provides sophisticated agent orchestration. We should target **lightweight agent patterns** (ReAct, basic tool use) without competing on complex multi-actor systems. Focus on simple, provider-agnostic agent flows that work with our routing capabilities.
-
-**Performance:**
-- Semantic caching (cache by meaning, not exact match)
-- Request deduplication
-- Batch request optimization
-- Response compression
-
-**Competitive Context:** **Semantic caching** is a unique differentiator that few competitors offer. Portkey has basic caching, but semantic caching (cache by intent/meaning) would be innovative. This leverages our provider abstraction to cache across different provider formats.
-
-**Frontend Integration:**
-- React hooks (`useChat`, `useCompletion`)
-- Next.js App Router support
-- SvelteKit integration
-- Vue.js composables
-
-**Competitive Context:** Vercel AI SDK leads in frontend integration with ~18,500 stars. Adding React hooks would make ai.matey competitive for full-stack applications while maintaining our backend-first advantage. This is a **high priority** gap to fill.
-
-**Local & Browser:**
-- WebLLM browser integration (run models in browser)
-- Web Workers for non-blocking inference
-- IndexedDB caching
-
-**Competitive Context:** WebLLM and Transformers.js lead browser-based inference. Chrome AI support is already implemented. Adding WebLLM would enable **hybrid local+cloud strategies** - start with local, fallback to cloud if needed. Unique selling point: unified API for browser and cloud models.
-
-**Enterprise Features:**
-- Geographic routing (route to nearest provider)
-- Multi-tenancy support
-- Advanced rate limiting per tenant
-- Audit logging and compliance
-- SSO integration
-- Service mesh integration
-- High availability and disaster recovery
-
-**Competitive Context:** **Geographic routing** is a unique enterprise feature that competitors lack. Portkey has some enterprise features but is a managed service. Being self-hosted with enterprise features positions us well for large organizations. Priority: geo routing and multi-tenancy.
-
-**Misc:**
-- Agent runtime
-- Semantic caching
-- WebLLM integration
-
-## Future Considertions (Detailed)
-
-### OpenTelemetry Integration
-
-**Status:** ✅ **HIGHLY FEASIBLE**
-**Target:** v0.5.0 or later
-**Effort:** 2-3 weeks
-**Competitive Priority:** HIGH - Industry standard for observability
-
-#### Competitive Context
-
-OpenTelemetry is the industry standard for observability. Portkey and other managed services have observability built-in, but they're not self-hosted. Adding OpenTelemetry would:
-- Match enterprise observability standards
-- Enable integration with existing monitoring stacks (Datadog, New Relic, Honeycomb)
-- Differentiate from simpler libraries (LiteLLM.js, llm.js)
-- Complement our existing telemetry middleware
-
-#### Existing Foundation
-- ✅ Telemetry middleware exists
-- ✅ Metrics and events system
-- ✅ Provenance tracking
-
-#### What's Needed
-- OpenTelemetry SDK integration
-- Span creation for requests
-- Trace context propagation
-- Metrics export
-- Integration with popular backends (Jaeger, Zipkin, Datadog)
-
-#### Benefits
-- Industry-standard observability
-- Distributed tracing
-- Integration with existing tools
-- Production monitoring
-
-#### Implementation Tasks
-
-1. **Install Dependencies**
-   ```bash
-   npm install @opentelemetry/api
-   npm install @opentelemetry/sdk-node
-   npm install @opentelemetry/instrumentation
-   npm install @opentelemetry/exporter-trace-otlp-http
-   ```
-
-2. **OpenTelemetry Middleware**
-   ```typescript
-   // src/middleware/opentelemetry.ts
-   export interface OpenTelemetryConfig {
-     serviceName: string;
-     endpoint: string; // OTLP endpoint
-     headers?: Record<string, string>;
-     samplingRate?: number;
-   }
-
-   export function createOpenTelemetryMiddleware(config)
-   ```
-
-3. **Span Creation**
-   - Create span for each request
-   - Child spans for middleware
-   - Child spans for adapter calls
-   - Add attributes (provider, model, tokens)
-
-4. **Trace Context Propagation**
-   - Extract trace context from headers
-   - Inject trace context into outgoing requests
-   - Support W3C Trace Context standard
-
-5. **Metrics Export**
-   - Request count
-   - Latency histogram
-   - Error rate
-   - Token usage
-
-6. **Integration Examples**
-   - Jaeger example
-   - Zipkin example
-   - Datadog example
-   - Honeycomb example
-   - New Relic example
-
-7. **Documentation**
-   - `docs/opentelemetry.md`
-   - Setup guide
-   - Configuration reference
-   - Integration examples
-
-#### Deliverables
-- OpenTelemetry middleware
-- Span creation and propagation
-- Metrics export
-- Integration examples
-- Documentation
-
-#### Success Criteria
-- ✅ OpenTelemetry integration working end-to-end
-- ✅ OpenTelemetry span creation < 1ms
-- ✅ OpenTelemetry setup guide
-
-#### Risk Assessment
-| Risk | Likelihood | Impact | Mitigation |
-|------|------------|--------|------------|
-| OpenTelemetry version conflicts | Medium | Medium | Pin versions, test compatibility |
-| Performance overhead from instrumentation | Medium | Medium | Make profiling opt-in, optimize critical paths |
-
-
-### Interactive Examples & Tutorials
-
-**Status:** ✅ **FEASIBLE**
-**Target:** v0.5.0 or later
-**Effort:** 4-6 weeks
-**Competitive Priority:** HIGH - Documentation quality is critical
-
-#### Competitive Context
-
-LangChain.js has excellent documentation and is well-established in the ecosystem. Vercel AI SDK has comprehensive examples and video content. Our documentation quality needs to match these leaders. Interactive examples would:
-- Lower the learning curve (currently a weakness)
-- Compete with Vercel's playground experience
-- Build community (like "Awesome LangChain" lists)
-- Improve SEO and discovery
-
-#### Existing Foundation
-- ✅ EXAMPLES.md with 16+ examples
-- ✅ Working code examples
-- ✅ Documentation system
-- ✅ Tutorial video synopses (42 videos planned)
-
-#### What's Needed
-- Interactive code playground (web-based)
-- Step-by-step tutorials
-- Video script creation
-- Screen recording and editing
-- Hosting platform (YouTube, docs site)
-
-#### Benefits
-- Lower learning curve
-- Better onboarding
-- Community growth
-- SEO and discovery
-
-#### Implementation Tasks
-
-1. **Interactive Playground (Web)**
-   - Create Next.js app
-   - Monaco editor for code
-   - Live execution
-   - Share examples via URL
-   - Deploy to Vercel
-
-2. **Step-by-Step Tutorials**
-   - Tutorial 1: Getting Started
-   - Tutorial 2: Routing & Fallbacks
-   - Tutorial 3: Middleware
-   - Tutorial 4: Streaming
-   - Tutorial 5: Cost Optimization
-   - Tutorial 6: Custom Adapters
-
-3. **Video Tutorial Scripts**
-   - Write detailed scripts (see `docs/TUTORIAL-VIDEO-SYNOPSES.md` - 42 videos planned)
-   - Include code examples
-   - Talking points
-   - Visual aids needed
-
-4. **Video Production** (External)
-   - Screen recordings
-   - Voiceover
-   - Editing
-   - Publishing to YouTube
-
-5. **Update Documentation Site**
-   - Add tutorials section
-   - Embed videos
-   - Interactive code snippets
-   - Search functionality
-
-6. **Create "Awesome ai.matey" List**
-   - Community projects
-   - Blog posts
-   - Tutorials
-   - Adapters
-   - Tools
-
-#### Deliverables
-- Interactive playground
-- 6 step-by-step tutorials
-- Video scripts (42 videos, see [ TUTORIAL-VIDEO-SYNOPSES.md](./TUTORIAL-VIDEO-SYNOPSES.md) )
-- Documentation updates
-- Community resource list
-
-#### Success Criteria
-- ✅ Interactive playground deployed
-- ✅ 20+ video tutorials published
-- ✅ Playground loads in < 2 seconds
-- ✅ Video tutorials for all major features
-
-#### Risk Assessment
-| Risk | Likelihood | Impact | Mitigation |
-|------|------------|--------|------------|
-| Video production takes too long | High | Low | Focus on most important features first, external help |
-| Playground requires maintenance | Medium | Low | Keep simple, use established frameworks |
-
+### Next Phase: Enhanced Documentation & Features
+
+**1. ✅ Structured Output with Zod** (COMPLETED - closes gap with Instructor-JS & Vercel AI)
+- ✅ Zod schema integration
+- ✅ Schema → tool definitions converter
+- ✅ Runtime validation
+- ✅ Type inference from schemas
+- ✅ Streaming with partial objects (`streamObject()`)
+- ✅ `generateObject()` method
+- ✅ Security utilities (PII detection, prompt injection detection)
+- 📦 **Implementation**: `packages/ai.matey.utils/src/structured-output.ts`
+- 📦 **Bridge integration**: `bridge.generateObject()` and `bridge.streamObject()` methods
+- ✅ **Tests**: 12 passing tests in `tests/unit/structured-output.test.ts`
+- 🎯 **Zero-dependency**: Zod is an **optional peer dependency** - only required if you use structured output features
+- 💡 **Installation**: Users only install `zod` if they need `generateObject()` or `streamObject()`
+
+**2. Enhanced Documentation**
+- Interactive code examples
+- Step-by-step guides for common patterns
+- More real-world examples
+- API reference improvements
+
+**3. Circuit Breaker Enhancement** (⭐ → ⭐⭐)
+- **OpenTelemetry integration**: Emit circuit state changes as spans/events
+  - `circuit.opened`, `circuit.half_open`, `circuit.closed` events
+  - Failure count, threshold, and timeout as span attributes
+  - Integrates with existing OpenTelemetry middleware
+- Configurable failure thresholds per provider
+- Half-open state with graduated recovery
+- Circuit breaker events and webhooks for custom monitoring
+- Per-model circuit breakers (not just per-provider)
+- Health check improvements with circuit status
+
+**4. HTTP Server Improvements** (⭐ → ⭐⭐)
+- WebSocket support for real-time streaming
+- Server-Sent Events (SSE) improvements
+- Better error handling and status codes
+- Request/response compression
+- Rate limiting per route/user
+- **Metrics endpoints**:
+  - Prometheus format metrics (`/metrics`)
+  - OpenTelemetry metrics export (integrates with existing OTel middleware)
+  - Circuit breaker status included
+- Health check endpoints with detailed status (`/health`, `/health/ready`, `/health/live`)
+
+**5. Embeddings Support**
+- Embedding generation across providers (24 backends)
+- Batch embedding support with automatic chunking
+- Vector dimension normalization across providers
+- **Cost tracking integration**: Uses existing cost-tracking middleware
+- **Caching integration**: Cache embeddings using existing caching middleware
+- **Router integration**: Route embedding requests like chat (cost/latency optimized)
+
+### Future Phase: Semantic Caching & Guardrails
+
+**Semantic Caching** (unique differentiator)
+- **Middleware architecture**: Implemented as middleware, works with existing pipeline
+- Cache by semantic meaning, not exact match
+- Cosine similarity matching with configurable threshold
+- **Embeddings integration**: Uses Embeddings Support for semantic comparison
+- Cache across different provider formats (provider-agnostic)
+- **OpenTelemetry metrics**: Cache hit/miss rates, similarity scores
+- Performance: 20x faster than API calls
+
+**Guardrails System** (inspired by Portkey)
+- **Middleware architecture**: Implemented as middleware, composable with others
+- **Pre-built deterministic checks**: PII detection, profanity filtering, code detection, URL detection, prompt injection
+- **LLM-based checks**: Toxicity, bias, factual consistency (uses existing providers)
+- **Configurable actions**:
+  - `deny` - Block request and return error
+  - `log` - Log violation, continue request (uses existing logging middleware)
+  - `fallback` - Use fallback provider (uses existing router)
+  - `retry` - Retry with modifications (uses existing retry middleware)
+- **OpenTelemetry integration**: Guardrail violations tracked as events
+- Custom guardrail support via plugin API
+
+**OpenTelemetry Enhancement**
+- Additional integration examples (Jaeger, Zipkin, Datadog, Honeycomb)
+- Performance optimization for trace spans
+
+## Long-Term Vision
+
+### Enhanced Multi-Modal
+- **Audio processing**: Speech-to-text, text-to-speech across providers
+  - Uses existing router for provider selection
+  - Cost tracking integration
+- **Image generation**: DALL-E, Stable Diffusion, Midjourney
+  - Provider abstraction for image models
+  - Caching integration for generated images
+- **Video understanding**: Video analysis across providers
+- **Advanced vision capabilities**: OCR, object detection, image classification
+
+### Enterprise Features
+- **Geographic routing**: Route to nearest provider for latency
+  - Router integration with geo-aware strategy
+  - OpenTelemetry metrics for latency by region
+- **Multi-tenancy support**: Tenant isolation and resource management
+  - Security middleware integration for tenant authentication
+  - Cost tracking middleware per tenant
+  - Separate circuit breakers per tenant
+- **Advanced rate limiting**: Per-tenant, per-model, per-endpoint
+  - Security middleware enhancement
+  - OpenTelemetry metrics for rate limit hits
+  - Integration with existing health checks
+- **Audit logging and compliance**: Request/response audit trail
+  - Logging middleware integration
+  - OpenTelemetry events for audit trail
+  - Conversation history middleware for full context preservation
+- **SSO integration**: Enterprise authentication support
+  - Security middleware enhancement
+  - OpenID Connect, SAML support
+
+### Performance Optimizations
+- **Request deduplication**: Collapse identical concurrent requests
+  - Middleware implementation
+  - Caching middleware integration for dedup detection
+  - OpenTelemetry metrics for dedup hit rate
+- **Batch request optimization**: Automatic batching for supported providers
+  - Router enhancement for batch dispatch
+  - Cost tracking middleware for batched requests
+- **Response compression**: Gzip/brotli for HTTP responses
+  - HTTP core utilities enhancement
+  - OpenTelemetry metrics for compression ratios
+- **Parallel dispatch improvements**: Enhanced parallel execution
+  - Router enhancement with improved concurrency control
+  - OpenTelemetry distributed tracing for parallel requests
+  - Circuit breaker integration (fail fast for unavailable backends)
+
+### Developer Experience
+- **VSCode extension**: Code snippets, autocomplete, inline docs
+  - TypeScript integration with type inference
+  - Quick provider switching
+  - OpenTelemetry trace viewer integration
+- **Browser debugging extension**: Chrome DevTools integration
+  - Request/response inspection
+  - Middleware pipeline visualization
+  - OpenTelemetry trace correlation
+  - Circuit breaker status display
+- **Interactive code playground**: Web-based REPL
+  - Powered by existing backend adapters
+  - Mock provider for demo without API keys
+  - React integration examples
+- **"Awesome ai.matey" community list**: Curated resources
+  - Community adapters, middleware, examples
+- **Community adapter marketplace**: Discoverability platform
+  - Testing utilities integration for adapter validation
+  - OpenTelemetry-instrumented examples
+
+### Advanced Features
+- **Machine learning optimization**: Learn optimal models from usage patterns
+  - Cost tracking middleware data for training
+  - OpenTelemetry metrics for model performance
+  - Router integration for automatic model selection
+- **Model recommendations**: Suggest cheaper/better alternatives
+  - Cost tracking middleware integration
+  - Capability matching based on actual usage
+  - OpenTelemetry metrics for recommendation acceptance
+- **Dynamic pricing**: Real-time pricing API integration
+  - Cost tracking middleware enhancement
+  - Router integration for cost-based routing
+  - OpenTelemetry metrics for pricing fluctuations
+- **Advanced capability matching**: Match requests to capable models
+  - Router enhancement with capability awareness
+  - Uses existing provider metadata
+- **Prompt template system**: Versioned prompt management
+  - Transform middleware integration
+  - Conversation history middleware for template context
+  - Validation middleware for template compliance
+
+### Ecosystem Expansion
+- **SvelteKit integration**: Server-side actions and stores
+  - Similar to existing Next.js integration
+  - React core hooks adapted for Svelte
+  - HTTP integration with SvelteKit endpoints
+- **Vue.js composables**: `useChat`, `useCompletion` for Vue 3
+  - Similar to React hooks architecture
+  - Composables package following existing pattern
+- **WebLLM browser integration**: Hybrid local+cloud models
+  - Browser backend adapter (similar to Chrome AI)
+  - Router integration for local-first strategy
+  - Fallback to cloud providers when local unavailable
+- **Plugin system**: Extensible middleware and adapter registry
+  - Middleware pipeline enhancement
+  - Testing utilities for plugin validation
+  - OpenTelemetry integration for plugin metrics
+- **Community adapter registry**: NPM-based adapter discovery
+  - Standard adapter interface compliance
+  - Testing utilities for community adapters
+  - OpenTelemetry metrics reporting standard
+
+## CI/CD & Infrastructure
+
+### GitHub Actions Workflow
+
+**Current Implementation:**
+- ✅ Parallel job execution (lint, typecheck, test, build)
+- ✅ Matrix testing (Node 24, 25)
+- ✅ Integration tests with monorepo builds
+- ✅ CodeQL security analysis
+- ✅ Dependency review
+
+**Artifact Strategy:**
+- **Current approach**: Integration tests build packages directly (no artifacts)
+- **Rationale**: Turborepo creates `packages/*/dist/` folders, not root `dist/`
+- **Trade-off**: Simpler and more reliable, but builds twice (in test and integration jobs)
+
+**Future Consideration:**
+- Option to upload all package dist folders as artifacts for better build/test separation
+- Would require managing multiple artifact paths: `packages/ai.matey.core/dist/`, `packages/ai.matey.utils/dist/`, etc.
+- Current approach prioritized simplicity and reliability over strict job separation
+
+---
+
+## Strategic Roadmap Alignment
+
+Our roadmap focuses on:
+1. ✅ **Strengthen core competency** (provider abstraction, routing, middleware)
+2. ✅ **Achieve excellence in all features** (⭐⭐ across the board)
+3. ✅ **Fill competitive gaps** (structured output, circuit breaker, HTTP improvements)
+4. ✅ **Add unique value** (semantic caching, guardrails, zero dependencies)
+5. ❌ **Avoid scope creep** (won't compete on orchestration/RAG - different domain)
+
+## Success Metrics
+
+**Technical:**
+- Zero runtime dependencies maintained
+- <10ms middleware overhead
+- 99.9% adapter compatibility
+- Full TypeScript type coverage
+
+**Adoption:**
+- Growing GitHub stars
+- NPM downloads increasing
+- Active community contributions
+- Production deployments
+
+**Quality:**
+- 80%+ test coverage
+- Zero critical bugs
+- <24h issue response time
+- Comprehensive documentation
+
+---
+
+*For detailed API documentation, see [API.md](./API.md)*
+*For implementation guides, see [GUIDES.md](./GUIDES.md)*
+*For OpenTelemetry integration, see [opentelemetry.md](./opentelemetry.md)*

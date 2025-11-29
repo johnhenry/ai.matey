@@ -2,18 +2,18 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import {
   OpenAI,
   OpenAIClient,
-  Chat,
+  OpenAIChat as Chat,
   ChatCompletions,
-} from '../../src/wrappers/openai-sdk.js';
+} from 'ai.matey.wrapper';
 import {
   Anthropic,
   AnthropicClient,
   Messages,
-} from '../../src/wrappers/anthropic-sdk.js';
-import { MockBackendAdapter } from '../../src/adapters/backend/mock.js';
-import { OpenAIFrontendAdapter } from '../../src/adapters/frontend/openai.js';
-import { AnthropicFrontendAdapter } from '../../src/adapters/frontend/anthropic.js';
-import { Bridge } from '../../src/core/bridge.js';
+} from 'ai.matey.wrapper';
+import { MockBackendAdapter } from 'ai.matey.backend.browser';
+import { OpenAIFrontendAdapter } from 'ai.matey.frontend';
+import { AnthropicFrontendAdapter } from 'ai.matey.frontend';
+import { Bridge } from 'ai.matey.core';
 
 describe('SDK Wrappers', () => {
   describe('OpenAI SDK Wrapper', () => {

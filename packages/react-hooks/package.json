@@ -1,0 +1,77 @@
+{
+  "name": "ai.matey.react.hooks",
+  "version": "1.0.0",
+  "description": "Additional React hooks for AI Matey - useAssistant, useStream, useTokenCount",
+  "type": "module",
+  "main": "./dist/cjs/index.js",
+  "module": "./dist/esm/index.js",
+  "types": "./dist/types/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/types/index.d.ts",
+        "default": "./dist/esm/index.js"
+      },
+      "require": {
+        "types": "./dist/types/index.d.ts",
+        "default": "./dist/cjs/index.js"
+      }
+    }
+  },
+  "files": [
+    "dist",
+    "readme.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "npm run build:esm && npm run build:cjs && npm run build:types",
+    "build:esm": "tsc -p tsconfig.esm.json",
+    "build:cjs": "tsc -p tsconfig.cjs.json",
+    "build:types": "tsc -p tsconfig.types.json",
+    "clean": "rm -rf dist",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "ai.matey.types": "*",
+    "ai.matey.react.core": "*"
+  },
+  "peerDependencies": {
+    "react": ">=18.0.0"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": false
+    }
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.0",
+    "react": "^18.2.0",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4"
+  },
+  "keywords": [
+    "ai",
+    "llm",
+    "react",
+    "hooks",
+    "useAssistant",
+    "useStream",
+    "ai-matey"
+  ],
+  "author": "AI Matey",
+  "license": "MIT",
+  "homepage": "https://github.com/johnhenry/ai.matey#readme",
+  "bugs": {
+    "url": "https://github.com/johnhenry/ai.matey/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/johnhenry/ai.matey.git",
+    "directory": "packages/react-hooks"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

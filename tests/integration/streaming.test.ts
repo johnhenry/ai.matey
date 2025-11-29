@@ -8,11 +8,9 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { Bridge } from '../../src/core/bridge.js';
-import { AnthropicFrontendAdapter } from '../../src/adapters/frontend/anthropic.js';
-import { AnthropicBackendAdapter } from '../../src/adapters/backend/anthropic.js';
-import { OpenAIBackendAdapter } from '../../src/adapters/backend/openai.js';
-import { OpenAIFrontendAdapter } from '../../src/adapters/frontend/openai.js';
+import { Bridge } from 'ai.matey.core';
+import { AnthropicFrontendAdapter, OpenAIFrontendAdapter } from 'ai.matey.frontend';
+import { AnthropicBackendAdapter, OpenAIBackendAdapter } from 'ai.matey.backend';
 import {
   collectStream,
   streamToText,
@@ -20,8 +18,8 @@ import {
   isContentChunk,
   isDoneChunk,
   isErrorChunk,
-} from '../../src/utils/streaming.js';
-import type { IRStreamChunk } from '../../src/types/ir.js';
+} from 'ai.matey.utils';
+import type { IRStreamChunk } from 'ai.matey.types';
 
 // ============================================================================
 // Test Utilities

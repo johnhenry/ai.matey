@@ -7,12 +7,12 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import type { Context } from 'hono';
-import { HonoMiddleware } from '../../../src/http/adapters/hono/index.js';
-import { Bridge } from '../../../src/core/bridge.js';
-import { AnthropicFrontendAdapter } from '../../../src/adapters/frontend/anthropic.js';
-import type { BackendAdapter } from '../../../src/types/adapters.js';
-import type { IRChatRequest, IRChatResponse } from '../../../src/types/ir.js';
-import { createBearerTokenValidator } from '../../../src/http/auth.js';
+import { HonoMiddleware } from 'ai.matey.http';
+import { Bridge } from 'ai.matey.core';
+import { AnthropicFrontendAdapter } from 'ai.matey.frontend';
+import type { BackendAdapter } from 'ai.matey.types';
+import type { IRChatRequest, IRChatResponse } from 'ai.matey.types';
+import { createBearerTokenValidator } from 'ai.matey.http.core';
 
 // ============================================================================
 // Mock Backend Adapter

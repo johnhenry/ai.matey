@@ -1,15 +1,17 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import {
   OpenAIBackendAdapter,
   AnthropicBackendAdapter,
   DeepSeekBackendAdapter,
   GroqBackendAdapter,
+} from 'ai.matey.backend';
+import {
   MockBackendAdapter,
   createEchoBackend,
   createErrorBackend,
   createDelayedBackend,
-} from '../../src/adapters/backend/index.js';
-import type { IRChatRequest } from '../../src/types/ir.js';
+} from 'ai.matey.backend.browser';
+import type { IRChatRequest } from 'ai.matey.types';
 
 describe('Backend Adapters', () => {
   const mockRequest: IRChatRequest = {
@@ -19,8 +21,8 @@ describe('Backend Adapters', () => {
         content: [{ type: 'text', text: 'Hello!' }],
       },
     ],
-    model: 'test-model',
     parameters: {
+      model: 'test-model',
       temperature: 0.7,
       maxTokens: 100,
     },
@@ -99,13 +101,6 @@ describe('Backend Adapters', () => {
       expect(metadata.name).toBe('deepseek-backend');
       expect(metadata.capabilities.streaming).toBe(true);
     });
-
-    it('should use factory function', async () => {
-      const { createDeepSeekAdapter } = await import('../../src/adapters/backend/deepseek.js');
-      const adapter = createDeepSeekAdapter({ apiKey: 'test-key' });
-
-      expect(adapter).toBeInstanceOf(DeepSeekBackendAdapter);
-    });
   });
 
   describe('GroqBackendAdapter', () => {
@@ -126,13 +121,6 @@ describe('Backend Adapters', () => {
       expect(metadata.capabilities.streaming).toBe(true);
       expect(metadata.capabilities.tools).toBe(true);
     });
-
-    it('should use factory function', async () => {
-      const { createGroqAdapter } = await import('../../src/adapters/backend/groq.js');
-      const adapter = createGroqAdapter({ apiKey: 'test-key' });
-
-      expect(adapter).toBeInstanceOf(GroqBackendAdapter);
-    });
   });
 
   describe('MockBackendAdapter', () => {
@@ -145,7 +133,7 @@ describe('Backend Adapters', () => {
 
     it('should execute mock request', async () => {
       const adapter = new MockBackendAdapter({
-        responseDelay: 0,
+        defaultResponse: 'Test response',
       });
 
       const response = await adapter.execute(mockRequest);
@@ -158,7 +146,9 @@ describe('Backend Adapters', () => {
 
     it('should support streaming', async () => {
       const adapter = new MockBackendAdapter({
-        responseDelay: 0,
+        defaultResponse: 'Test streaming response',
+        simulateStreaming: true,
+        streamChunkDelay: 0,
       });
 
       const stream = adapter.executeStream(mockRequest);
@@ -178,11 +168,11 @@ describe('Backend Adapters', () => {
       const response = await adapter.execute(mockRequest);
 
       expect(response.message.content[0].type).toBe('text');
-      expect(response.message.content[0].text).toContain('Echo:');
+      expect((response.message.content[0] as { text: string }).text).toContain('Echo:');
     });
 
     it('should use error backend', async () => {
-      const adapter = createErrorBackend('Test error');
+      const adapter = createErrorBackend(new Error('Test error'));
 
       await expect(adapter.execute(mockRequest)).rejects.toThrow('Test error');
     });
@@ -210,31 +200,24 @@ describe('Backend Adapters', () => {
 
       const response = await adapter.execute(mockRequest);
 
-      expect(response.message.content[0].text).toBe('Custom response');
+      expect((response.message.content[0] as { text: string }).text).toBe('Custom response');
       expect(response.usage?.totalTokens).toBe(30);
     });
 
-    it('should handle abort signals', async () => {
+    it('should track request history', async () => {
       const adapter = new MockBackendAdapter({
-        defaultResponse: {
-          content: 'Delayed response',
-          delay: 1000,
-        },
+        defaultResponse: 'Test response',
       });
 
-      const controller = new AbortController();
+      await adapter.execute(mockRequest);
+      await adapter.execute(mockRequest);
 
-      // Note: Current MockBackendAdapter doesn't properly handle AbortSignal
-      // This test documents the current limitation
-      const promise = adapter.execute(mockRequest);
+      expect(adapter.lastRequest).toEqual(mockRequest);
+      expect(adapter.allRequests.length).toBe(2);
 
-      // Abort immediately
-      controller.abort();
-
-      // For now, this will resolve instead of reject since abort isn't implemented
-      // TODO: Implement abort signal handling in MockBackendAdapter
-      const response = await promise;
-      expect(response).toBeDefined();
+      adapter.clearHistory();
+      expect(adapter.lastRequest).toBeUndefined();
+      expect(adapter.allRequests.length).toBe(0);
     });
   });
 

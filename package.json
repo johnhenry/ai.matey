@@ -1,219 +1,31 @@
 {
-  "name": "ai.matey",
-  "version": "0.1.1",
-  "description": "Universal AI Adapter System - Provider-agnostic interface for AI APIs",
+  "name": "ai.matey-monorepo",
+  "version": "0.0.0",
+  "private": true,
+  "description": "AI Matey Monorepo - Universal AI Adapter System",
   "type": "module",
-  "main": "./dist/cjs/index.js",
-  "module": "./dist/esm/index.js",
-  "types": "./dist/types/index.d.ts",
-  "bin": {
-    "ai-matey": "bin/ai-matey"
-  },
-  "exports": {
-    ".": {
-      "import": {
-        "types": "./dist/types/index.d.ts",
-        "default": "./dist/esm/index.js"
-      },
-      "require": {
-        "types": "./dist/types/index.d.ts",
-        "default": "./dist/cjs/index.js"
-      }
-    },
-    "./types": {
-      "import": {
-        "types": "./dist/types/types/index.d.ts",
-        "default": "./dist/esm/types/index.js"
-      },
-      "require": {
-        "types": "./dist/types/types/index.d.ts",
-        "default": "./dist/cjs/types/index.js"
-      }
-    },
-    "./errors": {
-      "import": {
-        "types": "./dist/types/errors/index.d.ts",
-        "default": "./dist/esm/errors/index.js"
-      },
-      "require": {
-        "types": "./dist/types/errors/index.d.ts",
-        "default": "./dist/cjs/errors/index.js"
-      }
-    },
-    "./utils": {
-      "import": {
-        "types": "./dist/types/utils/index.d.ts",
-        "default": "./dist/esm/utils/index.js"
-      },
-      "require": {
-        "types": "./dist/types/utils/index.d.ts",
-        "default": "./dist/cjs/utils/index.js"
-      }
-    },
-    "./http": {
-      "import": {
-        "types": "./dist/types/http/index.d.ts",
-        "default": "./dist/esm/http/index.js"
-      },
-      "require": {
-        "types": "./dist/types/http/index.d.ts",
-        "default": "./dist/cjs/http/index.js"
-      }
-    },
-    "./http/node": {
-      "import": {
-        "types": "./dist/types/http/adapters/node/index.d.ts",
-        "default": "./dist/esm/http/adapters/node/index.js"
-      },
-      "require": {
-        "types": "./dist/types/http/adapters/node/index.d.ts",
-        "default": "./dist/cjs/http/adapters/node/index.js"
-      }
-    },
-    "./http/express": {
-      "import": {
-        "types": "./dist/types/http/adapters/express/index.d.ts",
-        "default": "./dist/esm/http/adapters/express/index.js"
-      },
-      "require": {
-        "types": "./dist/types/http/adapters/express/index.d.ts",
-        "default": "./dist/cjs/http/adapters/express/index.js"
-      }
-    },
-    "./http/koa": {
-      "import": {
-        "types": "./dist/types/http/adapters/koa/index.d.ts",
-        "default": "./dist/esm/http/adapters/koa/index.js"
-      },
-      "require": {
-        "types": "./dist/types/http/adapters/koa/index.d.ts",
-        "default": "./dist/cjs/http/adapters/koa/index.js"
-      }
-    },
-    "./http/hono": {
-      "import": {
-        "types": "./dist/types/http/adapters/hono/index.d.ts",
-        "default": "./dist/esm/http/adapters/hono/index.js"
-      },
-      "require": {
-        "types": "./dist/types/http/adapters/hono/index.d.ts",
-        "default": "./dist/cjs/http/adapters/hono/index.js"
-      }
-    },
-    "./http/fastify": {
-      "import": {
-        "types": "./dist/types/http/adapters/fastify/index.d.ts",
-        "default": "./dist/esm/http/adapters/fastify/index.js"
-      },
-      "require": {
-        "types": "./dist/types/http/adapters/fastify/index.d.ts",
-        "default": "./dist/cjs/http/adapters/fastify/index.js"
-      }
-    },
-    "./http/deno": {
-      "import": {
-        "types": "./dist/types/http/adapters/deno/index.d.ts",
-        "default": "./dist/esm/http/adapters/deno/index.js"
-      }
-    },
-    "./wrappers": {
-      "import": {
-        "types": "./dist/types/wrappers/index.d.ts",
-        "default": "./dist/esm/wrappers/index.js"
-      },
-      "require": {
-        "types": "./dist/types/wrappers/index.d.ts",
-        "default": "./dist/cjs/wrappers/index.js"
-      }
-    },
-    "./middleware": {
-      "import": {
-        "types": "./dist/types/middleware/index.d.ts",
-        "default": "./dist/esm/middleware/index.js"
-      },
-      "require": {
-        "types": "./dist/types/middleware/index.d.ts",
-        "default": "./dist/cjs/middleware/index.js"
-      }
-    },
-    "./adapters/frontend": {
-      "import": {
-        "types": "./dist/types/adapters/frontend/index.d.ts",
-        "default": "./dist/esm/adapters/frontend/index.js"
-      },
-      "require": {
-        "types": "./dist/types/adapters/frontend/index.d.ts",
-        "default": "./dist/cjs/adapters/frontend/index.js"
-      }
-    },
-    "./adapters/backend": {
-      "import": {
-        "types": "./dist/types/adapters/backend/index.d.ts",
-        "default": "./dist/esm/adapters/backend/index.js"
-      },
-      "require": {
-        "types": "./dist/types/adapters/backend/index.d.ts",
-        "default": "./dist/cjs/adapters/backend/index.js"
-      }
-    },
-    "./adapters/backend-native/model-runners": {
-      "import": {
-        "types": "./dist/types/adapters/backend-native/model-runners/index.d.ts",
-        "default": "./dist/esm/adapters/backend-native/model-runners/index.js"
-      },
-      "require": {
-        "types": "./dist/types/adapters/backend-native/model-runners/index.d.ts",
-        "default": "./dist/cjs/adapters/backend-native/model-runners/index.js"
-      }
-    },
-    "./adapters/backend-native": {
-      "import": {
-        "types": "./dist/types/adapters/backend-native/index.d.ts",
-        "default": "./dist/esm/adapters/backend-native/index.js"
-      },
-      "require": {
-        "types": "./dist/types/adapters/backend-native/index.d.ts",
-        "default": "./dist/cjs/adapters/backend-native/index.js"
-      }
-    },
-    "./cli": {
-      "import": {
-        "types": "./dist/types/cli/utils/index.d.ts",
-        "default": "./dist/esm/cli/utils/index.js"
-      }
-    },
-    "./cli/ollama": {
-      "import": {
-        "types": "./dist/types/cli/ollama/index.d.ts",
-        "default": "./dist/esm/cli/ollama/index.js"
-      }
-    }
-  },
-  "files": [
-    "dist",
-    "bin",
-    "README.md",
-    "EXAMPLES.md",
-    "LICENSE"
+  "workspaces": [
+    "packages/*"
   ],
   "scripts": {
-    "build": "npm run build:esm && npm run build:cjs && npm run build:types",
-    "build:esm": "tsc -p tsconfig.esm.json",
-    "build:cjs": "tsc -p tsconfig.cjs.json",
-    "build:types": "tsc -p tsconfig.types.json",
-    "clean": "rm -rf dist",
-    "prepare": "npm run clean && npm run build",
-    "prepublishOnly": "npm run clean && npm run build && npm run test",
-    "typecheck": "tsc --noEmit",
-    "lint": "eslint src --ext .ts",
-    "lint:fix": "eslint src --ext .ts --fix",
-    "format": "prettier --write \"src/**/*.ts\"",
-    "format:check": "prettier --check \"src/**/*.ts\"",
+    "build": "turbo run build",
+    "build:esm": "turbo run build:esm",
+    "build:cjs": "turbo run build:cjs",
+    "build:types": "turbo run build:types",
+    "clean": "turbo run clean && rm -rf node_modules/.cache",
+    "typecheck": "turbo run typecheck",
+    "lint": "turbo run lint",
+    "lint:fix": "turbo run lint:fix",
+    "format": "prettier --write \"packages/*/src/**/*.ts\"",
+    "format:check": "prettier --check \"packages/*/src/**/*.ts\"",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "demo": "node demo/demo.mjs",
-    "validate:examples": "node scripts/validate-examples.mjs"
+    "changeset": "changeset",
+    "version-packages": "changeset version",
+    "release": "turbo run build && changeset publish",
+    "release:staggered": "./scripts/staggered-publish.sh",
+    "release:staggered:dry-run": "./scripts/staggered-publish.sh --dry-run"
   },
   "keywords": [
     "ai",
@@ -233,71 +45,28 @@
     "url": "git+https://github.com/johnhenry/ai.matey.git"
   },
   "engines": {
-    "node": ">=18.0.0"
-  },
-  "peerDependencies": {
-    "@opentelemetry/api": "^1.0.0",
-    "@opentelemetry/exporter-trace-otlp-http": ">=0.50.0 <1.0.0",
-    "@opentelemetry/resources": "^1.0.0",
-    "@opentelemetry/sdk-trace-base": "^1.0.0",
-    "@opentelemetry/semantic-conventions": "^1.0.0",
-    "apple-foundation-models": "*",
-    "express": "^4.0.0 || ^5.0.0",
-    "fastify": "^4.0.0 || ^5.0.0",
-    "hono": "^3.0.0 || ^4.0.0",
-    "koa": "^2.0.0",
-    "node-llama-cpp": "^3.0.0"
-  },
-  "peerDependenciesMeta": {
-    "@opentelemetry/api": {
-      "optional": true
-    },
-    "@opentelemetry/exporter-trace-otlp-http": {
-      "optional": true
-    },
-    "@opentelemetry/resources": {
-      "optional": true
-    },
-    "@opentelemetry/sdk-trace-base": {
-      "optional": true
-    },
-    "@opentelemetry/semantic-conventions": {
-      "optional": true
-    },
-    "apple-foundation-models": {
-      "optional": true
-    },
-    "express": {
-      "optional": true
-    },
-    "fastify": {
-      "optional": true
-    },
-    "hono": {
-      "optional": true
-    },
-    "koa": {
-      "optional": true
-    },
-    "node-llama-cpp": {
-      "optional": true
-    }
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
   },
   "devDependencies": {
+    "@changesets/cli": "^2.29.7",
+    "@eslint/js": "^9.39.1",
     "@types/express": "^5.0.3",
     "@types/koa": "^3.0.0",
     "@types/node": "^24.7.2",
     "@typescript-eslint/eslint-plugin": "^8.46.1",
     "@typescript-eslint/parser": "^8.46.1",
     "@vitest/coverage-v8": "^3.2.4",
-    "apple-foundation-models": "^0.0.1",
     "eslint": "^9.37.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.4",
     "fastify": "^5.6.1",
     "hono": "^4.9.12",
     "prettier": "^3.6.2",
+    "turbo": "^2.6.1",
     "typescript": "^5.9.3",
+    "typescript-eslint": "^8.48.0",
     "vitest": "^3.2.4"
-  }
+  },
+  "packageManager": "npm@10.0.0"
 }
