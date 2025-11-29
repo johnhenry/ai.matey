@@ -251,7 +251,7 @@ export class Bridge<
       );
 
       // Step 6: Execute middleware stack + backend
-      // eslint-disable-next-line @typescript-eslint/require-await -- returns stream directly, async required for middleware stack interface
+
       const irStream = await this.middlewareStack.executeStream(context, async () => {
         // Call backend adapter streaming
         return this.backend.executeStream(enrichedRequest, options?.signal);
