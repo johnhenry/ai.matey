@@ -388,26 +388,35 @@ Legend: ⭐⭐ = Excellent (best-in-class), ⭐ = Good (competitive), ⚠️ = L
 - Health check endpoints with detailed status (`/health`, `/health/ready`, `/health/live`)
 
 **5. Embeddings Support**
-- Embedding generation across providers
-- Batch embedding support
-- Vector dimension normalization
-- Embedding cost tracking
+- Embedding generation across providers (24 backends)
+- Batch embedding support with automatic chunking
+- Vector dimension normalization across providers
+- **Cost tracking integration**: Uses existing cost-tracking middleware
+- **Caching integration**: Cache embeddings using existing caching middleware
+- **Router integration**: Route embedding requests like chat (cost/latency optimized)
 
 ### Future Phase: Semantic Caching & Guardrails
 
 **Semantic Caching** (unique differentiator)
+- **Middleware architecture**: Implemented as middleware, works with existing pipeline
 - Cache by semantic meaning, not exact match
-- Cosine similarity matching
-- Configurable threshold
-- Cache across different provider formats
+- Cosine similarity matching with configurable threshold
+- **Embeddings integration**: Uses Embeddings Support for semantic comparison
+- Cache across different provider formats (provider-agnostic)
+- **OpenTelemetry metrics**: Cache hit/miss rates, similarity scores
 - Performance: 20x faster than API calls
 
 **Guardrails System** (inspired by Portkey)
-- Middleware-based architecture
-- Pre-built checks: PII detection, profanity filtering, code detection, URL detection, prompt injection
-- LLM-based checks: toxicity, bias, factual consistency
-- Configurable actions: deny, log, fallback, retry
-- Custom guardrail support
+- **Middleware architecture**: Implemented as middleware, composable with others
+- **Pre-built deterministic checks**: PII detection, profanity filtering, code detection, URL detection, prompt injection
+- **LLM-based checks**: Toxicity, bias, factual consistency (uses existing providers)
+- **Configurable actions**:
+  - `deny` - Block request and return error
+  - `log` - Log violation, continue request (uses existing logging middleware)
+  - `fallback` - Use fallback provider (uses existing router)
+  - `retry` - Retry with modifications (uses existing retry middleware)
+- **OpenTelemetry integration**: Guardrail violations tracked as events
+- Custom guardrail support via plugin API
 
 **OpenTelemetry Enhancement**
 - Additional integration examples (Jaeger, Zipkin, Datadog, Honeycomb)
@@ -416,44 +425,112 @@ Legend: ⭐⭐ = Excellent (best-in-class), ⭐ = Good (competitive), ⚠️ = L
 ## Long-Term Vision
 
 ### Enhanced Multi-Modal
-- Audio processing (speech-to-text, text-to-speech)
-- Image generation (DALL-E, Stable Diffusion)
-- Video understanding
-- Advanced vision capabilities
+- **Audio processing**: Speech-to-text, text-to-speech across providers
+  - Uses existing router for provider selection
+  - Cost tracking integration
+- **Image generation**: DALL-E, Stable Diffusion, Midjourney
+  - Provider abstraction for image models
+  - Caching integration for generated images
+- **Video understanding**: Video analysis across providers
+- **Advanced vision capabilities**: OCR, object detection, image classification
 
 ### Enterprise Features
-- Geographic routing (route to nearest provider for latency)
-- Multi-tenancy support
-- Advanced rate limiting per tenant
-- Audit logging and compliance
-- SSO integration
+- **Geographic routing**: Route to nearest provider for latency
+  - Router integration with geo-aware strategy
+  - OpenTelemetry metrics for latency by region
+- **Multi-tenancy support**: Tenant isolation and resource management
+  - Security middleware integration for tenant authentication
+  - Cost tracking middleware per tenant
+  - Separate circuit breakers per tenant
+- **Advanced rate limiting**: Per-tenant, per-model, per-endpoint
+  - Security middleware enhancement
+  - OpenTelemetry metrics for rate limit hits
+  - Integration with existing health checks
+- **Audit logging and compliance**: Request/response audit trail
+  - Logging middleware integration
+  - OpenTelemetry events for audit trail
+  - Conversation history middleware for full context preservation
+- **SSO integration**: Enterprise authentication support
+  - Security middleware enhancement
+  - OpenID Connect, SAML support
 
 ### Performance Optimizations
-- Request deduplication
-- Batch request optimization
-- Response compression
-- Parallel dispatch improvements
+- **Request deduplication**: Collapse identical concurrent requests
+  - Middleware implementation
+  - Caching middleware integration for dedup detection
+  - OpenTelemetry metrics for dedup hit rate
+- **Batch request optimization**: Automatic batching for supported providers
+  - Router enhancement for batch dispatch
+  - Cost tracking middleware for batched requests
+- **Response compression**: Gzip/brotli for HTTP responses
+  - HTTP core utilities enhancement
+  - OpenTelemetry metrics for compression ratios
+- **Parallel dispatch improvements**: Enhanced parallel execution
+  - Router enhancement with improved concurrency control
+  - OpenTelemetry distributed tracing for parallel requests
+  - Circuit breaker integration (fail fast for unavailable backends)
 
 ### Developer Experience
-- VSCode extension with snippets
-- Browser debugging extension
-- Interactive code playground (web-based)
-- "Awesome ai.matey" community list
-- Community adapter marketplace
+- **VSCode extension**: Code snippets, autocomplete, inline docs
+  - TypeScript integration with type inference
+  - Quick provider switching
+  - OpenTelemetry trace viewer integration
+- **Browser debugging extension**: Chrome DevTools integration
+  - Request/response inspection
+  - Middleware pipeline visualization
+  - OpenTelemetry trace correlation
+  - Circuit breaker status display
+- **Interactive code playground**: Web-based REPL
+  - Powered by existing backend adapters
+  - Mock provider for demo without API keys
+  - React integration examples
+- **"Awesome ai.matey" community list**: Curated resources
+  - Community adapters, middleware, examples
+- **Community adapter marketplace**: Discoverability platform
+  - Testing utilities integration for adapter validation
+  - OpenTelemetry-instrumented examples
 
 ### Advanced Features
-- Machine learning optimization (learn optimal models from usage)
-- Model recommendations (suggest cheaper/better alternatives)
-- Dynamic pricing (real-time pricing API integration)
-- Advanced capability matching
-- Prompt template system with versioning
+- **Machine learning optimization**: Learn optimal models from usage patterns
+  - Cost tracking middleware data for training
+  - OpenTelemetry metrics for model performance
+  - Router integration for automatic model selection
+- **Model recommendations**: Suggest cheaper/better alternatives
+  - Cost tracking middleware integration
+  - Capability matching based on actual usage
+  - OpenTelemetry metrics for recommendation acceptance
+- **Dynamic pricing**: Real-time pricing API integration
+  - Cost tracking middleware enhancement
+  - Router integration for cost-based routing
+  - OpenTelemetry metrics for pricing fluctuations
+- **Advanced capability matching**: Match requests to capable models
+  - Router enhancement with capability awareness
+  - Uses existing provider metadata
+- **Prompt template system**: Versioned prompt management
+  - Transform middleware integration
+  - Conversation history middleware for template context
+  - Validation middleware for template compliance
 
 ### Ecosystem Expansion
-- SvelteKit integration
-- Vue.js composables
-- WebLLM browser integration (hybrid local+cloud)
-- Plugin system
-- Community adapter registry
+- **SvelteKit integration**: Server-side actions and stores
+  - Similar to existing Next.js integration
+  - React core hooks adapted for Svelte
+  - HTTP integration with SvelteKit endpoints
+- **Vue.js composables**: `useChat`, `useCompletion` for Vue 3
+  - Similar to React hooks architecture
+  - Composables package following existing pattern
+- **WebLLM browser integration**: Hybrid local+cloud models
+  - Browser backend adapter (similar to Chrome AI)
+  - Router integration for local-first strategy
+  - Fallback to cloud providers when local unavailable
+- **Plugin system**: Extensible middleware and adapter registry
+  - Middleware pipeline enhancement
+  - Testing utilities for plugin validation
+  - OpenTelemetry integration for plugin metrics
+- **Community adapter registry**: NPM-based adapter discovery
+  - Standard adapter interface compliance
+  - Testing utilities for community adapters
+  - OpenTelemetry metrics reporting standard
 
 ## Strategic Roadmap Alignment
 
