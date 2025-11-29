@@ -120,7 +120,7 @@ export function assertResponseHasText(response: IRChatResponse): void {
   }
   const textContent = response.message.content.find((c: MessageContent) => c.type === 'text');
   expect(textContent).toBeDefined();
-  if (textContent && textContent.type === 'text') {
+  if (textContent?.type === 'text') {
     expect(textContent.text).toBeDefined();
     expect(textContent.text.length).toBeGreaterThan(0);
   }
@@ -135,7 +135,7 @@ export function assertResponseHasToolUse(response: IRChatResponse): void {
   }
   const toolUse = response.message.content.find((c: MessageContent) => c.type === 'tool_use');
   expect(toolUse).toBeDefined();
-  if (toolUse && toolUse.type === 'tool_use') {
+  if (toolUse?.type === 'tool_use') {
     expect(toolUse.id).toBeDefined();
     expect(toolUse.name).toBeDefined();
     expect(toolUse.input).toBeDefined();
@@ -265,9 +265,7 @@ export function extractTextFromResponse(response: IRChatResponse): string {
     return '';
   }
   const textContent = response.message.content.filter((c: MessageContent) => c.type === 'text');
-  return textContent
-    .map((c: MessageContent) => (c.type === 'text' ? c.text : ''))
-    .join('');
+  return textContent.map((c: MessageContent) => (c.type === 'text' ? c.text : '')).join('');
 }
 
 /**
@@ -299,9 +297,7 @@ export function extractToolUsesFromResponse(response: IRChatResponse): Array<{
 /**
  * Accumulate text from stream chunks
  */
-export async function accumulateStreamText(
-  stream: AsyncIterable<IRStreamChunk>
-): Promise<string> {
+export async function accumulateStreamText(stream: AsyncIterable<IRStreamChunk>): Promise<string> {
   let text = '';
 
   for await (const chunk of stream) {

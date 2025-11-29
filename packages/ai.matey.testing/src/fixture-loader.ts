@@ -4,11 +4,7 @@
 
 import { readFile } from 'fs/promises';
 import { join } from 'path';
-import type {
-  Fixture,
-  FixtureQuery,
-  FixtureCollection,
-} from './fixture-types.js';
+import type { Fixture, FixtureQuery, FixtureCollection } from './fixture-types.js';
 import { isChatFixture, isStreamingFixture } from './fixture-types.js';
 
 /**
@@ -34,7 +30,9 @@ export async function loadFixture(
   // Check cache
   if (options?.useCache !== false) {
     const cached = fixtureCache.get(cacheKey);
-    if (cached) return cached;
+    if (cached) {
+      return cached;
+    }
   }
 
   // Load from file
@@ -181,12 +179,7 @@ export async function loadFixtureCollection(
   provider: string,
   collectionName: string
 ): Promise<FixtureCollection> {
-  const collectionPath = join(
-    FIXTURES_DIR,
-    provider,
-    'collections',
-    `${collectionName}.json`
-  );
+  const collectionPath = join(FIXTURES_DIR, provider, 'collections', `${collectionName}.json`);
 
   const content = await readFile(collectionPath, 'utf-8');
   const collection = JSON.parse(content) as FixtureCollection;

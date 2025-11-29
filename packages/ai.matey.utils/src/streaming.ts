@@ -701,6 +701,7 @@ export async function* streamWithBackpressure(
   // Yield chunks with backpressure
   while (!sourceComplete || buffer.length > 0 || sourceError) {
     if (sourceError) {
+      // eslint-disable-next-line @typescript-eslint/only-throw-error -- sourceError is already typed as Error | null, narrowed to Error here
       throw sourceError;
     }
 

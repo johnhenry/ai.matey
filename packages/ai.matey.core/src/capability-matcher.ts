@@ -123,7 +123,7 @@ export function matchModels(
 
   for (const { model, backend } of availableModels) {
     // Get or infer capabilities
-    const capabilities = model.capabilities || inferCapabilities(model.id, model.metadata);
+    const capabilities = model.capabilities ?? inferCapabilities(model.id, model.metadata);
 
     // Check hard requirements
     const meetsHardRequirements = requirements.required
@@ -159,7 +159,7 @@ function scoreModel(
 ): ScoredModel {
   // Get scoring weights
   const weights =
-    requirements.weights || OPTIMIZATION_WEIGHTS[requirements.optimization || 'balanced'];
+    requirements.weights ?? OPTIMIZATION_WEIGHTS[requirements.optimization ?? 'balanced'];
 
   // Calculate individual scores
   const costScore = scoreCost(capabilities, requirements.preferred);
@@ -175,7 +175,7 @@ function scoreModel(
   const matchReason = determineMatchReason(
     { costScore, speedScore, qualityScore },
     weights,
-    requirements.optimization || 'balanced'
+    requirements.optimization ?? 'balanced'
   );
 
   return {
@@ -229,7 +229,7 @@ function scoreSpeed(
   capabilities: Partial<ModelCapabilities>,
   preferred?: CapabilityRequirements['preferred']
 ): number {
-  const latency = capabilities.latency?.p95 || capabilities.latency?.p50;
+  const latency = capabilities.latency?.p95 ?? capabilities.latency?.p50;
 
   if (!latency) {
     return 50; // Neutral score if no latency data
@@ -339,7 +339,7 @@ export function filterByRequirements(
   }
 
   return availableModels.filter(({ model }) => {
-    const capabilities = model.capabilities || inferCapabilities(model.id, model.metadata);
+    const capabilities = model.capabilities ?? inferCapabilities(model.id, model.metadata);
     return meetsRequirements(capabilities, requirements);
   });
 }
@@ -354,7 +354,7 @@ export function findBestModel(
 ): ScoredModel | null {
   const scored = matchModels(requirements, availableModels);
   const best = scored.find((m) => m.meetsRequirements);
-  return best || null;
+  return best ?? null;
 }
 
 /**

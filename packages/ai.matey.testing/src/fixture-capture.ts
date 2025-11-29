@@ -5,11 +5,7 @@
 import { writeFile, mkdir } from 'fs/promises';
 import { join } from 'path';
 import type { IRChatRequest, IRChatResponse, IRStreamChunk } from 'ai.matey.types';
-import type {
-  ChatFixture,
-  StreamingFixture,
-  FixtureMetadata,
-} from './fixture-types.js';
+import type { ChatFixture, StreamingFixture, FixtureMetadata } from './fixture-types.js';
 import { FIXTURES_DIR } from './fixture-loader.js';
 
 /**
@@ -42,7 +38,9 @@ export interface CaptureConfig {
  * Sanitize sensitive data from request/response
  */
 function sanitizeData<T>(data: T, config: CaptureConfig): T {
-  if (!config.sanitize) return data;
+  if (!config.sanitize) {
+    return data;
+  }
 
   // Deep clone to avoid mutating original
   const sanitized = JSON.parse(JSON.stringify(data)) as T;
@@ -170,13 +168,11 @@ async function saveFixture(
 /**
  * Capture middleware - wraps a backend adapter to automatically capture fixtures
  */
-export function createCaptureMiddleware(
-  config: Omit<CaptureConfig, 'scenario'>
-) {
+export function createCaptureMiddleware(config: Omit<CaptureConfig, 'scenario'>) {
   return {
     name: 'fixture-capture',
 
-    async processRequest(request: IRChatRequest): Promise<IRChatRequest> {
+    processRequest(request: IRChatRequest): IRChatRequest {
       // Store request for later capture
       (request as { _captureRequest?: IRChatRequest })._captureRequest = request;
       return request;

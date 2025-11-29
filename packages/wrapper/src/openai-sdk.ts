@@ -16,11 +16,7 @@ import type {
   ListModelsOptions,
   ListModelsResult,
 } from 'ai.matey.types';
-import {
-  OpenAIFrontendAdapter,
-  type OpenAIRequest,
-  type OpenAIMessage,
-} from 'ai.matey.frontend';
+import { OpenAIFrontendAdapter, type OpenAIRequest, type OpenAIMessage } from 'ai.matey.frontend';
 
 // ============================================================================
 // Re-export types from frontend adapter

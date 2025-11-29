@@ -103,6 +103,7 @@ export class Bridge<TFrontend extends FrontendAdapter = FrontendAdapter>
     this._totalRequests++;
 
     // Step 1: Convert frontend request to IR
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Generic frontend adapter requires type assertion
     const irRequest = await this.frontend.toIR(request as any);
 
     // Step 2: Ensure metadata has requestId and timestamp
@@ -178,7 +179,7 @@ export class Bridge<TFrontend extends FrontendAdapter = FrontendAdapter>
     // Track failure
     this._failedRequests++;
     const errorCode = lastError instanceof AdapterError ? lastError.code : 'UNKNOWN';
-    this._errorCounts[errorCode] = (this._errorCounts[errorCode] || 0) + 1;
+    this._errorCounts[errorCode] = (this._errorCounts[errorCode] ?? 0) + 1;
 
     // Emit REQUEST_ERROR event
     this.emit({
@@ -216,6 +217,7 @@ export class Bridge<TFrontend extends FrontendAdapter = FrontendAdapter>
     this._streamingRequests++;
 
     // Step 1: Convert frontend request to IR
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Generic frontend adapter requires type assertion
     const irRequest = await this.frontend.toIR(request as any);
 
     // Step 2: Ensure streaming is enabled
@@ -249,6 +251,7 @@ export class Bridge<TFrontend extends FrontendAdapter = FrontendAdapter>
       );
 
       // Step 6: Execute middleware stack + backend
+      // eslint-disable-next-line @typescript-eslint/require-await -- returns stream directly, async required for middleware stack interface
       const irStream = await this.middlewareStack.executeStream(context, async () => {
         // Call backend adapter streaming
         return this.backend.executeStream(enrichedRequest, options?.signal);
@@ -282,7 +285,7 @@ export class Bridge<TFrontend extends FrontendAdapter = FrontendAdapter>
       // Track failure
       this._failedRequests++;
       const errorCode = error instanceof AdapterError ? error.code : 'UNKNOWN';
-      this._errorCounts[errorCode] = (this._errorCounts[errorCode] || 0) + 1;
+      this._errorCounts[errorCode] = (this._errorCounts[errorCode] ?? 0) + 1;
 
       // Emit STREAM_ERROR event
       this.emit({
@@ -586,7 +589,7 @@ export class Bridge<TFrontend extends FrontendAdapter = FrontendAdapter>
     const timestamp = request.metadata?.timestamp ?? Date.now();
 
     // Apply default model if not specified in request
-    const model = request.parameters?.model || this.config.defaultModel;
+    const model = request.parameters?.model ?? this.config.defaultModel;
 
     return {
       ...request,
@@ -647,7 +650,7 @@ export class Bridge<TFrontend extends FrontendAdapter = FrontendAdapter>
     if (specificListeners) {
       for (const listener of specificListeners) {
         try {
-          listener(event);
+          void listener(event);
         } catch {
           // Ignore listener errors to prevent breaking the chain
         }
@@ -659,7 +662,7 @@ export class Bridge<TFrontend extends FrontendAdapter = FrontendAdapter>
     if (wildcardListeners) {
       for (const listener of wildcardListeners) {
         try {
-          listener(event);
+          void listener(event);
         } catch {
           // Ignore listener errors to prevent breaking the chain
         }

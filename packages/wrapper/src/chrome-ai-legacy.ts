@@ -38,7 +38,7 @@ export interface LegacyChromeAISession {
 }
 
 export interface LegacyChromeAILanguageModelAPI {
-  create(options?: LegacyChromeAICreateOptions): Promise<LegacyChromeAISession>;
+  create(options?: LegacyChromeAICreateOptions): LegacyChromeAISession;
   capabilities(): Promise<{
     available: 'yes' | 'no' | 'after-download';
     defaultTemperature?: number;
@@ -61,18 +61,27 @@ class LegacyChromeAISessionImpl implements LegacyChromeAISession {
   constructor(backend: BackendAdapter, options: LegacyChromeAICreateOptions) {
     this.backend = backend;
     this.options = options;
-    this.conversationHistory = options.initialPrompts?.map((prompt) => ({
-      role: prompt.role,
-      content: prompt.content,
-    })) || [];
+    this.conversationHistory =
+      options.initialPrompts?.map((prompt) => ({
+        role: prompt.role,
+        content: prompt.content,
+      })) || [];
   }
 
-  get tokensSoFar(): number { return this._tokensSoFar; }
-  get maxTokens(): number { return this.options.maxTokens || 1024; }
-  get tokensLeft(): number { return Math.max(0, this.maxTokens - this._tokensSoFar); }
+  get tokensSoFar(): number {
+    return this._tokensSoFar;
+  }
+  get maxTokens(): number {
+    return this.options.maxTokens || 1024;
+  }
+  get tokensLeft(): number {
+    return Math.max(0, this.maxTokens - this._tokensSoFar);
+  }
 
   async prompt(input: string): Promise<string> {
-    if (this.destroyed) throw new Error('Session has been destroyed');
+    if (this.destroyed) {
+      throw new Error('Session has been destroyed');
+    }
 
     const userMessage: IRMessage = { role: 'user', content: input };
     this.conversationHistory.push(userMessage);
@@ -97,16 +106,21 @@ class LegacyChromeAISessionImpl implements LegacyChromeAISession {
     this.conversationHistory.push(response.message);
 
     if (this.options.maxHistorySize !== undefined && this.options.maxHistorySize !== -1) {
-      this.conversationHistory = trimHistory(this.conversationHistory, this.options.maxHistorySize, 'smart');
+      this.conversationHistory = trimHistory(
+        this.conversationHistory,
+        this.options.maxHistorySize,
+        'smart'
+      );
     }
 
     if (response.usage) {
       this._tokensSoFar = response.usage.totalTokens;
     } else {
       this._tokensSoFar += Math.ceil(input.length / 4);
-      const responseText = typeof response.message.content === 'string'
-        ? response.message.content
-        : response.message.content.map((c) => (c.type === 'text' ? c.text : '')).join('');
+      const responseText =
+        typeof response.message.content === 'string'
+          ? response.message.content
+          : response.message.content.map((c) => (c.type === 'text' ? c.text : '')).join('');
       this._tokensSoFar += Math.ceil(responseText.length / 4);
     }
 
@@ -116,7 +130,9 @@ class LegacyChromeAISessionImpl implements LegacyChromeAISession {
   }
 
   async *promptStreaming(input: string): AsyncIterable<string> {
-    if (this.destroyed) throw new Error('Session has been destroyed');
+    if (this.destroyed) {
+      throw new Error('Session has been destroyed');
+    }
 
     const userMessage: IRMessage = { role: 'user', content: input };
     this.conversationHistory.push(userMessage);
@@ -139,34 +155,34 @@ class LegacyChromeAISessionImpl implements LegacyChromeAISession {
 
     let fullContent = '';
 
-    try {
-      const stream = this.backend.executeStream(request);
+    const stream = this.backend.executeStream(request);
 
-      for await (const chunk of stream) {
-        if (chunk.type === 'content') {
-          fullContent += chunk.delta;
-          yield chunk.delta;
-        } else if (chunk.type === 'done') {
-          if (chunk.message) {
-            this.conversationHistory.push(chunk.message);
-          }
-
-          if (this.options.maxHistorySize !== undefined && this.options.maxHistorySize !== -1) {
-            this.conversationHistory = trimHistory(this.conversationHistory, this.options.maxHistorySize, 'smart');
-          }
-
-          if (chunk.usage) {
-            this._tokensSoFar = chunk.usage.totalTokens;
-          } else {
-            this._tokensSoFar += Math.ceil(input.length / 4);
-            this._tokensSoFar += Math.ceil(fullContent.length / 4);
-          }
-        } else if (chunk.type === 'error') {
-          throw new Error(chunk.error.message);
+    for await (const chunk of stream) {
+      if (chunk.type === 'content') {
+        fullContent += chunk.delta;
+        yield chunk.delta;
+      } else if (chunk.type === 'done') {
+        if (chunk.message) {
+          this.conversationHistory.push(chunk.message);
         }
+
+        if (this.options.maxHistorySize !== undefined && this.options.maxHistorySize !== -1) {
+          this.conversationHistory = trimHistory(
+            this.conversationHistory,
+            this.options.maxHistorySize,
+            'smart'
+          );
+        }
+
+        if (chunk.usage) {
+          this._tokensSoFar = chunk.usage.totalTokens;
+        } else {
+          this._tokensSoFar += Math.ceil(input.length / 4);
+          this._tokensSoFar += Math.ceil(fullContent.length / 4);
+        }
+      } else if (chunk.type === 'error') {
+        throw new Error(chunk.error.message);
       }
-    } catch (error) {
-      throw error;
     }
   }
 
@@ -188,9 +204,11 @@ class LegacyChromeAISessionImpl implements LegacyChromeAISession {
 // Language Model Implementation
 // ============================================================================
 
-export function LegacyChromeAILanguageModel(backend: BackendAdapter): LegacyChromeAILanguageModelAPI {
+export function LegacyChromeAILanguageModel(
+  backend: BackendAdapter
+): LegacyChromeAILanguageModelAPI {
   return {
-    async create(options: LegacyChromeAICreateOptions = {}): Promise<LegacyChromeAISession> {
+    create(options: LegacyChromeAICreateOptions = {}): LegacyChromeAISession {
       return new LegacyChromeAISessionImpl(backend, options);
     },
 

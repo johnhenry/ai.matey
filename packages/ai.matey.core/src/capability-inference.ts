@@ -206,7 +206,7 @@ function getDefaultCapabilitiesByFamily(family: string): Partial<ModelCapabiliti
     },
   };
 
-  return defaults[family] || {};
+  return defaults[family] ?? {};
 }
 
 /**

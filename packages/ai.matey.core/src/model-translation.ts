@@ -232,7 +232,11 @@ export function hasTranslation(modelName: string, mapping: ModelMapping): boolea
  * ```
  */
 export function mergeMappings(...mappings: ModelMapping[]): ModelMapping {
-  return Object.assign({}, ...mappings);
+  const result: ModelMapping = {};
+  for (const mapping of mappings) {
+    Object.assign(result, mapping);
+  }
+  return result;
 }
 
 /**

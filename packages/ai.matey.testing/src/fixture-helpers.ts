@@ -33,6 +33,7 @@ function createMockFromChatFixture(fixture: ChatFixture): SimpleMockBackend {
   return {
     name: `mock-${fixture.metadata.provider}`,
 
+    // eslint-disable-next-line @typescript-eslint/require-await -- returns fixture directly
     async chat(_request: IRChatRequest): Promise<IRChatResponse> {
       return fixture.response;
     },
@@ -46,12 +47,14 @@ function createMockFromStreamingFixture(fixture: StreamingFixture): SimpleMockBa
   return {
     name: `mock-${fixture.metadata.provider}`,
 
+    // eslint-disable-next-line @typescript-eslint/require-await -- yields fixture chunks directly
     async *chatStream(_request: IRChatRequest): AsyncIterable<IRStreamChunk> {
       for (const chunk of fixture.chunks) {
         yield chunk;
       }
     },
 
+    // eslint-disable-next-line @typescript-eslint/require-await -- returns fixture directly
     async chat(_request: IRChatRequest): Promise<IRChatResponse> {
       if (!fixture.finalResponse) {
         throw new Error('Fixture does not have a final response');
@@ -90,9 +93,7 @@ export async function* replayStreamWithTiming(
 /**
  * Create multiple mocks from multiple fixtures
  */
-export function createMocksFromFixtures(
-  fixtures: Fixture[]
-): Map<string, SimpleMockBackend> {
+export function createMocksFromFixtures(fixtures: Fixture[]): Map<string, SimpleMockBackend> {
   const mocks = new Map<string, SimpleMockBackend>();
 
   for (const fixture of fixtures) {
@@ -123,7 +124,9 @@ export function validateAgainstFixture(
     ignoreFields?: string[];
   }
 ): boolean {
-  const ignoreFields = new Set(options?.ignoreFields || ['metadata.timestamp', 'metadata.requestId']);
+  const ignoreFields = new Set(
+    options?.ignoreFields || ['metadata.timestamp', 'metadata.requestId']
+  );
 
   if (options?.exact) {
     // Deep equality check (minus ignored fields)
@@ -131,7 +134,7 @@ export function validateAgainstFixture(
   }
 
   // Basic structure check
-  if (!response.message || !response.message.content) {
+  if (!response.message?.content) {
     return false;
   }
 
@@ -151,29 +154,32 @@ export function validateAgainstFixture(
 /**
  * Deep equality check with ignored fields
  */
-function deepEqual(
-  obj1: unknown,
-  obj2: unknown,
-  ignoreFields: Set<string>,
-  path = ''
-): boolean {
-  if (obj1 === obj2) return true;
+function deepEqual(obj1: unknown, obj2: unknown, ignoreFields: Set<string>, path = ''): boolean {
+  if (obj1 === obj2) {
+    return true;
+  }
 
-  if (typeof obj1 !== typeof obj2) return false;
+  if (typeof obj1 !== typeof obj2) {
+    return false;
+  }
 
   if (typeof obj1 !== 'object' || obj1 === null || obj2 === null) {
     return obj1 === obj2;
   }
 
-  const keys1 = Object.keys(obj1 as object);
+  const keys1 = Object.keys(obj1);
   const keys2 = Object.keys(obj2 as object);
 
-  if (keys1.length !== keys2.length) return false;
+  if (keys1.length !== keys2.length) {
+    return false;
+  }
 
   for (const key of keys1) {
     const fullPath = path ? `${path}.${key}` : key;
 
-    if (ignoreFields.has(fullPath)) continue;
+    if (ignoreFields.has(fullPath)) {
+      continue;
+    }
 
     const val1 = (obj1 as Record<string, unknown>)[key];
     const val2 = (obj2 as Record<string, unknown>)[key];
@@ -210,9 +216,7 @@ export function extractChunks(fixture: StreamingFixture): readonly IRStreamChunk
 /**
  * Collect streaming chunks into a single response
  */
-export function collectChunksToResponse(
-  chunks: readonly IRStreamChunk[]
-): IRChatResponse {
+export function collectChunksToResponse(chunks: readonly IRStreamChunk[]): IRChatResponse {
   let textContent = '';
   const role: 'assistant' | 'user' | 'system' | 'tool' = 'assistant';
 
@@ -259,16 +263,22 @@ export function createConfigurableMock(
   const mock = {
     name,
 
+    // eslint-disable-next-line @typescript-eslint/require-await -- mock returns directly
     async chat(_request: IRChatRequest): Promise<IRChatResponse> {
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
       if (!response) {
         throw new Error('Mock has no response configured');
       }
       return response;
     },
 
+    // eslint-disable-next-line @typescript-eslint/require-await -- mock yields directly
     async *chatStream(_request: IRChatRequest): AsyncIterable<IRStreamChunk> {
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
       if (!streamChunks || streamChunks.length === 0) {
         throw new Error('Mock has no stream chunks configured');
       }

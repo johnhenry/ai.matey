@@ -31,11 +31,11 @@ export interface ChromeAISession {
   prompt(input: string): Promise<string>;
   promptStreaming(input: string): ReadableStream<string>;
   destroy(): void;
-  clone(): Promise<ChromeAISession>;
+  clone(): ChromeAISession;
 }
 
 export interface ChromeAILanguageModelAPI {
-  create(options?: ChromeAICreateOptions): Promise<ChromeAISession>;
+  create(options?: ChromeAICreateOptions): ChromeAISession;
   capabilities(): Promise<{ available: 'readily' | 'after-download' | 'no' }>;
 }
 
@@ -52,14 +52,17 @@ class ChromeAISessionImpl implements ChromeAISession {
   constructor(backend: BackendAdapter, options: ChromeAICreateOptions) {
     this.backend = backend;
     this.options = options;
-    this.conversationHistory = options.initialPrompts?.map((prompt) => ({
-      role: prompt.role,
-      content: prompt.content,
-    })) || [];
+    this.conversationHistory =
+      options.initialPrompts?.map((prompt) => ({
+        role: prompt.role,
+        content: prompt.content,
+      })) || [];
   }
 
   async prompt(input: string): Promise<string> {
-    if (this.destroyed) throw new Error('Session has been destroyed');
+    if (this.destroyed) {
+      throw new Error('Session has been destroyed');
+    }
 
     const userMessage: IRMessage = { role: 'user', content: input };
     this.conversationHistory.push(userMessage);
@@ -90,7 +93,9 @@ class ChromeAISessionImpl implements ChromeAISession {
   }
 
   promptStreaming(input: string): ReadableStream<string> {
-    if (this.destroyed) throw new Error('Session has been destroyed');
+    if (this.destroyed) {
+      throw new Error('Session has been destroyed');
+    }
 
     const userMessage: IRMessage = { role: 'user', content: input };
     this.conversationHistory.push(userMessage);
@@ -153,7 +158,7 @@ class ChromeAISessionImpl implements ChromeAISession {
     this.conversationHistory = [];
   }
 
-  async clone(): Promise<ChromeAISession> {
+  clone(): ChromeAISession {
     return new ChromeAISessionImpl(this.backend, {
       ...this.options,
       initialPrompts: this.conversationHistory
@@ -175,7 +180,7 @@ export function ChromeAILanguageModel(
   defaultOptions: ChromeAICreateOptions = {}
 ): ChromeAILanguageModelAPI {
   return {
-    async create(options: ChromeAICreateOptions = {}): Promise<ChromeAISession> {
+    create(options: ChromeAICreateOptions = {}): ChromeAISession {
       const mergedOptions: ChromeAICreateOptions = {
         ...defaultOptions,
         ...options,

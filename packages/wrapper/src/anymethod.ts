@@ -69,10 +69,7 @@ export function formatMethodPrompt(methodName: string, args: unknown[]): string 
 // Anymethod Implementation
 // ============================================================================
 
-export function createAnymethod(
-  backend: BackendAdapter,
-  config: AnymethodConfig = {}
-): Anymethod {
+export function createAnymethod(backend: BackendAdapter, config: AnymethodConfig = {}): Anymethod {
   const {
     model,
     temperature,
@@ -146,34 +143,30 @@ export function createAnymethod(
 
     let fullContent = '';
 
-    try {
-      const stream = backend.executeStream(request);
+    const stream = backend.executeStream(request);
 
-      for await (const chunk of stream) {
-        if (chunk.type === 'content') {
-          fullContent += chunk.delta;
-          yield chunk.delta;
-        } else if (chunk.type === 'done') {
-          if (chunk.message) {
-            conversationHistory.push(chunk.message);
-          }
-
-          if (maxHistorySize !== undefined && maxHistorySize !== -1) {
-            conversationHistory = trimHistory(conversationHistory, maxHistorySize, 'smart');
-          }
-
-          if (chunk.usage) {
-            _tokensSoFar = chunk.usage.totalTokens;
-          } else {
-            _tokensSoFar += Math.ceil(input.length / 4);
-            _tokensSoFar += Math.ceil(fullContent.length / 4);
-          }
-        } else if (chunk.type === 'error') {
-          throw new Error(chunk.error.message);
+    for await (const chunk of stream) {
+      if (chunk.type === 'content') {
+        fullContent += chunk.delta;
+        yield chunk.delta;
+      } else if (chunk.type === 'done') {
+        if (chunk.message) {
+          conversationHistory.push(chunk.message);
         }
+
+        if (maxHistorySize !== undefined && maxHistorySize !== -1) {
+          conversationHistory = trimHistory(conversationHistory, maxHistorySize, 'smart');
+        }
+
+        if (chunk.usage) {
+          _tokensSoFar = chunk.usage.totalTokens;
+        } else {
+          _tokensSoFar += Math.ceil(input.length / 4);
+          _tokensSoFar += Math.ceil(fullContent.length / 4);
+        }
+      } else if (chunk.type === 'error') {
+        throw new Error(chunk.error.message);
       }
-    } catch (error) {
-      throw error;
     }
   }
 
@@ -221,10 +214,18 @@ export function createAnymethod(
       conversationHistory = initialPrompts.map((p) => ({ role: p.role, content: p.content }));
       _tokensSoFar = 0;
     },
-    setHistory: (history: IRMessage[]) => { conversationHistory = [...history]; },
-    get tokensSoFar(): number { return _tokensSoFar; },
-    get maxTokens(): number { return maxTokens; },
-    get tokensLeft(): number { return Math.max(0, maxTokens - _tokensSoFar); },
+    setHistory: (history: IRMessage[]) => {
+      conversationHistory = [...history];
+    },
+    get tokensSoFar(): number {
+      return _tokensSoFar;
+    },
+    get maxTokens(): number {
+      return maxTokens;
+    },
+    get tokensLeft(): number {
+      return Math.max(0, maxTokens - _tokensSoFar);
+    },
   };
 
   return anymethod;

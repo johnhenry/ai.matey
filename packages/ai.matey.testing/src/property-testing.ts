@@ -2,12 +2,7 @@
  * Property-based testing utilities - generate random valid inputs
  */
 
-import type {
-  IRChatRequest,
-  IRMessage,
-  MessageContent,
-  IRParameters,
-} from 'ai.matey.types';
+import type { IRChatRequest, IRMessage, MessageContent, IRParameters } from 'ai.matey.types';
 
 /**
  * Random seed generator for deterministic randomness
@@ -116,10 +111,12 @@ export function generateSystemMessage(random: SeededRandom): IRMessage {
 
   return {
     role: 'system',
-    content: [{
-      type: 'text',
-      text: random.pick(systemPrompts),
-    }],
+    content: [
+      {
+        type: 'text',
+        text: random.pick(systemPrompts),
+      },
+    ],
   };
 }
 
@@ -225,10 +222,10 @@ export async function forAll<T>(
     const firstFailure = failures[0]!;
     throw new Error(
       `Property test failed on run ${firstFailure.run + 1}/${runs}\n` +
-      `Seed: ${seed}\n` +
-      `Value: ${JSON.stringify(firstFailure.value, null, 2)}\n` +
-      `Error: ${firstFailure.error.message}\n` +
-      `Total failures: ${failures.length}/${runs}`
+        `Seed: ${seed}\n` +
+        `Value: ${JSON.stringify(firstFailure.value, null, 2)}\n` +
+        `Error: ${firstFailure.error.message}\n` +
+        `Total failures: ${failures.length}/${runs}`
     );
   }
 }
@@ -295,7 +292,7 @@ export async function propertyValidRequest(): Promise<void> {
 
       // Last message should be from user
       const lastMessage = request.messages[request.messages.length - 1];
-      if (!lastMessage || lastMessage.role !== 'user') {
+      if (lastMessage?.role !== 'user') {
         throw new Error('Last message must be from user');
       }
 
@@ -323,7 +320,7 @@ export async function propertyMultiTurnAlternates(): Promise<void> {
   await forAll(
     (random) => generateChatRequest(random, { multiTurn: true }),
     (request) => {
-      const nonSystemMessages = request.messages.filter(m => m.role !== 'system');
+      const nonSystemMessages = request.messages.filter((m) => m.role !== 'system');
 
       for (let i = 0; i < nonSystemMessages.length - 1; i++) {
         const current = nonSystemMessages[i]!;
