@@ -93,7 +93,7 @@ This runs `turbo run build && changeset publish`, which:
 
 ## First-Time Publish
 
-For an initial publish of all ~70 packages.
+For an initial publish of all 21 packages.
 
 ### Option A: Using Changesets (Recommended)
 
@@ -120,7 +120,7 @@ npm exec --workspaces -- npm publish --access public
 
 ### Staggered Rollout (Avoiding Rate Limits)
 
-When publishing 70+ packages for the first time, npm may rate limit you. To avoid this, publish in batches with delays:
+When publishing many packages for the first time, npm may rate limit you. To avoid this, publish in batches with delays:
 
 **Option 1: Publish by category with delays**
 
@@ -129,7 +129,7 @@ When publishing 70+ packages for the first time, npm may rate limit you. To avoi
 npm run build
 
 # Core packages first (these are dependencies)
-for pkg in ai.matey.types ai.matey.errors ai.matey.utils ai.matey.core ai.matey; do
+for pkg in ai.matey.types ai.matey.errors ai.matey.utils ai.matey.testing ai.matey.core ai.matey; do
   npm publish --workspace=$pkg --access public
   sleep 5
 done
@@ -137,14 +137,23 @@ done
 # Wait before next batch
 sleep 30
 
-# Backend packages
-for pkg in packages/backend-*/; do
-  name=$(node -p "require('./$pkg/package.json').name")
-  npm publish --workspace=$name --access public
-  sleep 3
+# Backend and Frontend packages
+for pkg in ai.matey.backend ai.matey.backend.browser ai.matey.frontend; do
+  npm publish --workspace=$pkg --access public
+  sleep 5
 done
 
-# Continue with other categories...
+# Middleware and HTTP
+for pkg in ai.matey.middleware ai.matey.http-core ai.matey.http; do
+  npm publish --workspace=$pkg --access public
+  sleep 5
+done
+
+# Wrappers, React, Native, CLI
+for pkg in ai.matey.wrapper ai.matey.react.core ai.matey.react.hooks ai.matey.react.nextjs ai.matey.react.stream ai.matey.native.apple ai.matey.native.model-runner ai.matey.native.node-llamacpp ai.matey.cli; do
+  npm publish --workspace=$pkg --access public
+  sleep 5
+done
 ```
 
 **Option 2: Simple staggered publish script**
@@ -344,18 +353,19 @@ jobs:
 
 ## Package List
 
-The monorepo contains ~70 packages organized by category:
+The monorepo contains 21 packages organized by category:
 
 | Category | Packages |
 |----------|----------|
-| Core | `ai.matey`, `ai.matey.core`, `ai.matey.types`, `ai.matey.errors`, `ai.matey.utils` |
-| Backends | `ai.matey.backend.openai`, `ai.matey.backend.anthropic`, `ai.matey.backend.gemini`, etc. |
-| Frontends | `ai.matey.frontend.openai`, `ai.matey.frontend.anthropic`, etc. |
-| Middleware | `ai.matey.middleware.retry`, `ai.matey.middleware.caching`, etc. |
-| HTTP | `ai.matey.http.core`, `ai.matey.http.express`, `ai.matey.http.fastify`, etc. |
-| React | `ai.matey.react.core`, `ai.matey.react.hooks`, `ai.matey.react.nextjs` |
-| Wrappers | `ai.matey.wrapper.openai-sdk`, `ai.matey.wrapper.anthropic-sdk` |
-| Native | `ai.matey.native.model-runner`, `ai.matey.native.node-llamacpp` |
+| Core | `ai.matey`, `ai.matey.core`, `ai.matey.types`, `ai.matey.errors`, `ai.matey.utils`, `ai.matey.testing` |
+| Backends | `ai.matey.backend` (server-side providers), `ai.matey.backend.browser` (browser-native) |
+| Frontend | `ai.matey.frontend` (all provider adapters) |
+| Middleware | `ai.matey.middleware` (retry, caching, logging, telemetry, etc.) |
+| HTTP | `ai.matey.http-core`, `ai.matey.http` (Express, Fastify, Hono, Koa, Node, Deno) |
+| React | `ai.matey.react.core`, `ai.matey.react.hooks`, `ai.matey.react.nextjs`, `ai.matey.react.stream` |
+| Wrappers | `ai.matey.wrapper` (OpenAI SDK, Anthropic SDK, Chrome AI, Chat) |
+| Native | `ai.matey.native.apple`, `ai.matey.native.model-runner`, `ai.matey.native.node-llamacpp` |
+| CLI | `ai.matey.cli` |
 
 ## Adding New Packages
 
