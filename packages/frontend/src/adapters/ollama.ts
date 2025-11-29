@@ -1,7 +1,8 @@
 /**
  * Ollama Frontend Adapter
  *
- * Pass-through adapter for Ollama format.
+ * Adapts Ollama API format to Universal IR.
+ * Ollama uses a local server with OpenAI-compatible chat format.
  *
  * @module
  */
@@ -9,7 +10,39 @@
 import type { FrontendAdapter, AdapterMetadata } from 'ai.matey.types';
 import type { IRChatRequest, IRChatResponse, IRStreamChunk, IRMessage } from 'ai.matey.types';
 import type { StreamConversionOptions } from 'ai.matey.types';
-import type { OllamaRequest, OllamaResponse, OllamaMessage } from 'ai.matey.backend';
+
+// ============================================================================
+// Ollama API Types
+// ============================================================================
+
+export interface OllamaMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+export interface OllamaRequest {
+  model: string;
+  messages: OllamaMessage[];
+  options?: {
+    temperature?: number;
+    top_p?: number;
+    top_k?: number;
+    num_predict?: number;
+    stop?: string[];
+  };
+  stream?: boolean;
+}
+
+export interface OllamaResponse {
+  model: string;
+  created_at: string;
+  message: OllamaMessage;
+  done: boolean;
+  total_duration?: number;
+  load_duration?: number;
+  prompt_eval_count?: number;
+  eval_count?: number;
+}
 
 export class OllamaFrontendAdapter implements FrontendAdapter<OllamaRequest, OllamaResponse> {
   readonly metadata: AdapterMetadata = {

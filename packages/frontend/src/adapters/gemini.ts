@@ -1,8 +1,48 @@
-/** Gemini Frontend Adapter */
+/**
+ * Gemini Frontend Adapter
+ *
+ * Adapts Google Gemini API format to Universal IR.
+ * Handles Gemini's systemInstruction field and content array format.
+ *
+ * @module
+ */
+
 import type { FrontendAdapter, AdapterMetadata } from 'ai.matey.types';
 import type { IRChatRequest, IRChatResponse, IRStreamChunk, IRMessage } from 'ai.matey.types';
 import type { StreamConversionOptions } from 'ai.matey.types';
-import type { GeminiRequest, GeminiResponse, GeminiContent } from 'ai.matey.backend';
+
+// ============================================================================
+// Gemini API Types
+// ============================================================================
+
+export interface GeminiContent {
+  role: 'user' | 'model';
+  parts: Array<{ text: string } | { inlineData: { mimeType: string; data: string } }>;
+}
+
+export interface GeminiRequest {
+  contents: GeminiContent[];
+  systemInstruction?: { parts: Array<{ text: string }> };
+  generationConfig?: {
+    temperature?: number;
+    topP?: number;
+    topK?: number;
+    maxOutputTokens?: number;
+    stopSequences?: string[];
+  };
+}
+
+export interface GeminiResponse {
+  candidates: Array<{
+    content: GeminiContent;
+    finishReason: 'STOP' | 'MAX_TOKENS' | 'SAFETY' | 'RECITATION' | 'OTHER';
+  }>;
+  usageMetadata?: {
+    promptTokenCount: number;
+    candidatesTokenCount: number;
+    totalTokenCount: number;
+  };
+}
 
 export class GeminiFrontendAdapter implements FrontendAdapter<GeminiRequest, GeminiResponse> {
   readonly metadata: AdapterMetadata = {
