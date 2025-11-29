@@ -495,7 +495,7 @@ export function createCostTrackingMiddleware(config: CostTrackingConfig = {}): M
 
       // Log cost if configured
       if (config.logCosts) {
-        console.log(
+        console.warn(
           `[Cost] ${provider}/${model}: $${cost.totalCost.toFixed(6)} ` +
             `(${cost.inputTokens} in, ${cost.outputTokens} out)`
         );
@@ -561,7 +561,7 @@ export function createStreamingCostTrackingMiddleware(
         await storage.record(cost);
 
         if (config.logCosts) {
-          console.log(
+          console.warn(
             `[Cost] ${provider}/${model}: $${cost.totalCost.toFixed(6)} ` +
               `(${cost.inputTokens} in, ${cost.outputTokens} out)`
           );

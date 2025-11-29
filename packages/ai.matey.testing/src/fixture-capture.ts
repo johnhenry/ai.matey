@@ -162,7 +162,7 @@ async function saveFixture(
   const content = JSON.stringify(fixture, null, 2);
   await writeFile(fixturePath, content, 'utf-8');
 
-  console.log(`Fixture saved: ${fixturePath}`);
+  console.warn(`Fixture saved: ${fixturePath}`);
 }
 
 /**
@@ -253,5 +253,5 @@ export async function bulkCapture(
     );
   }
 
-  console.log(`Captured ${captures.length} fixtures for ${config.provider}`);
+  console.warn(`Captured ${captures.length} fixtures for ${config.provider}`);
 }

@@ -59,7 +59,7 @@ export class CoreHTTPHandler {
       rateLimit: options.rateLimit,
       routes,
       logging: options.logging ?? false,
-      log: options.log ?? console.log,
+      log: options.log ?? (() => {}), // no-op by default
       maxBodySize: options.maxBodySize ?? 10 * 1024 * 1024, // 10MB
       streaming: options.streaming ?? true,
     };

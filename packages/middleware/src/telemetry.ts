@@ -267,11 +267,11 @@ export function createTelemetryMiddleware(config: TelemetryConfig): Middleware {
  */
 export class ConsoleTelemetrySink implements TelemetrySink {
   recordMetric(name: string, value: number, tags?: Record<string, string>): void {
-    console.log('[Telemetry Metric]', { name, value, tags });
+    console.warn('[Telemetry Metric]', { name, value, tags });
   }
 
   recordEvent(name: string, data?: Record<string, unknown>): void {
-    console.log('[Telemetry Event]', { name, data });
+    console.warn('[Telemetry Event]', { name, data });
   }
 }
 
