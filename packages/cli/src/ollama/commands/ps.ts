@@ -9,12 +9,7 @@
 import type { BackendAdapter } from 'ai.matey.types';
 import { stateManager } from '../../utils/state-manager.js';
 import { isModelRunner } from '../../utils/backend-loader.js';
-import {
-  formatTable,
-  formatSize,
-  formatDuration,
-  colorize,
-} from '../../utils/output-formatter.js';
+import { formatTable, formatSize, formatDuration, colorize } from '../../utils/output-formatter.js';
 
 export interface PsCommandOptions {
   /**
@@ -69,9 +64,7 @@ export async function psCommand(options: PsCommandOptions): Promise<void> {
         id: model.pid?.toString().slice(0, 12) || 'N/A',
         size: model.size ? formatSize(model.size) : 'N/A',
         processor: isModelRunner(backend) ? 'GPU/CPU' : 'API',
-        until: ttlRemaining
-          ? `${formatDuration(ttlRemaining)} from now`
-          : 'Running',
+        until: ttlRemaining ? `${formatDuration(ttlRemaining)} from now` : 'Running',
       };
     });
 

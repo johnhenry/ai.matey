@@ -5,8 +5,15 @@
 // Local debug types (from debug module)
 export type DebugLevel = 'off' | 'error' | 'warn' | 'info' | 'debug' | 'trace';
 export type DebugEventType =
-  | 'pipeline_start' | 'pipeline_end' | 'middleware_start' | 'middleware_end'
-  | 'adapter_call' | 'adapter_response' | 'adapter_stream_chunk' | 'error' | 'warning';
+  | 'pipeline_start'
+  | 'pipeline_end'
+  | 'middleware_start'
+  | 'middleware_end'
+  | 'adapter_call'
+  | 'adapter_response'
+  | 'adapter_stream_chunk'
+  | 'error'
+  | 'warning';
 
 export interface TraceStep {
   readonly name: string;

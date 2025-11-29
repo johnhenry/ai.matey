@@ -216,7 +216,7 @@ function createHandler(backend: BackendAdapter, format: string, verbose: boolean
         res.writeHead(200, {
           'Content-Type': 'text/event-stream',
           'Cache-Control': 'no-cache',
-          'Connection': 'keep-alive',
+          Connection: 'keep-alive',
         });
 
         // Execute streaming request
@@ -292,7 +292,10 @@ function createHandler(backend: BackendAdapter, format: string, verbose: boolean
         }
 
         if (verbose) {
-          console.log(`[${new Date().toISOString()}] Response:`, JSON.stringify(providerResponse, null, 2));
+          console.log(
+            `[${new Date().toISOString()}] Response:`,
+            JSON.stringify(providerResponse, null, 2)
+          );
         }
 
         // Send response

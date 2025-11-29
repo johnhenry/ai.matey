@@ -20,12 +20,6 @@ export type {
   UseAssistantReturn,
 } from './use-assistant.js';
 
-export type {
-  UseTokenCountOptions,
-  UseTokenCountReturn,
-} from './use-token-count.js';
+export type { UseTokenCountOptions, UseTokenCountReturn } from './use-token-count.js';
 
-export type {
-  UseStreamOptions,
-  UseStreamReturn,
-} from './use-stream.js';
+export type { UseStreamOptions, UseStreamReturn } from './use-stream.js';

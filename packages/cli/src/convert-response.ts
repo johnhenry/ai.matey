@@ -135,7 +135,9 @@ async function readInput(inputFile?: string): Promise<IRChatResponse> {
   try {
     return JSON.parse(content) as IRChatResponse;
   } catch (error) {
-    throw new Error(`Invalid JSON input: ${error instanceof Error ? error.message : String(error)}`);
+    throw new Error(
+      `Invalid JSON input: ${error instanceof Error ? error.message : String(error)}`
+    );
   }
 }
 
@@ -184,7 +186,9 @@ async function main(): Promise<void> {
           result = await toMistral(irResponse);
           break;
         default:
-          throw new Error(`Unsupported format: ${args.format}. Use --help to see available formats.`);
+          throw new Error(
+            `Unsupported format: ${args.format}. Use --help to see available formats.`
+          );
       }
     }
 

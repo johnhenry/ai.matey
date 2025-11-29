@@ -43,9 +43,7 @@ export async function loadBackend(options: LoadBackendOptions): Promise<BackendA
 
   try {
     // Resolve path
-    const resolvedPath = path.startsWith('/')
-      ? path
-      : resolve(cwd, path);
+    const resolvedPath = path.startsWith('/') ? path : resolve(cwd, path);
 
     // Convert to file URL for import
     const fileUrl = `file://${resolvedPath}`;
@@ -54,9 +52,7 @@ export async function loadBackend(options: LoadBackendOptions): Promise<BackendA
     const module = (await import(fileUrl)) as BackendModule;
 
     if (!module.default) {
-      throw new Error(
-        `Backend module ${path} does not have a default export`
-      );
+      throw new Error(`Backend module ${path} does not have a default export`);
     }
 
     const backend = module.default;
@@ -72,10 +68,7 @@ export async function loadBackend(options: LoadBackendOptions): Promise<BackendA
   } catch (error) {
     if (error instanceof Error) {
       // Re-throw with better error message
-      throw new Error(
-        `Failed to load backend from ${path}: ${error.message}`,
-        { cause: error }
-      );
+      throw new Error(`Failed to load backend from ${path}: ${error.message}`, { cause: error });
     }
     throw error;
   }

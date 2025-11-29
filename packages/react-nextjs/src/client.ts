@@ -7,7 +7,12 @@
  */
 
 import { useChat as useChatCore, useCompletion as useCompletionCore } from 'ai.matey.react.core';
-import type { UseChatOptions, UseChatReturn, UseCompletionOptions, UseCompletionReturn } from 'ai.matey.react.core';
+import type {
+  UseChatOptions,
+  UseChatReturn,
+  UseCompletionOptions,
+  UseCompletionReturn,
+} from 'ai.matey.react.core';
 
 /**
  * Extended options for Next.js useChat.

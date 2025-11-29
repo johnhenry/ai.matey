@@ -39,7 +39,7 @@ interface ConfigOption {
 }
 
 const BACKEND_PRESETS: Record<string, BackendPreset> = {
-  'openai': {
+  openai: {
     name: 'OpenAI',
     description: 'OpenAI GPT models (GPT-4, GPT-3.5, etc.)',
     adapterClass: 'OpenAIBackendAdapter',
@@ -49,11 +49,16 @@ const BACKEND_PRESETS: Record<string, BackendPreset> = {
     defaultModel: 'gpt-4',
     envVarPrefix: 'OPENAI',
     configOptions: [
-      { name: 'organization', description: 'OpenAI Organization ID', required: false, envVar: 'OPENAI_ORG' },
+      {
+        name: 'organization',
+        description: 'OpenAI Organization ID',
+        required: false,
+        envVar: 'OPENAI_ORG',
+      },
       { name: 'timeout', description: 'Request timeout (ms)', required: false, default: 60000 },
     ],
   },
-  'anthropic': {
+  anthropic: {
     name: 'Anthropic',
     description: 'Anthropic Claude models',
     adapterClass: 'AnthropicBackendAdapter',
@@ -67,7 +72,7 @@ const BACKEND_PRESETS: Record<string, BackendPreset> = {
       { name: 'maxRetries', description: 'Max retry attempts', required: false, default: 3 },
     ],
   },
-  'gemini': {
+  gemini: {
     name: 'Google Gemini',
     description: 'Google Gemini models',
     adapterClass: 'GeminiBackendAdapter',
@@ -80,7 +85,7 @@ const BACKEND_PRESETS: Record<string, BackendPreset> = {
       { name: 'timeout', description: 'Request timeout (ms)', required: false, default: 60000 },
     ],
   },
-  'ollama': {
+  ollama: {
     name: 'Ollama',
     description: 'Local Ollama instance',
     adapterClass: 'OllamaBackendAdapter',
@@ -93,7 +98,7 @@ const BACKEND_PRESETS: Record<string, BackendPreset> = {
       { name: 'timeout', description: 'Request timeout (ms)', required: false, default: 120000 },
     ],
   },
-  'mistral': {
+  mistral: {
     name: 'Mistral AI',
     description: 'Mistral AI models',
     adapterClass: 'MistralBackendAdapter',
@@ -106,7 +111,7 @@ const BACKEND_PRESETS: Record<string, BackendPreset> = {
       { name: 'timeout', description: 'Request timeout (ms)', required: false, default: 60000 },
     ],
   },
-  'deepseek': {
+  deepseek: {
     name: 'DeepSeek',
     description: 'DeepSeek models',
     adapterClass: 'DeepSeekBackendAdapter',
@@ -119,7 +124,7 @@ const BACKEND_PRESETS: Record<string, BackendPreset> = {
       { name: 'timeout', description: 'Request timeout (ms)', required: false, default: 60000 },
     ],
   },
-  'groq': {
+  groq: {
     name: 'Groq',
     description: 'Groq fast inference',
     adapterClass: 'GroqBackendAdapter',
@@ -132,7 +137,7 @@ const BACKEND_PRESETS: Record<string, BackendPreset> = {
       { name: 'timeout', description: 'Request timeout (ms)', required: false, default: 60000 },
     ],
   },
-  'huggingface': {
+  huggingface: {
     name: 'Hugging Face',
     description: 'Hugging Face Inference API',
     adapterClass: 'HuggingFaceBackendAdapter',
@@ -144,7 +149,7 @@ const BACKEND_PRESETS: Record<string, BackendPreset> = {
       { name: 'timeout', description: 'Request timeout (ms)', required: false, default: 60000 },
     ],
   },
-  'lmstudio': {
+  lmstudio: {
     name: 'LM Studio',
     description: 'Local LM Studio instance',
     adapterClass: 'LMStudioBackendAdapter',
@@ -157,7 +162,7 @@ const BACKEND_PRESETS: Record<string, BackendPreset> = {
       { name: 'timeout', description: 'Request timeout (ms)', required: false, default: 120000 },
     ],
   },
-  'nvidia': {
+  nvidia: {
     name: 'NVIDIA NIM',
     description: 'NVIDIA NIM inference',
     adapterClass: 'NVIDIABackendAdapter',
@@ -179,7 +184,12 @@ const BACKEND_PRESETS: Record<string, BackendPreset> = {
     envVarPrefix: 'CHROME_AI',
     platformRequirements: 'Chrome browser with built-in AI enabled',
     configOptions: [
-      { name: 'temperature', description: 'Sampling temperature (0-1)', required: false, default: 0.7 },
+      {
+        name: 'temperature',
+        description: 'Sampling temperature (0-1)',
+        required: false,
+        default: 0.7,
+      },
       { name: 'topK', description: 'Top-K sampling', required: false, default: 40 },
     ],
   },
@@ -198,7 +208,7 @@ const BACKEND_PRESETS: Record<string, BackendPreset> = {
       { name: 'temperature', description: 'Sampling temperature', required: false, default: 0.7 },
     ],
   },
-  'apple': {
+  apple: {
     name: 'Apple Foundation Models',
     description: 'Apple on-device AI (macOS 15+ Sequoia)',
     adapterClass: 'AppleBackend',
@@ -208,9 +218,19 @@ const BACKEND_PRESETS: Record<string, BackendPreset> = {
     platformRequirements: 'macOS 15+ (Sequoia), Apple Intelligence enabled',
     configOptions: [
       { name: 'instructions', description: 'System instructions', required: false },
-      { name: 'maximumResponseTokens', description: 'Max tokens to generate', required: false, default: 2048 },
+      {
+        name: 'maximumResponseTokens',
+        description: 'Max tokens to generate',
+        required: false,
+        default: 2048,
+      },
       { name: 'temperature', description: 'Sampling temperature', required: false, default: 0.7 },
-      { name: 'samplingMode', description: 'Sampling mode (default/random)', required: false, default: 'default' },
+      {
+        name: 'samplingMode',
+        description: 'Sampling mode (default/random)',
+        required: false,
+        default: 'default',
+      },
     ],
   },
 };
@@ -244,7 +264,9 @@ function generateBackendFile(
 
   // Base URL
   if (preset.defaultBaseURL && config.baseURL) {
-    envVarDeclarations.push(`const baseURL = process.env.${envVarPrefix}_BASE_URL || '${config.baseURL}';`);
+    envVarDeclarations.push(
+      `const baseURL = process.env.${envVarPrefix}_BASE_URL || '${config.baseURL}';`
+    );
     configObject.push('  baseURL');
   }
 
@@ -258,7 +280,9 @@ function generateBackendFile(
     const value = config[option.name];
     if (value !== undefined && value !== '') {
       if (option.envVar) {
-        envVarDeclarations.push(`const ${option.name} = process.env.${option.envVar} || ${JSON.stringify(value)};`);
+        envVarDeclarations.push(
+          `const ${option.name} = process.env.${option.envVar} || ${JSON.stringify(value)};`
+        );
         configObject.push(`  ${option.name}`);
       } else {
         configObject.push(`  ${option.name}: ${JSON.stringify(value)}`);
@@ -266,7 +290,9 @@ function generateBackendFile(
     } else if (option.default !== undefined && !config[option.name]) {
       // Include defaults even if not in config
       if (option.envVar) {
-        envVarDeclarations.push(`const ${option.name} = process.env.${option.envVar} || ${JSON.stringify(option.default)};`);
+        envVarDeclarations.push(
+          `const ${option.name} = process.env.${option.envVar} || ${JSON.stringify(option.default)};`
+        );
         configObject.push(`  ${option.name}`);
       } else {
         configObject.push(`  ${option.name}: ${JSON.stringify(option.default)}`);
@@ -285,14 +311,17 @@ function generateBackendFile(
  * ${preset.description}
  *${preset.platformRequirements ? `\n * Platform Requirements: ${preset.platformRequirements}\n *` : ''}
  * Environment Variables:
-${preset.requiresApiKey ? ` *   ${apiKeyEnvVar} - API key (required)\n` : ''}${preset.defaultBaseURL ? ` *   ${envVarPrefix}_BASE_URL - API base URL (optional)\n` : ''}${(preset.configOptions || []).filter(opt => opt.envVar).map(opt => ` *   ${opt.envVar} - ${opt.description} (optional)`).join('\n')}${usageExamples}
+${preset.requiresApiKey ? ` *   ${apiKeyEnvVar} - API key (required)\n` : ''}${preset.defaultBaseURL ? ` *   ${envVarPrefix}_BASE_URL - API base URL (optional)\n` : ''}${(
+    preset.configOptions || []
+  )
+    .filter((opt) => opt.envVar)
+    .map((opt) => ` *   ${opt.envVar} - ${opt.description} (optional)`)
+    .join('\n')}${usageExamples}
  */
 `;
 
   // Build config object content - only add items if we have any
-  const configContent = configObject.length > 0
-    ? `\n${configObject.join(',\n')}\n`
-    : '';
+  const configContent = configObject.length > 0 ? `\n${configObject.join(',\n')}\n` : '';
 
   return `${header}
 ${imports}
@@ -309,13 +338,21 @@ export default new ${preset.adapterClass}({${configContent}});
 // Interactive Wizard
 // ============================================================================
 
-async function prompt(rl: readline.Interface, question: string, defaultValue?: string): Promise<string> {
+async function prompt(
+  rl: readline.Interface,
+  question: string,
+  defaultValue?: string
+): Promise<string> {
   const suffix = defaultValue ? ` (default: ${defaultValue})` : '';
   const answer = await rl.question(`${question}${suffix}: `);
   return answer.trim() || defaultValue || '';
 }
 
-async function confirm(rl: readline.Interface, question: string, defaultValue: boolean = true): Promise<boolean> {
+async function confirm(
+  rl: readline.Interface,
+  question: string,
+  defaultValue: boolean = true
+): Promise<boolean> {
   const suffix = defaultValue ? ' (Y/n)' : ' (y/N)';
   const answer = await rl.question(`${question}${suffix}: `);
   const normalized = answer.trim().toLowerCase();
@@ -324,7 +361,11 @@ async function confirm(rl: readline.Interface, question: string, defaultValue: b
   return normalized === 'y' || normalized === 'yes';
 }
 
-async function select(rl: readline.Interface, question: string, options: string[]): Promise<string> {
+async function select(
+  rl: readline.Interface,
+  question: string,
+  options: string[]
+): Promise<string> {
   console.log(`\n${question}`);
   options.forEach((opt, i) => {
     console.log(`  ${i + 1}. ${opt}`);
@@ -377,7 +418,11 @@ async function runWizard(): Promise<void> {
 
     // Base URL
     if (preset.defaultBaseURL) {
-      const useDefaultBaseURL = await confirm(rl, `Use default base URL (${preset.defaultBaseURL})?`, true);
+      const useDefaultBaseURL = await confirm(
+        rl,
+        `Use default base URL (${preset.defaultBaseURL})?`,
+        true
+      );
       if (useDefaultBaseURL) {
         config.baseURL = preset.defaultBaseURL;
       } else {
@@ -402,9 +447,10 @@ async function runWizard(): Promise<void> {
           if (option.required) {
             value = await prompt(rl, option.description);
           } else {
-            const useDefault = option.default !== undefined
-              ? await confirm(rl, `${option.description} (use default: ${option.default})?`, true)
-              : false;
+            const useDefault =
+              option.default !== undefined
+                ? await confirm(rl, `${option.description} (use default: ${option.default})?`, true)
+                : false;
 
             if (useDefault) {
               value = option.default!;
@@ -449,7 +495,6 @@ async function runWizard(): Promise<void> {
       console.log(`│ 2. Use with: ai-matey proxy --backend ${outputPath}    │`);
     }
     console.log('└─────────────────────────────────────────────────────────┘\n');
-
   } finally {
     rl.close();
   }
@@ -489,7 +534,9 @@ Options:
   --help, -h            Show this help
 
 Available Providers:
-  ${Object.entries(BACKEND_PRESETS).map(([key, p]) => `${key.padEnd(20)} ${p.description}`).join('\n  ')}
+  ${Object.entries(BACKEND_PRESETS)
+    .map(([key, p]) => `${key.padEnd(20)} ${p.description}`)
+    .join('\n  ')}
 
 Examples:
   # Run interactive wizard
@@ -585,7 +632,6 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<void
       console.log(`  1. Set ${preset.envVarPrefix}_API_KEY environment variable`);
     }
     console.log(`  2. Use with: ai-matey proxy --backend ${outputPath} --port 3000`);
-
   } catch (err) {
     error(err instanceof Error ? err.message : String(err));
     process.exit(1);

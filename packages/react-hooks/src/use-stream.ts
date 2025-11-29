@@ -112,16 +112,13 @@ export function useStream(options: UseStreamOptions = {}): UseStreamReturn {
   /**
    * Start streaming from a fetch Response.
    */
-  const startStream = useCallback(
-    async (response: Response): Promise<string> => {
-      if (!response.body) {
-        throw new Error('Response body is null');
-      }
+  const startStream = useCallback(async (response: Response): Promise<string> => {
+    if (!response.body) {
+      throw new Error('Response body is null');
+    }
 
-      return startReadableStream(response.body);
-    },
-    []
-  );
+    return startReadableStream(response.body);
+  }, []);
 
   /**
    * Start streaming from a ReadableStream.

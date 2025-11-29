@@ -44,10 +44,7 @@ export interface ModelTranslationOptions {
  * // → 'gpt-4o'
  * ```
  */
-export function translateModel(
-  modelName: string,
-  options: ModelTranslationOptions
-): string {
+export function translateModel(modelName: string, options: ModelTranslationOptions): string {
   const { backend, mapping, useBackendDefault = true } = options;
 
   // Check external mapping first

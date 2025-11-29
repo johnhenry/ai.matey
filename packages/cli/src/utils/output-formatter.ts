@@ -127,16 +127,12 @@ export function formatTable(options: TableOptions): string {
   // Calculate column widths
   const widths = columns.map((col) => {
     const headerWidth = col.header.length;
-    const maxContentWidth = Math.max(
-      ...rows.map((row) => String(row[col.key] || '').length)
-    );
+    const maxContentWidth = Math.max(...rows.map((row) => String(row[col.key] || '').length));
     return col.width || Math.max(headerWidth, maxContentWidth);
   });
 
   // Format header
-  const header = columns
-    .map((col, i) => col.header.padEnd(widths[i] || 0))
-    .join('  ');
+  const header = columns.map((col, i) => col.header.padEnd(widths[i] || 0)).join('  ');
 
   // Format rows
   const formattedRows = rows.map((row) =>
@@ -144,17 +140,12 @@ export function formatTable(options: TableOptions): string {
       .map((col, i) => {
         const value = String(row[col.key] || '');
         const width = widths[i] || 0;
-        return col.align === 'right'
-          ? value.padStart(width)
-          : value.padEnd(width);
+        return col.align === 'right' ? value.padStart(width) : value.padEnd(width);
       })
       .join('  ')
   );
 
-  return [
-    style(header, 'bold'),
-    ...formattedRows,
-  ].join('\n');
+  return [style(header, 'bold'), ...formattedRows].join('\n');
 }
 
 /**
@@ -233,9 +224,7 @@ export class Spinner {
 
     this.interval = setInterval(() => {
       const frame = this.frames[this.currentFrame] || '⠋';
-      process.stdout.write(
-        `\r${colorize(frame, 'cyan')} ${this.text}`
-      );
+      process.stdout.write(`\r${colorize(frame, 'cyan')} ${this.text}`);
       this.currentFrame = (this.currentFrame + 1) % this.frames.length;
     }, 80);
   }

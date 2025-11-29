@@ -10,10 +10,7 @@ import type { BackendAdapter } from 'ai.matey.types';
 import type { ModelMapping } from '../../utils/model-translation.js';
 import { translateModel } from '../../utils/model-translation.js';
 import { isModelRunner } from '../../utils/backend-loader.js';
-import {
-  colorize,
-  style,
-} from '../../utils/output-formatter.js';
+import { colorize, style } from '../../utils/output-formatter.js';
 
 export interface ShowCommandOptions {
   /**
@@ -160,7 +157,9 @@ export async function showCommand(options: ShowCommandOptions): Promise<void> {
     if (info.runtime) {
       console.log();
       console.log(style('Runtime', 'bold'));
-      console.log(`  status            ${info.runtime.isRunning ? colorize('Running', 'green') : colorize('Stopped', 'red')}`);
+      console.log(
+        `  status            ${info.runtime.isRunning ? colorize('Running', 'green') : colorize('Stopped', 'red')}`
+      );
       if (info.runtime.pid) {
         console.log(`  pid               ${info.runtime.pid}`);
       }

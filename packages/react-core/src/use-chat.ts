@@ -10,12 +10,7 @@
 import { useState, useCallback, useRef, useId, useEffect } from 'react';
 import { Chat, createChat } from 'ai.matey.wrapper';
 import type { IRMessage } from 'ai.matey.types';
-import type {
-  Message,
-  UseChatOptions,
-  UseChatReturn,
-  ChatRequestOptions,
-} from './types.js';
+import type { Message, UseChatOptions, UseChatReturn, ChatRequestOptions } from './types.js';
 
 /**
  * Generate a unique ID.
@@ -223,11 +218,7 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
           signal,
           onChunk: ({ accumulated }: { accumulated: string; delta: string; sequence: number }) => {
             setMessages((prev) =>
-              prev.map((msg) =>
-                msg.id === assistantId
-                  ? { ...msg, content: accumulated }
-                  : msg
-              )
+              prev.map((msg) => (msg.id === assistantId ? { ...msg, content: accumulated } : msg))
             );
           },
         });
@@ -240,9 +231,7 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
           createdAt: new Date(),
         };
 
-        setMessages((prev) =>
-          prev.map((msg) => (msg.id === assistantId ? finalMessage : msg))
-        );
+        setMessages((prev) => prev.map((msg) => (msg.id === assistantId ? finalMessage : msg)));
 
         onFinish?.(finalMessage);
         return response.content;
@@ -372,9 +361,7 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
           // Update message content
           setMessages((prev) =>
             prev.map((msg) =>
-              msg.id === assistantId
-                ? { ...msg, content: assistantContent }
-                : msg
+              msg.id === assistantId ? { ...msg, content: assistantContent } : msg
             )
           );
         }
@@ -387,9 +374,7 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
           createdAt: new Date(),
         };
 
-        setMessages((prev) =>
-          prev.map((msg) => (msg.id === assistantId ? finalMessage : msg))
-        );
+        setMessages((prev) => prev.map((msg) => (msg.id === assistantId ? finalMessage : msg)));
 
         onFinish?.(finalMessage);
 

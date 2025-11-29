@@ -22,10 +22,7 @@ import type {
  * This allows using a BackendAdapter or Bridge directly without HTTP.
  */
 export interface DirectBackend {
-  execute(
-    request: IRChatRequest,
-    signal?: AbortSignal
-  ): Promise<IRChatResponse>;
+  execute(request: IRChatRequest, signal?: AbortSignal): Promise<IRChatResponse>;
 
   executeStream?(
     request: IRChatRequest,
@@ -203,7 +200,10 @@ export interface UseChatReturn {
   /** Handle form submit */
   handleSubmit: (e?: React.FormEvent<HTMLFormElement>, options?: ChatRequestOptions) => void;
   /** Submit message programmatically */
-  append: (message: Message | string, options?: ChatRequestOptions) => Promise<string | null | undefined>;
+  append: (
+    message: Message | string,
+    options?: ChatRequestOptions
+  ) => Promise<string | null | undefined>;
   /** Reload last message */
   reload: (options?: ChatRequestOptions) => Promise<string | null | undefined>;
   /** Stop streaming */
@@ -285,7 +285,10 @@ export interface UseCompletionReturn {
   /** Handle form submit */
   handleSubmit: (e?: React.FormEvent<HTMLFormElement>) => void;
   /** Complete programmatically */
-  complete: (prompt: string, options?: CompletionRequestOptions) => Promise<string | null | undefined>;
+  complete: (
+    prompt: string,
+    options?: CompletionRequestOptions
+  ) => Promise<string | null | undefined>;
   /** Stop streaming */
   stop: () => void;
   /** Set completion */

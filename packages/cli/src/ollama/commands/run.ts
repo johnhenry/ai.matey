@@ -9,14 +9,8 @@
 import * as readline from 'node:readline';
 import type { BackendAdapter } from 'ai.matey.types';
 import type { IRMessage } from 'ai.matey.types';
-import {
-  translateModel,
-  type ModelMapping,
-} from '../../utils/model-translation.js';
-import {
-  colorize,
-  style,
-} from '../../utils/output-formatter.js';
+import { translateModel, type ModelMapping } from '../../utils/model-translation.js';
+import { colorize, style } from '../../utils/output-formatter.js';
 import { stateManager } from '../../utils/state-manager.js';
 import { isModelRunner } from '../../utils/backend-loader.js';
 
@@ -84,9 +78,7 @@ export async function runCommand(options: RunCommandOptions): Promise<void> {
   });
 
   if (verbose && translatedModel !== model) {
-    console.error(
-      colorize(`Model translated: ${model} → ${translatedModel}`, 'gray')
-    );
+    console.error(colorize(`Model translated: ${model} → ${translatedModel}`, 'gray'));
   }
 
   // Start model runner if needed
@@ -204,10 +196,7 @@ async function runSinglePrompt(options: {
     }
   } catch (error) {
     console.error(
-      colorize(
-        `Error: ${error instanceof Error ? error.message : String(error)}`,
-        'red'
-      )
+      colorize(`Error: ${error instanceof Error ? error.message : String(error)}`, 'red')
     );
     process.exit(1);
   }
@@ -236,16 +225,12 @@ async function runInteractive(options: {
   console.log(style('>>> Ollama CLI Interface', 'bold', 'cyan'));
   console.log(
     `Model: ${colorize(originalModel, 'green')}${
-      model !== originalModel
-        ? colorize(` (using ${model})`, 'gray')
-        : ''
+      model !== originalModel ? colorize(` (using ${model})`, 'gray') : ''
     }`
   );
   console.log(`Backend: ${colorize(backend.metadata.name, 'blue')}`);
   console.log();
-  console.log(
-    colorize('Type your message and press Enter. Use /exit to quit.', 'gray')
-  );
+  console.log(colorize('Type your message and press Enter. Use /exit to quit.', 'gray'));
   console.log();
 
   // Create readline interface
@@ -338,10 +323,7 @@ async function runInteractive(options: {
       messages.push({ role: 'assistant', content: assistantMessage });
     } catch (error) {
       console.error(
-        colorize(
-          `Error: ${error instanceof Error ? error.message : String(error)}`,
-          'red'
-        )
+        colorize(`Error: ${error instanceof Error ? error.message : String(error)}`, 'red')
       );
     }
 

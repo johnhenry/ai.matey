@@ -8,11 +8,7 @@
 
 import type { BackendAdapter } from 'ai.matey.types';
 import type { ModelMapping } from '../../utils/model-translation.js';
-import {
-  formatTable,
-  formatRelativeTime,
-  colorize,
-} from '../../utils/output-formatter.js';
+import { formatTable, formatRelativeTime, colorize } from '../../utils/output-formatter.js';
 
 export interface ListCommandOptions {
   /**
@@ -47,10 +43,7 @@ export async function listCommand(options: ListCommandOptions): Promise<void> {
     const listModels = (backend as any).listModels;
     if (typeof listModels !== 'function') {
       console.error(
-        colorize(
-          `Backend ${backend.metadata.name} does not support listing models`,
-          'yellow'
-        )
+        colorize(`Backend ${backend.metadata.name} does not support listing models`, 'yellow')
       );
       console.log('\nThis backend may require manual model configuration.');
       return;
@@ -79,13 +72,9 @@ export async function listCommand(options: ListCommandOptions): Promise<void> {
         : undefined;
 
       return {
-        name: translatedName
-          ? `${translatedName} ${colorize(`(${name})`, 'gray')}`
-          : name,
+        name: translatedName ? `${translatedName} ${colorize(`(${name})`, 'gray')}` : name,
         id: model.id?.slice(0, 12) || 'N/A',
-        size: model.contextWindow
-          ? `${(model.contextWindow / 1000).toFixed(0)}K ctx`
-          : 'N/A',
+        size: model.contextWindow ? `${(model.contextWindow / 1000).toFixed(0)}K ctx` : 'N/A',
         modified: model.created ? formatRelativeTime(new Date(model.created).getTime()) : 'N/A',
       };
     });

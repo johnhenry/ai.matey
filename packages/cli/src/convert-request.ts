@@ -99,7 +99,9 @@ OPTIONS:
 
 FORMATS:
   ir           - Universal Intermediate Representation
-  ${SUPPORTED_FORMATS.filter(f => f !== 'ir').map((f: string) => `  ${f.padEnd(12)} - ${f.charAt(0).toUpperCase() + f.slice(1)} format`).join('\n  ')}
+  ${SUPPORTED_FORMATS.filter((f) => f !== 'ir')
+    .map((f: string) => `  ${f.padEnd(12)} - ${f.charAt(0).toUpperCase() + f.slice(1)} format`)
+    .join('\n  ')}
   all          - Convert to all formats (for debugging)
 
 EXAMPLES:
@@ -142,7 +144,9 @@ async function readInput(inputFile?: string): Promise<unknown> {
   try {
     return JSON.parse(content);
   } catch (error) {
-    throw new Error(`Invalid JSON input: ${error instanceof Error ? error.message : String(error)}`);
+    throw new Error(
+      `Invalid JSON input: ${error instanceof Error ? error.message : String(error)}`
+    );
   }
 }
 
@@ -290,7 +294,13 @@ async function main(): Promise<void> {
 
       if (args.to === 'all') {
         // Convert to all formats
-        result = toMultipleRequestFormats(irRequest, ['openai', 'anthropic', 'gemini', 'ollama', 'mistral']);
+        result = toMultipleRequestFormats(irRequest, [
+          'openai',
+          'anthropic',
+          'gemini',
+          'ollama',
+          'mistral',
+        ]);
       } else {
         // Convert to specific format
         switch (args.to) {
@@ -313,7 +323,9 @@ async function main(): Promise<void> {
             result = toMistralRequest(irRequest);
             break;
           default:
-            throw new Error(`Unsupported target format: ${args.to}. Use --help to see available formats.`);
+            throw new Error(
+              `Unsupported target format: ${args.to}. Use --help to see available formats.`
+            );
         }
       }
     } else if (args.to === 'ir') {

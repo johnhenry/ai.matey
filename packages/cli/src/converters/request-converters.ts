@@ -20,26 +20,11 @@
  */
 
 import type { IRChatRequest } from 'ai.matey.types';
-import {
-  OpenAIBackendAdapter,
-  type OpenAIRequest,
-} from 'ai.matey.backend';
-import {
-  AnthropicBackendAdapter,
-  type AnthropicRequest,
-} from 'ai.matey.backend';
-import {
-  GeminiBackendAdapter,
-  type GeminiRequest,
-} from 'ai.matey.backend';
-import {
-  OllamaBackendAdapter,
-  type OllamaRequest,
-} from 'ai.matey.backend';
-import {
-  MistralBackendAdapter,
-  type MistralRequest,
-} from 'ai.matey.backend';
+import { OpenAIBackendAdapter, type OpenAIRequest } from 'ai.matey.backend';
+import { AnthropicBackendAdapter, type AnthropicRequest } from 'ai.matey.backend';
+import { GeminiBackendAdapter, type GeminiRequest } from 'ai.matey.backend';
+import { OllamaBackendAdapter, type OllamaRequest } from 'ai.matey.backend';
+import { MistralBackendAdapter, type MistralRequest } from 'ai.matey.backend';
 
 // ============================================================================
 // Individual Request Converters

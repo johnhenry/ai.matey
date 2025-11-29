@@ -67,13 +67,15 @@ async function fetchManifest(name: string, tag: string, verbose: boolean): Promi
 
   const response = await fetch(manifestUrl, {
     headers: {
-      'Accept': 'application/vnd.docker.distribution.manifest.v2+json',
+      Accept: 'application/vnd.docker.distribution.manifest.v2+json',
     },
   });
 
   if (!response.ok) {
     if (response.status === 404) {
-      throw new Error(`Model not found: ${name}:${tag}\n\nAvailable models at https://ollama.com/library`);
+      throw new Error(
+        `Model not found: ${name}:${tag}\n\nAvailable models at https://ollama.com/library`
+      );
     }
     throw new Error(`Failed to fetch manifest: ${response.status} ${response.statusText}`);
   }
@@ -99,8 +101,8 @@ function findGGUFLayer(manifest: any): { digest: string; size: number; mediaType
 
   // Look for layers with GGUF-related media types or the largest layer
   // Ollama typically uses application/vnd.ollama.image.model for the model file
-  const modelLayer = manifest.layers.find((layer: any) =>
-    layer.mediaType === 'application/vnd.ollama.image.model'
+  const modelLayer = manifest.layers.find(
+    (layer: any) => layer.mediaType === 'application/vnd.ollama.image.model'
   );
 
   if (modelLayer) {
@@ -181,7 +183,7 @@ async function downloadBlob(
 
       process.stdout.write(
         `\r${formatBytes(downloaded)} / ${formatBytes(size)} (${progress}%) - ` +
-        `${formatBytes(speed)}/s - ETA: ${Math.floor(eta)}s`
+          `${formatBytes(speed)}/s - ETA: ${Math.floor(eta)}s`
       );
 
       lastProgress = progress;
@@ -249,7 +251,6 @@ export async function pullCommand(options: PullCommandOptions): Promise<void> {
     console.log(`     ai-matey create-backend --provider node-llamacpp`);
     console.log(`  2. Set modelPath in backend config to: ${outputPath}`);
     console.log(`  3. Run: ai-matey emulate-ollama --backend ./backend.mjs run ${name}`);
-
   } catch (err) {
     error(`Failed to pull model: ${err instanceof Error ? err.message : String(err)}`);
     if (verbose && err instanceof Error) {

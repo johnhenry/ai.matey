@@ -189,13 +189,7 @@ export interface ChatRequestBody {
  * ```
  */
 export function createChatHandler(options: CreateChatHandlerOptions) {
-  const {
-    bridge: bridgeOrFactory,
-    validate,
-    transformRequest,
-    transformChunk,
-    onError,
-  } = options;
+  const { bridge: bridgeOrFactory, validate, transformRequest, transformChunk, onError } = options;
 
   return async function handler(request: Request): Promise<Response> {
     try {
@@ -212,9 +206,7 @@ export function createChatHandler(options: CreateChatHandlerOptions) {
 
       // Get bridge instance
       const bridge =
-        typeof bridgeOrFactory === 'function'
-          ? await bridgeOrFactory()
-          : bridgeOrFactory;
+        typeof bridgeOrFactory === 'function' ? await bridgeOrFactory() : bridgeOrFactory;
 
       // Transform request if provided
       const processedBody = transformRequest ? transformRequest(body) : body;
@@ -319,14 +311,9 @@ async function* transformStreamChunks(
  * const result = await chatAction({ messages: [...] });
  * ```
  */
-export function createChatAction(options: {
-  bridge: Bridge | (() => Bridge | Promise<Bridge>);
-}) {
+export function createChatAction(options: { bridge: Bridge | (() => Bridge | Promise<Bridge>) }) {
   return async function chatAction(body: ChatRequestBody) {
-    const bridge =
-      typeof options.bridge === 'function'
-        ? await options.bridge()
-        : options.bridge;
+    const bridge = typeof options.bridge === 'function' ? await options.bridge() : options.bridge;
 
     const response = await bridge.chat({
       messages: body.messages.map((m) => ({
