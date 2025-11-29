@@ -38,7 +38,7 @@ import { GroqBackendAdapter } from 'ai.matey.backend/groq';
 import { HuggingFaceBackendAdapter } from 'ai.matey.backend/huggingface';
 import { LMStudioBackendAdapter } from 'ai.matey.backend/lmstudio';
 import { NVIDIABackendAdapter } from 'ai.matey.backend/nvidia';
-import { MockBackendAdapter, createEchoBackend } from 'ai.matey.backend/mock';
+import { MockBackendAdapter, createEchoBackend } from 'ai.matey.backend.browser/mock';
 import { NodeHTTPListener } from 'ai.matey.http/node';
 
 // SDK Wrappers - each in their own package

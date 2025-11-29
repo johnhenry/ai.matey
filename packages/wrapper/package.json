@@ -46,6 +46,36 @@
         "types": "./dist/types/ir-index.d.ts",
         "default": "./dist/cjs/ir-index.js"
       }
+    },
+    "./chrome-ai": {
+      "import": {
+        "types": "./dist/types/chrome-ai.d.ts",
+        "default": "./dist/esm/chrome-ai.js"
+      },
+      "require": {
+        "types": "./dist/types/chrome-ai.d.ts",
+        "default": "./dist/cjs/chrome-ai.js"
+      }
+    },
+    "./chat": {
+      "import": {
+        "types": "./dist/types/chat.d.ts",
+        "default": "./dist/esm/chat.js"
+      },
+      "require": {
+        "types": "./dist/types/chat.d.ts",
+        "default": "./dist/cjs/chat.js"
+      }
+    },
+    "./anymethod": {
+      "import": {
+        "types": "./dist/types/anymethod.d.ts",
+        "default": "./dist/esm/anymethod.js"
+      },
+      "require": {
+        "types": "./dist/types/anymethod.d.ts",
+        "default": "./dist/cjs/anymethod.js"
+      }
     }
   },
   "files": [

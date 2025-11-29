@@ -87,6 +87,176 @@
         "default": "./dist/cjs/providers/ollama.js"
       }
     },
+    "./ai21": {
+      "import": {
+        "types": "./dist/types/providers/ai21.d.ts",
+        "default": "./dist/esm/providers/ai21.js"
+      },
+      "require": {
+        "types": "./dist/types/providers/ai21.d.ts",
+        "default": "./dist/cjs/providers/ai21.js"
+      }
+    },
+    "./anyscale": {
+      "import": {
+        "types": "./dist/types/providers/anyscale.d.ts",
+        "default": "./dist/esm/providers/anyscale.js"
+      },
+      "require": {
+        "types": "./dist/types/providers/anyscale.d.ts",
+        "default": "./dist/cjs/providers/anyscale.js"
+      }
+    },
+    "./aws-bedrock": {
+      "import": {
+        "types": "./dist/types/providers/aws-bedrock.d.ts",
+        "default": "./dist/esm/providers/aws-bedrock.js"
+      },
+      "require": {
+        "types": "./dist/types/providers/aws-bedrock.d.ts",
+        "default": "./dist/cjs/providers/aws-bedrock.js"
+      }
+    },
+    "./azure-openai": {
+      "import": {
+        "types": "./dist/types/providers/azure-openai.d.ts",
+        "default": "./dist/esm/providers/azure-openai.js"
+      },
+      "require": {
+        "types": "./dist/types/providers/azure-openai.d.ts",
+        "default": "./dist/cjs/providers/azure-openai.js"
+      }
+    },
+    "./cerebras": {
+      "import": {
+        "types": "./dist/types/providers/cerebras.d.ts",
+        "default": "./dist/esm/providers/cerebras.js"
+      },
+      "require": {
+        "types": "./dist/types/providers/cerebras.d.ts",
+        "default": "./dist/cjs/providers/cerebras.js"
+      }
+    },
+    "./cloudflare": {
+      "import": {
+        "types": "./dist/types/providers/cloudflare.d.ts",
+        "default": "./dist/esm/providers/cloudflare.js"
+      },
+      "require": {
+        "types": "./dist/types/providers/cloudflare.d.ts",
+        "default": "./dist/cjs/providers/cloudflare.js"
+      }
+    },
+    "./deepinfra": {
+      "import": {
+        "types": "./dist/types/providers/deepinfra.d.ts",
+        "default": "./dist/esm/providers/deepinfra.js"
+      },
+      "require": {
+        "types": "./dist/types/providers/deepinfra.d.ts",
+        "default": "./dist/cjs/providers/deepinfra.js"
+      }
+    },
+    "./deepseek": {
+      "import": {
+        "types": "./dist/types/providers/deepseek.d.ts",
+        "default": "./dist/esm/providers/deepseek.js"
+      },
+      "require": {
+        "types": "./dist/types/providers/deepseek.d.ts",
+        "default": "./dist/cjs/providers/deepseek.js"
+      }
+    },
+    "./fireworks": {
+      "import": {
+        "types": "./dist/types/providers/fireworks.d.ts",
+        "default": "./dist/esm/providers/fireworks.js"
+      },
+      "require": {
+        "types": "./dist/types/providers/fireworks.d.ts",
+        "default": "./dist/cjs/providers/fireworks.js"
+      }
+    },
+    "./huggingface": {
+      "import": {
+        "types": "./dist/types/providers/huggingface.d.ts",
+        "default": "./dist/esm/providers/huggingface.js"
+      },
+      "require": {
+        "types": "./dist/types/providers/huggingface.d.ts",
+        "default": "./dist/cjs/providers/huggingface.js"
+      }
+    },
+    "./lmstudio": {
+      "import": {
+        "types": "./dist/types/providers/lmstudio.d.ts",
+        "default": "./dist/esm/providers/lmstudio.js"
+      },
+      "require": {
+        "types": "./dist/types/providers/lmstudio.d.ts",
+        "default": "./dist/cjs/providers/lmstudio.js"
+      }
+    },
+    "./nvidia": {
+      "import": {
+        "types": "./dist/types/providers/nvidia.d.ts",
+        "default": "./dist/esm/providers/nvidia.js"
+      },
+      "require": {
+        "types": "./dist/types/providers/nvidia.d.ts",
+        "default": "./dist/cjs/providers/nvidia.js"
+      }
+    },
+    "./openrouter": {
+      "import": {
+        "types": "./dist/types/providers/openrouter.d.ts",
+        "default": "./dist/esm/providers/openrouter.js"
+      },
+      "require": {
+        "types": "./dist/types/providers/openrouter.d.ts",
+        "default": "./dist/cjs/providers/openrouter.js"
+      }
+    },
+    "./perplexity": {
+      "import": {
+        "types": "./dist/types/providers/perplexity.d.ts",
+        "default": "./dist/esm/providers/perplexity.js"
+      },
+      "require": {
+        "types": "./dist/types/providers/perplexity.d.ts",
+        "default": "./dist/cjs/providers/perplexity.js"
+      }
+    },
+    "./replicate": {
+      "import": {
+        "types": "./dist/types/providers/replicate.d.ts",
+        "default": "./dist/esm/providers/replicate.js"
+      },
+      "require": {
+        "types": "./dist/types/providers/replicate.d.ts",
+        "default": "./dist/cjs/providers/replicate.js"
+      }
+    },
+    "./together-ai": {
+      "import": {
+        "types": "./dist/types/providers/together-ai.d.ts",
+        "default": "./dist/esm/providers/together-ai.js"
+      },
+      "require": {
+        "types": "./dist/types/providers/together-ai.d.ts",
+        "default": "./dist/cjs/providers/together-ai.js"
+      }
+    },
+    "./xai": {
+      "import": {
+        "types": "./dist/types/providers/xai.d.ts",
+        "default": "./dist/esm/providers/xai.js"
+      },
+      "require": {
+        "types": "./dist/types/providers/xai.d.ts",
+        "default": "./dist/cjs/providers/xai.js"
+      }
+    },
     "./shared": {
       "import": {
         "types": "./dist/types/shared.d.ts",

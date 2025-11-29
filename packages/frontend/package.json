@@ -56,6 +56,36 @@
         "types": "./dist/types/adapters/generic.d.ts",
         "default": "./dist/cjs/adapters/generic.js"
       }
+    },
+    "./mistral": {
+      "import": {
+        "types": "./dist/types/adapters/mistral.d.ts",
+        "default": "./dist/esm/adapters/mistral.js"
+      },
+      "require": {
+        "types": "./dist/types/adapters/mistral.d.ts",
+        "default": "./dist/cjs/adapters/mistral.js"
+      }
+    },
+    "./ollama": {
+      "import": {
+        "types": "./dist/types/adapters/ollama.d.ts",
+        "default": "./dist/esm/adapters/ollama.js"
+      },
+      "require": {
+        "types": "./dist/types/adapters/ollama.d.ts",
+        "default": "./dist/cjs/adapters/ollama.js"
+      }
+    },
+    "./chrome-ai": {
+      "import": {
+        "types": "./dist/types/adapters/chrome-ai.d.ts",
+        "default": "./dist/esm/adapters/chrome-ai.js"
+      },
+      "require": {
+        "types": "./dist/types/adapters/chrome-ai.d.ts",
+        "default": "./dist/cjs/adapters/chrome-ai.js"
+      }
     }
   },
   "files": [
