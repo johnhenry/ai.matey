@@ -28,10 +28,19 @@ Development roadmap and future plans for the Universal AI Adapter System.
 - ✅ Native adapters (Apple Silicon, node-llamacpp)
 
 **Middleware & Cross-Cutting Concerns:**
-- ✅ 10 Middleware types (logging, telemetry, **OpenTelemetry**, caching, retry, transform, security, cost-tracking, validation, conversation-history)
+- ✅ 10 Middleware types:
+  - logging - Request/response logging
+  - telemetry - Metrics collection
+  - opentelemetry - Distributed tracing (OpenTelemetry standard)
+  - caching - Response caching
+  - retry - Automatic retries with backoff
+  - transform - Request/response transforms
+  - security - Rate limiting & security
+  - cost-tracking - Usage & cost tracking
+  - validation - Input validation & sanitization
+  - conversation-history - Context management
 - ✅ Extensible middleware pipeline
 - ✅ Custom middleware support
-- ✅ OpenTelemetry integration with distributed tracing support
 
 **HTTP Integration:**
 - ✅ 6 Framework adapters (Express, Fastify, Hono, Koa, Node.js, Deno)
