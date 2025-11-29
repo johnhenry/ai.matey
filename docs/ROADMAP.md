@@ -205,6 +205,69 @@ function ChatComponent() {
 
 ai.matey occupies a unique position as a **provider-agnostic abstraction layer** with production-grade features.
 
+### Market Landscape
+
+The AI tooling ecosystem has 6 distinct categories:
+
+**1. Orchestration Frameworks** (LangChain.js, LlamaIndex.TS, Mastra)
+- Focus: Complex AI workflows, agents, RAG systems
+- **ai.matey Position**: Can serve as provider abstraction layer underneath these frameworks
+
+**2. UI/Frontend Frameworks** (Vercel AI SDK, AI SDK Foundations)
+- Focus: Building AI-powered user interfaces
+- **ai.matey Position**: Can power the backend APIs that these UIs consume
+
+**3. Provider Abstraction Libraries** (LiteLLM.js, llm.js, llm-bridge)
+- Focus: Normalizing LLM provider APIs
+- **ai.matey Position**: Direct competitor with superior routing, middleware, production features
+
+**4. Specialized Tools** (Instructor-JS, Portkey, ModelFusion, Token.js)
+- Focus: Specific capabilities (structured output, gateways, cost tracking)
+- **ai.matey Position**: Can integrate with or replace depending on use case
+
+**5. Local/Browser Solutions** (Ollama, WebLLM, Chrome AI, Node Llama.cpp)
+- Focus: Running models locally or in browsers
+- **ai.matey Position**: Supports these as backends (Ollama, Chrome AI adapters included)
+
+**6. Infrastructure & Gateways** (MCP, OpenAI Agents.js, any-llm)
+- Focus: Production deployment, routing, observability
+- **ai.matey Position**: Can complement MCP or replace simpler gateways
+
+### Ecosystem Positioning
+
+```
+┌─────────────────────────────────────────┐
+│         Application Layer               │
+│  (React, Next.js, Vue, CLI, etc.)      │
+└──────────────────┬──────────────────────┘
+                   │
+┌──────────────────▼──────────────────────┐
+│      UI Frameworks (Optional)           │
+│  Vercel AI SDK, React hooks            │
+└──────────────────┬──────────────────────┘
+                   │
+┌──────────────────▼──────────────────────┐
+│   Orchestration Layer (Optional)        │
+│  LangChain, LlamaIndex, Mastra         │
+└──────────────────┬──────────────────────┘
+                   │
+┌──────────────────▼──────────────────────┐
+│    ✨ ai.matey ✨                       │
+│  Provider Abstraction & Routing        │
+└──────────────────┬──────────────────────┘
+                   │
+         ┌─────────┴──────────┐
+         ▼                    ▼
+   ┌──────────┐        ┌──────────┐
+   │ Cloud    │        │  Local   │
+   │ (OpenAI, │        │ (Ollama, │
+   │ Anthropic│        │ Chrome   │
+   │ Gemini)  │        │ AI, etc.)│
+   └──────────┘        └──────────┘
+```
+
+**ai.matey sits at the provider abstraction layer**, enabling everything above it to be provider-agnostic.
+
 ### Strategic Focus
 - ✅ **Provider abstraction** (not orchestration like LangChain)
 - ✅ **Backend infrastructure** (not just UI like Vercel AI SDK)
