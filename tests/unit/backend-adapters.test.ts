@@ -1,14 +1,16 @@
 import { describe, it, expect } from 'vitest';
-import { OpenAIBackendAdapter } from 'ai.matey.backend.openai';
-import { AnthropicBackendAdapter } from 'ai.matey.backend.anthropic';
-import { DeepSeekBackendAdapter } from 'ai.matey.backend.deepseek';
-import { GroqBackendAdapter } from 'ai.matey.backend.groq';
+import {
+  OpenAIBackendAdapter,
+  AnthropicBackendAdapter,
+  DeepSeekBackendAdapter,
+  GroqBackendAdapter,
+} from 'ai.matey.backend';
 import {
   MockBackendAdapter,
   createEchoBackend,
   createErrorBackend,
   createDelayedBackend,
-} from 'ai.matey.backend.mock';
+} from 'ai.matey.backend.browser';
 import type { IRChatRequest } from 'ai.matey.types';
 
 describe('Backend Adapters', () => {

@@ -9,7 +9,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
   createRetryMiddleware,
   createRetryPredicate,
-} from 'ai.matey.middleware.retry';
+} from 'ai.matey.middleware';
 import { RateLimitError, NetworkError, ProviderError, ErrorCode } from 'ai.matey.errors';
 import type { MiddlewareContext, IRChatRequest, IRChatResponse } from 'ai.matey.types';
 

@@ -11,7 +11,7 @@ import {
   type ExecuteFunction,
   type ExecuteStreamFunction,
   type FunctionBackendConfig,
-} from 'ai.matey.backend.function';
+} from 'ai.matey.backend.browser';
 import type { IRChatRequest, IRChatResponse, IRStreamChunk } from 'ai.matey.types';
 
 // ============================================================================

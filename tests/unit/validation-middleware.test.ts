@@ -11,7 +11,7 @@ import {
   sanitizeRequest,
   DEFAULT_PII_PATTERNS,
   DEFAULT_INJECTION_PATTERNS,
-} from 'ai.matey.middleware.validation';
+} from 'ai.matey.middleware';
 import type { IRChatRequest, IRChatResponse } from 'ai.matey.types';
 import type { MiddlewareContext } from 'ai.matey.types';
 

@@ -6,7 +6,7 @@ import {
   calculateCost,
   getCostStats,
   DEFAULT_PRICING,
-} from 'ai.matey.middleware.cost-tracking';
+} from 'ai.matey.middleware';
 import type { IRChatRequest, IRChatResponse, IRStreamChunk } from 'ai.matey.types';
 import type { MiddlewareContext, StreamingMiddlewareContext } from 'ai.matey.types';
 

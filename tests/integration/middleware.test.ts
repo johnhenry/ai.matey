@@ -6,15 +6,19 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import { Bridge } from 'ai.matey.core';
-import { AnthropicFrontendAdapter } from 'ai.matey.frontend.anthropic';
-import { OpenAIBackendAdapter } from 'ai.matey.backend.openai';
+import { AnthropicFrontendAdapter } from 'ai.matey.frontend';
+import { OpenAIBackendAdapter } from 'ai.matey.backend';
 import type { IRChatRequest, IRChatResponse } from 'ai.matey.types';
 import type { BackendAdapter } from 'ai.matey.types';
-import { createLoggingMiddleware } from 'ai.matey.middleware.logging';
-import { createTelemetryMiddleware, InMemoryTelemetrySink } from 'ai.matey.middleware.telemetry';
-import { createCachingMiddleware, InMemoryCacheStorage } from 'ai.matey.middleware.caching';
-import { createRetryMiddleware } from 'ai.matey.middleware.retry';
-import { createTransformMiddleware } from 'ai.matey.middleware.transform';
+import {
+  createLoggingMiddleware,
+  createTelemetryMiddleware,
+  InMemoryTelemetrySink,
+  createCachingMiddleware,
+  InMemoryCacheStorage,
+  createRetryMiddleware,
+  createTransformMiddleware,
+} from 'ai.matey.middleware';
 
 // ============================================================================
 // Mock Backend Adapter

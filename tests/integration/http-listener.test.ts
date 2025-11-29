@@ -8,10 +8,9 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { IncomingMessage, ServerResponse } from 'http';
 import { Readable } from 'stream';
-import { NodeHTTPListener, createSimpleListener } from 'ai.matey.http.node';
+import { NodeHTTPListener, createSimpleListener } from 'ai.matey.http';
 import { Bridge } from 'ai.matey.core';
-import { AnthropicFrontendAdapter } from 'ai.matey.frontend.anthropic';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend.openai';
+import { AnthropicFrontendAdapter, OpenAIFrontendAdapter } from 'ai.matey.frontend';
 import type { BackendAdapter } from 'ai.matey.types';
 import type { IRChatRequest, IRChatResponse } from 'ai.matey.types';
 import { createBearerTokenValidator } from 'ai.matey.http.core';

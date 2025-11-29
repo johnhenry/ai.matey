@@ -4,7 +4,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { Router } from 'ai.matey.core';
-import { MockBackendAdapter } from 'ai.matey.backend.mock';
+import { MockBackendAdapter } from 'ai.matey.backend.browser';
 import type { IRChatRequest } from 'ai.matey.types';
 import type { AIModel, ListModelsResult } from 'ai.matey.types';
 

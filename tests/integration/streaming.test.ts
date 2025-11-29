@@ -9,10 +9,8 @@
 
 import { describe, it, expect } from 'vitest';
 import { Bridge } from 'ai.matey.core';
-import { AnthropicFrontendAdapter } from 'ai.matey.frontend.anthropic';
-import { AnthropicBackendAdapter } from 'ai.matey.backend.anthropic';
-import { OpenAIBackendAdapter } from 'ai.matey.backend.openai';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend.openai';
+import { AnthropicFrontendAdapter, OpenAIFrontendAdapter } from 'ai.matey.frontend';
+import { AnthropicBackendAdapter, OpenAIBackendAdapter } from 'ai.matey.backend';
 import {
   collectStream,
   streamToText,

@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect, vi } from 'vitest';
-import { createTransformMiddleware } from 'ai.matey.middleware.transform';
+import { createTransformMiddleware } from 'ai.matey.middleware';
 import type { MiddlewareContext, MiddlewareNext } from 'ai.matey.types';
 import type { IRChatRequest, IRChatResponse, IRMessage } from 'ai.matey.types';
 

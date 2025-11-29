@@ -6,7 +6,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { Router } from 'ai.matey.core';
-import { MockBackendAdapter, createErrorBackend } from 'ai.matey.backend.mock';
+import { MockBackendAdapter, createErrorBackend } from 'ai.matey.backend.browser';
 import type { IRChatRequest, IRChatResponse } from 'ai.matey.types';
 
 // Helper to extract text from response

@@ -7,9 +7,9 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import type { Context } from 'koa';
-import { KoaMiddleware } from 'ai.matey.http.koa';
+import { KoaMiddleware } from 'ai.matey.http';
 import { Bridge } from 'ai.matey.core';
-import { AnthropicFrontendAdapter } from 'ai.matey.frontend.anthropic';
+import { AnthropicFrontendAdapter } from 'ai.matey.frontend';
 import type { BackendAdapter } from 'ai.matey.types';
 import type { IRChatRequest, IRChatResponse } from 'ai.matey.types';
 import { createBearerTokenValidator } from 'ai.matey.http.core';

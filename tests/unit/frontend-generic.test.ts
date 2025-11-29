@@ -8,7 +8,7 @@ import { describe, it, expect } from 'vitest';
 import {
   GenericFrontendAdapter,
   createGenericFrontend,
-} from 'ai.matey.frontend.generic';
+} from 'ai.matey.frontend';
 import type { IRChatRequest, IRChatResponse, IRStreamChunk } from 'ai.matey.types';
 
 // ============================================================================

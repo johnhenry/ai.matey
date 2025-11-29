@@ -14,8 +14,8 @@ import {
   streamToLines,
   throttleStream,
   teeStream,
-} from 'ai.matey.wrapper.ir';
-import type { ChatBackend, ChatConfig, StreamOptions } from 'ai.matey.wrapper.ir';
+} from 'ai.matey.wrapper';
+import type { ChatBackend, ChatConfig, StreamOptions } from 'ai.matey.wrapper';
 import type { IRChatRequest, IRChatResponse, IRStreamChunk, IRChatStream } from 'ai.matey.types';
 
 // ============================================================================

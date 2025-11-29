@@ -12,7 +12,7 @@ import {
   estimateCost,
   DEFAULT_OPENAI_MODELS,
   DEFAULT_ANTHROPIC_MODELS,
-} from 'ai.matey.backend.shared';
+} from 'ai.matey.backend';
 import type { IRChatRequest, AIModel, ListModelsResult } from 'ai.matey.types';
 
 // ============================================================================
