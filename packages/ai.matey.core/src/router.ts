@@ -294,7 +294,7 @@ export class Router implements IRouter {
       if (!this.backends.has(backend)) {
         throw new AdapterError({
           code: ErrorCode.ROUTING_FAILED,
-          message: `Backend '${backend}' in model mapping is not registered`,
+          message: `Backend '${String(backend)}' in model mapping is not registered`,
           isRetryable: false,
           provenance: { router: this.metadata.name },
         });

@@ -192,13 +192,18 @@ export class Bridge<
     } as RequestEvent);
 
     // Re-throw adapter errors, wrap others
+    // lastError is guaranteed to be defined here (we only reach this point if all retries failed)
+    if (!lastError) {
+      throw new Error('Bridge execution failed with no error information');
+    }
+
     if (lastError instanceof AdapterError) {
       throw lastError;
     }
 
     throw new AdapterError({
       code: ErrorCode.INTERNAL_ERROR,
-      message: `Bridge execution failed: ${lastError?.message ?? 'Unknown error'}`,
+      message: `Bridge execution failed: ${lastError.message}`,
       isRetryable: false,
       cause: lastError,
       provenance: {},
