@@ -1,5 +1,36 @@
 /**
- * Error Types and Codes
+ * Error Types and Codes - SPECIFICATION
+ *
+ * This file defines the PLANNED error types and error handling behavior for the Universal AI Adapter.
+ *
+ * ## ⚠️  Implementation Status
+ *
+ * **This is a SPECIFICATION file, not the implementation.**
+ *
+ * - **Implementation:** `packages/ai.matey.errors/src/index.ts` (386 lines)
+ * - **This spec:** 773 lines (includes planned features not yet implemented)
+ *
+ * ### ✅ What's Implemented (in packages/ai.matey.errors)
+ * - AdapterError (base class)
+ * - AuthenticationError
+ * - AuthorizationError
+ * - RateLimitError
+ * - ValidationError
+ * - ProviderError
+ * - AdapterConversionError
+ * - NetworkError
+ *
+ * ### ⏳ What's Planned (in this spec but not implemented)
+ * - StreamError - Streaming-specific errors
+ * - RouterError - Router-specific errors
+ * - MiddlewareError - Middleware-specific errors
+ * - Enhanced error recovery strategies
+ * - Error context and chaining
+ * - Additional error codes and categorization
+ *
+ * When implementing new error types, copy from this spec and add to the implementation package.
+ *
+ * ---
  *
  * Normalized error handling across all AI providers. Provider-specific errors
  * are translated to universal error types with actionable context.
