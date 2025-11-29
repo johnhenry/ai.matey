@@ -1,6 +1,6 @@
 {
   "name": "ai.matey.react.hooks",
-  "version": "1.0.0",
+  "version": "0.2.0",
   "description": "Additional React hooks for AI Matey - useAssistant, useStream, useTokenCount",
   "type": "module",
   "main": "./dist/cjs/index.js",

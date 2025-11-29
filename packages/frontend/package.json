@@ -1,6 +1,6 @@
 {
   "name": "ai.matey.frontend",
-  "version": "1.0.0",
+  "version": "0.2.0",
   "description": "Frontend adapters for AI Matey - Universal AI Adapter System",
   "type": "module",
   "main": "./dist/cjs/index.js",

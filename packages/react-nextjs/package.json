@@ -1,6 +1,6 @@
 {
   "name": "ai.matey.react.nextjs",
-  "version": "1.0.0",
+  "version": "0.2.0",
   "description": "Next.js integration for AI Matey - App Router, Server Actions, API Routes",
   "type": "module",
   "main": "./dist/cjs/index.js",

@@ -1,6 +1,6 @@
 {
   "name": "ai.matey.native.model-runner",
-  "version": "1.0.0",
+  "version": "0.2.0",
   "description": "Model runner base class for AI Matey native backends",
   "type": "module",
   "main": "./dist/cjs/index.js",

@@ -1,6 +1,6 @@
 {
   "name": "ai.matey.backend.browser",
-  "version": "1.0.0",
+  "version": "0.2.0",
   "description": "Browser-compatible backend adapters for AI Matey - Chrome AI, Function, Mock",
   "type": "module",
   "main": "./dist/cjs/index.js",

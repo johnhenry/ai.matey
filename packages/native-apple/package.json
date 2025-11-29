@@ -1,6 +1,6 @@
 {
   "name": "ai.matey.native.apple",
-  "version": "1.0.0",
+  "version": "0.2.0",
   "description": "apple native backend for AI Matey",
   "type": "module",
   "main": "./dist/cjs/index.js",
