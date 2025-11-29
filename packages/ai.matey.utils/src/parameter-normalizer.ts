@@ -256,7 +256,7 @@ export function applyParameterDefaults(
  * @returns Merged parameters
  */
 export function mergeParameters(...parameterSets: Array<IRParameters | undefined>): IRParameters {
-  const merged: Partial<IRParameters> = {};
+  const merged: IRParameters = {} as IRParameters;
 
   for (const params of parameterSets) {
     if (!params) {
@@ -266,7 +266,7 @@ export function mergeParameters(...parameterSets: Array<IRParameters | undefined
     Object.assign(merged, params);
   }
 
-  return merged as IRParameters;
+  return merged;
 }
 
 // ============================================================================

@@ -247,7 +247,7 @@ export function validateMessages(
           field: `messages[${index}].${detail.field}`,
         }));
         throw new ValidationError({
-          code: error.code as typeof ErrorCodeEnum.INVALID_MESSAGE_FORMAT,
+          code: ErrorCodeEnum.INVALID_MESSAGE_FORMAT,
           message: `Invalid message at index ${index}: ${error.message}`,
           validationDetails: details,
           provenance,
