@@ -165,9 +165,10 @@ export interface FunctionBackendConfig<TRequest = IRChatRequest, TResponse = IRC
  * });
  * ```
  */
-export class FunctionBackendAdapter<TRequest = IRChatRequest, TResponse = IRChatResponse>
-  implements BackendAdapter<TRequest, TResponse>
-{
+export class FunctionBackendAdapter<
+  TRequest = IRChatRequest,
+  TResponse = IRChatResponse,
+> implements BackendAdapter<TRequest, TResponse> {
   readonly metadata: AdapterMetadata;
 
   private readonly executeFn: ExecuteFunction;

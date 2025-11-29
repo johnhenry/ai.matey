@@ -8,8 +8,8 @@
 
 import type { FastifyRequest, FastifyReply } from 'fastify';
 import type { Bridge } from 'ai.matey.core';
-import type { HTTPListenerOptions } from 'ai.matey.http-core';
-import { CoreHTTPHandler } from 'ai.matey.http-core';
+import type { HTTPListenerOptions } from 'ai.matey.http.core';
+import { CoreHTTPHandler } from 'ai.matey.http.core';
 import { FastifyRequestAdapter, FastifyResponseAdapter } from './adapter.js';
 
 /**

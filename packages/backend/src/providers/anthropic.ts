@@ -218,9 +218,10 @@ const DEFAULT_ANTHROPIC_MODELS: readonly AIModel[] = [
 /**
  * Backend adapter for Anthropic Messages API.
  */
-export class AnthropicBackendAdapter
-  implements BackendAdapter<AnthropicRequest, AnthropicResponse>
-{
+export class AnthropicBackendAdapter implements BackendAdapter<
+  AnthropicRequest,
+  AnthropicResponse
+> {
   readonly metadata: AdapterMetadata;
   private readonly config: BackendAdapterConfig;
   private readonly baseURL: string;

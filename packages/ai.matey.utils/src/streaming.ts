@@ -1,9 +1,23 @@
 /**
- * Streaming Utilities
+ * General Stream Utilities
  *
- * Helper functions for working with IR streams.
+ * This module provides general-purpose stream transformation utilities.
+ * Use these for mapping, filtering, collecting, and error handling in streams.
  *
- * @module
+ * For delta/accumulated mode conversion, see ./streaming-modes.ts
+ *
+ * @example Accumulating stream content
+ * ```typescript
+ * import { createStreamAccumulator, accumulateChunk } from 'ai.matey.utils';
+ *
+ * const accumulator = createStreamAccumulator();
+ * for await (const chunk of stream) {
+ *   const updated = accumulateChunk(accumulator, chunk);
+ *   console.log('Accumulated so far:', updated.content);
+ * }
+ * ```
+ *
+ * @module streaming
  */
 
 import type {

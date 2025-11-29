@@ -1,5 +1,5 @@
 {
-  "name": "ai.matey.http-core",
+  "name": "ai.matey.http.core",
   "version": "1.0.0",
   "description": "Framework-agnostic HTTP core utilities for AI Matey",
   "type": "module",
@@ -65,7 +65,7 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/johnhenry/ai.matey.git",
-    "directory": "packages/http-core"
+    "directory": "packages/http.core"
   },
   "engines": {
     "node": ">=18.0.0"

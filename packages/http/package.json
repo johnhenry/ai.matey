@@ -99,7 +99,7 @@
   "dependencies": {
     "ai.matey.types": "*",
     "ai.matey.core": "*",
-    "ai.matey.http-core": "*"
+    "ai.matey.http.core": "*"
   },
   "peerDependencies": {
     "express": "^4.0.0 || ^5.0.0",

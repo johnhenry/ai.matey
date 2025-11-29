@@ -48,7 +48,7 @@
 //   ai.matey.http/hono     - Hono adapter
 //   ai.matey.http/koa      - Koa adapter
 //   ai.matey.http/node     - Node.js HTTP adapter
-//   ai.matey.http-core     - Framework-agnostic HTTP utilities
+//   ai.matey.http.core     - Framework-agnostic HTTP utilities
 //
 // Middleware:
 //   ai.matey.middleware - All middleware components

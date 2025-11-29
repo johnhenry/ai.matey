@@ -99,9 +99,11 @@ export interface GenericFrontendConfig {
  * });
  * ```
  */
-export class GenericFrontendAdapter
-  implements FrontendAdapter<IRChatRequest, IRChatResponse, IRStreamChunk>
-{
+export class GenericFrontendAdapter implements FrontendAdapter<
+  IRChatRequest,
+  IRChatResponse,
+  IRStreamChunk
+> {
   readonly metadata: AdapterMetadata;
   private readonly config: GenericFrontendConfig;
 

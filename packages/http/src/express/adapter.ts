@@ -7,8 +7,8 @@
  */
 
 import type { Request, Response } from 'express';
-import type { GenericRequest, GenericResponse } from 'ai.matey.http-core';
-import { sendSSEHeaders, sendSSEChunk, sendSSEDone } from 'ai.matey.http-core';
+import type { GenericRequest, GenericResponse } from 'ai.matey.http.core';
+import { sendSSEHeaders, sendSSEChunk, sendSSEDone } from 'ai.matey.http.core';
 
 /**
  * Adapter that converts Express Request to GenericRequest

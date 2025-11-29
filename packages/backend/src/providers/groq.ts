@@ -7,8 +7,8 @@
  * @module
  */
 
-import { OpenAIBackendAdapter } from './openai.js';
-import type { BackendAdapterConfig, IRChatRequest } from 'ai.matey.types';
+import { OpenAIBackendAdapter, type OpenAIRequest, type OpenAIResponse } from './openai.js';
+import type { BackendAdapter, BackendAdapterConfig, IRChatRequest } from 'ai.matey.types';
 
 /**
  * Backend adapter for Groq API.
@@ -55,7 +55,10 @@ import type { BackendAdapterConfig, IRChatRequest } from 'ai.matey.types';
  * }
  * ```
  */
-export class GroqBackendAdapter extends OpenAIBackendAdapter {
+export class GroqBackendAdapter
+  extends OpenAIBackendAdapter
+  implements BackendAdapter<OpenAIRequest, OpenAIResponse>
+{
   constructor(config: BackendAdapterConfig) {
     // Groq API endpoint
     const groqConfig: BackendAdapterConfig = {

@@ -6,7 +6,7 @@
  * @module
  */
 
-import type { GenericRequest, GenericResponse } from 'ai.matey.http-core';
+import type { GenericRequest, GenericResponse } from 'ai.matey.http.core';
 
 /**
  * Adapter that converts Deno Request to GenericRequest

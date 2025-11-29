@@ -10,9 +10,11 @@
 // OpenAI SDK Wrapper - namespaced exports
 export {
   OpenAI,
+  OpenAIClient,
+  ChatCompletions,
   ChatCompletions as OpenAIChatCompletions,
-  Models as OpenAIModels,
   Chat as OpenAIChat,
+  Models as OpenAIModels,
 } from './openai-sdk.js';
 
 export type {
@@ -26,6 +28,8 @@ export type {
 // Anthropic SDK Wrapper - namespaced exports
 export {
   Anthropic,
+  AnthropicClient,
+  Messages,
   Messages as AnthropicMessages,
   Models as AnthropicModels,
 } from './anthropic-sdk.js';

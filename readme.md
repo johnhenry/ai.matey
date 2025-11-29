@@ -328,7 +328,7 @@ import { OpenAIFrontendAdapter, AnthropicFrontendAdapter } from 'ai.matey.fronte
 
 **Consolidated Package:** [`ai.matey.http`](./packages/http)
 
-Framework adapters for serving AI endpoints. Core utilities in [`ai.matey.http-core`](./packages/http-core).
+Framework adapters for serving AI endpoints. Core utilities in [`ai.matey.http.core`](./packages/http.core).
 
 **Supported Frameworks:**
 - Express.js

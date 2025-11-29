@@ -106,9 +106,10 @@ export interface DeepInfraStreamChunk {
  * - Function calling support
  * - Competitive pricing starting at $0.40 per 1M tokens
  */
-export class DeepInfraBackendAdapter
-  implements BackendAdapter<DeepInfraRequest, DeepInfraResponse>
-{
+export class DeepInfraBackendAdapter implements BackendAdapter<
+  DeepInfraRequest,
+  DeepInfraResponse
+> {
   readonly metadata: AdapterMetadata;
   private readonly config: BackendAdapterConfig;
   private readonly baseURL: string;

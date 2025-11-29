@@ -106,9 +106,11 @@ export type AnthropicStreamEvent =
 /**
  * Frontend adapter for Anthropic Messages API.
  */
-export class AnthropicFrontendAdapter
-  implements FrontendAdapter<AnthropicRequest, AnthropicResponse, AnthropicStreamEvent>
-{
+export class AnthropicFrontendAdapter implements FrontendAdapter<
+  AnthropicRequest,
+  AnthropicResponse,
+  AnthropicStreamEvent
+> {
   readonly metadata: AdapterMetadata = {
     name: 'anthropic-frontend',
     version: '1.0.0',

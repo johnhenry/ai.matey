@@ -1,10 +1,20 @@
 /**
- * Streaming Mode Utilities
+ * Streaming Mode Conversion Utilities
  *
- * Utilities for converting between delta and accumulated streaming modes.
- * Provides transformation functions for IRChatStream chunks.
+ * This module handles conversion between delta and accumulated streaming modes.
+ * Use these utilities when you need to transform IR stream chunks between formats.
  *
- * @module
+ * For general stream operations (map, filter, collect), see ./streaming.ts
+ *
+ * @example Converting stream modes
+ * ```typescript
+ * import { convertStreamMode, createAccumulatorState } from 'ai.matey.utils';
+ *
+ * const converter = createAccumulatorState();
+ * const accumulated = await convertStreamMode(deltaStream, 'accumulated', { converter });
+ * ```
+ *
+ * @module streaming-modes
  */
 
 import type { IRChatStream, StreamContentChunk } from 'ai.matey.types';

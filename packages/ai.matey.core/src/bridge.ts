@@ -45,9 +45,9 @@ import { validateIRChatRequest } from 'ai.matey.utils';
  *
  * @template TFrontend Frontend adapter type
  */
-export class Bridge<TFrontend extends FrontendAdapter = FrontendAdapter>
-  implements IBridge<TFrontend>
-{
+export class Bridge<
+  TFrontend extends FrontendAdapter = FrontendAdapter,
+> implements IBridge<TFrontend> {
   readonly frontend: TFrontend;
   readonly backend: BackendAdapter;
   readonly config: BridgeConfig;

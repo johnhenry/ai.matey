@@ -79,9 +79,10 @@ export interface ReplicateRequest {
  * Note: This adapter uses a simplified synchronous approach by polling.
  * For production, consider using webhooks or proper async patterns.
  */
-export class ReplicateBackendAdapter
-  implements BackendAdapter<ReplicateRequest, ReplicatePrediction>
-{
+export class ReplicateBackendAdapter implements BackendAdapter<
+  ReplicateRequest,
+  ReplicatePrediction
+> {
   readonly metadata: AdapterMetadata;
   private readonly config: BackendAdapterConfig;
   private readonly baseURL: string;

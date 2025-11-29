@@ -122,9 +122,10 @@ export interface OpenRouterConfig extends BackendAdapterConfig {
  * - Function calling support
  * - Variable pricing depending on model
  */
-export class OpenRouterBackendAdapter
-  implements BackendAdapter<OpenRouterRequest, OpenRouterResponse>
-{
+export class OpenRouterBackendAdapter implements BackendAdapter<
+  OpenRouterRequest,
+  OpenRouterResponse
+> {
   readonly metadata: AdapterMetadata;
   private readonly config: OpenRouterConfig;
   private readonly baseURL: string;

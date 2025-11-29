@@ -7,8 +7,8 @@
  * @module
  */
 
-import { OpenAIBackendAdapter } from './openai.js';
-import type { BackendAdapterConfig, IRChatRequest } from 'ai.matey.types';
+import { OpenAIBackendAdapter, type OpenAIRequest, type OpenAIResponse } from './openai.js';
+import type { BackendAdapter, BackendAdapterConfig, IRChatRequest } from 'ai.matey.types';
 
 /**
  * Backend adapter for LM Studio local API.
@@ -55,7 +55,10 @@ import type { BackendAdapterConfig, IRChatRequest } from 'ai.matey.types';
  * });
  * ```
  */
-export class LMStudioBackendAdapter extends OpenAIBackendAdapter {
+export class LMStudioBackendAdapter
+  extends OpenAIBackendAdapter
+  implements BackendAdapter<OpenAIRequest, OpenAIResponse>
+{
   constructor(config: BackendAdapterConfig) {
     // LM Studio default endpoint
     const lmstudioConfig: BackendAdapterConfig = {

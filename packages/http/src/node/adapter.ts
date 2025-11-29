@@ -7,14 +7,14 @@
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
-import type { GenericRequest, GenericResponse } from 'ai.matey.http-core';
+import type { GenericRequest, GenericResponse } from 'ai.matey.http.core';
 import {
   parseRequest,
   sendSSEHeaders,
   sendSSEChunk,
   sendSSEDone,
   sendJSON,
-} from 'ai.matey.http-core';
+} from 'ai.matey.http.core';
 
 /**
  * Adapter that converts Node.js IncomingMessage to GenericRequest

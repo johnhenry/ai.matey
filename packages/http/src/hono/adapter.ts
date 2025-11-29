@@ -7,7 +7,7 @@
  */
 
 import type { Context } from 'hono';
-import type { GenericRequest, GenericResponse } from 'ai.matey.http-core';
+import type { GenericRequest, GenericResponse } from 'ai.matey.http.core';
 
 /**
  * Adapter that converts Hono Context to GenericRequest

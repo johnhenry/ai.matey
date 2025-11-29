@@ -121,9 +121,10 @@ export interface AzureOpenAIConfig extends BackendAdapterConfig {
  * - Seed support for reproducibility
  * - Enterprise pricing with consumption-based billing
  */
-export class AzureOpenAIBackendAdapter
-  implements BackendAdapter<AzureOpenAIRequest, AzureOpenAIResponse>
-{
+export class AzureOpenAIBackendAdapter implements BackendAdapter<
+  AzureOpenAIRequest,
+  AzureOpenAIResponse
+> {
   readonly metadata: AdapterMetadata;
   private readonly config: AzureOpenAIConfig;
   private readonly resourceName: string;

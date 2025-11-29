@@ -106,9 +106,10 @@ export interface TogetherAIStreamChunk {
  * - Function calling support
  * - Budget pricing starting at $0.06 per 1M tokens
  */
-export class TogetherAIBackendAdapter
-  implements BackendAdapter<TogetherAIRequest, TogetherAIResponse>
-{
+export class TogetherAIBackendAdapter implements BackendAdapter<
+  TogetherAIRequest,
+  TogetherAIResponse
+> {
   readonly metadata: AdapterMetadata;
   private readonly config: BackendAdapterConfig;
   private readonly baseURL: string;

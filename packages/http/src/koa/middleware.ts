@@ -8,8 +8,8 @@
 
 import type { Context, Next } from 'koa';
 import type { Bridge } from 'ai.matey.core';
-import type { HTTPListenerOptions } from 'ai.matey.http-core';
-import { CoreHTTPHandler } from 'ai.matey.http-core';
+import type { HTTPListenerOptions } from 'ai.matey.http.core';
+import { CoreHTTPHandler } from 'ai.matey.http.core';
 import { KoaRequestAdapter, KoaResponseAdapter } from './adapter.js';
 
 /**

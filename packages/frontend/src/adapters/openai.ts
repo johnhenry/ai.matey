@@ -105,9 +105,11 @@ export interface OpenAIStreamChunk {
 /**
  * Frontend adapter for OpenAI Chat Completions API.
  */
-export class OpenAIFrontendAdapter
-  implements FrontendAdapter<OpenAIRequest, OpenAIResponse, OpenAIStreamChunk>
-{
+export class OpenAIFrontendAdapter implements FrontendAdapter<
+  OpenAIRequest,
+  OpenAIResponse,
+  OpenAIStreamChunk
+> {
   readonly metadata: AdapterMetadata = {
     name: 'openai-frontend',
     version: '1.0.0',

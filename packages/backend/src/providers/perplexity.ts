@@ -104,9 +104,10 @@ export interface PerplexityStreamChunk {
  * - Domain filtering and recency filtering
  * - Pricing around $1 per 1M tokens
  */
-export class PerplexityBackendAdapter
-  implements BackendAdapter<PerplexityRequest, PerplexityResponse>
-{
+export class PerplexityBackendAdapter implements BackendAdapter<
+  PerplexityRequest,
+  PerplexityResponse
+> {
   readonly metadata: AdapterMetadata;
   private readonly config: BackendAdapterConfig;
   private readonly baseURL: string;

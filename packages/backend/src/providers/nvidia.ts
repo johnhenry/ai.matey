@@ -7,8 +7,8 @@
  * @module
  */
 
-import { OpenAIBackendAdapter } from './openai.js';
-import type { BackendAdapterConfig, IRChatRequest } from 'ai.matey.types';
+import { OpenAIBackendAdapter, type OpenAIRequest, type OpenAIResponse } from './openai.js';
+import type { BackendAdapter, BackendAdapterConfig, IRChatRequest } from 'ai.matey.types';
 
 /**
  * Backend adapter for NVIDIA NIM API.
@@ -64,7 +64,10 @@ import type { BackendAdapterConfig, IRChatRequest } from 'ai.matey.types';
  * }
  * ```
  */
-export class NVIDIABackendAdapter extends OpenAIBackendAdapter {
+export class NVIDIABackendAdapter
+  extends OpenAIBackendAdapter
+  implements BackendAdapter<OpenAIRequest, OpenAIResponse>
+{
   constructor(config: BackendAdapterConfig) {
     // NVIDIA NIM API endpoint
     const nvidiaConfig: BackendAdapterConfig = {

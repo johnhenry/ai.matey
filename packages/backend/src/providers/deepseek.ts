@@ -7,8 +7,8 @@
  * @module
  */
 
-import { OpenAIBackendAdapter } from './openai.js';
-import type { BackendAdapterConfig } from 'ai.matey.types';
+import { OpenAIBackendAdapter, type OpenAIRequest, type OpenAIResponse } from './openai.js';
+import type { BackendAdapter, BackendAdapterConfig } from 'ai.matey.types';
 
 /**
  * Backend adapter for DeepSeek API.
@@ -48,7 +48,10 @@ import type { BackendAdapterConfig } from 'ai.matey.types';
  * });
  * ```
  */
-export class DeepSeekBackendAdapter extends OpenAIBackendAdapter {
+export class DeepSeekBackendAdapter
+  extends OpenAIBackendAdapter
+  implements BackendAdapter<OpenAIRequest, OpenAIResponse>
+{
   constructor(config: BackendAdapterConfig) {
     // DeepSeek API endpoint
     const deepseekConfig: BackendAdapterConfig = {

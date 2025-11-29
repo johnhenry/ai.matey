@@ -112,9 +112,10 @@ export interface CloudflareConfig extends BackendAdapterConfig {
  * - Neuron-based pricing (pay per inference, not per token)
  * - Global edge network for low latency
  */
-export class CloudflareBackendAdapter
-  implements BackendAdapter<CloudflareRequest, CloudflareResponse>
-{
+export class CloudflareBackendAdapter implements BackendAdapter<
+  CloudflareRequest,
+  CloudflareResponse
+> {
   readonly metadata: AdapterMetadata;
   private readonly config: CloudflareConfig;
   private readonly accountId: string;

@@ -105,9 +105,10 @@ export interface HuggingFaceResponse {
  * });
  * ```
  */
-export class HuggingFaceBackendAdapter
-  implements BackendAdapter<HuggingFaceRequest, HuggingFaceResponse>
-{
+export class HuggingFaceBackendAdapter implements BackendAdapter<
+  HuggingFaceRequest,
+  HuggingFaceResponse
+> {
   readonly metadata: AdapterMetadata;
   private readonly config: BackendAdapterConfig;
   private readonly baseURL: string;

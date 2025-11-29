@@ -18,7 +18,7 @@ import {
   isContentChunk,
   isDoneChunk,
   isErrorChunk,
-} from '../../src/utils/streaming.js';
+} from 'ai.matey.utils';
 import type { IRStreamChunk } from 'ai.matey.types';
 
 // ============================================================================

@@ -8,8 +8,8 @@
 
 import type { Request, Response, NextFunction } from 'express';
 import type { Bridge } from 'ai.matey.core';
-import type { HTTPListenerOptions } from 'ai.matey.http-core';
-import { CoreHTTPHandler } from 'ai.matey.http-core';
+import type { HTTPListenerOptions } from 'ai.matey.http.core';
+import { CoreHTTPHandler } from 'ai.matey.http.core';
 import { ExpressRequestAdapter, ExpressResponseAdapter } from './adapter.js';
 
 /**

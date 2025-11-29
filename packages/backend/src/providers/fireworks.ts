@@ -117,9 +117,10 @@ export interface FireworksAIStreamChunk {
  * - Reasoning models with reasoning_effort parameter
  * - Pricing from $0.10 per 1M tokens
  */
-export class FireworksAIBackendAdapter
-  implements BackendAdapter<FireworksAIRequest, FireworksAIResponse>
-{
+export class FireworksAIBackendAdapter implements BackendAdapter<
+  FireworksAIRequest,
+  FireworksAIResponse
+> {
   readonly metadata: AdapterMetadata;
   private readonly config: BackendAdapterConfig;
   private readonly baseURL: string;
