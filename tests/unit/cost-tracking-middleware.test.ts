@@ -429,10 +429,10 @@ describe('Cost Tracking Middleware', () => {
     });
 
     it('should log costs when enabled', async () => {
-      // Spy on console.log
-      const originalLog = console.log;
+      // Spy on console.warn
+      const originalWarn = console.warn;
       const logs: string[] = [];
-      console.log = (...args: any[]) => logs.push(args.join(' '));
+      console.warn = (...args: any[]) => logs.push(args.join(' '));
 
       const middleware = createCostTrackingMiddleware({
         storage,
@@ -444,8 +444,8 @@ describe('Cost Tracking Middleware', () => {
 
       await middleware(context, next);
 
-      // Restore console.log
-      console.log = originalLog;
+      // Restore console.warn
+      console.warn = originalWarn;
 
       expect(logs.length).toBeGreaterThan(0);
       expect(logs.some((log) => log.includes('cost') || log.includes('Cost'))).toBe(true);
