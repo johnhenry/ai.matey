@@ -365,12 +365,15 @@ Legend: ⭐⭐ = Excellent (best-in-class), ⭐ = Good (competitive), ⚠️ = L
 - API reference improvements
 
 **3. Circuit Breaker Enhancement** (⭐ → ⭐⭐)
-- Enhanced metrics and observability
+- **OpenTelemetry integration**: Emit circuit state changes as spans/events
+  - `circuit.opened`, `circuit.half_open`, `circuit.closed` events
+  - Failure count, threshold, and timeout as span attributes
+  - Integrates with existing OpenTelemetry middleware
 - Configurable failure thresholds per provider
 - Half-open state with graduated recovery
-- Circuit breaker events and webhooks
-- Dashboard/visualization support
+- Circuit breaker events and webhooks for custom monitoring
 - Per-model circuit breakers (not just per-provider)
+- Health check improvements with circuit status
 
 **4. HTTP Server Improvements** (⭐ → ⭐⭐)
 - WebSocket support for real-time streaming
@@ -378,8 +381,11 @@ Legend: ⭐⭐ = Excellent (best-in-class), ⭐ = Good (competitive), ⚠️ = L
 - Better error handling and status codes
 - Request/response compression
 - Rate limiting per route/user
-- Health check endpoints with circuit breaker status
-- Metrics endpoints (Prometheus format)
+- **Metrics endpoints**:
+  - Prometheus format metrics (`/metrics`)
+  - OpenTelemetry metrics export (integrates with existing OTel middleware)
+  - Circuit breaker status included
+- Health check endpoints with detailed status (`/health`, `/health/ready`, `/health/live`)
 
 **5. Embeddings Support**
 - Embedding generation across providers
