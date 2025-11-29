@@ -1086,17 +1086,19 @@ const response = await model.prompt('Hello!');
 
 ### Intermediate Representation (IR)
 
-The internal format used between adapters.
+The internal format used between adapters. For complete documentation, see [IR Format Guide](./IR-FORMAT.md).
 
 #### IRMessage
 
 ```typescript
 interface IRMessage {
-  role: MessageRole;
-  content: MessageContent[];
+  readonly role: MessageRole;
+  readonly content: string | readonly MessageContent[];
+  readonly name?: string;
+  readonly metadata?: Record<string, unknown>;
 }
 
-type MessageRole = 'system' | 'user' | 'assistant';
+type MessageRole = 'system' | 'user' | 'assistant' | 'tool';
 
 type MessageContent =
   | TextContent
@@ -1105,32 +1107,36 @@ type MessageContent =
   | ToolResultContent;
 
 interface TextContent {
-  type: 'text';
-  text: string;
+  readonly type: 'text';
+  readonly text: string;
 }
 
 interface ImageContent {
-  type: 'image';
-  source: {
-    type: 'url' | 'base64';
-    url?: string;
-    data?: string;
-    mediaType?: string;
-  };
+  readonly type: 'image';
+  readonly source:
+    | {
+        readonly type: 'url';
+        readonly url: string;
+      }
+    | {
+        readonly type: 'base64';
+        readonly mediaType: string;
+        readonly data: string;
+      };
 }
 
 interface ToolUseContent {
-  type: 'tool_use';
-  id: string;
-  name: string;
-  input: Record<string, any>;
+  readonly type: 'tool_use';
+  readonly id: string;
+  readonly name: string;
+  readonly input: Record<string, unknown>;
 }
 
 interface ToolResultContent {
-  type: 'tool_result';
-  tool_use_id: string;
-  content: string | TextContent[];
-  is_error?: boolean;
+  readonly type: 'tool_result';
+  readonly toolUseId: string;
+  readonly content: string | TextContent[];
+  readonly isError?: boolean;
 }
 ```
 
@@ -1138,13 +1144,36 @@ interface ToolResultContent {
 
 ```typescript
 interface IRChatRequest {
-  messages: IRMessage[];
-  model?: string;
-  parameters?: IRParameters;
-  tools?: IRTool[];
-  system?: string;
-  stream?: boolean;
-  metadata?: IRMetadata;
+  readonly messages: readonly IRMessage[];
+  readonly tools?: readonly IRTool[];
+  readonly toolChoice?: 'auto' | 'required' | 'none' | { readonly name: string };
+  readonly parameters?: IRParameters;
+  readonly metadata: IRMetadata;
+  readonly stream?: boolean;
+  readonly streamMode?: StreamMode;  // 'delta' | 'accumulated'
+}
+
+interface IRParameters {
+  readonly model?: string;
+  readonly temperature?: number;
+  readonly maxTokens?: number;
+  readonly topP?: number;
+  readonly topK?: number;
+  readonly frequencyPenalty?: number;
+  readonly presencePenalty?: number;
+  readonly stopSequences?: readonly string[];
+  readonly seed?: number;
+  readonly user?: string;
+  readonly custom?: Record<string, unknown>;
+}
+
+interface IRMetadata {
+  readonly requestId: string;
+  readonly providerResponseId?: string;
+  readonly timestamp: number;
+  readonly provenance?: IRProvenance;
+  readonly warnings?: readonly IRWarning[];
+  readonly custom?: Record<string, unknown>;
 }
 ```
 
@@ -1152,24 +1181,26 @@ interface IRChatRequest {
 
 ```typescript
 interface IRChatResponse {
-  message: IRMessage;
-  finishReason: FinishReason;
-  usage?: IRUsage;
-  model?: string;
-  metadata?: IRMetadata;
+  readonly message: IRMessage;
+  readonly finishReason: FinishReason;
+  readonly usage?: IRUsage;
+  readonly metadata: IRMetadata;
+  readonly raw?: Record<string, unknown>;
 }
 
 type FinishReason =
   | 'stop'
   | 'length'
-  | 'tool_use'
+  | 'tool_calls'
   | 'content_filter'
-  | 'error';
+  | 'error'
+  | 'cancelled';
 
 interface IRUsage {
-  inputTokens: number;
-  outputTokens: number;
-  totalTokens: number;
+  readonly promptTokens: number;
+  readonly completionTokens: number;
+  readonly totalTokens: number;
+  readonly details?: Record<string, unknown>;
 }
 ```
 
@@ -1187,38 +1218,50 @@ type IRStreamChunk =
   | StreamErrorChunk;
 
 interface StreamStartChunk {
-  type: 'start';
-  model?: string;
+  readonly type: 'start';
+  readonly sequence: number;
+  readonly metadata: IRMetadata;
 }
 
 interface StreamContentChunk {
-  type: 'content';
-  delta: {
-    type: 'text';
-    text: string;
-  };
-  index?: number;
+  readonly type: 'content';
+  readonly sequence: number;
+  readonly delta: string;           // Always present
+  readonly accumulated?: string;    // Optional (accumulated mode)
+  readonly role?: 'assistant';
 }
 
 interface StreamToolUseChunk {
-  type: 'tool_use';
-  delta: {
-    id?: string;
-    name?: string;
-    input?: string;
-  };
-  index?: number;
+  readonly type: 'tool_use';
+  readonly sequence: number;
+  readonly id: string;
+  readonly name: string;
+  readonly inputDelta?: string;
+}
+
+interface StreamMetadataChunk {
+  readonly type: 'metadata';
+  readonly sequence: number;
+  readonly usage?: Partial<IRUsage>;
+  readonly metadata?: Partial<IRMetadata>;
 }
 
 interface StreamDoneChunk {
-  type: 'done';
-  finishReason?: FinishReason;
-  usage?: IRUsage;
+  readonly type: 'done';
+  readonly sequence: number;
+  readonly finishReason: FinishReason;
+  readonly usage?: IRUsage;
+  readonly message?: IRMessage;
 }
 
 interface StreamErrorChunk {
-  type: 'error';
-  error: Error;
+  readonly type: 'error';
+  readonly sequence: number;
+  readonly error: {
+    readonly code: string;
+    readonly message: string;
+    readonly details?: Record<string, unknown>;
+  };
 }
 ```
 

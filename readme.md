@@ -241,7 +241,8 @@ console.log(response.choices[0].message.content);
 
 | Document | Description |
 |----------|-------------|
-| [API Reference](./docs/api.md) | Complete API documentation for all components |
+| [API Reference](./docs/API.md) | Complete API documentation for all components |
+| [IR Format Guide](./docs/IR-FORMAT.md) | Comprehensive Intermediate Representation format specification |
 | [Feature Guides](./docs/GUIDES.md) | In-depth guides for parallel dispatch, CLI tools, response conversion |
 | [Roadmap](./docs/ROADMAP.md) | Project roadmap and planned features |
 
@@ -251,127 +252,151 @@ console.log(response.choices[0].message.content);
 
 | Package | Description | Documentation |
 |---------|-------------|---------------|
-| [`ai.matey`](./packages/ai.matey) | Main umbrella package | [README](./packages/ai.matey/README.md) |
-| [`ai.matey.core`](./packages/ai.matey.core) | Bridge, Router, MiddlewareStack | [README](./packages/ai.matey.core/README.md) |
-| [`ai.matey.types`](./packages/ai.matey.types) | TypeScript type definitions | [README](./packages/ai.matey.types/README.md) |
-| [`ai.matey.errors`](./packages/ai.matey.errors) | Error classes and utilities | [README](./packages/ai.matey.errors/README.md) |
-| [`ai.matey.utils`](./packages/ai.matey.utils) | Shared utility functions | [README](./packages/ai.matey.utils/README.md) |
-| [`ai.matey.testing`](./packages/ai.matey.testing) | Testing utilities and mocks | [README](./packages/ai.matey.testing/README.md) |
-| [`ai.matey.cli`](./packages/cli) | CLI and conversion utilities | [README](./packages/cli/README.md) |
+| [`ai.matey`](./packages/ai.matey) | Main umbrella package | [README](./packages/ai.matey/readme.md) |
+| [`ai.matey.core`](./packages/ai.matey.core) | Bridge, Router, MiddlewareStack | [README](./packages/ai.matey.core/readme.md) |
+| [`ai.matey.types`](./packages/ai.matey.types) | TypeScript type definitions | [README](./packages/ai.matey.types/readme.md) |
+| [`ai.matey.errors`](./packages/ai.matey.errors) | Error classes and utilities | [README](./packages/ai.matey.errors/readme.md) |
+| [`ai.matey.utils`](./packages/ai.matey.utils) | Shared utility functions | [README](./packages/ai.matey.utils/readme.md) |
+| [`ai.matey.testing`](./packages/ai.matey.testing) | Testing utilities and mocks | [README](./packages/ai.matey.testing/readme.md) |
+| [`ai.matey.cli`](./packages/cli) | CLI and conversion utilities | [README](./packages/cli/readme.md) |
 
 ### Backend Adapters
 
-Connect to any AI provider with a unified interface.
+**Consolidated Package:** [`ai.matey.backend`](./packages/backend)
 
-| Package | Provider | Documentation |
-|---------|----------|---------------|
-| [`ai.matey.backend.openai`](./packages/backend-openai) | OpenAI (GPT-4, GPT-3.5) | [README](./packages/backend-openai/README.md) |
-| [`ai.matey.backend.anthropic`](./packages/backend-anthropic) | Anthropic (Claude) | [README](./packages/backend-anthropic/README.md) |
-| [`ai.matey.backend.gemini`](./packages/backend-gemini) | Google Gemini | [README](./packages/backend-gemini/README.md) |
-| [`ai.matey.backend.groq`](./packages/backend-groq) | Groq (fast inference) | [README](./packages/backend-groq/README.md) |
-| [`ai.matey.backend.mistral`](./packages/backend-mistral) | Mistral AI | [README](./packages/backend-mistral/README.md) |
-| [`ai.matey.backend.ollama`](./packages/backend-ollama) | Ollama (local) | [README](./packages/backend-ollama/README.md) |
-| [`ai.matey.backend.deepseek`](./packages/backend-deepseek) | DeepSeek | [README](./packages/backend-deepseek/README.md) |
-| [`ai.matey.backend.cohere`](./packages/backend-cohere) | Cohere | [README](./packages/backend-cohere/README.md) |
-| [`ai.matey.backend.huggingface`](./packages/backend-huggingface) | Hugging Face | [README](./packages/backend-huggingface/README.md) |
-| [`ai.matey.backend.nvidia`](./packages/backend-nvidia) | NVIDIA NIM | [README](./packages/backend-nvidia/README.md) |
-| [`ai.matey.backend.lmstudio`](./packages/backend-lmstudio) | LM Studio (local) | [README](./packages/backend-lmstudio/README.md) |
-| [`ai.matey.backend.azure-openai`](./packages/backend-azure-openai) | Azure OpenAI | [README](./packages/backend-azure-openai/README.md) |
-| [`ai.matey.backend.aws-bedrock`](./packages/backend-aws-bedrock) | AWS Bedrock | [README](./packages/backend-aws-bedrock/README.md) |
-| [`ai.matey.backend.cloudflare`](./packages/backend-cloudflare) | Cloudflare Workers AI | [README](./packages/backend-cloudflare/README.md) |
-| [`ai.matey.backend.together-ai`](./packages/backend-together-ai) | Together AI | [README](./packages/backend-together-ai/README.md) |
-| [`ai.matey.backend.fireworks`](./packages/backend-fireworks) | Fireworks AI | [README](./packages/backend-fireworks/README.md) |
-| [`ai.matey.backend.replicate`](./packages/backend-replicate) | Replicate | [README](./packages/backend-replicate/README.md) |
-| [`ai.matey.backend.perplexity`](./packages/backend-perplexity) | Perplexity | [README](./packages/backend-perplexity/README.md) |
-| [`ai.matey.backend.openrouter`](./packages/backend-openrouter) | OpenRouter | [README](./packages/backend-openrouter/README.md) |
-| [`ai.matey.backend.anyscale`](./packages/backend-anyscale) | Anyscale | [README](./packages/backend-anyscale/README.md) |
-| [`ai.matey.backend.deepinfra`](./packages/backend-deepinfra) | DeepInfra | [README](./packages/backend-deepinfra/README.md) |
-| [`ai.matey.backend.cerebras`](./packages/backend-cerebras) | Cerebras | [README](./packages/backend-cerebras/README.md) |
-| [`ai.matey.backend.ai21`](./packages/backend-ai21) | AI21 Labs | [README](./packages/backend-ai21/README.md) |
-| [`ai.matey.backend.xai`](./packages/backend-xai) | xAI (Grok) | [README](./packages/backend-xai/README.md) |
-| [`ai.matey.backend.chrome-ai`](./packages/backend-chrome-ai) | Chrome AI | [README](./packages/backend-chrome-ai/README.md) |
-| [`ai.matey.backend.mock`](./packages/backend-mock) | Mock (testing) | [README](./packages/backend-mock/README.md) |
-| [`ai.matey.backend.function`](./packages/backend-function) | Function-based (testing) | [README](./packages/backend-function/README.md) |
-| [`ai.matey.backend.shared`](./packages/backend-shared) | Shared utilities | [README](./packages/backend-shared/README.md) |
+All server-side provider adapters in one package. Import from main or use subpath imports:
+
+```typescript
+import { OpenAIBackendAdapter, AnthropicBackendAdapter } from 'ai.matey.backend';
+// or
+import { OpenAIBackendAdapter } from 'ai.matey.backend/openai';
+```
+
+**Included Providers:**
+- OpenAI (GPT-4, GPT-3.5)
+- Anthropic (Claude)
+- Google Gemini
+- Mistral AI
+- Cohere
+- Groq
+- Ollama (local)
+- AWS Bedrock
+- Azure OpenAI
+- DeepSeek
+- Fireworks
+- Together AI
+- Perplexity
+- OpenRouter
+- Anyscale
+- DeepInfra
+- Cerebras
+- AI21 Labs
+- xAI (Grok)
+- NVIDIA NIM
+- LM Studio (local)
+- Hugging Face
+- Cloudflare Workers AI
+- Replicate
+
+**Browser-Compatible Package:** [`ai.matey.backend.browser`](./packages/backend-browser)
+
+Subset of adapters that work in browser environments:
+- Chrome AI
+- Mock (testing)
+- Function (testing)
 
 ### Frontend Adapters
 
-Accept requests in any format and translate to internal IR.
+**Consolidated Package:** [`ai.matey.frontend`](./packages/frontend)
 
-| Package | Format | Documentation |
-|---------|--------|---------------|
-| [`ai.matey.frontend.openai`](./packages/frontend-openai) | OpenAI format | [README](./packages/frontend-openai/README.md) |
-| [`ai.matey.frontend.anthropic`](./packages/frontend-anthropic) | Anthropic format | [README](./packages/frontend-anthropic/README.md) |
-| [`ai.matey.frontend.gemini`](./packages/frontend-gemini) | Gemini format | [README](./packages/frontend-gemini/README.md) |
-| [`ai.matey.frontend.ollama`](./packages/frontend-ollama) | Ollama format | [README](./packages/frontend-ollama/README.md) |
-| [`ai.matey.frontend.mistral`](./packages/frontend-mistral) | Mistral format | [README](./packages/frontend-mistral/README.md) |
-| [`ai.matey.frontend.chrome-ai`](./packages/frontend-chrome-ai) | Chrome AI format | [README](./packages/frontend-chrome-ai/README.md) |
-| [`ai.matey.frontend.generic`](./packages/frontend-generic) | IR passthrough (universal) | [README](./packages/frontend-generic/readme.md) |
+All frontend request adapters in one package:
+
+```typescript
+import { OpenAIFrontendAdapter, AnthropicFrontendAdapter } from 'ai.matey.frontend';
+```
+
+**Included Adapters:**
+- OpenAI format
+- Anthropic format
+- Gemini format
+- Mistral format
+- Ollama format
+- Chrome AI format
+- Generic (IR passthrough)
 
 ### HTTP Integrations
 
-Serve AI endpoints with your favorite framework.
+**Consolidated Package:** [`ai.matey.http`](./packages/http)
 
-| Package | Framework | Documentation |
-|---------|-----------|---------------|
-| [`ai.matey.http.express`](./packages/http-express) | Express.js | [README](./packages/http-express/README.md) |
-| [`ai.matey.http.fastify`](./packages/http-fastify) | Fastify | [README](./packages/http-fastify/README.md) |
-| [`ai.matey.http.hono`](./packages/http-hono) | Hono | [README](./packages/http-hono/README.md) |
-| [`ai.matey.http.koa`](./packages/http-koa) | Koa | [README](./packages/http-koa/README.md) |
-| [`ai.matey.http.node`](./packages/http-node) | Node.js http | [README](./packages/http-node/README.md) |
-| [`ai.matey.http.deno`](./packages/http-deno) | Deno | [README](./packages/http-deno/README.md) |
-| [`ai.matey.http.core`](./packages/http-core) | Core utilities | [README](./packages/http-core/README.md) |
+Framework adapters for serving AI endpoints. Core utilities in [`ai.matey.http-core`](./packages/http-core).
+
+**Supported Frameworks:**
+- Express.js
+- Fastify
+- Hono
+- Koa
+- Node.js http
+- Deno
 
 ### Middleware
 
-Add cross-cutting concerns to your AI pipeline.
+**Consolidated Package:** [`ai.matey.middleware`](./packages/middleware)
 
-| Package | Purpose | Documentation |
-|---------|---------|---------------|
-| [`ai.matey.middleware.logging`](./packages/middleware-logging) | Request/response logging | [README](./packages/middleware-logging/README.md) |
-| [`ai.matey.middleware.caching`](./packages/middleware-caching) | Response caching | [README](./packages/middleware-caching/README.md) |
-| [`ai.matey.middleware.retry`](./packages/middleware-retry) | Automatic retries | [README](./packages/middleware-retry/README.md) |
-| [`ai.matey.middleware.transform`](./packages/middleware-transform) | Request/response transforms | [README](./packages/middleware-transform/README.md) |
-| [`ai.matey.middleware.validation`](./packages/middleware-validation) | Request validation | [README](./packages/middleware-validation/README.md) |
-| [`ai.matey.middleware.telemetry`](./packages/middleware-telemetry) | Metrics collection | [README](./packages/middleware-telemetry/README.md) |
-| [`ai.matey.middleware.opentelemetry`](./packages/middleware-opentelemetry) | OpenTelemetry tracing | [README](./packages/middleware-opentelemetry/README.md) |
-| [`ai.matey.middleware.cost-tracking`](./packages/middleware-cost-tracking) | Usage & cost tracking | [README](./packages/middleware-cost-tracking/README.md) |
-| [`ai.matey.middleware.security`](./packages/middleware-security) | Rate limiting & security | [README](./packages/middleware-security/README.md) |
-| [`ai.matey.middleware.conversation-history`](./packages/middleware-conversation-history) | Context management | [README](./packages/middleware-conversation-history/README.md) |
+All middleware in one package:
+
+```typescript
+import {
+  createLoggingMiddleware,
+  createCachingMiddleware,
+  createRetryMiddleware
+} from 'ai.matey.middleware';
+```
+
+**Included Middleware:**
+- Logging - Request/response logging
+- Caching - Response caching
+- Retry - Automatic retries with backoff
+- Transform - Request/response transforms
+- Validation - Request validation
+- Telemetry - Metrics collection
+- OpenTelemetry - Distributed tracing
+- Cost Tracking - Usage & cost tracking
+- Security - Rate limiting & security
+- Conversation History - Context management
 
 ### React Integration
 
-Build AI-powered React applications.
-
 | Package | Purpose | Documentation |
 |---------|---------|---------------|
-| [`ai.matey.react.core`](./packages/react-core) | Core hooks (useChat, useCompletion) | [README](./packages/react-core/README.md) |
-| [`ai.matey.react.hooks`](./packages/react-hooks) | Additional hooks | [README](./packages/react-hooks/README.md) |
-| [`ai.matey.react.stream`](./packages/react-stream) | Streaming components | [README](./packages/react-stream/README.md) |
-| [`ai.matey.react.nextjs`](./packages/react-nextjs) | Next.js App Router | [README](./packages/react-nextjs/README.md) |
+| [`ai.matey.react.core`](./packages/react-core) | Core hooks (useChat, useCompletion) | [README](./packages/react-core/readme.md) |
+| [`ai.matey.react.hooks`](./packages/react-hooks) | Additional hooks | [README](./packages/react-hooks/readme.md) |
+| [`ai.matey.react.stream`](./packages/react-stream) | Streaming components | [README](./packages/react-stream/readme.md) |
+| [`ai.matey.react.nextjs`](./packages/react-nextjs) | Next.js App Router | [README](./packages/react-nextjs/readme.md) |
 
 ### SDK Wrappers
 
-Drop-in replacements for official SDKs.
+**Consolidated Package:** [`ai.matey.wrapper`](./packages/wrapper)
 
-| Package | SDK | Documentation |
-|---------|-----|---------------|
-| [`ai.matey.wrapper.openai-sdk`](./packages/wrapper-openai-sdk) | OpenAI SDK | [README](./packages/wrapper-openai-sdk/README.md) |
-| [`ai.matey.wrapper.anthropic-sdk`](./packages/wrapper-anthropic-sdk) | Anthropic SDK | [README](./packages/wrapper-anthropic-sdk/README.md) |
-| [`ai.matey.wrapper.chrome-ai`](./packages/wrapper-chrome-ai) | Chrome AI API | [README](./packages/wrapper-chrome-ai/README.md) |
-| [`ai.matey.wrapper.chrome-ai-legacy`](./packages/wrapper-chrome-ai-legacy) | Chrome AI (legacy) | [README](./packages/wrapper-chrome-ai-legacy/README.md) |
-| [`ai.matey.wrapper.anymethod`](./packages/wrapper-anymethod) | Dynamic wrapper | [README](./packages/wrapper-anymethod/README.md) |
-| [`ai.matey.wrapper.ir`](./packages/wrapper-ir) | IR-native chat client | [README](./packages/wrapper-ir/readme.md) |
+Drop-in replacements for official SDKs:
+
+```typescript
+import { OpenAI } from 'ai.matey.wrapper';  // OpenAI SDK-compatible
+```
+
+**Included Wrappers:**
+- OpenAI SDK
+- Anthropic SDK
+- Chrome AI API
+- IR-native chat client
+- Dynamic wrapper (anymethod)
 
 ### Native Backends
 
-Run models locally.
-
 | Package | Runtime | Documentation |
 |---------|---------|---------------|
-| [`ai.matey.native.node-llamacpp`](./packages/native-node-llamacpp) | llama.cpp via Node | [README](./packages/native-node-llamacpp/README.md) |
-| [`ai.matey.native.apple`](./packages/native-apple) | Apple MLX (macOS 15+) | [README](./packages/native-apple/README.md) |
-| [`ai.matey.native.model-runner`](./packages/native-model-runner) | Generic model runner | [README](./packages/native-model-runner/README.md) |
+| [`ai.matey.native.node-llamacpp`](./packages/native-node-llamacpp) | llama.cpp via Node | [README](./packages/native-node-llamacpp/readme.md) |
+| [`ai.matey.native.apple`](./packages/native-apple) | Apple MLX (macOS 15+) | [README](./packages/native-apple/readme.md) |
+| [`ai.matey.native.model-runner`](./packages/native-model-runner) | Generic model runner | [README](./packages/native-model-runner/readme.md) |
 
 ## CLI Tools
 
