@@ -304,14 +304,14 @@ const openaiFormat = await toOpenAI(irResponse);
 #### Quick Start
 
 ```typescript
-import { toOpenAI, toAnthropic, toGemini, toOllama, toMistral } from 'ai.matey';
+import { toOpenAI, toAnthropic, toGemini, toOllama, toMistral } from 'ai.matey.utils/conversion';
 
 // Convert to specific format
 const openaiResponse = await toOpenAI(irResponse);
 const anthropicResponse = await toAnthropic(irResponse);
 
 // Convert to multiple formats for comparison
-import { toMultipleFormats } from 'ai.matey';
+import { toMultipleFormats } from 'ai.matey.utils/conversion';
 const allFormats = await toMultipleFormats(irResponse, ['openai', 'anthropic', 'gemini']);
 ```
 
