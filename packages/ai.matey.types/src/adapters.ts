@@ -445,40 +445,16 @@ export type AdapterPair<
  * Infer provider request type from frontend adapter.
  */
 export type InferFrontendRequest<T extends FrontendAdapter> =
-  T extends FrontendAdapter<
-    infer TRequest,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    any,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    any
-  >
-    ? TRequest
-    : never;
+  T extends FrontendAdapter<infer TRequest, any, any> ? TRequest : never;
 
 /**
  * Infer provider response type from frontend adapter.
  */
 export type InferFrontendResponse<T extends FrontendAdapter> =
-  T extends FrontendAdapter<
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    any,
-    infer TResponse,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    any
-  >
-    ? TResponse
-    : never;
+  T extends FrontendAdapter<any, infer TResponse, any> ? TResponse : never;
 
 /**
  * Infer provider stream chunk type from frontend adapter.
  */
 export type InferFrontendStreamChunk<T extends FrontendAdapter> =
-  T extends FrontendAdapter<
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    any,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    any,
-    infer TStreamChunk
-  >
-    ? TStreamChunk
-    : never;
+  T extends FrontendAdapter<any, any, infer TStreamChunk> ? TStreamChunk : never;

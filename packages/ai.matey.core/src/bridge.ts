@@ -103,7 +103,7 @@ export class Bridge<
     this._totalRequests++;
 
     // Step 1: Convert frontend request to IR
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Generic frontend adapter requires type assertion
+
     const irRequest = await this.frontend.toIR(request as any);
 
     // Step 2: Ensure metadata has requestId and timestamp
@@ -217,7 +217,7 @@ export class Bridge<
     this._streamingRequests++;
 
     // Step 1: Convert frontend request to IR
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Generic frontend adapter requires type assertion
+
     const irRequest = await this.frontend.toIR(request as any);
 
     // Step 2: Ensure streaming is enabled
