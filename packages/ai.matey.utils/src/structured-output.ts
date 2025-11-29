@@ -26,13 +26,14 @@ let zodModule: typeof z | null = null;
  */
 function getZod(): typeof z {
   if (zodModule) {
-    return zodModule;
+    return zodModule as typeof z; // Type assertion to remove null
   }
 
   try {
     // Dynamic import for optional dependency
-    zodModule = require('zod').z;
-    return zodModule;
+    const loaded = require('zod').z;
+    zodModule = loaded;
+    return loaded as typeof z;
   } catch (error) {
     throw new Error(
       'Zod is required for structured output features but is not installed. ' +
@@ -531,7 +532,7 @@ export function createStreamObject(bridge: any) {
       tool_choice: { type: 'tool', name: 'extract_data' },
     });
 
-    let accumulatedData: Partial<z.infer<T>> = {};
+    let accumulatedData: Partial<T> = {};
 
     for await (const chunk of stream) {
       // Check if chunk contains tool use delta
@@ -540,7 +541,7 @@ export function createStreamObject(bridge: any) {
 
         try {
           // Parse accumulated JSON
-          accumulatedData = JSON.parse(jsonDelta || '{}');
+          accumulatedData = JSON.parse(jsonDelta || '{}') as Partial<T>;
 
           // Emit partial
           if (onPartial) {

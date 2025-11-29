@@ -34,11 +34,7 @@ import {
   createStreamingMiddlewareContext,
 } from './middleware-stack.js';
 import { AdapterError, ErrorCode, ValidationError } from 'ai.matey.errors';
-import {
-  validateIRChatRequest,
-  createGenerateObject,
-  createStreamObject,
-} from 'ai.matey.utils';
+import { validateIRChatRequest, createGenerateObject, createStreamObject } from 'ai.matey.utils';
 
 // ============================================================================
 // Bridge Implementation
