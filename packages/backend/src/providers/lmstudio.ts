@@ -143,7 +143,7 @@ export class LMStudioBackendAdapter
  * ```
  */
 export function createLMStudioAdapter(
-  config: Partial<BackendAdapterConfig> = {}
+  config: BackendAdapterConfig = {} as BackendAdapterConfig
 ): LMStudioBackendAdapter {
-  return new LMStudioBackendAdapter(config as BackendAdapterConfig);
+  return new LMStudioBackendAdapter(config);
 }
