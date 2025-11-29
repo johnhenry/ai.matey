@@ -303,18 +303,17 @@ The AI tooling ecosystem has 6 distinct categories:
 
 Legend: ⭐⭐ = Excellent (best-in-class), ⭐ = Good (competitive), ⚠️ = Limited (basic support), ❌ = Not available, N/A = Not applicable
 
-| Feature | ai.matey | LangChain | Vercel AI | LiteLLM.js | Portkey |
-|---------|----------|-----------|-----------|------------|---------|
-| Provider abstraction | ⭐⭐ | ⚠️ | ⚠️ | ⭐ | ⭐ |
-| Advanced routing | ⭐⭐ | ❌ | ❌ | ❌ | ⭐ |
-| Circuit breaker | ⭐ | ❌ | ❌ | ❌ | ⭐ |
-| Zero dependencies | ⭐⭐ | ❌ | ❌ | ⭐ | N/A |
-| HTTP server support | ⭐ | ❌ | ❌ | ❌ | N/A |
-| Middleware system | ⭐⭐ | ⚠️ | ⚠️ | ❌ | ⭐ |
-| RAG/Orchestration | ❌ | ⭐⭐ | ⚠️ | ❌ | ❌ |
-| React integration | ⭐⭐ | ⚠️ | ⭐⭐ | ❌ | ❌ |
-| Self-hosted | ⭐⭐ | ⭐ | ⭐ | ⭐ | ❌ |
-| Structured output | ⚠️ (planned) | ⭐ | ⭐⭐ | ❌ | ⚠️ |
+| Feature | ai.matey | LangChain | Vercel AI | LiteLLM.js | Portkey | **Roadmap to ⭐⭐** |
+|---------|----------|-----------|-----------|------------|---------|-----------------|
+| Provider abstraction | ⭐⭐ | ⚠️ | ⚠️ | ⭐ | ⭐ | ✅ Already excellent |
+| Advanced routing | ⭐⭐ | ❌ | ❌ | ❌ | ⭐ | ✅ Already excellent |
+| Circuit breaker | ⭐ | ❌ | ❌ | ❌ | ⭐ | 🎯 See "Circuit Breaker Enhancement" below |
+| Zero dependencies | ⭐⭐ | ❌ | ❌ | ⭐ | N/A | ✅ Already excellent |
+| HTTP server support | ⭐ | ❌ | ❌ | ❌ | N/A | 🎯 See "HTTP Improvements" below |
+| Middleware system | ⭐⭐ | ⚠️ | ⚠️ | ❌ | ⭐ | ✅ Already excellent |
+| React integration | ⭐⭐ | ⚠️ | ⭐⭐ | ❌ | ❌ | ✅ Already excellent |
+| Self-hosted | ⭐⭐ | ⭐ | ⭐ | ⭐ | ❌ | ✅ Already excellent |
+| Structured output | ⚠️ | ⭐ | ⭐⭐ | ❌ | ⚠️ | 🎯 **Next Phase** - Zod integration |
 
 ### When to Choose ai.matey
 
@@ -365,7 +364,24 @@ Legend: ⭐⭐ = Excellent (best-in-class), ⭐ = Good (competitive), ⚠️ = L
 - More real-world examples
 - API reference improvements
 
-**3. Embeddings Support**
+**3. Circuit Breaker Enhancement** (⭐ → ⭐⭐)
+- Enhanced metrics and observability
+- Configurable failure thresholds per provider
+- Half-open state with graduated recovery
+- Circuit breaker events and webhooks
+- Dashboard/visualization support
+- Per-model circuit breakers (not just per-provider)
+
+**4. HTTP Server Improvements** (⭐ → ⭐⭐)
+- WebSocket support for real-time streaming
+- Server-Sent Events (SSE) improvements
+- Better error handling and status codes
+- Request/response compression
+- Rate limiting per route/user
+- Health check endpoints with circuit breaker status
+- Metrics endpoints (Prometheus format)
+
+**5. Embeddings Support**
 - Embedding generation across providers
 - Batch embedding support
 - Vector dimension normalization
@@ -390,22 +406,6 @@ Legend: ⭐⭐ = Excellent (best-in-class), ⭐ = Good (competitive), ⚠️ = L
 **OpenTelemetry Enhancement**
 - Additional integration examples (Jaeger, Zipkin, Datadog, Honeycomb)
 - Performance optimization for trace spans
-
-### Later Phase: Agent Runtime & RAG Basics
-
-**Lightweight Agent Runtime**
-- ReAct pattern support
-- Basic tool orchestration
-- Multi-step reasoning (simple)
-- State management (minimal)
-- **Focus**: Provider-agnostic agent flows, not complex multi-actor systems
-
-**Basic RAG Pipeline**
-- Simple document Q&A
-- Document chunking helpers
-- Basic vector store integration (Pinecone, Weaviate, Qdrant, Chroma)
-- Semantic search utilities
-- **Target**: Simple use cases, integrate with existing RAG libraries for advanced features
 
 ## Long-Term Vision
 
@@ -452,10 +452,11 @@ Legend: ⭐⭐ = Excellent (best-in-class), ⭐ = Good (competitive), ⚠️ = L
 ## Strategic Roadmap Alignment
 
 Our roadmap focuses on:
-1. ✅ **Strengthen core competency** (provider abstraction)
-2. ✅ **Fill competitive gaps** (React ✅ done, structured output → next)
-3. ✅ **Add unique value** (semantic caching, middleware pipeline)
-4. ❌ **Avoid scope creep** (won't compete on full orchestration/RAG)
+1. ✅ **Strengthen core competency** (provider abstraction, routing, middleware)
+2. ✅ **Achieve excellence in all features** (⭐⭐ across the board)
+3. ✅ **Fill competitive gaps** (structured output, circuit breaker, HTTP improvements)
+4. ✅ **Add unique value** (semantic caching, guardrails, zero dependencies)
+5. ❌ **Avoid scope creep** (won't compete on orchestration/RAG - different domain)
 
 ## Success Metrics
 
