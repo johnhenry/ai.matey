@@ -3,8 +3,19 @@
  *
  * Validates and sanitizes requests to prevent security issues and ensure data quality.
  *
- * This middleware focuses on SECURITY validation (PII detection, prompt injection, content moderation).
- * For IR format validation, see ai.matey.utils/validation.ts
+ * ## Separation of Concerns
+ *
+ * This middleware focuses on **SECURITY validation**:
+ * - PII detection and redaction
+ * - Prompt injection prevention
+ * - Content moderation
+ * - Message length/token limits
+ * - Sanitization
+ *
+ * For **IR format validation** (structural correctness), use ai.matey.utils/validation.ts:
+ * - Message structure and content validation
+ * - Parameter type and range validation
+ * - Request format validation
  *
  * @module
  */
@@ -13,6 +24,7 @@ import type { Middleware } from 'ai.matey.types';
 import type { IRChatRequest, MessageContent } from 'ai.matey.types';
 import { ValidationError, ErrorCode } from 'ai.matey.errors';
 import type { ErrorProvenance } from 'ai.matey.types';
+import { validateIRChatRequest, validateTemperature } from 'ai.matey.utils';
 
 /**
  * Helper to create a structured validation error from simple field/value/message
@@ -213,14 +225,23 @@ export interface ValidationConfig {
   allowedModels?: string[];
 
   /**
-   * Validate temperature parameter
+   * Perform IR format validation before security validation
+   * Uses ai.matey.utils/validation.ts for structural correctness
    * @default false
+   */
+  validateIRFormat?: boolean;
+
+  /**
+   * Validate temperature parameter using ai.matey.utils
+   * @default false
+   * @deprecated Use validateIRFormat instead for comprehensive parameter validation
    */
   validateTemperature?: boolean;
 
   /**
-   * Temperature range
+   * Temperature range (only used if validateTemperature is true)
    * @default [0, 2]
+   * @deprecated Temperature validation now uses ai.matey.utils range (0-2)
    */
   temperatureRange?: [number, number];
 
@@ -387,6 +408,20 @@ export async function validateRequest(
   const errors: ValidationError[] = [];
   const warnings: string[] = [];
 
+  // Perform IR format validation first if enabled
+  if (config.validateIRFormat) {
+    try {
+      validateIRChatRequest(request);
+    } catch (error) {
+      if (error instanceof ValidationError) {
+        errors.push(error);
+        // If format validation fails, return early as security checks may not make sense
+        return { valid: false, errors, warnings };
+      }
+      throw error;
+    }
+  }
+
   // Validate message count
   if (config.maxMessages && request.messages.length > config.maxMessages) {
     errors.push(
@@ -529,19 +564,16 @@ export async function validateRequest(
     }
   }
 
-  // Validate temperature
+  // Validate temperature (deprecated - use validateIRFormat instead)
   if (config.validateTemperature && request.parameters?.temperature !== undefined) {
-    const temp = request.parameters.temperature;
-    const [min, max] = config.temperatureRange || [0, 2];
-
-    if (temp < min || temp > max) {
-      errors.push(
-        createValidationError(
-          `Temperature out of range: ${temp} not in [${min}, ${max}]`,
-          'parameters.temperature',
-          temp
-        )
-      );
+    try {
+      validateTemperature(request.parameters.temperature);
+    } catch (error) {
+      if (error instanceof ValidationError) {
+        errors.push(error);
+      } else {
+        throw error;
+      }
     }
   }
 
