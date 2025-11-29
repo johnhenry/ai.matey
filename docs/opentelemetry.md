@@ -66,10 +66,10 @@ npm install @opentelemetry/api \
 ### Basic Usage
 
 ```typescript
-import { Bridge } from 'ai.matey';
-import { createOpenAIFrontendAdapter } from 'ai.matey.frontend';
-import { createOpenAIBackendAdapter } from 'ai.matey.backend';
-import { createOpenTelemetryMiddleware } from 'ai.matey.middleware';
+import { Bridge } from 'ai.matey.core';
+import { createOpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
+import { createOpenAIBackendAdapter } from 'ai.matey.backend/openai';
+import { createOpenTelemetryMiddleware } from 'ai.matey.middleware/opentelemetry';
 
 async function main() {
   // Create bridge

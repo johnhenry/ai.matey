@@ -91,7 +91,7 @@ fixtures/
 ## Usage in Tests
 
 ```typescript
-import { loadFixture, createMockFromFixture } from '../src/testing/index.js';
+import { loadFixture, createMockFromFixture } from 'ai.matey.testing';
 
 // Load a fixture
 const fixture = await loadFixture('openai', 'basic-chat');
@@ -107,7 +107,7 @@ expect(response).toEqual(fixture.response);
 ## Capturing New Fixtures
 
 ```typescript
-import { captureChat } from '../src/testing/index.js';
+import { captureChat } from 'ai.matey.testing';
 
 // After making a real API call
 await captureChat(

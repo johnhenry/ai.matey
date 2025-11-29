@@ -17,8 +17,8 @@
 import {
   LlamaCppBackend,
   type ModelRunnerBackendConfig,
-} from '../src/adapters/backend-native/model-runners/index.js';
-import type { IRChatRequest } from '../src/types/ir.js';
+} from 'ai.matey.native.node-llamacpp';
+import type { IRChatRequest } from 'ai.matey.types';
 
 // ============================================================================
 // Configuration

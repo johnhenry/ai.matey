@@ -26,7 +26,7 @@ The Router's `dispatchParallel()` method allows you to query multiple AI backend
 ### Quick Start
 
 ```typescript
-import { createRouter } from 'ai.matey';
+import { createRouter } from 'ai.matey.core';
 
 const router = createRouter()
   .register('openai', openaiBackend)
@@ -450,7 +450,7 @@ curl https://api.example.com/ir-response | \
 #### Compare Request Formats
 
 ```typescript
-import { toMultipleRequestFormats } from 'ai.matey';
+import { toMultipleRequestFormats } from 'ai.matey.utils/conversion';
 
 const allReqFormats = toMultipleRequestFormats(irRequest, [
   'openai',
@@ -466,7 +466,7 @@ console.log('Gemini:', allReqFormats.gemini);
 #### Compare Response Formats
 
 ```typescript
-import { toMultipleFormats } from 'ai.matey';
+import { toMultipleFormats } from 'ai.matey.utils/conversion';
 
 const allFormats = await toMultipleFormats(irResponse, [
   'openai',
@@ -525,7 +525,7 @@ Create a backend module for use with the CLI:
 
 ```javascript
 // backend.mjs
-import { OpenAIBackend } from 'ai.matey.backend';
+import { OpenAIBackend } from 'ai.matey.backend/openai';
 
 const backend = new OpenAIBackend({
   apiKey: process.env.OPENAI_API_KEY,
@@ -667,7 +667,7 @@ ollama run llama3.1 "Test prompt"
 ```bash
 # Use OpenAI in production
 cat > prod-backend.mjs << 'EOF'
-import { OpenAIBackend } from 'ai.matey.backend';
+import { OpenAIBackend } from 'ai.matey.backend/openai';
 export default new OpenAIBackend({
   apiKey: process.env.OPENAI_API_KEY,
   defaultModel: 'gpt-4o',

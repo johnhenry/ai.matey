@@ -213,7 +213,9 @@ Convenience function for creating bridges.
 
 **Example:**
 ```typescript
-import { createBridge, OpenAIFrontendAdapter, AnthropicBackendAdapter } from 'ai.matey';
+import { createBridge } from 'ai.matey.core';
+import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
+import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
 
 const bridge = createBridge(
   new OpenAIFrontendAdapter(),
@@ -353,7 +355,10 @@ createRouter(frontend: FrontendAdapter, config: RouterConfig): Router
 
 **Example:**
 ```typescript
-import { createRouter, OpenAIFrontendAdapter, AnthropicBackendAdapter, OpenAIBackendAdapter } from 'ai.matey';
+import { createRouter } from 'ai.matey.core';
+import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
+import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
+import { OpenAIBackendAdapter } from 'ai.matey.backend/openai';
 
 const router = createRouter(
   new OpenAIFrontendAdapter(),
@@ -409,7 +414,7 @@ Frontend adapters parse incoming requests and format outgoing responses.
 #### AnthropicFrontendAdapter
 
 ```typescript
-import { AnthropicFrontendAdapter } from 'ai.matey';
+import { AnthropicFrontendAdapter } from 'ai.matey.frontend/anthropic';
 
 const adapter = new AnthropicFrontendAdapter();
 ```
@@ -449,7 +454,7 @@ interface AnthropicResponse {
 #### OpenAIFrontendAdapter
 
 ```typescript
-import { OpenAIFrontendAdapter } from 'ai.matey';
+import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
 
 const adapter = new OpenAIFrontendAdapter();
 ```
@@ -473,7 +478,7 @@ interface OpenAIRequest {
 #### GeminiFrontendAdapter
 
 ```typescript
-import { GeminiFrontendAdapter } from 'ai.matey';
+import { GeminiFrontendAdapter } from 'ai.matey.frontend/gemini';
 
 const adapter = new GeminiFrontendAdapter();
 ```
@@ -481,7 +486,7 @@ const adapter = new GeminiFrontendAdapter();
 #### OllamaFrontendAdapter
 
 ```typescript
-import { OllamaFrontendAdapter } from 'ai.matey';
+import { OllamaFrontendAdapter } from 'ai.matey.frontend/ollama';
 
 const adapter = new OllamaFrontendAdapter();
 ```
@@ -489,7 +494,7 @@ const adapter = new OllamaFrontendAdapter();
 #### MistralFrontendAdapter
 
 ```typescript
-import { MistralFrontendAdapter } from 'ai.matey';
+import { MistralFrontendAdapter } from 'ai.matey.frontend/mistral';
 
 const adapter = new MistralFrontendAdapter();
 ```
@@ -497,7 +502,7 @@ const adapter = new MistralFrontendAdapter();
 #### ChromeAIFrontendAdapter
 
 ```typescript
-import { ChromeAIFrontendAdapter } from 'ai.matey';
+import { ChromeAIFrontendAdapter } from 'ai.matey.frontend/chrome-ai';
 
 const adapter = new ChromeAIFrontendAdapter();
 ```
@@ -509,7 +514,7 @@ Backend adapters execute requests on AI providers.
 #### AnthropicBackendAdapter
 
 ```typescript
-import { AnthropicBackendAdapter } from 'ai.matey';
+import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
 
 const adapter = new AnthropicBackendAdapter({
   apiKey: 'sk-ant-...',
@@ -535,7 +540,7 @@ interface BackendAdapterConfig {
 #### OpenAIBackendAdapter
 
 ```typescript
-import { OpenAIBackendAdapter } from 'ai.matey';
+import { OpenAIBackendAdapter } from 'ai.matey.backend/openai';
 
 const adapter = new OpenAIBackendAdapter({
   apiKey: 'sk-...',
@@ -1524,7 +1529,7 @@ import { NodeLlamaCppBackend, AppleBackend } from 'ai.matey.native.node-llamacpp
 
 **Logging:**
 ```typescript
-import { createLoggingMiddleware } from 'ai.matey';
+import { createLoggingMiddleware } from 'ai.matey.middleware/logging';
 ```
 
 **Telemetry:**
@@ -1535,7 +1540,7 @@ import {
   InMemoryTelemetrySink,
   MetricNames,
   EventNames,
-} from 'ai.matey';
+} from 'ai.matey.middleware/telemetry';
 ```
 
 **Caching:**
@@ -1543,7 +1548,7 @@ import {
 import {
   createCachingMiddleware,
   InMemoryCacheStorage,
-} from 'ai.matey';
+} from 'ai.matey.middleware/caching';
 ```
 
 **Retry:**
@@ -1554,7 +1559,7 @@ import {
   isNetworkError,
   isServerError,
   createRetryPredicate,
-} from 'ai.matey';
+} from 'ai.matey.middleware/retry';
 ```
 
 **Transform:**
@@ -1570,7 +1575,7 @@ import {
   composeRequestTransformers,
   composeResponseTransformers,
   composeMessageTransformers,
-} from 'ai.matey';
+} from 'ai.matey.middleware/transform';
 ```
 
 **Security:**
@@ -1580,7 +1585,7 @@ import {
   createProductionSecurityMiddleware,
   createDevelopmentSecurityMiddleware,
   DEFAULT_SECURITY_CONFIG,
-} from 'ai.matey';
+} from 'ai.matey.middleware/security';
 ```
 
 **Cost Tracking:**
@@ -1592,7 +1597,7 @@ import {
   calculateCost,
   getCostStats,
   DEFAULT_PRICING,
-} from 'ai.matey';
+} from 'ai.matey.middleware/cost-tracking';
 ```
 
 **Validation & Sanitization:**
@@ -1610,7 +1615,7 @@ import {
   ValidationError as MiddlewareValidationError,
   DEFAULT_PII_PATTERNS,
   DEFAULT_INJECTION_PATTERNS,
-} from 'ai.matey';
+} from 'ai.matey.middleware/validation';
 ```
 
 #### Wrappers
