@@ -577,6 +577,29 @@ Legend: ⭐⭐ = Excellent (best-in-class), ⭐ = Good (competitive), ⚠️ = L
   - Testing utilities for community adapters
   - OpenTelemetry metrics reporting standard
 
+## CI/CD & Infrastructure
+
+### GitHub Actions Workflow
+
+**Current Implementation:**
+- ✅ Parallel job execution (lint, typecheck, test, build)
+- ✅ Matrix testing (Node 24, 25)
+- ✅ Integration tests with monorepo builds
+- ✅ CodeQL security analysis
+- ✅ Dependency review
+
+**Artifact Strategy:**
+- **Current approach**: Integration tests build packages directly (no artifacts)
+- **Rationale**: Turborepo creates `packages/*/dist/` folders, not root `dist/`
+- **Trade-off**: Simpler and more reliable, but builds twice (in test and integration jobs)
+
+**Future Consideration:**
+- Option to upload all package dist folders as artifacts for better build/test separation
+- Would require managing multiple artifact paths: `packages/ai.matey.core/dist/`, `packages/ai.matey.utils/dist/`, etc.
+- Current approach prioritized simplicity and reliability over strict job separation
+
+---
+
 ## Strategic Roadmap Alignment
 
 Our roadmap focuses on:
