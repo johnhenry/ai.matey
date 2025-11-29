@@ -5,7 +5,7 @@ Development roadmap and strategic direction for the Universal AI Adapter System.
 ## Architecture Overview
 
 **Monorepo Structure:**
-- 23 consolidated packages
+- 21 consolidated packages
 - 165 TypeScript source files
 - 32,019 lines of TypeScript code
 - Turbo-based build system with caching
@@ -46,7 +46,13 @@ All 10 middleware types in `ai.matey.middleware`:
 - **conversation-history** - Context management
 
 ### HTTP Integration
-- ✅ **6 Framework adapters**: Express, Fastify, Hono, Koa, Node.js, Deno
+- ✅ **Consolidated package** `ai.matey.http` with subpath imports for 6 frameworks:
+  - `ai.matey.http/express`
+  - `ai.matey.http/fastify`
+  - `ai.matey.http/hono`
+  - `ai.matey.http/koa`
+  - `ai.matey.http/node`
+  - `ai.matey.http/deno`
 - ✅ **Shared utilities** in `ai.matey.http.core`: auth, CORS, error-handler, health-check, rate-limiter, streaming-handler
 - ✅ **OpenAI-compatible** API endpoints
 
@@ -105,15 +111,10 @@ All 10 middleware types in `ai.matey.middleware`:
 
 ### Infrastructure (4 packages)
 - `ai.matey.middleware` - All 10 middleware types
-- `ai.matey.http` - HTTP server integration
+- `ai.matey.http` - HTTP framework adapters (subpath imports for express, fastify, hono, koa, node, deno)
 - `ai.matey.http.core` - HTTP core utilities
 - `ai.matey.testing` - Testing utilities and fixtures
 
-### HTTP Frameworks (4 packages)
-- `ai.matey.http.express`
-- `ai.matey.http.hono`
-- `ai.matey.http.fastify`
-- `ai.matey.http.koa`
 
 ### React Integration (4 packages)
 - `ai.matey.react.core` - Core hooks
