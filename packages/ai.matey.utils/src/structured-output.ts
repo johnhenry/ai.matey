@@ -26,19 +26,20 @@ let zodModule: typeof z | null = null;
  */
 function getZod(): typeof z {
   if (zodModule) {
-    return zodModule as typeof z; // Type assertion to remove null
+    return zodModule;
   }
 
   try {
     // Dynamic import for optional dependency
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const loaded = require('zod').z;
     zodModule = loaded;
-    return loaded as typeof z;
-  } catch (error) {
+    return loaded;
+  } catch {
     throw new Error(
       'Zod is required for structured output features but is not installed. ' +
-      'Install it with: npm install zod\n' +
-      'See: https://github.com/johnhenry/ai.matey#structured-output'
+        'Install it with: npm install zod\n' +
+        'See: https://github.com/johnhenry/ai.matey#structured-output'
     );
   }
 }
@@ -101,9 +102,7 @@ export interface PIIPattern {
 /**
  * Validation result
  */
-export type ValidationResult<T> =
-  | { success: true; data: T }
-  | { success: false; errors: any[] }; // Using any[] to avoid importing z.ZodIssue
+export type ValidationResult<T> = { success: true; data: T } | { success: false; errors: any[] }; // Using any[] to avoid importing z.ZodIssue
 
 // ============================================================================
 // Schema to Tool Definition Converter
@@ -142,7 +141,7 @@ export function schemaToToolDefinition(
  */
 function zodToJsonSchema(schema: any): JSONSchema {
   // Get the Zod internal definition
-  const def = (schema as any)._def;
+  const def = schema._def;
 
   // Zod v3+ uses _def.typeName, fallback to constructor name
   const typeName = def.typeName || schema.constructor.name;
@@ -159,7 +158,8 @@ function zodToJsonSchema(schema: any): JSONSchema {
       const fieldDef = (fieldSchema as any)._def;
 
       // Check if field is optional BEFORE converting
-      const isOptional = fieldDef.typeName === 'ZodOptional' || fieldSchema.constructor.name === 'ZodOptional';
+      const isOptional =
+        fieldDef.typeName === 'ZodOptional' || fieldSchema.constructor.name === 'ZodOptional';
 
       properties[key] = zodToJsonSchema(fieldSchema);
 
@@ -192,7 +192,7 @@ function zodToJsonSchema(schema: any): JSONSchema {
   if (typeName === 'ZodString') {
     const result: JSONSchema = { type: 'string' };
     // Description is stored on the schema object itself
-    const description = (schema as any).description;
+    const description = schema.description;
     if (description) {
       result.description = description;
     }
@@ -202,7 +202,7 @@ function zodToJsonSchema(schema: any): JSONSchema {
   // Handle ZodNumber
   if (typeName === 'ZodNumber') {
     const result: JSONSchema = { type: 'number' };
-    const description = (schema as any).description;
+    const description = schema.description;
     if (description) {
       result.description = description;
     }
@@ -212,7 +212,7 @@ function zodToJsonSchema(schema: any): JSONSchema {
   // Handle ZodBoolean
   if (typeName === 'ZodBoolean') {
     const result: JSONSchema = { type: 'boolean' };
-    const description = (schema as any).description;
+    const description = schema.description;
     if (description) {
       result.description = description;
     }
@@ -227,7 +227,7 @@ function zodToJsonSchema(schema: any): JSONSchema {
       type: 'array',
       items: zodToJsonSchema(itemSchema),
     };
-    const description = (schema as any).description;
+    const description = schema.description;
     if (description) {
       result.description = description;
     }
@@ -238,12 +238,13 @@ function zodToJsonSchema(schema: any): JSONSchema {
   if (typeName === 'ZodEnum') {
     // Enum values are in _def.entries as an object - extract the values
     const entries = def.entries;
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
     const values = entries ? (Object.values(entries) as string[]) : [];
     const result: JSONSchema = {
       type: 'string',
       enum: values,
     };
-    const description = (schema as any).description;
+    const description = schema.description;
     if (description) {
       result.description = description;
     }
@@ -265,10 +266,7 @@ function zodToJsonSchema(schema: any): JSONSchema {
  * @param schema - Zod schema to validate against
  * @returns Validation result with typed data or errors
  */
-export function validateWithSchema<T = any>(
-  data: unknown,
-  schema: any
-): ValidationResult<T> {
+export function validateWithSchema<T = any>(data: unknown, schema: any): ValidationResult<T> {
   // Ensure Zod is available
   getZod();
 
@@ -360,10 +358,7 @@ export function detectPII(
 /**
  * Redact PII from text
  */
-export function redactPII(
-  text: string,
-  patterns: PIIPattern[] = DEFAULT_PII_PATTERNS
-): string {
+export function redactPII(text: string, patterns: PIIPattern[] = DEFAULT_PII_PATTERNS): string {
   let result = text;
 
   for (const pattern of patterns) {
@@ -387,10 +382,13 @@ export function detectPromptInjection(
  * Sanitize text by removing control characters
  */
 export function sanitizeText(text: string): string {
-  return text
-    .replace(/\x00/g, '') // Remove null bytes
-    .replace(/\r\n/g, '\n') // Normalize line endings
-    .replace(/\r/g, '\n');
+  return (
+    text
+      // eslint-disable-next-line no-control-regex
+      .replace(/\x00/g, '') // Remove null bytes
+      .replace(/\r\n/g, '\n') // Normalize line endings
+      .replace(/\r/g, '\n')
+  );
 }
 
 // ============================================================================
@@ -467,7 +465,7 @@ export function createGenerateObject(bridge: any) {
         });
 
         // Extract tool call result
-        const toolCalls = (response as any).content?.filter((c: any) => c.type === 'tool_use');
+        const toolCalls = response.content?.filter((c: any) => c.type === 'tool_use');
 
         if (!toolCalls || toolCalls.length === 0) {
           throw new Error('No tool call in response');
@@ -487,8 +485,8 @@ export function createGenerateObject(bridge: any) {
         // Return validated object
         return {
           object: validation.data,
-          usage: (response as any).usage,
-          finishReason: (response as any).stop_reason || 'stop',
+          usage: response.usage,
+          finishReason: response.stop_reason || 'stop',
         };
       } catch (error) {
         lastError = error as Error;
@@ -536,8 +534,8 @@ export function createStreamObject(bridge: any) {
 
     for await (const chunk of stream) {
       // Check if chunk contains tool use delta
-      if ((chunk as any).delta?.type === 'input_json_delta') {
-        const jsonDelta = (chunk as any).delta.partial_json;
+      if (chunk.delta?.type === 'input_json_delta') {
+        const jsonDelta = chunk.delta.partial_json;
 
         try {
           // Parse accumulated JSON
