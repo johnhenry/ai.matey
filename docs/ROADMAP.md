@@ -112,37 +112,32 @@ ai.matey occupies a unique position in the AI tooling ecosystem as a **provider-
 
 ### Key Competitors Analysis
 
-**1. Vercel AI SDK (~18.5k stars)**
-- Their strength: React hooks, streaming UI, Next.js integration
-- Our response: ✅ **ADDRESSED** - Full React integration (useChat, useCompletion, useObject, Next.js adapters)
-- Gap remaining: Structured output with Zod (`generateObject`) - HIGH PRIORITY
-- Our advantage: Provider abstraction, routing, middleware, zero vendor lock-in
+For a comprehensive competitive analysis covering 20+ competitors across 6 market categories, see **[competitive-analysis.md](./competitive-analysis.md)**.
 
-**2. LangChain.js (~6k+ stars)**
-- Their strength: RAG, agents, orchestration, extensive integrations
-- Our position: **WON'T COMPETE** on full orchestration - different problem domain
-- Our advantage: Simpler for provider switching without heavy orchestration layer
-- Note: Could be complementary (LangChain for orchestration, ai.matey for provider abstraction)
+**Quick Summary:**
 
-**3. Portkey AI Gateway**
-- Their strength: 200+ providers, 50+ guardrails, semantic caching, enterprise observability
-- Our position: **LIBRARY vs GATEWAY** - fundamentally different architecture
-- Their approach: Centralized proxy/gateway service
-- Our approach: Embedded library in application
-- Trade-offs:
-  - Portkey: Enterprise features, guardrails, semantic caching, centralized observability
-  - ai.matey: Privacy-first (no external service), full control, simpler deployment, zero service dependencies
+**1. Vercel AI SDK** - UI Framework
+- ✅ **ADDRESSED**: Full React integration matches their hooks
+- 🎯 **Gap**: Structured output with Zod - HIGH PRIORITY
+- ⭐ **Our Edge**: Provider abstraction, routing, middleware
 
-**4. Instructor-JS**
-- Their strength: Zod integration, structured extraction, runtime validation, streaming with partial objects
-- Gap: We lack Zod integration and structured output - **HIGH PRIORITY**
-- Our advantage: Full provider abstraction, routing, middleware
-- Potential: Could integrate both (ai.matey for providers, instructor-js for extraction)
+**2. LangChain.js** - Orchestration Framework
+- **WON'T COMPETE**: Different problem domain (RAG/agents vs provider abstraction)
+- **COMPLEMENTARY**: LangChain for orchestration + ai.matey for provider layer
 
-**5. LiteLLM.js**
-- Their strength: Simplicity, small bundle, quick setup, embedding support
-- Our advantage: Comprehensive features, routing, middleware, production-grade, React integration
-- Trade-off: We're more complex but more powerful for production use
+**3. Portkey** - Gateway Service
+- **DIFFERENT ARCHITECTURE**: Library (embedded) vs Gateway (proxy)
+- ⭐ **Our Edge**: Privacy-first, full control, zero external dependencies
+
+**4. Instructor-JS** - Structured Output
+- 🎯 **Gap**: Zod integration - HIGH PRIORITY
+- **COMPLEMENTARY**: Could work together
+
+**5. LiteLLM.js / llm.js** - Simple Wrappers
+- ⭐ **Our Edge**: Production-grade features, advanced routing, comprehensive middleware
+- **Trade-off**: More powerful but higher complexity
+
+See [competitive-analysis.md](./competitive-analysis.md) for detailed positioning, feature comparisons, and strategic recommendations.
 
 ### Competitive Gaps & Priorities
 
