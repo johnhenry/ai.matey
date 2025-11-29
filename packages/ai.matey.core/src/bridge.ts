@@ -34,7 +34,11 @@ import {
   createStreamingMiddlewareContext,
 } from './middleware-stack.js';
 import { AdapterError, ErrorCode, ValidationError } from 'ai.matey.errors';
-import { validateIRChatRequest } from 'ai.matey.utils';
+import {
+  validateIRChatRequest,
+  createGenerateObject,
+  createStreamObject,
+} from 'ai.matey.utils';
 
 // ============================================================================
 // Bridge Implementation
@@ -643,6 +647,66 @@ export class Bridge<
     // Use standard UUID v4 for request IDs
     return crypto.randomUUID();
   }
+
+  /**
+   * Generate a structured object matching a Zod schema using an LLM.
+   *
+   * This method uses tool calling to extract structured data from the LLM response,
+   * validates it against the provided schema, and returns the typed object.
+   *
+   * @param options Configuration for object generation
+   * @returns Promise resolving to the generated and validated object
+   *
+   * @example
+   * ```typescript
+   * const UserSchema = z.object({
+   *   name: z.string(),
+   *   age: z.number(),
+   *   email: z.string().email(),
+   * });
+   *
+   * const result = await bridge.generateObject({
+   *   schema: UserSchema,
+   *   prompt: 'Generate a user profile for Alice, age 30',
+   *   model: 'gpt-4',
+   * });
+   *
+   * console.log(result.object); // { name: 'Alice', age: 30, email: '...' }
+   * ```
+   */
+  generateObject = createGenerateObject(this);
+
+  /**
+   * Stream a structured object matching a Zod schema using an LLM.
+   *
+   * This method uses streaming tool calling to incrementally build up a structured
+   * object, yielding partial results as they become available.
+   *
+   * @param options Configuration for streaming object generation
+   * @returns Async generator yielding partial objects and returning the final validated object
+   *
+   * @example
+   * ```typescript
+   * const ArticleSchema = z.object({
+   *   title: z.string(),
+   *   content: z.string(),
+   *   tags: z.array(z.string()),
+   * });
+   *
+   * const stream = bridge.streamObject({
+   *   schema: ArticleSchema,
+   *   prompt: 'Write a blog post about TypeScript',
+   *   onPartial: (partial) => {
+   *     console.log('Partial:', partial);
+   *   },
+   * });
+   *
+   * for await (const partial of stream) {
+   *   console.log('Progress:', partial);
+   * }
+   * ```
+   */
+  streamObject = createStreamObject(this);
 
   /**
    * Emit an event to all registered listeners.

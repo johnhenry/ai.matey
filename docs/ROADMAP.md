@@ -280,8 +280,7 @@ The AI tooling ecosystem has 6 distinct categories:
 
 **Vercel AI SDK** - UI Framework
 - ⭐ **Our Edge**: Provider abstraction, routing, middleware, zero vendor lock-in
-- ✅ **Matched**: Full React integration
-- 🎯 **Gap**: Structured output with Zod
+- ✅ **Matched**: Full React integration, Structured output with Zod
 
 **LangChain.js** - Orchestration Framework
 - ⭐ **Our Edge**: Simpler for provider switching
@@ -292,8 +291,8 @@ The AI tooling ecosystem has 6 distinct categories:
 - 🔄 **Different Architecture**: Library (embedded) vs Gateway (proxy)
 
 **Instructor-JS** - Structured Output
-- ⭐ **Our Edge**: Full provider abstraction, routing, middleware
-- 🎯 **Gap**: Zod integration
+- ⭐ **Our Edge**: Full provider abstraction, routing, middleware, React integration
+- ✅ **Matched**: Zod integration with generateObject() and streamObject()
 - 🤝 **Complementary**: Could work together
 
 **LiteLLM.js / llm.js** - Simple Wrappers
@@ -314,7 +313,7 @@ Legend: ⭐⭐ = Excellent (best-in-class), ⭐ = Good (competitive), ⚠️ = L
 | Middleware system | ⭐⭐ | ⚠️ | ⚠️ | ❌ | ⭐ | ✅ Already excellent |
 | React integration | ⭐⭐ | ⚠️ | ⭐⭐ | ❌ | ❌ | ✅ Already excellent |
 | Self-hosted | ⭐⭐ | ⭐ | ⭐ | ⭐ | ❌ | ✅ Already excellent |
-| Structured output | ⚠️ | ⭐ | ⭐⭐ | ❌ | ⚠️ | 🎯 **Next Phase** - Zod integration |
+| Structured output | ⭐⭐ | ⭐ | ⭐⭐ | ❌ | ⚠️ | ✅ Already excellent |
 
 ### When to Choose ai.matey
 
@@ -388,16 +387,21 @@ Legend: ⭐⭐ = Excellent (best-in-class), ⭐ = Good (competitive), ⚠️ = L
 
 ---
 
-### Next Phase: Structured Output & Documentation
+### Next Phase: Enhanced Documentation & Features
 
-**1. Structured Output with Zod** (closes gap with Instructor-JS & Vercel AI)
-- Zod schema integration
-- Schema → tool definitions converter
-- Runtime validation
-- Type inference from schemas
-- Streaming with partial objects
-- `generateObject()` method
-- JSON schema validation fallback
+**1. ✅ Structured Output with Zod** (COMPLETED - closes gap with Instructor-JS & Vercel AI)
+- ✅ Zod schema integration
+- ✅ Schema → tool definitions converter
+- ✅ Runtime validation
+- ✅ Type inference from schemas
+- ✅ Streaming with partial objects (`streamObject()`)
+- ✅ `generateObject()` method
+- ✅ Security utilities (PII detection, prompt injection detection)
+- 📦 **Implementation**: `packages/ai.matey.utils/src/structured-output.ts`
+- 📦 **Bridge integration**: `bridge.generateObject()` and `bridge.streamObject()` methods
+- ✅ **Tests**: 12 passing tests in `tests/unit/structured-output.test.ts`
+- 🎯 **Zero-dependency**: Zod is an **optional peer dependency** - only required if you use structured output features
+- 💡 **Installation**: Users only install `zod` if they need `generateObject()` or `streamObject()`
 
 **2. Enhanced Documentation**
 - Interactive code examples

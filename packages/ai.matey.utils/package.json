@@ -38,8 +38,15 @@
   },
   "dependencies": {
     "ai.matey.errors": "*",
-    "ai.matey.types": "*",
-    "zod": "^4.1.13"
+    "ai.matey.types": "*"
+  },
+  "peerDependencies": {
+    "zod": "^3.0.0 || ^4.0.0"
+  },
+  "peerDependenciesMeta": {
+    "zod": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "typescript": "^5.9.3",

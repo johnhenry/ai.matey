@@ -7,9 +7,40 @@
  * - Runtime validation
  * - Type-safe object generation
  * - Streaming with partial objects
+ *
+ * **IMPORTANT**: This module requires the optional peer dependency `zod` to be installed.
+ * Install it with: `npm install zod`
  */
 
-import { z } from 'zod';
+import type { z } from 'zod';
+
+// ============================================================================
+// Zod Availability Check
+// ============================================================================
+
+let zodModule: typeof z | null = null;
+
+/**
+ * Lazily load Zod module
+ * @throws Error if Zod is not installed
+ */
+function getZod(): typeof z {
+  if (zodModule) {
+    return zodModule;
+  }
+
+  try {
+    // Dynamic import for optional dependency
+    zodModule = require('zod').z;
+    return zodModule;
+  } catch (error) {
+    throw new Error(
+      'Zod is required for structured output features but is not installed. ' +
+      'Install it with: npm install zod\n' +
+      'See: https://github.com/johnhenry/ai.matey#structured-output'
+    );
+  }
+}
 
 // ============================================================================
 // Types
@@ -71,7 +102,7 @@ export interface PIIPattern {
  */
 export type ValidationResult<T> =
   | { success: true; data: T }
-  | { success: false; errors: z.ZodIssue[] };
+  | { success: false; errors: any[] }; // Using any[] to avoid importing z.ZodIssue
 
 // ============================================================================
 // Schema to Tool Definition Converter
@@ -86,10 +117,13 @@ export type ValidationResult<T> =
  * @returns OpenAI-compatible tool definition
  */
 export function schemaToToolDefinition(
-  schema: z.ZodType,
+  schema: any, // Using any to avoid importing z.ZodType
   name: string = 'extract_data',
   description: string = 'Extract structured data from the input'
 ): ToolDefinition {
+  // Ensure Zod is available
+  getZod();
+
   const jsonSchema = zodToJsonSchema(schema);
 
   return {
@@ -105,7 +139,7 @@ export function schemaToToolDefinition(
 /**
  * Convert a Zod schema to JSON Schema format
  */
-function zodToJsonSchema(schema: z.ZodType): JSONSchema {
+function zodToJsonSchema(schema: any): JSONSchema {
   // Get the Zod internal definition
   const def = (schema as any)._def;
 
@@ -230,10 +264,13 @@ function zodToJsonSchema(schema: z.ZodType): JSONSchema {
  * @param schema - Zod schema to validate against
  * @returns Validation result with typed data or errors
  */
-export function validateWithSchema<T extends z.ZodType>(
+export function validateWithSchema<T = any>(
   data: unknown,
-  schema: T
-): ValidationResult<z.infer<T>> {
+  schema: any
+): ValidationResult<T> {
+  // Ensure Zod is available
+  getZod();
+
   const result = schema.safeParse(data);
 
   if (result.success) {
@@ -353,4 +390,177 @@ export function sanitizeText(text: string): string {
     .replace(/\x00/g, '') // Remove null bytes
     .replace(/\r\n/g, '\n') // Normalize line endings
     .replace(/\r/g, '\n');
+}
+
+// ============================================================================
+// Object Generation (generateObject and streamObject)
+// ============================================================================
+
+/**
+ * Options for generateObject
+ */
+export interface GenerateObjectOptions<T = any> {
+  schema: T;
+  prompt: string;
+  model?: string;
+  temperature?: number;
+  maxRetries?: number;
+}
+
+/**
+ * Result from generateObject
+ */
+export interface GenerateObjectResult<T> {
+  object: T;
+  usage?: {
+    promptTokens: number;
+    completionTokens: number;
+    totalTokens: number;
+  };
+  finishReason: string;
+}
+
+/**
+ * Options for streamObject
+ */
+export interface StreamObjectOptions<T = any> {
+  schema: T;
+  prompt: string;
+  model?: string;
+  onPartial?: (partial: Partial<T>) => void;
+}
+
+/**
+ * Create a generateObject function bound to a Bridge instance
+ *
+ * This is a factory function that creates a generateObject implementation
+ * that uses the provided Bridge for making LLM calls.
+ */
+export function createGenerateObject(bridge: any) {
+  return async function generateObject<T = any>(
+    options: GenerateObjectOptions
+  ): Promise<GenerateObjectResult<T>> {
+    // Ensure Zod is available
+    getZod();
+    const { schema, prompt, model, temperature = 0.7, maxRetries = 3 } = options;
+
+    // Convert schema to tool definition
+    const toolDef = schemaToToolDefinition(schema, 'extract_data', 'Extract structured data');
+
+    let lastError: Error | undefined;
+
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        // Make the LLM call with tool use
+        const response = await bridge.chat({
+          model: model || bridge.config.defaultModel,
+          messages: [
+            {
+              role: 'user',
+              content: prompt,
+            },
+          ],
+          tools: [toolDef],
+          tool_choice: { type: 'tool', name: 'extract_data' },
+          temperature,
+        });
+
+        // Extract tool call result
+        const toolCalls = (response as any).content?.filter((c: any) => c.type === 'tool_use');
+
+        if (!toolCalls || toolCalls.length === 0) {
+          throw new Error('No tool call in response');
+        }
+
+        const toolCall = toolCalls[0];
+        const data = toolCall.input;
+
+        // Validate against schema
+        const validation = validateWithSchema(data, schema);
+
+        if (!validation.success) {
+          lastError = new Error(`Validation failed: ${JSON.stringify(validation.errors)}`);
+          continue; // Retry
+        }
+
+        // Return validated object
+        return {
+          object: validation.data,
+          usage: (response as any).usage,
+          finishReason: (response as any).stop_reason || 'stop',
+        };
+      } catch (error) {
+        lastError = error as Error;
+        if (attempt === maxRetries - 1) {
+          throw lastError;
+        }
+      }
+    }
+
+    throw lastError || new Error('Failed to generate object');
+  };
+}
+
+/**
+ * Create a streamObject function bound to a Bridge instance
+ *
+ * This is a factory function that creates a streamObject implementation
+ * that uses the provided Bridge for making streaming LLM calls.
+ */
+export function createStreamObject(bridge: any) {
+  return async function* streamObject<T = any>(
+    options: StreamObjectOptions
+  ): AsyncGenerator<Partial<T>, T> {
+    // Ensure Zod is available
+    getZod();
+    const { schema, prompt, model, onPartial } = options;
+
+    // Convert schema to tool definition
+    const toolDef = schemaToToolDefinition(schema, 'extract_data', 'Extract structured data');
+
+    // Make streaming LLM call
+    const stream = await bridge.chatStream({
+      model: model || bridge.config.defaultModel,
+      messages: [
+        {
+          role: 'user',
+          content: prompt,
+        },
+      ],
+      tools: [toolDef],
+      tool_choice: { type: 'tool', name: 'extract_data' },
+    });
+
+    let accumulatedData: Partial<z.infer<T>> = {};
+
+    for await (const chunk of stream) {
+      // Check if chunk contains tool use delta
+      if ((chunk as any).delta?.type === 'input_json_delta') {
+        const jsonDelta = (chunk as any).delta.partial_json;
+
+        try {
+          // Parse accumulated JSON
+          accumulatedData = JSON.parse(jsonDelta || '{}');
+
+          // Emit partial
+          if (onPartial) {
+            onPartial(accumulatedData);
+          }
+
+          yield accumulatedData;
+        } catch {
+          // JSON not yet complete, continue
+        }
+      }
+    }
+
+    // Validate final object
+    const validation = validateWithSchema(accumulatedData, schema);
+
+    if (!validation.success) {
+      throw new Error(`Validation failed: ${JSON.stringify(validation.errors)}`);
+    }
+
+    return validation.data;
+  };
 }
