@@ -127,18 +127,46 @@ result.allResponses?.forEach(({ backend, response, latencyMs }) => {
 
 ### Middleware
 
-Add logging, caching, retry logic, and more:
+**Consolidated Package:** [`ai.matey.middleware`](./packages/middleware)
+
+All 10 middleware types in one package for cross-cutting concerns:
 
 ```typescript
-import { createLoggingMiddleware } from 'ai.matey.middleware.logging';
-import { createRetryMiddleware } from 'ai.matey.middleware.retry';
-import { createCachingMiddleware } from 'ai.matey.middleware.caching';
+import {
+  createLoggingMiddleware,
+  createCachingMiddleware,
+  createRetryMiddleware,
+  createTransformMiddleware,
+  createValidationMiddleware,
+  createTelemetryMiddleware,
+  createOpenTelemetryMiddleware,
+  createCostTrackingMiddleware,
+  createSecurityMiddleware,
+  createConversationHistoryMiddleware
+} from 'ai.matey.middleware';
 
 bridge
   .use(createLoggingMiddleware({ level: 'info' }))
+  .use(createValidationMiddleware({ validateIRFormat: true }))
+  .use(createSecurityMiddleware({ enableRateLimiting: true }))
   .use(createRetryMiddleware({ maxAttempts: 3, backoffMultiplier: 2 }))
-  .use(createCachingMiddleware({ ttl: 3600 }));
+  .use(createCachingMiddleware({ ttl: 3600 }))
+  .use(createCostTrackingMiddleware())
+  .use(createTelemetryMiddleware())
+  .use(createOpenTelemetryMiddleware());
 ```
+
+**Available Middleware:**
+- **Logging** - Request/response logging with configurable levels
+- **Caching** - Response caching with TTL and custom key generation
+- **Retry** - Automatic retries with exponential backoff
+- **Transform** - Request/response transformation pipeline
+- **Validation** - Input validation & sanitization
+- **Telemetry** - Metrics collection and reporting
+- **OpenTelemetry** - Distributed tracing integration (OpenTelemetry standard)
+- **Cost Tracking** - Token usage and cost tracking per request
+- **Security** - Rate limiting, PII detection, content moderation
+- **Conversation History** - Automatic context management and persistence
 
 ### HTTP Server
 
