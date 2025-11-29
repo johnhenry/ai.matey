@@ -71,14 +71,11 @@ npm install ${pkgName}
     case 'umbrella':
       content += `## Usage
 
-This is the main umbrella package that re-exports all functionality.
-For better tree-shaking, consider importing from specific packages:
+This is the main umbrella package. **Note:** This package only exports the VERSION constant.
+For functionality, import from specific packages:
 
 \`\`\`typescript
-// Import everything (convenience)
-import { Bridge, OpenAIFrontendAdapter, AnthropicBackendAdapter } from 'ai.matey';
-
-// Or import specific packages (better for bundle size)
+// Import from specific packages
 import { Bridge } from 'ai.matey.core';
 import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
 import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';

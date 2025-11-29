@@ -369,7 +369,7 @@ Command-line tool for file-based conversion and automation.
 ```bash
 # Had to write a Node.js script
 cat > convert.mjs << 'EOF'
-import { OpenAIFrontendAdapter } from 'ai.matey';
+import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
 import { readFile, writeFile } from 'fs/promises';
 
 const input = JSON.parse(await readFile('response.json', 'utf-8'));

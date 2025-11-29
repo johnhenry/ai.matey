@@ -274,7 +274,7 @@ The demo will automatically detect and test any backend with a valid API key!
 ### Creating a Backend
 
 ```javascript
-import { OpenAIBackendAdapter } from 'ai.matey';
+import { OpenAIBackendAdapter } from 'ai.matey.backend/openai';
 
 // Load API keys
 const { api_keys } = await import('../web.env.local.mjs')
