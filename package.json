@@ -23,7 +23,9 @@
     "test:coverage": "vitest run --coverage",
     "changeset": "changeset",
     "version-packages": "changeset version",
-    "release": "turbo run build && changeset publish"
+    "release": "turbo run build && changeset publish",
+    "release:staggered": "./scripts/staggered-publish.sh",
+    "release:staggered:dry-run": "./scripts/staggered-publish.sh --dry-run"
   },
   "keywords": [
     "ai",
