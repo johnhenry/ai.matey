@@ -290,7 +290,7 @@ console.log(response.choices[0].message.content);
 
 ### Backend Adapters
 
-**Consolidated Package:** [`ai.matey.backend`](./packages/backend)
+**Consolidated Package:** [`ai.matey.backend`](./packages/backend) | [📚 Documentation](./packages/backend/readme.md)
 
 All server-side provider adapters in one package. Import from main or use subpath imports:
 
@@ -335,7 +335,7 @@ Subset of adapters that work in browser environments:
 
 ### Frontend Adapters
 
-**Consolidated Package:** [`ai.matey.frontend`](./packages/frontend)
+**Consolidated Package:** [`ai.matey.frontend`](./packages/frontend) | [📚 Documentation](./packages/frontend/readme.md)
 
 All frontend request adapters in one package:
 
@@ -354,7 +354,7 @@ import { OpenAIFrontendAdapter, AnthropicFrontendAdapter } from 'ai.matey.fronte
 
 ### HTTP Integrations
 
-**Consolidated Package:** [`ai.matey.http`](./packages/http)
+**Consolidated Package:** [`ai.matey.http`](./packages/http) | [📚 Documentation](./packages/http/readme.md)
 
 Framework adapters for serving AI endpoints. Core utilities in [`ai.matey.http.core`](./packages/http.core).
 
@@ -368,7 +368,7 @@ Framework adapters for serving AI endpoints. Core utilities in [`ai.matey.http.c
 
 ### Middleware
 
-**Consolidated Package:** [`ai.matey.middleware`](./packages/middleware)
+**Consolidated Package:** [`ai.matey.middleware`](./packages/middleware) | [📚 Documentation](./packages/middleware/readme.md)
 
 All middleware in one package:
 
@@ -403,7 +403,7 @@ import {
 
 ### SDK Wrappers
 
-**Consolidated Package:** [`ai.matey.wrapper`](./packages/wrapper)
+**Consolidated Package:** [`ai.matey.wrapper`](./packages/wrapper) | [📚 Documentation](./packages/wrapper/readme.md)
 
 Drop-in replacements for official SDKs:
 
