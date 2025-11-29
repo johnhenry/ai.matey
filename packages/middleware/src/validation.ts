@@ -3,24 +3,40 @@
  *
  * Validates and sanitizes requests to prevent security issues and ensure data quality.
  *
+ * This middleware focuses on SECURITY validation (PII detection, prompt injection, content moderation).
+ * For IR format validation, see ai.matey.utils/validation.ts
+ *
  * @module
  */
 
 import type { Middleware } from 'ai.matey.types';
 import type { IRChatRequest, MessageContent } from 'ai.matey.types';
+import { ValidationError, ErrorCode } from 'ai.matey.errors';
+import type { ErrorProvenance } from 'ai.matey.types';
 
 /**
- * Validation error
+ * Helper to create a structured validation error from simple field/value/message
+ * @internal
  */
-export class ValidationError extends Error {
-  constructor(
-    message: string,
-    public readonly field: string,
-    public readonly value?: unknown
-  ) {
-    super(message);
-    this.name = 'ValidationError';
-  }
+function createValidationError(
+  message: string,
+  field: string,
+  value?: unknown,
+  provenance?: ErrorProvenance
+): ValidationError {
+  return new ValidationError({
+    code: ErrorCode.INVALID_REQUEST,
+    message,
+    validationDetails: [
+      {
+        field,
+        value,
+        reason: message,
+        expected: 'Valid value',
+      },
+    ],
+    provenance,
+  });
 }
 
 /**
@@ -374,7 +390,7 @@ export async function validateRequest(
   // Validate message count
   if (config.maxMessages && request.messages.length > config.maxMessages) {
     errors.push(
-      new ValidationError(
+      createValidationError(
         `Too many messages: ${request.messages.length} > ${config.maxMessages}`,
         'messages',
         request.messages.length
@@ -397,7 +413,7 @@ export async function validateRequest(
       !config.allowedRoles.includes(message.role as 'user' | 'assistant' | 'system')
     ) {
       errors.push(
-        new ValidationError(
+        createValidationError(
           `Invalid message role: ${message.role}`,
           `messages[${i}].role`,
           message.role
@@ -411,14 +427,14 @@ export async function validateRequest(
     // Check empty messages
     if (config.blockEmptyMessages !== false && text.trim().length === 0) {
       errors.push(
-        new ValidationError(`Empty message at index ${i}`, `messages[${i}].content`, text)
+        createValidationError(`Empty message at index ${i}`, `messages[${i}].content`, text)
       );
     }
 
     // Check message length
     if (config.maxMessageLength && text.length > config.maxMessageLength) {
       errors.push(
-        new ValidationError(
+        createValidationError(
           `Message too long: ${text.length} > ${config.maxMessageLength}`,
           `messages[${i}].content`,
           text.length
@@ -433,7 +449,7 @@ export async function validateRequest(
     // Check tokens per message
     if (config.maxTokensPerMessage && tokens > config.maxTokensPerMessage) {
       errors.push(
-        new ValidationError(
+        createValidationError(
           `Message tokens exceed limit: ${tokens} > ${config.maxTokensPerMessage}`,
           `messages[${i}].content`,
           tokens
@@ -451,7 +467,7 @@ export async function validateRequest(
         const message = `PII detected in message ${i}: ${piiResult.types.join(', ')}`;
 
         if (config.piiAction === 'block') {
-          errors.push(new ValidationError(message, `messages[${i}].content`, piiResult));
+          errors.push(createValidationError(message, `messages[${i}].content`, piiResult));
         } else if (config.piiAction === 'warn' || config.piiAction === 'log') {
           warnings.push(message);
         }
@@ -464,7 +480,7 @@ export async function validateRequest(
 
       if (hasInjection) {
         errors.push(
-          new ValidationError(
+          createValidationError(
             `Potential prompt injection detected in message ${i}`,
             `messages[${i}].content`,
             text
@@ -481,7 +497,7 @@ export async function validateRequest(
         const message = `Content flagged by moderation in message ${i}: ${modResult.categories.join(', ')}`;
 
         if (config.blockFlaggedContent) {
-          errors.push(new ValidationError(message, `messages[${i}].content`, modResult));
+          errors.push(createValidationError(message, `messages[${i}].content`, modResult));
         } else {
           warnings.push(message);
         }
@@ -492,7 +508,7 @@ export async function validateRequest(
   // Check total tokens
   if (config.maxTotalTokens && totalTokens > config.maxTotalTokens) {
     errors.push(
-      new ValidationError(
+      createValidationError(
         `Total tokens exceed limit: ${totalTokens} > ${config.maxTotalTokens}`,
         'messages',
         totalTokens
@@ -504,7 +520,7 @@ export async function validateRequest(
   if (config.validateModel && request.parameters?.model) {
     if (config.allowedModels && !config.allowedModels.includes(request.parameters.model)) {
       errors.push(
-        new ValidationError(
+        createValidationError(
           `Model not allowed: ${request.parameters.model}`,
           'parameters.model',
           request.parameters.model
@@ -520,7 +536,7 @@ export async function validateRequest(
 
     if (temp < min || temp > max) {
       errors.push(
-        new ValidationError(
+        createValidationError(
           `Temperature out of range: ${temp} not in [${min}, ${max}]`,
           'parameters.temperature',
           temp
@@ -718,7 +734,7 @@ export function createValidationMiddleware(config: ValidationConfig = {}): Middl
       const errorMessage = validationResult.errors.map((e) => e.message).join('; ');
 
       if (config.throwOnError !== false) {
-        throw new ValidationError(
+        throw createValidationError(
           `Validation failed: ${errorMessage}`,
           'request',
           validationResult.errors
