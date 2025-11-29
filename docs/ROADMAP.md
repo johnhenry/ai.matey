@@ -348,6 +348,46 @@ Legend: ⭐⭐ = Excellent (best-in-class), ⭐ = Good (competitive), ⚠️ = L
 
 ## Development Priorities
 
+### Code Quality Improvements
+
+#### Re-enable Suppressed TypeScript ESLint Rules
+
+**Context**: During the monorepo migration, several strict TypeScript ESLint rules were temporarily disabled to allow the migration to complete without blocking on type safety issues. These suppressions are documented in `eslint.config.js` (lines 65-75) with a TODO comment indicating they should be re-enabled in follow-up work.
+
+**Goal**: Systematically re-enable each suppressed rule and fix all violations to improve type safety across the codebase.
+
+**Suppressed Rules** (9 total):
+1. `@typescript-eslint/no-unsafe-assignment` - Prevents assignments from `any` typed values
+2. `@typescript-eslint/no-unsafe-member-access` - Prevents accessing properties on `any` typed values
+3. `@typescript-eslint/no-unsafe-call` - Prevents calling functions with `any` typed values
+4. `@typescript-eslint/no-unsafe-return` - Prevents returning `any` typed values
+5. `@typescript-eslint/no-unsafe-argument` - Prevents passing `any` typed values as arguments
+6. `@typescript-eslint/no-explicit-any` - Prevents explicit use of `any` type
+7. `@typescript-eslint/prefer-nullish-coalescing` - Enforces nullish coalescing (`??`) over logical OR (`||`)
+8. `@typescript-eslint/require-await` - Requires `async` functions to contain `await` expressions
+9. `@typescript-eslint/no-redundant-type-constituents` - Prevents redundant types in union/intersection types
+
+**Approach**:
+1. Re-enable one rule at a time
+2. Run `npx turbo run lint --force` to bypass cache and see all violations
+3. Fix all violations for that rule across the monorepo
+4. Verify tests still pass with `npm test`
+5. Commit the changes
+6. Move to next rule
+
+**Priority Order** (suggested):
+- Start with simpler rules like `require-await` and `no-redundant-type-constituents`
+- Then tackle `prefer-nullish-coalescing`
+- Finally address the stricter `any`-related rules which may require more significant refactoring
+
+**Reference**: See `eslint.config.js` lines 65-75 for current suppressions.
+
+**Related Work**:
+- Several type assertion issues were already fixed in commits 5b667eb and 226fcc2
+- The `@typescript-eslint/no-unnecessary-type-assertion` rule was successfully re-enabled
+
+---
+
 ### Next Phase: Structured Output & Documentation
 
 **1. Structured Output with Zod** (closes gap with Instructor-JS & Vercel AI)
