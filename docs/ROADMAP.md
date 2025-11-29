@@ -299,6 +299,41 @@ The AI tooling ecosystem has 6 distinct categories:
 - ⭐ **Our Edge**: Production-grade features, advanced routing, comprehensive middleware
 - ⚖️ **Trade-off**: More powerful but higher complexity
 
+### Detailed Feature Comparison
+
+Legend: ⭐⭐ = Excellent (best-in-class), ⭐ = Good (competitive), ⚠️ = Limited (basic support), ❌ = Not available, N/A = Not applicable
+
+| Feature | ai.matey | LangChain | Vercel AI | LiteLLM.js | Portkey |
+|---------|----------|-----------|-----------|------------|---------|
+| Provider abstraction | ⭐⭐ | ⚠️ | ⚠️ | ⭐ | ⭐ |
+| Advanced routing | ⭐⭐ | ❌ | ❌ | ❌ | ⭐ |
+| Circuit breaker | ⭐ | ❌ | ❌ | ❌ | ⭐ |
+| Zero dependencies | ⭐⭐ | ❌ | ❌ | ⭐ | N/A |
+| HTTP server support | ⭐ | ❌ | ❌ | ❌ | N/A |
+| Middleware system | ⭐⭐ | ⚠️ | ⚠️ | ❌ | ⭐ |
+| RAG/Orchestration | ❌ | ⭐⭐ | ⚠️ | ❌ | ❌ |
+| React integration | ⭐⭐ | ⚠️ | ⭐⭐ | ❌ | ❌ |
+| Self-hosted | ⭐⭐ | ⭐ | ⭐ | ⭐ | ❌ |
+| Structured output | ⚠️ (planned) | ⭐ | ⭐⭐ | ❌ | ⚠️ |
+
+### When to Choose ai.matey
+
+**✅ Choose ai.matey when:**
+- Provider independence is critical
+- You need production-grade routing and failover
+- You want cost/latency optimization
+- You're building an API server or gateway
+- You need comprehensive middleware
+- You want zero runtime dependencies
+- You're migrating between providers
+
+**⚠️ Consider alternatives when:**
+- You need RAG/agents → **LangChain.js**
+- You only need React hooks → **Vercel AI SDK**
+- You need structured output only → **Instructor-JS**
+- You want managed service → **Portkey**
+- You need local models only → **Ollama**
+
 ### Unique Strengths
 
 | Capability | ai.matey | Others |
