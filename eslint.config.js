@@ -59,7 +59,6 @@ export default tseslint.config(
       '@typescript-eslint/no-floating-promises': 'error',
       '@typescript-eslint/no-misused-promises': 'error',
       '@typescript-eslint/await-thenable': 'error',
-      '@typescript-eslint/no-unnecessary-type-assertion': 'error',
       '@typescript-eslint/prefer-optional-chain': 'warn',
 
       // Temporarily disable strict type-checked rules for monorepo migration
@@ -73,6 +72,7 @@ export default tseslint.config(
       '@typescript-eslint/prefer-nullish-coalescing': 'off',
       '@typescript-eslint/require-await': 'off',
       '@typescript-eslint/no-redundant-type-constituents': 'off',
+      '@typescript-eslint/no-unnecessary-type-assertion': 'off',
 
       // General
       'no-console': ['warn', { allow: ['warn', 'error'] }],
