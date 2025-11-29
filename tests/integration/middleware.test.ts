@@ -7,7 +7,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { Bridge } from 'ai.matey.core';
 import { AnthropicFrontendAdapter } from 'ai.matey.frontend';
-import { OpenAIBackendAdapter } from 'ai.matey.backend';
 import type { IRChatRequest, IRChatResponse } from 'ai.matey.types';
 import type { BackendAdapter } from 'ai.matey.types';
 import {
@@ -251,22 +250,20 @@ describe('Middleware Integration', () => {
       );
 
       // First request - should miss cache
-      const response1 = await bridge.chat({
+      await bridge.chat({
         model: 'claude-3-opus-20240229',
         messages: [{ role: 'user', content: 'Hello' }],
       });
 
       expect(backend.executionCount).toBe(1);
-      // Note: response1 doesn't have metadata.custom because it gets converted to frontend format
 
       // Second request - should hit cache
-      const response2 = await bridge.chat({
+      await bridge.chat({
         model: 'claude-3-opus-20240229',
         messages: [{ role: 'user', content: 'Hello' }],
       });
 
       expect(backend.executionCount).toBe(1); // No additional backend call - this proves caching worked
-      // Note: response2 doesn't have metadata.custom because it gets converted to frontend format
     });
 
     it('should not cache different requests', async () => {
@@ -432,13 +429,13 @@ describe('Middleware Integration', () => {
       );
 
       // First request
-      const response1 = await bridge.chat({
+      await bridge.chat({
         model: 'claude-3-opus-20240229',
         messages: [{ role: 'user', content: 'Hello' }],
       });
 
       // Second request (should hit cache)
-      const response2 = await bridge.chat({
+      await bridge.chat({
         model: 'claude-3-opus-20240229',
         messages: [{ role: 'user', content: 'Hello' }],
       });

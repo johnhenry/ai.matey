@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import {
   createValidationMiddleware,
   createProductionValidationMiddleware,
@@ -433,9 +433,6 @@ describe('Validation Middleware', () => {
         model: 'test',
         metadata: { requestId: 'test', timestamp: Date.now() },
       };
-
-      const context = createContext(requestWithPII);
-      const next = async () => mockResponse;
 
       // Both should handle the request, but production might be stricter
       // This depends on the actual configuration in the preset functions

@@ -22,10 +22,10 @@
  *    Open http://localhost:16686 in your browser
  */
 
-import { Bridge } from '../../src/index.js';
-import { createOpenAIFrontendAdapter } from '../../src/adapters/frontend/index.js';
-import { createOpenAIBackendAdapter } from '../../src/adapters/backend/index.js';
-import { createOpenTelemetryMiddleware, shutdownOpenTelemetry } from '../../src/middleware/index.js';
+import { Bridge } from 'ai.matey.core';
+import { createOpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
+import { createOpenAIBackendAdapter } from 'ai.matey.backend/openai';
+import { createOpenTelemetryMiddleware, shutdownOpenTelemetry } from 'ai.matey.middleware/opentelemetry';
 
 async function main() {
   console.log('🔍 OpenTelemetry + Jaeger Example\n');
@@ -73,7 +73,9 @@ async function main() {
     console.log('\n🔍 View trace in Jaeger: http://localhost:16686');
     console.log('   Look for service: ai-matey-jaeger-demo\n');
   } catch (error) {
-    console.error('❌ Error:', error);
+    // Sanitize error for logging (avoid logging sensitive data)
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error('❌ Error:', errorMessage);
   } finally {
     // Graceful shutdown
     console.log('🛑 Shutting down OpenTelemetry...');

@@ -20,10 +20,10 @@
  *    npx tsx examples/opentelemetry/sampling.ts
  */
 
-import { Bridge } from '../../src/index.js';
-import { createOpenAIFrontendAdapter } from '../../src/adapters/frontend/index.js';
-import { createMockBackendAdapter } from '../../src/adapters/backend/index.js';
-import { createOpenTelemetryMiddleware, shutdownOpenTelemetry } from '../../src/middleware/index.js';
+import { Bridge } from 'ai.matey.core';
+import { createOpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
+import { createMockBackendAdapter } from 'ai.matey.backend/mock';
+import { createOpenTelemetryMiddleware, shutdownOpenTelemetry } from 'ai.matey.middleware/opentelemetry';
 
 async function main() {
   console.log('📊 OpenTelemetry Sampling Example\n');
@@ -64,10 +64,9 @@ async function main() {
   try {
     // Make multiple requests to demonstrate sampling
     const totalRequests = 20;
-    let sampledRequests = 0;
 
     for (let i = 1; i <= totalRequests; i++) {
-      const response = await bridge.chat({
+      await bridge.chat({
         messages: [
           {
             role: 'user',
@@ -93,7 +92,9 @@ async function main() {
     console.log('   - Use lower sampling rates in production (0.01 = 1%, 0.1 = 10%)');
     console.log('   - Balance between observability and performance overhead');
   } catch (error) {
-    console.error('❌ Error:', error);
+    // Sanitize error for logging (avoid logging sensitive data)
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error('❌ Error:', errorMessage);
   } finally {
     // Graceful shutdown
     console.log('\n🛑 Shutting down OpenTelemetry...');
