@@ -8,7 +8,7 @@
  *
  * @example Basic Usage
  * ```typescript
- * import { AppleBackend } from 'ai.matey/adapters/backend-native';
+ * import { AppleBackend } from 'ai.matey.native.node-llamacpp';
  *
  * const backend = new AppleBackend({
  *   maxTokens: 2048,

@@ -563,7 +563,7 @@ const adapter = new OpenAIBackendAdapter({
 import {
   NodeLlamaCppBackend,
   AppleBackend,
-} from 'ai.matey/adapters/backend-native';
+} from 'ai.matey.native.node-llamacpp';
 ```
 
 ---
@@ -910,7 +910,7 @@ interface RateLimitOptions {
 
 ```typescript
 import { createServer } from 'http';
-import { NodeHTTPListener } from 'ai.matey/http';
+import { NodeHTTPListener } from 'ai.matey.http';
 import { Bridge, OpenAIFrontendAdapter, AnthropicBackendAdapter } from 'ai.matey';
 
 const bridge = new Bridge(
@@ -934,7 +934,7 @@ createServer(listener).listen(8080);
 
 ```typescript
 import express from 'express';
-import { ExpressMiddleware } from 'ai.matey/http/express';
+import { ExpressMiddleware } from 'ai.matey.http/express';
 
 const app = express();
 app.use(express.json());
@@ -950,7 +950,7 @@ app.listen(3000);
 ```typescript
 import Koa from 'koa';
 import bodyParser from 'koa-bodyparser';
-import { KoaMiddleware } from 'ai.matey/http/koa';
+import { KoaMiddleware } from 'ai.matey.http/koa';
 
 const app = new Koa();
 app.use(bodyParser());
@@ -965,7 +965,7 @@ app.listen(3000);
 
 ```typescript
 import { Hono } from 'hono';
-import { HonoMiddleware } from 'ai.matey/http/hono';
+import { HonoMiddleware } from 'ai.matey.http/hono';
 
 const app = new Hono();
 app.post('/v1/messages', HonoMiddleware(bridge, {
@@ -979,7 +979,7 @@ export default app;
 
 ```typescript
 import Fastify from 'fastify';
-import { FastifyHandler } from 'ai.matey/http/fastify';
+import { FastifyHandler } from 'ai.matey.http/fastify';
 
 const fastify = Fastify();
 fastify.post('/v1/messages', FastifyHandler(bridge, {
@@ -992,7 +992,7 @@ fastify.listen({ port: 3000 });
 #### Deno
 
 ```typescript
-import { DenoHandler } from 'ai.matey/http/deno';
+import { DenoHandler } from 'ai.matey.http/deno';
 
 const handler = DenoHandler(bridge, {
   cors: true,
@@ -1033,7 +1033,7 @@ curl http://localhost:8080/v1/chat/completions \
 Drop-in replacement for OpenAI SDK that uses ai.matey bridges.
 
 ```typescript
-import { OpenAI } from 'ai.matey/wrappers';
+import { OpenAI } from 'ai.matey.wrapper';
 
 const client = new OpenAI({
   bridge: myBridge,  // Use any backend
@@ -1051,7 +1051,7 @@ const completion = await client.chat.completions.create({
 Drop-in replacement for Anthropic SDK.
 
 ```typescript
-import { Anthropic } from 'ai.matey/wrappers';
+import { Anthropic } from 'ai.matey.wrapper';
 
 const client = new Anthropic({
   bridge: myBridge,
@@ -1070,7 +1070,7 @@ const message = await client.messages.create({
 Wrapper for Chrome's built-in AI API.
 
 ```typescript
-import { createChromeAILanguageModel } from 'ai.matey/wrappers/chrome-ai';
+import { createChromeAILanguageModel } from 'ai.matey.wrapper/chrome-ai';
 
 const model = await createChromeAILanguageModel({
   temperature: 0.7,
@@ -1411,7 +1411,7 @@ import {
   parseRequest,
   extractBearerToken,
   getClientIP
-} from 'ai.matey/http';
+} from 'ai.matey.http';
 
 const parsed = await parseRequest(req);
 const token = extractBearerToken(req);
@@ -1426,7 +1426,7 @@ import {
   sendError,
   sendSSEChunk,
   sendText
-} from 'ai.matey/http';
+} from 'ai.matey.http';
 
 sendJSON(res, { data: 'value' }, 200);
 sendError(res, new Error('Failed'), 500);
@@ -1441,7 +1441,7 @@ import {
   createAPIKeyValidator,
   createBasicAuthValidator,
   combineAuthValidators
-} from 'ai.matey/http';
+} from 'ai.matey.http';
 
 const authValidator = combineAuthValidators([
   createBearerTokenValidator(['token1', 'token2']),
@@ -1457,7 +1457,7 @@ import {
   userIDKeyGenerator,
   tokenKeyGenerator,
   combineKeyGenerators
-} from 'ai.matey/http';
+} from 'ai.matey.http';
 
 const limiter = new RateLimiter({
   windowMs: 60000,
@@ -1517,7 +1517,7 @@ import { Bridge, createBridge, OpenAIBackendAdapter } from 'ai.matey';
 
 **Native Backends (Node.js only):**
 ```typescript
-import { NodeLlamaCppBackend, AppleBackend } from 'ai.matey/adapters/backend-native';
+import { NodeLlamaCppBackend, AppleBackend } from 'ai.matey.native.node-llamacpp';
 ```
 
 #### Middleware
@@ -1764,19 +1764,19 @@ Import from specific subpaths for better tree-shaking and organization:
 #### Types Only
 
 ```typescript
-import type { IRChatRequest, IRChatResponse } from 'ai.matey/types';
+import type { IRChatRequest, IRChatResponse } from 'ai.matey.types';
 ```
 
 #### Errors Only
 
 ```typescript
-import { AdapterError, NetworkError } from 'ai.matey/errors';
+import { AdapterError, NetworkError } from 'ai.matey.errors';
 ```
 
 #### Utilities Only
 
 ```typescript
-import { validateMessage, normalizeTemperature } from 'ai.matey/utils';
+import { validateMessage, normalizeTemperature } from 'ai.matey.utils';
 ```
 
 #### Middleware Only
@@ -1786,7 +1786,7 @@ import {
   createLoggingMiddleware,
   createCostTrackingMiddleware,
   createValidationMiddleware,
-} from 'ai.matey/middleware';
+} from 'ai.matey.middleware';
 ```
 
 #### Wrappers Only
@@ -1797,7 +1797,7 @@ import {
   LegacyChromeAILanguageModel,
   OpenAI,
   Anthropic,
-} from 'ai.matey/wrappers';
+} from 'ai.matey.wrapper';
 ```
 
 #### Frontend Adapters Only
@@ -1806,7 +1806,7 @@ import {
 import {
   AnthropicFrontendAdapter,
   OpenAIFrontendAdapter,
-} from 'ai.matey/adapters/frontend';
+} from 'ai.matey.frontend';
 ```
 
 #### Backend Adapters Only
@@ -1817,22 +1817,22 @@ import {
   OpenAIBackendAdapter,
   DeepSeekBackendAdapter,
   GroqBackendAdapter,
-} from 'ai.matey/adapters/backend';
+} from 'ai.matey.backend';
 ```
 
 #### HTTP Utilities
 
 ```typescript
-import { NodeHTTPListener } from 'ai.matey/http';
+import { NodeHTTPListener } from 'ai.matey.http';
 ```
 
 **Framework-Specific:**
 ```typescript
-import { ExpressMiddleware } from 'ai.matey/http/express';
-import { KoaMiddleware } from 'ai.matey/http/koa';
-import { HonoMiddleware } from 'ai.matey/http/hono';
-import { FastifyHandler } from 'ai.matey/http/fastify';
-import { DenoHandler } from 'ai.matey/http/deno';
+import { ExpressMiddleware } from 'ai.matey.http/express';
+import { KoaMiddleware } from 'ai.matey.http/koa';
+import { HonoMiddleware } from 'ai.matey.http/hono';
+import { FastifyHandler } from 'ai.matey.http/fastify';
+import { DenoHandler } from 'ai.matey.http/deno';
 ```
 
 **HTTP Utilities:**
@@ -1845,7 +1845,7 @@ import {
   RateLimiter,
   HealthCheck,
   createHealthCheck,
-} from 'ai.matey/http';
+} from 'ai.matey.http';
 ```
 
 ### Available Import Paths

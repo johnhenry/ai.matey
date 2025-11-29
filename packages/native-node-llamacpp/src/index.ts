@@ -6,7 +6,7 @@
  *
  * @example Basic Usage
  * ```typescript
- * import { NodeLlamaCppBackend } from 'ai.matey/adapters/backend-native';
+ * import { NodeLlamaCppBackend } from 'ai.matey.native.node-llamacpp';
  *
  * const backend = new NodeLlamaCppBackend({
  *   modelPath: './models/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf',

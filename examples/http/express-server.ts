@@ -5,7 +5,7 @@
  */
 
 import express from 'express';
-import { ExpressMiddleware } from 'ai.matey/http/express';
+import { ExpressMiddleware } from 'ai.matey.http/express';
 import { Bridge, OpenAIFrontendAdapter, AnthropicBackendAdapter } from 'ai.matey';
 
 async function main() {

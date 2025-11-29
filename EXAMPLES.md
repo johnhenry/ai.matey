@@ -1319,7 +1319,7 @@ Create a basic HTTP server using Node.js http module.
 
 ```typescript
 import http from 'http';
-import { NodeHTTPListener } from 'ai.matey/http';
+import { NodeHTTPListener } from 'ai.matey.http/node';
 import { Bridge, OpenAIFrontendAdapter, AnthropicBackendAdapter } from 'ai.matey';
 
 async function main() {
@@ -1395,7 +1395,7 @@ HTTP server using Express framework.
 
 ```typescript
 import express from 'express';
-import { ExpressMiddleware } from 'ai.matey/http/express';
+import { ExpressMiddleware } from 'ai.matey.http/express';
 import { Bridge, OpenAIFrontendAdapter, AnthropicBackendAdapter } from 'ai.matey';
 
 async function main() {
@@ -1471,7 +1471,7 @@ Drop-in replacement for OpenAI SDK - use any backend!
 **Code:**
 
 ```typescript
-import { OpenAI } from 'ai.matey/wrappers';
+import { OpenAI } from 'ai.matey.wrapper/openai';
 import { Bridge, OpenAIFrontendAdapter, AnthropicBackendAdapter } from 'ai.matey';
 
 async function main() {
@@ -1710,7 +1710,7 @@ import {
   GeminiBackend,
   OllamaBackend,
   // ... all HTTP-based backends
-} from 'ai.matey/adapters/backend';
+} from 'ai.matey.backend';
 ```
 
 ### Node.js-Only Imports
@@ -1721,7 +1721,7 @@ import {
   LlamaCppBackend,
   GenericModelRunnerBackend,
   // ... other model runners
-} from 'ai.matey/adapters/backend-native/model-runners';
+} from 'ai.matey.native.node-llamacpp';
 ```
 
 ### Why This Separation?
@@ -1743,7 +1743,7 @@ import {
 ### Architecture Benefits
 
 1. **Browser Compatibility Preserved**
-   - Main `ai.matey/adapters/backend` works in browsers
+   - Main `ai.matey.backend` works in browsers
    - No Node.js modules in browser bundles
    - Smaller bundle sizes for browser use
 
@@ -1762,10 +1762,10 @@ import {
 **Solution:**
 ```typescript
 // ❌ Don't do this in browser
-import { LlamaCppBackend } from 'ai.matey/adapters/backend-native/model-runners';
+import { LlamaCppBackend } from 'ai.matey.native.node-llamacpp';
 
 // ✅ Use HTTP backends instead
-import { OllamaBackend } from 'ai.matey/adapters/backend';
+import { OllamaBackend } from 'ai.matey.backend/ollama';
 ```
 
 ---

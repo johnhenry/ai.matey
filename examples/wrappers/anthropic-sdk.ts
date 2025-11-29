@@ -4,7 +4,7 @@
  * Use ai.matey's Anthropic SDK wrapper to switch backends.
  */
 
-import { Anthropic } from 'ai.matey/wrappers';
+import { Anthropic } from 'ai.matey.wrapper/anthropic';
 import { Bridge, AnthropicFrontendAdapter, OpenAIBackendAdapter } from 'ai.matey';
 
 async function main() {

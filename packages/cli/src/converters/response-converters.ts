@@ -35,7 +35,7 @@ import { MistralFrontendAdapter } from 'ai.matey.frontend';
  *
  * @example
  * ```typescript
- * import { toOpenAI } from 'ai.matey/utils';
+ * import { toOpenAI } from 'ai.matey.utils';
  *
  * const irResponse = await backend.execute(request);
  * const openaiFormat = await toOpenAI(irResponse);
@@ -55,7 +55,7 @@ export async function toOpenAI(response: IRChatResponse): Promise<OpenAIResponse
  *
  * @example
  * ```typescript
- * import { toAnthropic } from 'ai.matey/utils';
+ * import { toAnthropic } from 'ai.matey.utils';
  *
  * const irResponse = await backend.execute(request);
  * const anthropicFormat = await toAnthropic(irResponse);
@@ -112,7 +112,7 @@ export async function toMistral(response: IRChatResponse): Promise<unknown> {
  *
  * @example
  * ```typescript
- * import { toOpenAIStream } from 'ai.matey/utils';
+ * import { toOpenAIStream } from 'ai.matey.utils';
  *
  * const irStream = backend.executeStream(request);
  * for await (const chunk of toOpenAIStream(irStream)) {
@@ -187,7 +187,7 @@ export async function* toMistralStream(
  *
  * @example
  * ```typescript
- * import { toMultipleFormats } from 'ai.matey/utils';
+ * import { toMultipleFormats } from 'ai.matey.utils';
  *
  * const irResponse = await backend.execute(request);
  * const allFormats = await toMultipleFormats(irResponse, ['openai', 'anthropic', 'gemini']);

@@ -66,6 +66,56 @@
         "types": "./dist/types/validation.d.ts",
         "default": "./dist/cjs/validation.js"
       }
+    },
+    "./conversation-history": {
+      "import": {
+        "types": "./dist/types/conversation-history.d.ts",
+        "default": "./dist/esm/conversation-history.js"
+      },
+      "require": {
+        "types": "./dist/types/conversation-history.d.ts",
+        "default": "./dist/cjs/conversation-history.js"
+      }
+    },
+    "./cost-tracking": {
+      "import": {
+        "types": "./dist/types/cost-tracking.d.ts",
+        "default": "./dist/esm/cost-tracking.js"
+      },
+      "require": {
+        "types": "./dist/types/cost-tracking.d.ts",
+        "default": "./dist/cjs/cost-tracking.js"
+      }
+    },
+    "./opentelemetry": {
+      "import": {
+        "types": "./dist/types/opentelemetry.d.ts",
+        "default": "./dist/esm/opentelemetry.js"
+      },
+      "require": {
+        "types": "./dist/types/opentelemetry.d.ts",
+        "default": "./dist/cjs/opentelemetry.js"
+      }
+    },
+    "./telemetry": {
+      "import": {
+        "types": "./dist/types/telemetry.d.ts",
+        "default": "./dist/esm/telemetry.js"
+      },
+      "require": {
+        "types": "./dist/types/telemetry.d.ts",
+        "default": "./dist/cjs/telemetry.js"
+      }
+    },
+    "./transform": {
+      "import": {
+        "types": "./dist/types/transform.d.ts",
+        "default": "./dist/esm/transform.js"
+      },
+      "require": {
+        "types": "./dist/types/transform.d.ts",
+        "default": "./dist/cjs/transform.js"
+      }
     }
   },
   "files": [

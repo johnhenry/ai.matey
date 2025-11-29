@@ -653,7 +653,7 @@ npm install package-name
 
 **Usage**:
 ```typescript
-import { {Framework}BackendAdapter } from 'ai.matey/adapters/backend-native';
+import { {Framework}BackendAdapter } from 'ai.matey.native.node-llamacpp';
 
 const backend = new {Framework}BackendAdapter({
   modelPath: './models/model.gguf',

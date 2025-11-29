@@ -337,7 +337,7 @@ function shouldSample(samplingRate: number): boolean {
  *
  * @example
  * ```typescript
- * import { createOpenTelemetryMiddleware } from 'ai.matey/middleware';
+ * import { createOpenTelemetryMiddleware } from 'ai.matey.middleware';
  *
  * const otel = await createOpenTelemetryMiddleware({
  *   serviceName: 'my-ai-service',
@@ -589,7 +589,7 @@ export class OpenTelemetryTelemetrySink implements TelemetrySink {
  *
  * @example
  * ```typescript
- * import { isOpenTelemetryAvailable } from 'ai.matey/middleware';
+ * import { isOpenTelemetryAvailable } from 'ai.matey.middleware';
  *
  * if (await isOpenTelemetryAvailable()) {
  *   console.log('OpenTelemetry is available!');
@@ -610,7 +610,7 @@ export async function isOpenTelemetryAvailable(): Promise<boolean> {
  *
  * @example
  * ```typescript
- * import { isOpenTelemetryLoaded } from 'ai.matey/middleware';
+ * import { isOpenTelemetryLoaded } from 'ai.matey.middleware';
  *
  * if (isOpenTelemetryLoaded()) {
  *   console.log('OpenTelemetry is already loaded!');
@@ -629,7 +629,7 @@ export function isOpenTelemetryLoaded(): boolean {
  *
  * @example
  * ```typescript
- * import { shutdownOpenTelemetry } from 'ai.matey/middleware';
+ * import { shutdownOpenTelemetry } from 'ai.matey.middleware';
  *
  * process.on('SIGTERM', async () => {
  *   await shutdownOpenTelemetry();

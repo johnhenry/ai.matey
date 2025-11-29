@@ -237,7 +237,7 @@ export class HealthCheck {
  *
  * @example
  * ```typescript
- * import { createHealthCheck } from 'ai.matey/http';
+ * import { createHealthCheck } from 'ai.matey.http';
  *
  * const healthCheck = createHealthCheck(bridge, {
  *   serviceName: 'my-ai-service',
@@ -267,7 +267,7 @@ export function createHealthCheck(
  *
  * @example
  * ```typescript
- * import { createHealthCheckMiddleware } from 'ai.matey/http';
+ * import { createHealthCheckMiddleware } from 'ai.matey.http';
  *
  * const healthMiddleware = createHealthCheckMiddleware(bridge);
  *

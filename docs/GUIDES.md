@@ -525,7 +525,7 @@ Create a backend module for use with the CLI:
 
 ```javascript
 // backend.mjs
-import { OpenAIBackend } from 'ai.matey/adapters/backend';
+import { OpenAIBackend } from 'ai.matey.backend';
 
 const backend = new OpenAIBackend({
   apiKey: process.env.OPENAI_API_KEY,
@@ -539,7 +539,7 @@ Or with model runner:
 
 ```javascript
 // llamacpp-backend.mjs
-import { LlamaCppBackend } from 'ai.matey/adapters/backend-native/model-runners';
+import { LlamaCppBackend } from 'ai.matey.native.node-llamacpp';
 
 const backend = new LlamaCppBackend({
   model: './models/llama-3.1-8b.gguf',
@@ -626,7 +626,7 @@ When using non-Ollama backends, model names are translated:
 
 ```javascript
 // backend-with-mapping.mjs
-import { OpenAIBackend } from 'ai.matey/adapters/backend';
+import { OpenAIBackend } from 'ai.matey.backend';
 
 const backend = new OpenAIBackend({
   apiKey: process.env.OPENAI_API_KEY,
@@ -649,7 +649,7 @@ export default backend;
 ```bash
 # Use local model for development
 cat > local-backend.mjs << 'EOF'
-import { LlamaCppBackend } from 'ai.matey/adapters/backend-native/model-runners';
+import { LlamaCppBackend } from 'ai.matey.native.node-llamacpp';
 const backend = new LlamaCppBackend({
   model: './models/llama-3.1-8b.gguf',
   process: { command: 'llama-server' },
@@ -667,7 +667,7 @@ ollama run llama3.1 "Test prompt"
 ```bash
 # Use OpenAI in production
 cat > prod-backend.mjs << 'EOF'
-import { OpenAIBackend } from 'ai.matey/adapters/backend';
+import { OpenAIBackend } from 'ai.matey.backend';
 export default new OpenAIBackend({
   apiKey: process.env.OPENAI_API_KEY,
   defaultModel: 'gpt-4o',

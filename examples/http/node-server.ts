@@ -5,7 +5,7 @@
  */
 
 import http from 'http';
-import { NodeHTTPListener } from 'ai.matey/http';
+import { NodeHTTPListener } from 'ai.matey.http';
 import { Bridge, OpenAIFrontendAdapter, AnthropicBackendAdapter } from 'ai.matey';
 
 async function main() {

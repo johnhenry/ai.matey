@@ -25,10 +25,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Update your imports:
 
 ```typescript
-// Before:
+// Before (WRONG):
 import { CoreHTTPHandler } from 'ai.matey.http-core';
 
-// After:
+// After (CORRECT):
 import { CoreHTTPHandler } from 'ai.matey.http.core';
 ```
 

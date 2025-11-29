@@ -14,7 +14,7 @@
  * Note: Model name is metadata only (uses system default)
  */
 
-import { AppleBackend } from 'ai.matey/adapters/backend-native';
+import { AppleBackend } from 'ai.matey.native.apple';
 
 
 
