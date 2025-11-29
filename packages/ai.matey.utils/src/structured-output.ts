@@ -156,8 +156,10 @@ function zodToJsonSchema(schema: z.ZodType): JSONSchema {
   // Handle ZodString
   if (typeName === 'ZodString') {
     const result: JSONSchema = { type: 'string' };
-    if (def.description) {
-      result.description = def.description;
+    // Description is stored on the schema object itself
+    const description = (schema as any).description;
+    if (description) {
+      result.description = description;
     }
     return result;
   }
@@ -165,8 +167,9 @@ function zodToJsonSchema(schema: z.ZodType): JSONSchema {
   // Handle ZodNumber
   if (typeName === 'ZodNumber') {
     const result: JSONSchema = { type: 'number' };
-    if (def.description) {
-      result.description = def.description;
+    const description = (schema as any).description;
+    if (description) {
+      result.description = description;
     }
     return result;
   }
@@ -174,34 +177,40 @@ function zodToJsonSchema(schema: z.ZodType): JSONSchema {
   // Handle ZodBoolean
   if (typeName === 'ZodBoolean') {
     const result: JSONSchema = { type: 'boolean' };
-    if (def.description) {
-      result.description = def.description;
+    const description = (schema as any).description;
+    if (description) {
+      result.description = description;
     }
     return result;
   }
 
   // Handle ZodArray
   if (typeName === 'ZodArray') {
-    const itemSchema = def.type;
+    // Array items are stored in _def.element (not .type)
+    const itemSchema = def.element || def.type;
     const result: JSONSchema = {
       type: 'array',
       items: zodToJsonSchema(itemSchema),
     };
-    if (def.description) {
-      result.description = def.description;
+    const description = (schema as any).description;
+    if (description) {
+      result.description = description;
     }
     return result;
   }
 
   // Handle ZodEnum
   if (typeName === 'ZodEnum') {
-    const values = def.values as string[];
+    // Enum values are in _def.entries as an object - extract the values
+    const entries = def.entries;
+    const values = entries ? (Object.values(entries) as string[]) : [];
     const result: JSONSchema = {
       type: 'string',
       enum: values,
     };
-    if (def.description) {
-      result.description = def.description;
+    const description = (schema as any).description;
+    if (description) {
+      result.description = description;
     }
     return result;
   }
