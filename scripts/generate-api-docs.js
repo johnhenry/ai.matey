@@ -66,7 +66,7 @@ const packageInfo = {
   // Backend adapters
   'backend-openai': {
     category: 'backend',
-    title: 'ai.matey.backend.openai',
+    title: 'ai.matey.backend/openai',
     provider: 'OpenAI',
     description: 'Backend adapter for OpenAI API (GPT-4, GPT-3.5, etc.)',
     exports: ['OpenAIBackendAdapter'],
@@ -75,7 +75,7 @@ const packageInfo = {
   },
   'backend-anthropic': {
     category: 'backend',
-    title: 'ai.matey.backend.anthropic',
+    title: 'ai.matey.backend/anthropic',
     provider: 'Anthropic',
     description: 'Backend adapter for Anthropic API (Claude models)',
     exports: ['AnthropicBackendAdapter'],
@@ -84,7 +84,7 @@ const packageInfo = {
   },
   'backend-gemini': {
     category: 'backend',
-    title: 'ai.matey.backend.gemini',
+    title: 'ai.matey.backend/gemini',
     provider: 'Google',
     description: 'Backend adapter for Google Gemini API',
     exports: ['GeminiBackendAdapter'],
@@ -93,7 +93,7 @@ const packageInfo = {
   },
   'backend-groq': {
     category: 'backend',
-    title: 'ai.matey.backend.groq',
+    title: 'ai.matey.backend/groq',
     provider: 'Groq',
     description: 'Backend adapter for Groq API (fast inference)',
     exports: ['GroqBackendAdapter'],
@@ -102,7 +102,7 @@ const packageInfo = {
   },
   'backend-mistral': {
     category: 'backend',
-    title: 'ai.matey.backend.mistral',
+    title: 'ai.matey.backend/mistral',
     provider: 'Mistral',
     description: 'Backend adapter for Mistral AI API',
     exports: ['MistralBackendAdapter'],
@@ -111,7 +111,7 @@ const packageInfo = {
   },
   'backend-ollama': {
     category: 'backend',
-    title: 'ai.matey.backend.ollama',
+    title: 'ai.matey.backend/ollama',
     provider: 'Ollama',
     description: 'Backend adapter for Ollama (local LLM inference)',
     exports: ['OllamaBackendAdapter'],
@@ -120,7 +120,7 @@ const packageInfo = {
   },
   'backend-deepseek': {
     category: 'backend',
-    title: 'ai.matey.backend.deepseek',
+    title: 'ai.matey.backend/deepseek',
     provider: 'DeepSeek',
     description: 'Backend adapter for DeepSeek API',
     exports: ['DeepSeekBackendAdapter'],
@@ -129,7 +129,7 @@ const packageInfo = {
   },
   'backend-cohere': {
     category: 'backend',
-    title: 'ai.matey.backend.cohere',
+    title: 'ai.matey.backend/cohere',
     provider: 'Cohere',
     description: 'Backend adapter for Cohere API',
     exports: ['CohereBackendAdapter'],
@@ -138,7 +138,7 @@ const packageInfo = {
   },
   'backend-huggingface': {
     category: 'backend',
-    title: 'ai.matey.backend.huggingface',
+    title: 'ai.matey.backend/huggingface',
     provider: 'Hugging Face',
     description: 'Backend adapter for Hugging Face Inference API',
     exports: ['HuggingFaceBackendAdapter'],
@@ -147,7 +147,7 @@ const packageInfo = {
   },
   'backend-nvidia': {
     category: 'backend',
-    title: 'ai.matey.backend.nvidia',
+    title: 'ai.matey.backend/nvidia',
     provider: 'NVIDIA',
     description: 'Backend adapter for NVIDIA NIM endpoints',
     exports: ['NVIDIABackendAdapter'],
@@ -156,7 +156,7 @@ const packageInfo = {
   },
   'backend-lmstudio': {
     category: 'backend',
-    title: 'ai.matey.backend.lmstudio',
+    title: 'ai.matey.backend/lmstudio',
     provider: 'LM Studio',
     description: 'Backend adapter for LM Studio local server',
     exports: ['LMStudioBackendAdapter'],
@@ -165,7 +165,7 @@ const packageInfo = {
   },
   'backend-mock': {
     category: 'backend',
-    title: 'ai.matey.backend.mock',
+    title: 'ai.matey.backend/mock',
     provider: 'Mock',
     description: 'Mock backend adapter for testing',
     exports: ['MockBackendAdapter', 'createEchoBackend', 'createErrorBackend', 'createDelayedBackend'],
@@ -174,7 +174,7 @@ const packageInfo = {
   },
   'backend-azure-openai': {
     category: 'backend',
-    title: 'ai.matey.backend.azure-openai',
+    title: 'ai.matey.backend/azure-openai',
     provider: 'Azure OpenAI',
     description: 'Backend adapter for Azure OpenAI Service',
     exports: ['AzureOpenAIBackendAdapter'],
@@ -183,7 +183,7 @@ const packageInfo = {
   },
   'backend-aws-bedrock': {
     category: 'backend',
-    title: 'ai.matey.backend.aws-bedrock',
+    title: 'ai.matey.backend/aws-bedrock',
     provider: 'AWS Bedrock',
     description: 'Backend adapter for AWS Bedrock',
     exports: ['AWSBedrockBackendAdapter'],
@@ -192,7 +192,7 @@ const packageInfo = {
   },
   'backend-cloudflare': {
     category: 'backend',
-    title: 'ai.matey.backend.cloudflare',
+    title: 'ai.matey.backend/cloudflare',
     provider: 'Cloudflare',
     description: 'Backend adapter for Cloudflare Workers AI',
     exports: ['CloudflareBackendAdapter'],
@@ -201,7 +201,7 @@ const packageInfo = {
   },
   'backend-replicate': {
     category: 'backend',
-    title: 'ai.matey.backend.replicate',
+    title: 'ai.matey.backend/replicate',
     provider: 'Replicate',
     description: 'Backend adapter for Replicate API',
     exports: ['ReplicateBackendAdapter'],
@@ -210,7 +210,7 @@ const packageInfo = {
   },
   'backend-together-ai': {
     category: 'backend',
-    title: 'ai.matey.backend.together-ai',
+    title: 'ai.matey.backend/together-ai',
     provider: 'Together AI',
     description: 'Backend adapter for Together AI API',
     exports: ['TogetherAIBackendAdapter'],
@@ -219,7 +219,7 @@ const packageInfo = {
   },
   'backend-fireworks': {
     category: 'backend',
-    title: 'ai.matey.backend.fireworks',
+    title: 'ai.matey.backend/fireworks',
     provider: 'Fireworks',
     description: 'Backend adapter for Fireworks AI API',
     exports: ['FireworksBackendAdapter'],
@@ -228,7 +228,7 @@ const packageInfo = {
   },
   'backend-perplexity': {
     category: 'backend',
-    title: 'ai.matey.backend.perplexity',
+    title: 'ai.matey.backend/perplexity',
     provider: 'Perplexity',
     description: 'Backend adapter for Perplexity API',
     exports: ['PerplexityBackendAdapter'],
@@ -237,7 +237,7 @@ const packageInfo = {
   },
   'backend-openrouter': {
     category: 'backend',
-    title: 'ai.matey.backend.openrouter',
+    title: 'ai.matey.backend/openrouter',
     provider: 'OpenRouter',
     description: 'Backend adapter for OpenRouter (multi-provider routing)',
     exports: ['OpenRouterBackendAdapter'],
@@ -246,7 +246,7 @@ const packageInfo = {
   },
   'backend-anyscale': {
     category: 'backend',
-    title: 'ai.matey.backend.anyscale',
+    title: 'ai.matey.backend/anyscale',
     provider: 'Anyscale',
     description: 'Backend adapter for Anyscale Endpoints',
     exports: ['AnyscaleBackendAdapter'],
@@ -255,7 +255,7 @@ const packageInfo = {
   },
   'backend-deepinfra': {
     category: 'backend',
-    title: 'ai.matey.backend.deepinfra',
+    title: 'ai.matey.backend/deepinfra',
     provider: 'DeepInfra',
     description: 'Backend adapter for DeepInfra API',
     exports: ['DeepInfraBackendAdapter'],
@@ -264,7 +264,7 @@ const packageInfo = {
   },
   'backend-cerebras': {
     category: 'backend',
-    title: 'ai.matey.backend.cerebras',
+    title: 'ai.matey.backend/cerebras',
     provider: 'Cerebras',
     description: 'Backend adapter for Cerebras Inference',
     exports: ['CerebrasBackendAdapter'],
@@ -273,7 +273,7 @@ const packageInfo = {
   },
   'backend-ai21': {
     category: 'backend',
-    title: 'ai.matey.backend.ai21',
+    title: 'ai.matey.backend/ai21',
     provider: 'AI21',
     description: 'Backend adapter for AI21 Labs API',
     exports: ['AI21BackendAdapter'],
@@ -282,7 +282,7 @@ const packageInfo = {
   },
   'backend-xai': {
     category: 'backend',
-    title: 'ai.matey.backend.xai',
+    title: 'ai.matey.backend/xai',
     provider: 'xAI',
     description: 'Backend adapter for xAI (Grok)',
     exports: ['XAIBackendAdapter'],
@@ -302,37 +302,37 @@ const packageInfo = {
   // Frontend adapters
   'frontend-openai': {
     category: 'frontend',
-    title: 'ai.matey.frontend.openai',
+    title: 'ai.matey.frontend/openai',
     description: 'Frontend adapter for OpenAI-compatible request format',
     exports: ['OpenAIFrontendAdapter'],
   },
   'frontend-anthropic': {
     category: 'frontend',
-    title: 'ai.matey.frontend.anthropic',
+    title: 'ai.matey.frontend/anthropic',
     description: 'Frontend adapter for Anthropic-compatible request format',
     exports: ['AnthropicFrontendAdapter'],
   },
   'frontend-gemini': {
     category: 'frontend',
-    title: 'ai.matey.frontend.gemini',
+    title: 'ai.matey.frontend/gemini',
     description: 'Frontend adapter for Gemini-compatible request format',
     exports: ['GeminiFrontendAdapter'],
   },
   'frontend-ollama': {
     category: 'frontend',
-    title: 'ai.matey.frontend.ollama',
+    title: 'ai.matey.frontend/ollama',
     description: 'Frontend adapter for Ollama-compatible request format',
     exports: ['OllamaFrontendAdapter'],
   },
   'frontend-mistral': {
     category: 'frontend',
-    title: 'ai.matey.frontend.mistral',
+    title: 'ai.matey.frontend/mistral',
     description: 'Frontend adapter for Mistral-compatible request format',
     exports: ['MistralFrontendAdapter'],
   },
   'frontend-chrome-ai': {
     category: 'frontend',
-    title: 'ai.matey.frontend.chrome-ai',
+    title: 'ai.matey.frontend/chrome-ai',
     description: 'Frontend adapter for Chrome AI request format',
     exports: ['ChromeAIFrontendAdapter'],
   },
@@ -340,42 +340,42 @@ const packageInfo = {
   // HTTP integrations
   'http-express': {
     category: 'http',
-    title: 'ai.matey.http.express',
+    title: 'ai.matey.http/express',
     framework: 'Express',
     description: 'HTTP integration for Express.js',
     exports: ['createExpressHandler', 'createExpressMiddleware'],
   },
   'http-fastify': {
     category: 'http',
-    title: 'ai.matey.http.fastify',
+    title: 'ai.matey.http/fastify',
     framework: 'Fastify',
     description: 'HTTP integration for Fastify',
     exports: ['createFastifyHandler', 'createFastifyPlugin'],
   },
   'http-hono': {
     category: 'http',
-    title: 'ai.matey.http.hono',
+    title: 'ai.matey.http/hono',
     framework: 'Hono',
     description: 'HTTP integration for Hono',
     exports: ['createHonoHandler', 'createHonoMiddleware'],
   },
   'http-koa': {
     category: 'http',
-    title: 'ai.matey.http.koa',
+    title: 'ai.matey.http/koa',
     framework: 'Koa',
     description: 'HTTP integration for Koa',
     exports: ['createKoaHandler', 'createKoaMiddleware'],
   },
   'http-node': {
     category: 'http',
-    title: 'ai.matey.http.node',
+    title: 'ai.matey.http/node',
     framework: 'Node.js',
     description: 'HTTP integration for Node.js http module',
     exports: ['NodeHTTPListener', 'createNodeHandler'],
   },
   'http-deno': {
     category: 'http',
-    title: 'ai.matey.http.deno',
+    title: 'ai.matey.http/deno',
     framework: 'Deno',
     description: 'HTTP integration for Deno',
     exports: ['createDenoHandler'],
@@ -391,70 +391,70 @@ const packageInfo = {
   // Middleware
   'middleware-logging': {
     category: 'middleware',
-    title: 'ai.matey.middleware.logging',
+    title: 'ai.matey.middleware',
     description: 'Logging middleware for request/response logging',
     exports: ['createLoggingMiddleware'],
     config: ['level', 'logRequests', 'logResponses', 'logErrors', 'redactFields'],
   },
   'middleware-caching': {
     category: 'middleware',
-    title: 'ai.matey.middleware.caching',
+    title: 'ai.matey.middleware',
     description: 'Caching middleware for response caching',
     exports: ['createCachingMiddleware', 'InMemoryCacheStorage'],
     config: ['maxSize', 'ttlMs', 'keyGenerator'],
   },
   'middleware-retry': {
     category: 'middleware',
-    title: 'ai.matey.middleware.retry',
+    title: 'ai.matey.middleware',
     description: 'Retry middleware for automatic request retries',
     exports: ['createRetryMiddleware'],
     config: ['maxRetries', 'initialDelayMs', 'maxDelayMs', 'backoffMultiplier', 'retryableErrors'],
   },
   'middleware-transform': {
     category: 'middleware',
-    title: 'ai.matey.middleware.transform',
+    title: 'ai.matey.middleware',
     description: 'Transform middleware for request/response modification',
     exports: ['createTransformMiddleware'],
     config: ['transformRequest', 'transformResponse', 'transformMessages'],
   },
   'middleware-validation': {
     category: 'middleware',
-    title: 'ai.matey.middleware.validation',
+    title: 'ai.matey.middleware',
     description: 'Validation middleware for request validation',
     exports: ['createValidationMiddleware'],
     config: ['validateRequest', 'validateResponse', 'schema'],
   },
   'middleware-telemetry': {
     category: 'middleware',
-    title: 'ai.matey.middleware.telemetry',
+    title: 'ai.matey.middleware',
     description: 'Telemetry middleware for metrics collection',
     exports: ['createTelemetryMiddleware', 'InMemoryTelemetrySink'],
     config: ['sink', 'collectLatency', 'collectTokens'],
   },
   'middleware-opentelemetry': {
     category: 'middleware',
-    title: 'ai.matey.middleware.opentelemetry',
+    title: 'ai.matey.middleware',
     description: 'OpenTelemetry middleware for distributed tracing',
     exports: ['createOpenTelemetryMiddleware'],
     config: ['tracer', 'spanName'],
   },
   'middleware-cost-tracking': {
     category: 'middleware',
-    title: 'ai.matey.middleware.cost-tracking',
+    title: 'ai.matey.middleware',
     description: 'Cost tracking middleware for usage monitoring',
     exports: ['createCostTrackingMiddleware'],
     config: ['costPerToken', 'onCost'],
   },
   'middleware-security': {
     category: 'middleware',
-    title: 'ai.matey.middleware.security',
+    title: 'ai.matey.middleware',
     description: 'Security middleware for rate limiting and access control',
     exports: ['createSecurityMiddleware'],
     config: ['rateLimit', 'allowedModels', 'blockedPatterns'],
   },
   'middleware-conversation-history': {
     category: 'middleware',
-    title: 'ai.matey.middleware.conversation-history',
+    title: 'ai.matey.middleware',
     description: 'Conversation history middleware for maintaining context',
     exports: ['createConversationHistoryMiddleware'],
     config: ['maxMessages', 'storage'],
@@ -463,25 +463,25 @@ const packageInfo = {
   // Wrappers
   'wrapper-openai-sdk': {
     category: 'wrapper',
-    title: 'ai.matey.wrapper.openai-sdk',
+    title: 'ai.matey.wrapper/openai',
     description: 'OpenAI SDK-compatible wrapper for any backend',
     exports: ['OpenAI', 'OpenAIClient', 'ChatCompletions'],
   },
   'wrapper-anthropic-sdk': {
     category: 'wrapper',
-    title: 'ai.matey.wrapper.anthropic-sdk',
+    title: 'ai.matey.wrapper/anthropic',
     description: 'Anthropic SDK-compatible wrapper for any backend',
     exports: ['Anthropic', 'AnthropicClient', 'Messages'],
   },
   'wrapper-chrome-ai': {
     category: 'wrapper',
-    title: 'ai.matey.wrapper.chrome-ai',
+    title: 'ai.matey.wrapper/chrome-ai',
     description: 'Chrome AI API wrapper for any backend',
     exports: ['ChromeAILanguageModel'],
   },
   'wrapper-chrome-ai-legacy': {
     category: 'wrapper',
-    title: 'ai.matey.wrapper.chrome-ai-legacy',
+    title: 'ai.matey.wrapper/chrome-ai-legacy',
     description: 'Legacy Chrome AI API wrapper',
     exports: ['ChromeAILegacyWrapper'],
   },
@@ -568,7 +568,7 @@ npm install ${npmName}
 \`\`\`typescript
 import { ${mainExport} } from '${npmName}';
 import { Bridge } from 'ai.matey.core';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend.openai';
+import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
 
 // Create the backend adapter
 const backend = new ${mainExport}({
@@ -701,7 +701,7 @@ npm install ${npmName}
 \`\`\`typescript
 import { ${mainExport} } from '${npmName}';
 import { Bridge } from 'ai.matey.core';
-import { OpenAIBackendAdapter } from 'ai.matey.backend.openai';
+import { OpenAIBackendAdapter } from 'ai.matey.backend/openai';
 
 // Create a bridge that accepts ${mainExport.replace('FrontendAdapter', '')} format requests
 const bridge = new Bridge(
@@ -741,8 +741,8 @@ Convert an IR stream chunk to the provider-specific format.
 ### Accept OpenAI Format, Use Any Backend
 
 \`\`\`typescript
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend.openai';
-import { AnthropicBackendAdapter } from 'ai.matey.backend.anthropic';
+import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
+import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
 import { Bridge } from 'ai.matey.core';
 
 const bridge = new Bridge(
@@ -786,8 +786,8 @@ npm install ${npmName}
 \`\`\`typescript
 import { ${mainExport} } from '${npmName}';
 import { Bridge } from 'ai.matey.core';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend.openai';
-import { OpenAIBackendAdapter } from 'ai.matey.backend.openai';
+import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
+import { OpenAIBackendAdapter } from 'ai.matey.backend/openai';
 
 const bridge = new Bridge(
   new OpenAIFrontendAdapter(),
@@ -861,8 +861,8 @@ npm install ${npmName}
 \`\`\`typescript
 import { ${mainExport} } from '${npmName}';
 import { Bridge } from 'ai.matey.core';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend.openai';
-import { OpenAIBackendAdapter } from 'ai.matey.backend.openai';
+import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
+import { OpenAIBackendAdapter } from 'ai.matey.backend/openai';
 
 const bridge = new Bridge(
   new OpenAIFrontendAdapter(),
@@ -926,7 +926,7 @@ npm install ${npmName}
 
 \`\`\`typescript
 import { ${mainExport} } from '${npmName}';
-import { AnthropicBackendAdapter } from 'ai.matey.backend.anthropic';
+import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
 
 // Create an SDK-compatible client backed by any adapter
 const client = ${mainExport}(
@@ -967,7 +967,7 @@ const client = new OpenAI({ apiKey: '...' });
 
 // After
 import { ${mainExport} } from '${npmName}';
-import { AnthropicBackendAdapter } from 'ai.matey.backend.anthropic';
+import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
 const client = ${mainExport}(new AnthropicBackendAdapter({ apiKey: '...' }));
 
 // Same API, different backend!

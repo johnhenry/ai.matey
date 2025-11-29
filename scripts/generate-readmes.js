@@ -80,8 +80,8 @@ import { Bridge, OpenAIFrontendAdapter, AnthropicBackendAdapter } from 'ai.matey
 
 // Or import specific packages (better for bundle size)
 import { Bridge } from 'ai.matey.core';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend.openai';
-import { AnthropicBackendAdapter } from 'ai.matey.backend.anthropic';
+import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
+import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
 \`\`\`
 
 ## Available Packages
@@ -107,7 +107,7 @@ See the [API documentation](https://github.com/johnhenry/ai.matey/tree/main/docs
 \`\`\`typescript
 import { ${providerName.replace(/[^a-zA-Z]/g, '')}BackendAdapter } from '${pkgName}';
 import { Bridge } from 'ai.matey.core';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend.openai';
+import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
 
 const bridge = new Bridge(
   new OpenAIFrontendAdapter(),

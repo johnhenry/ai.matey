@@ -9,11 +9,11 @@
 
 // Direct package imports for tree-shaking
 import { Router } from 'ai.matey.core';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend.openai';
-import { OpenAIBackendAdapter } from 'ai.matey.backend.openai';
-import { AnthropicBackendAdapter } from 'ai.matey.backend.anthropic';
-import { GeminiBackendAdapter } from 'ai.matey.backend.gemini';
-import { GroqBackendAdapter } from 'ai.matey.backend.groq';
+import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
+import { OpenAIBackendAdapter } from 'ai.matey.backend/openai';
+import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
+import { GeminiBackendAdapter } from 'ai.matey.backend/gemini';
+import { GroqBackendAdapter } from 'ai.matey.backend/groq';
 
 async function main() {
   // Create router with multiple backends

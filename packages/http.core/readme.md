@@ -15,8 +15,8 @@ npm install ai.matey.http.core
 ```typescript
 import { createCorsMiddleware } from 'ai.matey.http.core';
 import { Bridge } from 'ai.matey.core';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend.openai';
-import { OpenAIBackendAdapter } from 'ai.matey.backend.openai';
+import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
+import { OpenAIBackendAdapter } from 'ai.matey.backend/openai';
 
 const bridge = new Bridge(
   new OpenAIFrontendAdapter(),

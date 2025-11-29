@@ -70,7 +70,7 @@ function messageToIR(message: Message): IRMessage {
  * @example Direct Mode
  * ```tsx
  * import { useChat } from 'ai.matey.react.core';
- * import { AnthropicBackend } from 'ai.matey.backend.anthropic';
+ * import { AnthropicBackend } from 'ai.matey.backend/anthropic';
  *
  * const backend = new AnthropicBackend({ apiKey: process.env.ANTHROPIC_API_KEY });
  *

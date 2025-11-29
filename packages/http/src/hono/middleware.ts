@@ -22,7 +22,7 @@ import { HonoRequestAdapter, HonoResponseAdapter } from './adapter.js';
  * @example
  * ```typescript
  * import { Hono } from 'hono';
- * import { HonoMiddleware } from 'ai.matey.http.hono';
+ * import { HonoMiddleware } from 'ai.matey.http/hono';
  *
  * const app = new Hono();
  * const bridge = new Bridge(frontend, backend);

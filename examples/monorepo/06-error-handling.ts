@@ -7,8 +7,8 @@
 
 // Core imports
 import { Bridge } from 'ai.matey.core';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend.openai';
-import { AnthropicBackendAdapter } from 'ai.matey.backend.anthropic';
+import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
+import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
 
 // Error imports - dedicated package for error types
 import {

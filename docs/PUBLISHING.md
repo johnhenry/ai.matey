@@ -206,7 +206,7 @@ npm run release 2>&1 | tee publish.log
 grep -i "error" publish.log
 
 # Retry specific packages
-npm publish --workspace=ai.matey.backend.openai --access public
+npm publish --workspace=ai.matey.backend/openai --access public
 ```
 
 **Rate limit tips:**
@@ -563,12 +563,12 @@ git commit -m "Add ai.matey.my-new-package"
 
 | Type | Naming Pattern | Example |
 |------|----------------|---------|
-| Backend adapter | `ai.matey.backend.<provider>` | `ai.matey.backend.openai` |
-| Frontend adapter | `ai.matey.frontend.<provider>` | `ai.matey.frontend.openai` |
-| Middleware | `ai.matey.middleware.<name>` | `ai.matey.middleware.retry` |
-| HTTP framework | `ai.matey.http.<framework>` | `ai.matey.http.express` |
+| Backend adapter | `ai.matey.backend.<provider>` | `ai.matey.backend/openai` |
+| Frontend adapter | `ai.matey.frontend.<provider>` | `ai.matey.frontend/openai` |
+| Middleware | `ai.matey.middleware.<name>` | `ai.matey.middleware` |
+| HTTP framework | `ai.matey.http.<framework>` | `ai.matey.http/express` |
 | React package | `ai.matey.react.<name>` | `ai.matey.react.hooks` |
-| Wrapper | `ai.matey.wrapper.<sdk>` | `ai.matey.wrapper.openai-sdk` |
+| Wrapper | `ai.matey.wrapper.<sdk>` | `ai.matey.wrapper/openai` |
 | Native | `ai.matey.native.<name>` | `ai.matey.native.model-runner` |
 | Core/Utility | `ai.matey.<name>` | `ai.matey.utils` |
 

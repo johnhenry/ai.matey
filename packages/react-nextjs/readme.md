@@ -43,8 +43,8 @@ export function ChatComponent() {
 ```typescript
 // app/api/chat/route.ts
 import { Bridge } from 'ai.matey.core';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend.openai';
-import { OpenAIBackendAdapter } from 'ai.matey.backend.openai';
+import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
+import { OpenAIBackendAdapter } from 'ai.matey.backend/openai';
 
 const bridge = new Bridge(
   new OpenAIFrontendAdapter(),

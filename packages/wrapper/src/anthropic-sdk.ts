@@ -326,8 +326,8 @@ export class AnthropicClient {
  *
  * @example
  * ```typescript
- * import { Anthropic } from 'ai.matey.wrapper.anthropic-sdk';
- * import { OpenAIBackendAdapter } from 'ai.matey.backend.openai';
+ * import { Anthropic } from 'ai.matey.wrapper/anthropic';
+ * import { OpenAIBackendAdapter } from 'ai.matey.backend/openai';
  *
  * const backend = new OpenAIBackendAdapter({ apiKey: 'sk-...' });
  * const client = Anthropic(backend);

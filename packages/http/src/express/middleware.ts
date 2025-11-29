@@ -22,7 +22,7 @@ import { ExpressRequestAdapter, ExpressResponseAdapter } from './adapter.js';
  * @example
  * ```typescript
  * import express from 'express';
- * import { ExpressMiddleware } from 'ai.matey.http.express';
+ * import { ExpressMiddleware } from 'ai.matey.http/express';
  *
  * const app = express();
  * const bridge = new Bridge(frontend, backend);

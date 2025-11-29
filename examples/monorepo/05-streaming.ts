@@ -9,9 +9,9 @@
 
 // Core imports
 import { Bridge } from 'ai.matey.core';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend.openai';
-import { OpenAIBackendAdapter } from 'ai.matey.backend.openai';
-import { AnthropicBackendAdapter } from 'ai.matey.backend.anthropic';
+import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
+import { OpenAIBackendAdapter } from 'ai.matey.backend/openai';
+import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
 
 // Stream utilities
 import {

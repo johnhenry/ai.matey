@@ -365,8 +365,8 @@ export class OpenAIClient {
  *
  * @example
  * ```typescript
- * import { OpenAI } from 'ai.matey.wrapper.openai-sdk';
- * import { AnthropicBackendAdapter } from 'ai.matey.backend.anthropic';
+ * import { OpenAI } from 'ai.matey.wrapper/openai';
+ * import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
  *
  * const backend = new AnthropicBackendAdapter({ apiKey: 'sk-ant-...' });
  * const client = OpenAI(backend);

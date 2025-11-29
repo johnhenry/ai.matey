@@ -23,7 +23,7 @@ import { KoaRequestAdapter, KoaResponseAdapter } from './adapter.js';
  * ```typescript
  * import Koa from 'koa';
  * import bodyParser from 'koa-bodyparser';
- * import { KoaMiddleware } from 'ai.matey.http.koa';
+ * import { KoaMiddleware } from 'ai.matey.http/koa';
  *
  * const app = new Koa();
  * const bridge = new Bridge(frontend, backend);

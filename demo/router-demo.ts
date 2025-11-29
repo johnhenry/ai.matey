@@ -13,9 +13,9 @@
 
 // Import from monorepo packages
 import { Router, createRouter, Bridge } from 'ai.matey.core';
-import { OpenAIBackendAdapter } from 'ai.matey.backend.openai';
-import { AnthropicBackendAdapter } from 'ai.matey.backend.anthropic';
-import { AnthropicFrontendAdapter } from 'ai.matey.frontend.anthropic';
+import { OpenAIBackendAdapter } from 'ai.matey.backend/openai';
+import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
+import { AnthropicFrontendAdapter } from 'ai.matey.frontend/anthropic';
 import type { IRChatRequest } from 'ai.matey.types';
 
 // ============================================================================

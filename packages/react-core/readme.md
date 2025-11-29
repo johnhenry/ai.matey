@@ -44,7 +44,7 @@ Use any backend adapter directly without HTTP - great for Electron apps, browser
 
 ```tsx
 import { useChat } from 'ai.matey.react.core';
-import { OpenAIBackend } from 'ai.matey.backend.openai';
+import { OpenAIBackend } from 'ai.matey.backend/openai';
 
 // Create backend (could also be Anthropic, Gemini, Ollama, etc.)
 const backend = new OpenAIBackend({

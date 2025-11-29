@@ -20,7 +20,7 @@ import { DenoRequestAdapter, DenoResponseAdapter } from './adapter.js';
  *
  * @example
  * ```typescript
- * import { DenoHandler } from 'ai.matey.http.deno';
+ * import { DenoHandler } from 'ai.matey.http/deno';
  *
  * const bridge = new Bridge(frontend, backend);
  *

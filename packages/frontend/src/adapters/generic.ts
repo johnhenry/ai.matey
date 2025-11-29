@@ -7,7 +7,7 @@
  *
  * @example
  * ```typescript
- * import { GenericFrontendAdapter } from 'ai.matey.frontend.generic';
+ * import { GenericFrontendAdapter } from 'ai.matey.frontend/generic';
  * import { Bridge } from 'ai.matey.core';
  *
  * const frontend = new GenericFrontendAdapter();

@@ -8,13 +8,13 @@
  */
 
 // SDK wrappers - drop-in replacements for official SDKs
-import { createOpenAICompatibleClient } from 'ai.matey.wrapper.openai-sdk';
-import { createAnthropicCompatibleClient } from 'ai.matey.wrapper.anthropic-sdk';
+import { createOpenAICompatibleClient } from 'ai.matey.wrapper/openai';
+import { createAnthropicCompatibleClient } from 'ai.matey.wrapper/anthropic';
 
 // Backend adapters
-import { AnthropicBackendAdapter } from 'ai.matey.backend.anthropic';
-import { OpenAIBackendAdapter } from 'ai.matey.backend.openai';
-import { GeminiBackendAdapter } from 'ai.matey.backend.gemini';
+import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
+import { OpenAIBackendAdapter } from 'ai.matey.backend/openai';
+import { GeminiBackendAdapter } from 'ai.matey.backend/gemini';
 
 async function main() {
   console.log('=== SDK Wrapper Examples ===\n');
@@ -113,7 +113,7 @@ async function migrationExample() {
   // const response = await openai.chat.completions.create({ ... });
 
   // Migration step 1: Replace import with wrapper
-  // import { createOpenAICompatibleClient } from 'ai.matey.wrapper.openai-sdk';
+  // import { createOpenAICompatibleClient } from 'ai.matey.wrapper/openai';
   // const openai = createOpenAICompatibleClient({ backend: new OpenAIBackendAdapter({ apiKey: '...' }) });
 
   // Migration step 2: Switch backend (no other code changes needed!)

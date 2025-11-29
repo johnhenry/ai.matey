@@ -9,14 +9,14 @@
 
 // Core imports
 import { Bridge, Router } from 'ai.matey.core';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend.openai';
+import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
 
 // Local model backends
-import { OllamaBackendAdapter } from 'ai.matey.backend.ollama';
-import { LMStudioBackendAdapter } from 'ai.matey.backend.lmstudio';
+import { OllamaBackendAdapter } from 'ai.matey.backend/ollama';
+import { LMStudioBackendAdapter } from 'ai.matey.backend/lmstudio';
 
 // Cloud backends for fallback
-import { OpenAIBackendAdapter } from 'ai.matey.backend.openai';
+import { OpenAIBackendAdapter } from 'ai.matey.backend/openai';
 
 async function main() {
   console.log('=== Local Models Examples ===\n');

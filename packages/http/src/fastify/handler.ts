@@ -22,7 +22,7 @@ import { FastifyRequestAdapter, FastifyResponseAdapter } from './adapter.js';
  * @example
  * ```typescript
  * import Fastify from 'fastify';
- * import { FastifyHandler } from 'ai.matey.http.fastify';
+ * import { FastifyHandler } from 'ai.matey.http/fastify';
  *
  * const fastify = Fastify();
  * const bridge = new Bridge(frontend, backend);

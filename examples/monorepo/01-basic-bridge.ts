@@ -7,8 +7,8 @@
 
 // New monorepo imports - import only what you need
 import { Bridge } from 'ai.matey.core';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend.openai';
-import { AnthropicBackendAdapter } from 'ai.matey.backend.anthropic';
+import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
+import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
 
 // Or use the umbrella package for backwards compatibility:
 // import { Bridge, OpenAIFrontendAdapter, AnthropicBackendAdapter } from 'ai.matey';

@@ -8,7 +8,7 @@ Provider-agnostic interface for AI APIs. Write once, run anywhere.
 
 ## Why ai.matey?
 
-**Same code, any provider.** Switch between OpenAI, Anthropic, Gemini, Ollama, and 20+ other providers without changing your application code.
+**Same code, any provider.** Switch between OpenAI, Anthropic, Gemini, Ollama, and 20 other providers (24 total) without changing your application code.
 
 ```typescript
 // Your code stays the same...
@@ -33,8 +33,8 @@ Accept requests in one format, execute on any provider:
 
 ```typescript
 import { Bridge } from 'ai.matey.core';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend.openai';
-import { AnthropicBackendAdapter } from 'ai.matey.backend.anthropic';
+import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
+import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
 
 // Accept OpenAI format → Execute on Anthropic
 const bridge = new Bridge(
@@ -68,9 +68,9 @@ Route requests to multiple backends with automatic fallback:
 
 ```typescript
 import { Bridge, createRouter } from 'ai.matey.core';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend.openai';
-import { OpenAIBackendAdapter } from 'ai.matey.backend.openai';
-import { AnthropicBackendAdapter } from 'ai.matey.backend.anthropic';
+import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
+import { OpenAIBackendAdapter } from 'ai.matey.backend/openai';
+import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
 
 // Create router and register backends
 const router = createRouter({
@@ -97,9 +97,9 @@ Query multiple models simultaneously for comparison or consensus:
 
 ```typescript
 import { createRouter } from 'ai.matey.core';
-import { OpenAIBackendAdapter } from 'ai.matey.backend.openai';
-import { AnthropicBackendAdapter } from 'ai.matey.backend.anthropic';
-import { GeminiBackendAdapter } from 'ai.matey.backend.gemini';
+import { OpenAIBackendAdapter } from 'ai.matey.backend/openai';
+import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
+import { GeminiBackendAdapter } from 'ai.matey.backend/gemini';
 
 // Create router with multiple backends
 const router = createRouter()
@@ -174,10 +174,10 @@ Serve an OpenAI-compatible API with any backend:
 
 ```typescript
 import express from 'express';
-import { ExpressMiddleware } from 'ai.matey.http.express';
+import { ExpressMiddleware } from 'ai.matey.http/express';
 import { Bridge } from 'ai.matey.core';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend.openai';
-import { AnthropicBackendAdapter } from 'ai.matey.backend.anthropic';
+import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
+import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
 
 const bridge = new Bridge(
   new OpenAIFrontendAdapter(),
@@ -219,7 +219,7 @@ Use backend adapters directly without HTTP (great for Electron, browser extensio
 
 ```tsx
 import { useChat } from 'ai.matey.react.core';
-import { OpenAIBackend } from 'ai.matey.backend.openai';
+import { OpenAIBackend } from 'ai.matey.backend/openai';
 
 const backend = new OpenAIBackend({ apiKey: process.env.REACT_APP_OPENAI_API_KEY });
 
@@ -247,8 +247,8 @@ function ChatComponent() {
 Use OpenAI SDK-style code with any backend:
 
 ```typescript
-import { OpenAI } from 'ai.matey.wrapper.openai-sdk';
-import { AnthropicBackendAdapter } from 'ai.matey.backend.anthropic';
+import { OpenAI } from 'ai.matey.wrapper/openai';
+import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
 
 // Create a backend adapter
 const backend = new AnthropicBackendAdapter({ apiKey: process.env.ANTHROPIC_API_KEY });

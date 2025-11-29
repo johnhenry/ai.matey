@@ -1,5 +1,5 @@
 /**
- * ai.matey.wrapper.ir
+ * ai.matey.wrapper/ir
  *
  * IR-native chat wrapper for the AI Matey universal adapter system.
  *
@@ -8,8 +8,8 @@
  *
  * @example
  * ```typescript
- * import { createChat } from 'ai.matey.wrapper.ir';
- * import { AnthropicBackend } from 'ai.matey.backend.anthropic';
+ * import { createChat } from 'ai.matey.wrapper/ir';
+ * import { AnthropicBackend } from 'ai.matey.backend/anthropic';
  *
  * const chat = createChat({
  *   backend: new AnthropicBackend({ apiKey: process.env.ANTHROPIC_API_KEY }),

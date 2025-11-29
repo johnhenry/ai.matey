@@ -27,24 +27,24 @@ import { Readable } from 'stream';
 
 // Import from monorepo packages
 import { Bridge, createRouter } from 'ai.matey.core';
-import { AnthropicFrontendAdapter } from 'ai.matey.frontend.anthropic';
-import { OpenAIBackendAdapter } from 'ai.matey.backend.openai';
-import { AnthropicBackendAdapter } from 'ai.matey.backend.anthropic';
-import { GeminiBackendAdapter } from 'ai.matey.backend.gemini';
-import { OllamaBackendAdapter } from 'ai.matey.backend.ollama';
-import { MistralBackendAdapter } from 'ai.matey.backend.mistral';
-import { DeepSeekBackendAdapter } from 'ai.matey.backend.deepseek';
-import { GroqBackendAdapter } from 'ai.matey.backend.groq';
-import { HuggingFaceBackendAdapter } from 'ai.matey.backend.huggingface';
-import { LMStudioBackendAdapter } from 'ai.matey.backend.lmstudio';
-import { NVIDIABackendAdapter } from 'ai.matey.backend.nvidia';
-import { MockBackendAdapter, createEchoBackend } from 'ai.matey.backend.mock';
-import { NodeHTTPListener } from 'ai.matey.http.node';
+import { AnthropicFrontendAdapter } from 'ai.matey.frontend/anthropic';
+import { OpenAIBackendAdapter } from 'ai.matey.backend/openai';
+import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
+import { GeminiBackendAdapter } from 'ai.matey.backend/gemini';
+import { OllamaBackendAdapter } from 'ai.matey.backend/ollama';
+import { MistralBackendAdapter } from 'ai.matey.backend/mistral';
+import { DeepSeekBackendAdapter } from 'ai.matey.backend/deepseek';
+import { GroqBackendAdapter } from 'ai.matey.backend/groq';
+import { HuggingFaceBackendAdapter } from 'ai.matey.backend/huggingface';
+import { LMStudioBackendAdapter } from 'ai.matey.backend/lmstudio';
+import { NVIDIABackendAdapter } from 'ai.matey.backend/nvidia';
+import { MockBackendAdapter, createEchoBackend } from 'ai.matey.backend/mock';
+import { NodeHTTPListener } from 'ai.matey.http/node';
 
 // SDK Wrappers - each in their own package
-import { OpenAI } from 'ai.matey.wrapper.openai-sdk';
-import { Anthropic } from 'ai.matey.wrapper.anthropic-sdk';
-import { ChromeAILanguageModel } from 'ai.matey.wrapper.chrome-ai';
+import { OpenAI } from 'ai.matey.wrapper/openai';
+import { Anthropic } from 'ai.matey.wrapper/anthropic';
+import { ChromeAILanguageModel } from 'ai.matey.wrapper/chrome-ai';
 
 // Conversion utilities - from CLI package
 import {

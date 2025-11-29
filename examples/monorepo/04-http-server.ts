@@ -12,15 +12,15 @@ import express from 'express';
 
 // Core imports
 import { Bridge } from 'ai.matey.core';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend.openai';
-import { AnthropicBackendAdapter } from 'ai.matey.backend.anthropic';
+import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
+import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
 
 // HTTP framework integration - only install what you need
-import { createExpressHandler } from 'ai.matey.http.express';
+import { createExpressHandler } from 'ai.matey.http/express';
 import { createCorsMiddleware, validateApiKey } from 'ai.matey.http.core';
 
 // Middleware
-import { createLoggingMiddleware } from 'ai.matey.middleware.logging';
+import { createLoggingMiddleware } from 'ai.matey.middleware';
 
 async function main() {
   const app = express();
@@ -77,11 +77,11 @@ async function main() {
       service: 'ai.matey',
       packages: [
         'ai.matey.core',
-        'ai.matey.frontend.openai',
-        'ai.matey.backend.anthropic',
-        'ai.matey.http.express',
+        'ai.matey.frontend/openai',
+        'ai.matey.backend/anthropic',
+        'ai.matey.http/express',
         'ai.matey.http.core',
-        'ai.matey.middleware.logging',
+        'ai.matey.middleware',
       ],
     });
   });

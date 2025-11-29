@@ -41,9 +41,9 @@ ai.matey                    # Umbrella package (backwards compatibility)
 ```typescript
 // Import only what you need
 import { Bridge } from 'ai.matey.core';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend.openai';
-import { AnthropicBackendAdapter } from 'ai.matey.backend.anthropic';
-import { createLoggingMiddleware } from 'ai.matey.middleware.logging';
+import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
+import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
+import { createLoggingMiddleware } from 'ai.matey.middleware';
 ```
 
 ### Backwards Compatible (For Existing Projects)

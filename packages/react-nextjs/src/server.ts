@@ -179,7 +179,7 @@ export interface ChatRequestBody {
  * // app/api/chat/route.ts
  * import { createChatHandler } from 'ai.matey.react.nextjs/server';
  * import { Bridge } from 'ai.matey.core';
- * import { OpenAIBackend } from 'ai.matey.backend.openai';
+ * import { OpenAIBackend } from 'ai.matey.backend/openai';
  *
  * const bridge = new Bridge({
  *   backend: new OpenAIBackend({ apiKey: process.env.OPENAI_API_KEY }),

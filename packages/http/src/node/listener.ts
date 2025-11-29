@@ -22,7 +22,7 @@ import { NodeRequestAdapter, NodeResponseAdapter } from './adapter.js';
  * @example
  * ```typescript
  * import { createServer } from 'http';
- * import { NodeHTTPListener } from 'ai.matey.http.node';
+ * import { NodeHTTPListener } from 'ai.matey.http/node';
  *
  * const bridge = new Bridge(frontend, backend);
  *

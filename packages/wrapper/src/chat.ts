@@ -39,8 +39,8 @@ import type {
  *
  * @example
  * ```typescript
- * import { Chat } from 'ai.matey.wrapper.ir';
- * import { AnthropicBackend } from 'ai.matey.backend.anthropic';
+ * import { Chat } from 'ai.matey.wrapper/ir';
+ * import { AnthropicBackend } from 'ai.matey.backend/anthropic';
  *
  * const chat = new Chat({
  *   backend: new AnthropicBackend({ apiKey: process.env.ANTHROPIC_API_KEY }),

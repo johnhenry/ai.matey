@@ -16,7 +16,7 @@ import {
 
 // Core imports
 import { Bridge } from 'ai.matey.core';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend.openai';
+import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
 
 // Types
 import type { IRChatRequest, IRChatResponse } from 'ai.matey.types';
