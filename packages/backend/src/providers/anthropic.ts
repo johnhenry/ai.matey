@@ -594,7 +594,7 @@ export class AnthropicBackendAdapter implements BackendAdapter<
       // Build Anthropic request
       const anthropicRequest: AnthropicRequest = {
         model:
-          request.parameters?.model || this.config.defaultModel || 'claude-3-5-sonnet-20241022',
+          request.parameters?.model || this.config.defaultModel || 'claude-3-haiku-20240307',
         messages: anthropicMessages,
         system: systemParameter || undefined,
         max_tokens: maxTokens,

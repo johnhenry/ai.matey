@@ -64,6 +64,7 @@ export class GroqBackendAdapter
     const groqConfig: BackendAdapterConfig = {
       ...config,
       baseURL: config.baseURL || 'https://api.groq.com/openai/v1',
+      defaultModel: config.defaultModel || 'llama-3.3-70b-versatile',
     };
 
     // Pass Groq-specific metadata to parent constructor
