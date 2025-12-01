@@ -283,12 +283,69 @@ export const DEFAULT_OPENAI_MODELS: readonly AIModel[] = [
 
 /**
  * Default Anthropic Claude models with capabilities.
+ * Updated: 2025-11-30
  */
 export const DEFAULT_ANTHROPIC_MODELS: readonly AIModel[] = [
   {
+    id: 'claude-opus-4.5-20251124',
+    name: 'Claude Opus 4.5 (Nov 2025)',
+    description: 'Most capable Claude model',
+    ownedBy: 'anthropic',
+    capabilities: {
+      maxTokens: 8192,
+      contextWindow: 200000,
+      supportsStreaming: true,
+      supportsVision: true,
+      supportsTools: true,
+      supportsJSON: true,
+    },
+  },
+  {
+    id: 'claude-sonnet-4.5-20250929',
+    name: 'Claude Sonnet 4.5 (Sep 2025)',
+    description: 'Most capable for coding, agents, and computer use',
+    ownedBy: 'anthropic',
+    capabilities: {
+      maxTokens: 8192,
+      contextWindow: 200000,
+      supportsStreaming: true,
+      supportsVision: true,
+      supportsTools: true,
+      supportsJSON: true,
+    },
+  },
+  {
+    id: 'claude-opus-4.1-20250805',
+    name: 'Claude Opus 4.1 (Aug 2025)',
+    description: 'Advanced reasoning and intelligence',
+    ownedBy: 'anthropic',
+    capabilities: {
+      maxTokens: 8192,
+      contextWindow: 200000,
+      supportsStreaming: true,
+      supportsVision: true,
+      supportsTools: true,
+      supportsJSON: true,
+    },
+  },
+  {
+    id: 'claude-sonnet-4-20250522',
+    name: 'Claude Sonnet 4 (May 2025)',
+    description: 'Balanced performance and speed',
+    ownedBy: 'anthropic',
+    capabilities: {
+      maxTokens: 8192,
+      contextWindow: 200000,
+      supportsStreaming: true,
+      supportsVision: true,
+      supportsTools: true,
+      supportsJSON: true,
+    },
+  },
+  {
     id: 'claude-3-5-sonnet-20241022',
     name: 'Claude 3.5 Sonnet (Oct 2024)',
-    description: 'Most intelligent model with excellent reasoning',
+    description: 'Previous generation flagship',
     ownedBy: 'anthropic',
     capabilities: {
       maxTokens: 8192,
@@ -302,7 +359,7 @@ export const DEFAULT_ANTHROPIC_MODELS: readonly AIModel[] = [
   {
     id: 'claude-3-5-haiku-20241022',
     name: 'Claude 3.5 Haiku (Oct 2024)',
-    description: 'Fastest model for high-throughput tasks',
+    description: 'Fastest and most affordable',
     ownedBy: 'anthropic',
     capabilities: {
       maxTokens: 8192,
@@ -313,18 +370,243 @@ export const DEFAULT_ANTHROPIC_MODELS: readonly AIModel[] = [
       supportsJSON: false,
     },
   },
+] as const;
+
+/**
+ * Default AI21 models with capabilities.
+ * Updated: 2025-11-30
+ * Note: AI21 does not provide a models listing API
+ */
+export const DEFAULT_AI21_MODELS: readonly AIModel[] = [
   {
-    id: 'claude-3-opus-20240229',
-    name: 'Claude 3 Opus',
-    description: 'Previous top-tier model',
-    ownedBy: 'anthropic',
+    id: 'jamba-1.5-mini',
+    name: 'Jamba 1.5 Mini',
+    description: 'Most lightweight and efficient model (12B active params)',
+    ownedBy: 'ai21',
     capabilities: {
       maxTokens: 4096,
-      contextWindow: 200000,
+      contextWindow: 256000,
+      supportsStreaming: true,
+      supportsVision: false,
+      supportsTools: true,
+      supportsJSON: true,
+    },
+  },
+  {
+    id: 'jamba-1.5-large',
+    name: 'Jamba 1.5 Large',
+    description: 'Most powerful model (94B active params)',
+    ownedBy: 'ai21',
+    capabilities: {
+      maxTokens: 4096,
+      contextWindow: 256000,
+      supportsStreaming: true,
+      supportsVision: false,
+      supportsTools: true,
+      supportsJSON: true,
+    },
+  },
+] as const;
+
+/**
+ * Default Gemini models with capabilities.
+ * Updated: 2025-11-30
+ */
+export const DEFAULT_GEMINI_MODELS: readonly AIModel[] = [
+  {
+    id: 'gemini-2.0-flash',
+    name: 'Gemini 2.0 Flash',
+    description: 'Ultra-efficient and affordable multimodal model',
+    ownedBy: 'google',
+    capabilities: {
+      maxTokens: 8192,
+      contextWindow: 1000000,
       supportsStreaming: true,
       supportsVision: true,
       supportsTools: true,
-      supportsJSON: false,
+      supportsJSON: true,
+    },
+  },
+  {
+    id: 'gemini-2.0-flash-lite',
+    name: 'Gemini 2.0 Flash-Lite',
+    description: 'Optimized for speed and cost',
+    ownedBy: 'google',
+    capabilities: {
+      maxTokens: 8192,
+      contextWindow: 1000000,
+      supportsStreaming: true,
+      supportsVision: true,
+      supportsTools: true,
+      supportsJSON: true,
+    },
+  },
+  {
+    id: 'gemini-2.5-flash',
+    name: 'Gemini 2.5 Flash',
+    description: 'Best price-performance for large scale tasks',
+    ownedBy: 'google',
+    capabilities: {
+      maxTokens: 8192,
+      contextWindow: 1000000,
+      supportsStreaming: true,
+      supportsVision: true,
+      supportsTools: true,
+      supportsJSON: true,
+    },
+  },
+  {
+    id: 'gemini-2.5-pro',
+    name: 'Gemini 2.5 Pro',
+    description: 'High-capability model for complex reasoning',
+    ownedBy: 'google',
+    capabilities: {
+      maxTokens: 8192,
+      contextWindow: 1000000,
+      supportsStreaming: true,
+      supportsVision: true,
+      supportsTools: true,
+      supportsJSON: true,
+    },
+  },
+  {
+    id: 'gemini-3-pro',
+    name: 'Gemini 3 Pro',
+    description: 'Most powerful model for agentic workflows and coding',
+    ownedBy: 'google',
+    capabilities: {
+      maxTokens: 8192,
+      contextWindow: 1000000,
+      supportsStreaming: true,
+      supportsVision: true,
+      supportsTools: true,
+      supportsJSON: true,
+    },
+  },
+] as const;
+
+/**
+ * Default Cohere models with capabilities.
+ * Updated: 2025-11-30
+ */
+export const DEFAULT_COHERE_MODELS: readonly AIModel[] = [
+  {
+    id: 'command-r7b',
+    name: 'Command R7B',
+    description: 'Most cost-effective model (7B params)',
+    ownedBy: 'cohere',
+    capabilities: {
+      maxTokens: 4096,
+      contextWindow: 128000,
+      supportsStreaming: true,
+      supportsVision: false,
+      supportsTools: true,
+      supportsJSON: true,
+    },
+  },
+  {
+    id: 'command-r-08-2024',
+    name: 'Command R (Aug 2024)',
+    description: 'Optimized for conversational interaction and long context',
+    ownedBy: 'cohere',
+    capabilities: {
+      maxTokens: 4096,
+      contextWindow: 128000,
+      supportsStreaming: true,
+      supportsVision: false,
+      supportsTools: true,
+      supportsJSON: true,
+    },
+  },
+  {
+    id: 'command-r-plus-08-2024',
+    name: 'Command R+ (Aug 2024)',
+    description: 'Advanced model with enhanced capabilities',
+    ownedBy: 'cohere',
+    capabilities: {
+      maxTokens: 4096,
+      contextWindow: 128000,
+      supportsStreaming: true,
+      supportsVision: false,
+      supportsTools: true,
+      supportsJSON: true,
+    },
+  },
+  {
+    id: 'command-a-03-2025',
+    name: 'Command A (Mar 2025)',
+    description: 'Most performant model (111B params) with vision support',
+    ownedBy: 'cohere',
+    capabilities: {
+      maxTokens: 4096,
+      contextWindow: 256000,
+      supportsStreaming: true,
+      supportsVision: true,
+      supportsTools: true,
+      supportsJSON: true,
+    },
+  },
+] as const;
+
+/**
+ * Default Mistral models with capabilities.
+ * Updated: 2025-11-30
+ */
+export const DEFAULT_MISTRAL_MODELS: readonly AIModel[] = [
+  {
+    id: 'mistral-small-2501',
+    name: 'Mistral Small (Jan 2025)',
+    description: 'Most affordable for simpler tasks',
+    ownedBy: 'mistralai',
+    capabilities: {
+      maxTokens: 8192,
+      contextWindow: 32000,
+      supportsStreaming: true,
+      supportsVision: false,
+      supportsTools: true,
+      supportsJSON: true,
+    },
+  },
+  {
+    id: 'mistral-medium-2505',
+    name: 'Mistral Medium (May 2025)',
+    description: 'Balanced performance and cost',
+    ownedBy: 'mistralai',
+    capabilities: {
+      maxTokens: 8192,
+      contextWindow: 128000,
+      supportsStreaming: true,
+      supportsVision: false,
+      supportsTools: true,
+      supportsJSON: true,
+    },
+  },
+  {
+    id: 'mistral-large-2411',
+    name: 'Mistral Large 24.11',
+    description: 'Advanced dense LLM (123B params) with strong reasoning',
+    ownedBy: 'mistralai',
+    capabilities: {
+      maxTokens: 8192,
+      contextWindow: 128000,
+      supportsStreaming: true,
+      supportsVision: false,
+      supportsTools: true,
+      supportsJSON: true,
+    },
+  },
+  {
+    id: 'codestral-2501',
+    name: 'Codestral (Jan 2025)',
+    description: 'Specialized for code generation and completion',
+    ownedBy: 'mistralai',
+    capabilities: {
+      maxTokens: 8192,
+      contextWindow: 32000,
+      supportsStreaming: true,
+      supportsVision: false,
+      supportsTools: true,
+      supportsJSON: true,
     },
   },
 ] as const;

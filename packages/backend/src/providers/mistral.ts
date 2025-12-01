@@ -25,7 +25,10 @@ import {
   createErrorFromHttpResponse,
 } from 'ai.matey.errors';
 import { normalizeSystemMessages } from 'ai.matey.utils';
+import { getModelCache } from 'ai.matey.utils';
 import { getEffectiveStreamMode, mergeStreamingConfig } from 'ai.matey.utils';
+import { buildStaticResult, applyModelFilter, DEFAULT_MISTRAL_MODELS } from '../shared.js';
+import type { ListModelsOptions, ListModelsResult, ModelCapabilityFilter, AIModel } from 'ai.matey.types';
 
 // ============================================================================
 // Mistral API Types (OpenAI-compatible)
@@ -72,10 +75,12 @@ export class MistralBackendAdapter implements BackendAdapter<MistralRequest, Mis
   readonly metadata: AdapterMetadata;
   private readonly config: BackendAdapterConfig;
   private readonly baseURL: string;
+  private readonly modelCache: ReturnType<typeof getModelCache>;
 
   constructor(config: BackendAdapterConfig) {
     this.config = config;
     this.baseURL = config.baseURL || 'https://api.mistral.ai/v1';
+    this.modelCache = getModelCache(config.modelsCacheScope || 'global');
     this.metadata = {
       name: 'mistral-backend',
       version: '1.0.0',
@@ -281,6 +286,89 @@ export class MistralBackendAdapter implements BackendAdapter<MistralRequest, Mis
   }
 
   /**
+   * List available Mistral models.
+   */
+  async listModels(options?: ListModelsOptions): Promise<ListModelsResult> {
+    try {
+      if (this.config.models && !options?.forceRefresh) {
+        return buildStaticResult(this.config.models, 'mistralai');
+      }
+
+      if (this.config.cacheModels !== false && !options?.forceRefresh) {
+        const cached = this.modelCache.get(this.metadata.name);
+        if (cached) {
+          return applyModelFilter(cached, options?.filter as ModelCapabilityFilter);
+        }
+      }
+
+      const response = await fetch(`${this.baseURL}/models`, {
+        method: 'GET',
+        headers: this.getHeaders(),
+        signal: AbortSignal.timeout(this.config.timeout || 30000),
+      });
+
+      if (!response.ok) {
+        throw createErrorFromHttpResponse(
+          response.status,
+          response.statusText,
+          await response.text(),
+          { backend: this.metadata.name }
+        );
+      }
+
+      const data = (await response.json()) as { object: string; data: any[] };
+      const models = data.data.map((model) => this.transformMistralModel(model));
+
+      const result: ListModelsResult = {
+        models,
+        source: 'remote',
+        fetchedAt: Date.now(),
+        isComplete: true,
+      };
+
+      if (this.config.cacheModels !== false) {
+        this.modelCache.set(this.metadata.name, result, this.config.modelsCacheTTL || 3600000);
+      }
+
+      return applyModelFilter(result, options?.filter as ModelCapabilityFilter);
+    } catch (error) {
+      if (!options?.forceRefresh) {
+        const cached = this.modelCache.get(this.metadata.name);
+        if (cached) return cached;
+      }
+
+      const result: ListModelsResult = {
+        models: [...DEFAULT_MISTRAL_MODELS],
+        source: 'static',
+        fetchedAt: Date.now(),
+        isComplete: true,
+      };
+      return applyModelFilter(result, options?.filter as ModelCapabilityFilter);
+    }
+  }
+
+  private transformMistralModel(model: any): AIModel {
+    return {
+      id: model.id,
+      name: model.id,
+      ownedBy: 'mistralai',
+      capabilities: {
+        maxTokens: 8192,
+        contextWindow: 32000,
+        supportsStreaming: true,
+        supportsVision: false,
+        supportsTools: true,
+        supportsJSON: true,
+      },
+    };
+  }
+
+  invalidateModelCache(): MistralBackendAdapter {
+    this.modelCache.invalidate(this.metadata.name);
+    return this;
+  }
+
+  /**
    * Convert IR request to Mistral format.
    *
    * Public method for testing and debugging - see what will be sent to Mistral.
@@ -301,7 +389,7 @@ export class MistralBackendAdapter implements BackendAdapter<MistralRequest, Mis
     }));
 
     return {
-      model: request.parameters?.model || 'mistral-small',
+      model: request.parameters?.model || this.config.defaultModel || 'mistral-small-2501',
       messages: mistralMessages,
       temperature: request.parameters?.temperature,
       max_tokens: request.parameters?.maxTokens,

@@ -25,6 +25,8 @@ import {
 } from 'ai.matey.errors';
 import { normalizeSystemMessages } from 'ai.matey.utils';
 import { getEffectiveStreamMode, mergeStreamingConfig } from 'ai.matey.utils';
+import { buildStaticResult, applyModelFilter, DEFAULT_AI21_MODELS } from '../shared.js';
+import type { ListModelsOptions, ListModelsResult, ModelCapabilityFilter } from 'ai.matey.types';
 
 // ============================================================================
 // AI21 Labs API Types (OpenAI-compatible)
@@ -154,7 +156,7 @@ export class AI21BackendAdapter implements BackendAdapter<AI21Request, AI21Respo
     }));
 
     const ai21Request: AI21Request = {
-      model: request.parameters?.model || this.config.defaultModel || 'jamba-instruct',
+      model: request.parameters?.model || this.config.defaultModel || 'jamba-1.5-mini',
       messages: ai21Messages,
       temperature: request.parameters?.temperature,
       max_tokens: request.parameters?.maxTokens,
@@ -431,6 +433,31 @@ export class AI21BackendAdapter implements BackendAdapter<AI21Request, AI21Respo
     } catch {
       return false;
     }
+  }
+
+  /**
+   * List available AI21 models.
+   *
+   * Since AI21 doesn't have a public models endpoint, this uses:
+   * 1. Static config (config.models) - if provided
+   * 2. Default model list - built-in list of Jamba models
+   */
+  listModels(options?: ListModelsOptions): Promise<ListModelsResult> {
+    // 1. Check static config first
+    if (this.config.models) {
+      return Promise.resolve(buildStaticResult(this.config.models, 'ai21'));
+    }
+
+    // 2. Use default AI21 models
+    const result: ListModelsResult = {
+      models: [...DEFAULT_AI21_MODELS],
+      source: 'static',
+      fetchedAt: Date.now(),
+      isComplete: true,
+    };
+
+    // 3. Apply filter if requested
+    return Promise.resolve(applyModelFilter(result, options?.filter as ModelCapabilityFilter));
   }
 
   /**

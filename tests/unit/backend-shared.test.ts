@@ -482,9 +482,13 @@ describe('DEFAULT_ANTHROPIC_MODELS', () => {
   it('should contain expected models', () => {
     const ids = DEFAULT_ANTHROPIC_MODELS.map(m => m.id);
 
+    // Claude 4 models (new)
+    expect(ids).toContain('claude-opus-4.5-20251124');
+    expect(ids).toContain('claude-sonnet-4.5-20250929');
+
+    // Claude 3.5 models (existing)
     expect(ids).toContain('claude-3-5-sonnet-20241022');
     expect(ids).toContain('claude-3-5-haiku-20241022');
-    expect(ids).toContain('claude-3-opus-20240229');
   });
 
   it('should have ownedBy set to anthropic', () => {
@@ -509,8 +513,16 @@ describe('DEFAULT_ANTHROPIC_MODELS', () => {
     expect(haiku?.capabilities?.supportsVision).toBe(false);
   });
 
-  it('should not support JSON mode', () => {
-    for (const model of DEFAULT_ANTHROPIC_MODELS) {
+  it('should have correct JSON mode support', () => {
+    // Claude 4 models support JSON mode
+    const claude4Models = DEFAULT_ANTHROPIC_MODELS.filter(m => m.id.startsWith('claude-opus-4') || m.id.startsWith('claude-sonnet-4'));
+    for (const model of claude4Models) {
+      expect(model.capabilities?.supportsJSON).toBe(true);
+    }
+
+    // Claude 3.5 models don't support JSON mode
+    const claude35Models = DEFAULT_ANTHROPIC_MODELS.filter(m => m.id.startsWith('claude-3-5'));
+    for (const model of claude35Models) {
       expect(model.capabilities?.supportsJSON).toBe(false);
     }
   });

@@ -25,7 +25,10 @@ import {
   createErrorFromHttpResponse,
 } from 'ai.matey.errors';
 import { normalizeSystemMessages } from 'ai.matey.utils';
+import { getModelCache } from 'ai.matey.utils';
 import { getEffectiveStreamMode, mergeStreamingConfig } from 'ai.matey.utils';
+import { buildStaticResult, applyModelFilter, DEFAULT_GEMINI_MODELS } from '../shared.js';
+import type { ListModelsOptions, ListModelsResult, ModelCapabilityFilter, AIModel } from 'ai.matey.types';
 
 // ============================================================================
 // Gemini API Types
@@ -68,10 +71,12 @@ export class GeminiBackendAdapter implements BackendAdapter<GeminiRequest, Gemin
   readonly metadata: AdapterMetadata;
   private readonly config: BackendAdapterConfig;
   private readonly baseURL: string;
+  private readonly modelCache: ReturnType<typeof getModelCache>;
 
   constructor(config: BackendAdapterConfig) {
     this.config = config;
     this.baseURL = config.baseURL || 'https://generativelanguage.googleapis.com/v1beta';
+    this.modelCache = getModelCache(config.modelsCacheScope || 'global');
 
     // Note: Gemini is already browser-compatible by default (API key in URL query parameter)
     // The browserMode flag has no effect for this adapter
@@ -102,7 +107,7 @@ export class GeminiBackendAdapter implements BackendAdapter<GeminiRequest, Gemin
   async execute(request: IRChatRequest, signal?: AbortSignal): Promise<IRChatResponse> {
     try {
       const geminiRequest = this.fromIR(request);
-      const model = request.parameters?.model || 'gemini-pro';
+      const model = request.parameters?.model || this.config.defaultModel || 'gemini-2.0-flash-lite';
       const endpoint = `${this.baseURL}/models/${model}:generateContent?key=${this.config.apiKey}`;
 
       const startTime = Date.now();
@@ -139,7 +144,7 @@ export class GeminiBackendAdapter implements BackendAdapter<GeminiRequest, Gemin
   async *executeStream(request: IRChatRequest, signal?: AbortSignal): IRChatStream {
     try {
       const geminiRequest = this.fromIR(request);
-      const model = request.parameters?.model || 'gemini-pro';
+      const model = request.parameters?.model || this.config.defaultModel || 'gemini-2.0-flash-lite';
       const endpoint = `${this.baseURL}/models/${model}:streamGenerateContent?key=${this.config.apiKey}`;
 
       // Get effective streaming configuration
@@ -278,6 +283,115 @@ export class GeminiBackendAdapter implements BackendAdapter<GeminiRequest, Gemin
 
   estimateCost(_request: IRChatRequest): Promise<number | null> {
     return Promise.resolve(null); // Cost estimation not implemented for Gemini
+  }
+
+  /**
+   * List available Gemini models.
+   *
+   * Fetches from Gemini's models API with fallback to static list.
+   * Results are cached for 1 hour by default.
+   */
+  async listModels(options?: ListModelsOptions): Promise<ListModelsResult> {
+    try {
+      // 1. Check static config override first
+      if (this.config.models && !options?.forceRefresh) {
+        return buildStaticResult(this.config.models, 'google');
+      }
+
+      // 2. Check cache
+      if (this.config.cacheModels !== false && !options?.forceRefresh) {
+        const cached = this.modelCache.get(this.metadata.name);
+        if (cached) {
+          return applyModelFilter(cached, options?.filter as ModelCapabilityFilter);
+        }
+      }
+
+      // 3. Fetch from Gemini API
+      const endpoint = `${this.baseURL}/models?key=${this.config.apiKey}`;
+      const response = await fetch(endpoint, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json', ...this.config.headers },
+        signal: AbortSignal.timeout(this.config.timeout || 30000),
+      });
+
+      if (!response.ok) {
+        throw createErrorFromHttpResponse(
+          response.status,
+          response.statusText,
+          await response.text(),
+          { backend: this.metadata.name }
+        );
+      }
+
+      const data = (await response.json()) as { models: any[] };
+
+      // 4. Transform to AIModel format
+      const models = data.models
+        .filter((m) => m.supportedGenerationMethods?.includes('generateContent'))
+        .map((model) => this.transformGeminiModel(model));
+
+      // 5. Build result
+      const result: ListModelsResult = {
+        models,
+        source: 'remote',
+        fetchedAt: Date.now(),
+        isComplete: true,
+      };
+
+      // 6. Cache the result
+      if (this.config.cacheModels !== false) {
+        const ttl = this.config.modelsCacheTTL || 3600000; // 1 hour default
+        this.modelCache.set(this.metadata.name, result, ttl);
+      }
+
+      // 7. Apply filter if requested
+      return applyModelFilter(result, options?.filter as ModelCapabilityFilter);
+    } catch (error) {
+      // 8. Fallback to cached result on error
+      if (!options?.forceRefresh) {
+        const cached = this.modelCache.get(this.metadata.name);
+        if (cached) {
+          return cached;
+        }
+      }
+
+      // 9. Final fallback to DEFAULT_GEMINI_MODELS
+      const result: ListModelsResult = {
+        models: [...DEFAULT_GEMINI_MODELS],
+        source: 'static',
+        fetchedAt: Date.now(),
+        isComplete: true,
+      };
+      return applyModelFilter(result, options?.filter as ModelCapabilityFilter);
+    }
+  }
+
+  /**
+   * Transform Gemini API model to AIModel format.
+   */
+  private transformGeminiModel(model: any): AIModel {
+    return {
+      id: model.name.replace('models/', ''),
+      name: model.displayName || model.name,
+      description: model.description,
+      ownedBy: 'google',
+      capabilities: {
+        maxTokens: model.outputTokenLimit || 8192,
+        contextWindow: model.inputTokenLimit || 1000000,
+        supportsStreaming: true,
+        supportsVision: model.supportedGenerationMethods?.includes('generateContent'),
+        supportsTools: true,
+        supportsJSON: true,
+      },
+    };
+  }
+
+  /**
+   * Invalidate the cached model list.
+   */
+  invalidateModelCache(): GeminiBackendAdapter {
+    this.modelCache.invalidate(this.metadata.name);
+    return this;
   }
 
   /**

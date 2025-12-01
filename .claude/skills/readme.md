@@ -4,7 +4,24 @@ This directory contains detailed Claude skills for creating new adapters and wra
 
 ## Available Skills
 
-### 1. Frontend Adapter Creator (`create-frontend-adapter.md`)
+### 1. Update Backend Model Lists (`update-backend-model-lists.md`)
+
+**Use when:** Checking or updating hard-coded model lists for providers, performing quarterly maintenance, or verifying model list currency.
+
+**What you'll do:** Check provider documentation, compare with current lists, update model definitions, and maintain roadmap documentation.
+
+**Key features:**
+- Quarterly review process for Anthropic and OpenAI models
+- Documentation fetching and comparison
+- Model capability verification
+- Roadmap synchronization
+- Test validation
+
+**Providers covered:** Anthropic (critical), OpenAI (fallback list only)
+
+**Estimated time:** 30 minutes - 1 hour for quarterly review
+
+### 2. Frontend Adapter Creator (`create-frontend-adapter.md`)
 
 **Use when:** Creating a new frontend adapter to convert a provider's API format to Universal IR.
 
@@ -21,7 +38,7 @@ This directory contains detailed Claude skills for creating new adapters and wra
 
 **Estimated time:** 2-4 hours for complete implementation with tests
 
-### 2. Backend HTTP Adapter Creator (`create-backend-http-adapter.md`)
+### 3. Backend HTTP Adapter Creator (`create-backend-http-adapter.md`)
 
 **Use when:** Creating a new backend adapter to call a provider's HTTP API.
 
@@ -38,7 +55,7 @@ This directory contains detailed Claude skills for creating new adapters and wra
 
 **Estimated time:** 3-6 hours for complete implementation with tests
 
-### 3. Backend Native Adapter Creator (`create-backend-native-adapter.md`)
+### 4. Backend Native Adapter Creator (`create-backend-native-adapter.md`)
 
 **Use when:** Creating a backend adapter for local inference using native libraries or frameworks.
 
@@ -55,7 +72,7 @@ This directory contains detailed Claude skills for creating new adapters and wra
 
 **Estimated time:** 4-8 hours for complete implementation with tests
 
-### 4. Wrapper Creator (`create-wrapper.md`)
+### 5. Wrapper Creator (`create-wrapper.md`)
 
 **Use when:** Creating a wrapper to provide a familiar API surface on top of backend adapters.
 
