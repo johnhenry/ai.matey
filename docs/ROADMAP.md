@@ -471,13 +471,33 @@ Legend: ⭐⭐ = Excellent (best-in-class), ⭐ = Good (competitive), ⚠️ = L
 - 🎯 **Zero-dependency**: Zod is an **optional peer dependency** - only required if you use structured output features
 - 💡 **Installation**: Users only install `zod` if they need `generateObject()` or `streamObject()`
 
-**2. Enhanced Documentation**
+**2. Integration Patterns Library** (Q1 2026)
+- **Status**: 8 patterns discovered and validated through comprehensive testing
+- **Goal**: Extract patterns into reusable utilities and document for community use
+- **Patterns validated**:
+  - Complexity-based routing (query analysis → provider selection)
+  - Parallel provider aggregation (A/B testing, redundancy)
+  - Automatic failover with health tracking
+  - Cost-optimized dynamic selection (84% savings demonstrated)
+  - WebSocket real-time streaming (15/15 tests passing)
+  - Batch processing with rate limiting (14.87 req/s throughput)
+  - Advanced middleware composition (<10ms overhead)
+  - Continuous health monitoring
+- **Deliverables**:
+  - Create `ai.matey.patterns` package with reusable utilities
+  - Document patterns in `docs/PATTERNS.md`
+  - Add WebSocket support to `ai.matey.http/websocket`
+  - Publish pattern examples repository
+
+**3. Enhanced Documentation**
+- Integration patterns guide (based on validated test applications)
+- Performance benchmarks reference
 - Interactive code examples
 - Step-by-step guides for common patterns
 - More real-world examples
 - API reference improvements
 
-**3. Circuit Breaker Enhancement** (⭐ → ⭐⭐)
+**4. Circuit Breaker Enhancement** (Q2 2026) (⭐ → ⭐⭐)
 - **OpenTelemetry integration**: Emit circuit state changes as spans/events
   - `circuit.opened`, `circuit.half_open`, `circuit.closed` events
   - Failure count, threshold, and timeout as span attributes
@@ -488,8 +508,8 @@ Legend: ⭐⭐ = Excellent (best-in-class), ⭐ = Good (competitive), ⚠️ = L
 - Per-model circuit breakers (not just per-provider)
 - Health check improvements with circuit status
 
-**4. HTTP Server Improvements** (⭐ → ⭐⭐)
-- WebSocket support for real-time streaming
+**5. HTTP Server Improvements** (Q2 2026) (⭐ → ⭐⭐)
+- **WebSocket support** for real-time streaming ✅ **Validated** (15/15 tests passing, 101ms latency)
 - Server-Sent Events (SSE) improvements
 - Better error handling and status codes
 - Request/response compression
@@ -500,7 +520,7 @@ Legend: ⭐⭐ = Excellent (best-in-class), ⭐ = Good (competitive), ⚠️ = L
   - Circuit breaker status included
 - Health check endpoints with detailed status (`/health`, `/health/ready`, `/health/live`)
 
-**5. Embeddings Support**
+**6. Embeddings Support** (Q2 2026)
 - Embedding generation across providers (24 backends)
 - Batch embedding support with automatic chunking
 - Vector dimension normalization across providers
