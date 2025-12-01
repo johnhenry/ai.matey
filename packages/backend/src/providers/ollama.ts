@@ -14,6 +14,9 @@ import type {
   IRChatStream,
   IRMessage,
   IRStreamChunk,
+  ListModelsOptions,
+  ListModelsResult,
+  AIModel,
 } from 'ai.matey.types';
 import {
   NetworkError,
@@ -24,6 +27,7 @@ import {
 } from 'ai.matey.errors';
 import { normalizeSystemMessages } from 'ai.matey.utils';
 import { getEffectiveStreamMode, mergeStreamingConfig } from 'ai.matey.utils';
+import { buildStaticResult, applyModelFilter, type ModelCapabilityFilter } from '../shared.js';
 
 // ============================================================================
 // Ollama API Types
@@ -331,6 +335,94 @@ export class OllamaBackendAdapter implements BackendAdapter<OllamaRequest, Ollam
         custom: { ...originalRequest.metadata.custom, latencyMs },
       },
       raw: response as unknown as Record<string, unknown>,
+    };
+  }
+
+  /**
+   * List locally available models from Ollama.
+   *
+   * Priority order:
+   * 1. Static config override (this.config.models)
+   * 2. API fetch (http://localhost:11434/api/tags)
+   * 3. Empty array (Ollama not running or no models installed)
+   *
+   * Note: Unlike cloud providers, Ollama models are local and dynamic.
+   * No caching or fallback list - always fetches fresh from local server.
+   *
+   * @param options - Optional filter settings
+   * @returns Promise resolving to list of locally installed models
+   */
+  async listModels(options?: ListModelsOptions): Promise<ListModelsResult> {
+    try {
+      // 1. Check static config override first
+      if (this.config.models) {
+        return buildStaticResult(this.config.models, 'ollama');
+      }
+
+      // 2. Fetch from Ollama local API
+      const response = await fetch(`${this.baseURL}/api/tags`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json', ...this.config.headers },
+        signal: AbortSignal.timeout(this.config.timeout || 5000),
+      });
+
+      if (!response.ok) {
+        throw createErrorFromHttpResponse(
+          response.status,
+          response.statusText,
+          await response.text(),
+          { backend: this.metadata.name }
+        );
+      }
+
+      const data = (await response.json()) as { models: any[] };
+
+      // 3. Transform to AIModel format
+      const models = data.models.map((model) => this.transformOllamaModel(model));
+
+      // 4. Build result
+      const result: ListModelsResult = {
+        models,
+        source: 'remote',
+        fetchedAt: Date.now(),
+        isComplete: true,
+      };
+
+      // 5. Apply filter if requested
+      return applyModelFilter(result, options?.filter as ModelCapabilityFilter);
+    } catch (error) {
+      // 6. Return empty list if Ollama not running or error
+      // No fallback models for Ollama since it's dynamic/local
+      const result: ListModelsResult = {
+        models: [],
+        source: 'static',
+        fetchedAt: Date.now(),
+        isComplete: true,
+      };
+      return applyModelFilter(result, options?.filter as ModelCapabilityFilter);
+    }
+  }
+
+  /**
+   * Transform Ollama API model to AIModel format.
+   */
+  private transformOllamaModel(model: any): AIModel {
+    // Parse parameter size from details (e.g., "3B", "7B", "13B")
+    const paramSize = model.details?.parameter_size || 'unknown';
+
+    return {
+      id: model.name,
+      name: model.name,
+      description: `${model.details?.family || 'Local'} model (${paramSize})`,
+      ownedBy: 'ollama',
+      capabilities: {
+        maxTokens: 4096,
+        contextWindow: model.details?.context_length || 4096,
+        supportsStreaming: true,
+        supportsVision: false,
+        supportsTools: false,
+        supportsJSON: false,
+      },
     };
   }
 }

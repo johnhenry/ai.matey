@@ -27,8 +27,8 @@ import {
 import { normalizeSystemMessages } from 'ai.matey.utils';
 import { getModelCache } from 'ai.matey.utils';
 import { getEffectiveStreamMode, mergeStreamingConfig } from 'ai.matey.utils';
-import { buildStaticResult, applyModelFilter, DEFAULT_MISTRAL_MODELS } from '../shared.js';
-import type { ListModelsOptions, ListModelsResult, ModelCapabilityFilter, AIModel } from 'ai.matey.types';
+import { buildStaticResult, applyModelFilter, DEFAULT_MISTRAL_MODELS, type ModelCapabilityFilter } from '../shared.js';
+import type { ListModelsOptions, ListModelsResult, AIModel } from 'ai.matey.types';
 
 // ============================================================================
 // Mistral API Types (OpenAI-compatible)
@@ -303,7 +303,11 @@ export class MistralBackendAdapter implements BackendAdapter<MistralRequest, Mis
 
       const response = await fetch(`${this.baseURL}/models`, {
         method: 'GET',
-        headers: this.getHeaders(),
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${this.config.apiKey}`,
+          ...this.config.headers,
+        },
         signal: AbortSignal.timeout(this.config.timeout || 30000),
       });
 

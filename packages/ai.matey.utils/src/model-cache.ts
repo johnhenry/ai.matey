@@ -78,11 +78,8 @@ export class ModelCache {
       return null;
     }
 
-    // Return cached result with updated source
-    return {
-      ...entry.result,
-      source: 'cache',
-    };
+    // Return cached result (preserve original source)
+    return entry.result;
   }
 
   /**

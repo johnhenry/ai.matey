@@ -15,6 +15,9 @@ import type {
   IRMessage,
   IRStreamChunk,
   FinishReason,
+  ListModelsOptions,
+  ListModelsResult,
+  AIModel,
 } from 'ai.matey.types';
 import {
   AdapterConversionError,
@@ -24,8 +27,9 @@ import {
   ErrorCode,
   createErrorFromHttpResponse,
 } from 'ai.matey.errors';
-import { normalizeSystemMessages } from 'ai.matey.utils';
+import { normalizeSystemMessages, getModelCache } from 'ai.matey.utils';
 import { getEffectiveStreamMode, mergeStreamingConfig } from 'ai.matey.utils';
+import { buildStaticResult, applyModelFilter, DEFAULT_COHERE_MODELS, type ModelCapabilityFilter } from '../shared.js';
 
 // ============================================================================
 // Cohere API Types (Custom API)
@@ -112,10 +116,12 @@ export class CohereBackendAdapter implements BackendAdapter<CohereRequest, Coher
   readonly metadata: AdapterMetadata;
   private readonly config: BackendAdapterConfig;
   private readonly baseURL: string;
+  private readonly modelCache: ReturnType<typeof getModelCache>;
 
   constructor(config: BackendAdapterConfig) {
     this.config = config;
     this.baseURL = config.baseURL || 'https://api.cohere.ai/v1';
+    this.modelCache = getModelCache(config.modelsCacheScope || 'global');
     this.metadata = {
       name: 'cohere-backend',
       version: '1.0.0',
@@ -192,7 +198,7 @@ export class CohereBackendAdapter implements BackendAdapter<CohereRequest, Coher
 
     // Add model if specified
     if (request.parameters?.model || this.config.defaultModel) {
-      cohereRequest.model = request.parameters?.model || this.config.defaultModel || 'command-r';
+      cohereRequest.model = request.parameters?.model || this.config.defaultModel || 'command-r7b';
     }
 
     // Add chat history if present
@@ -509,5 +515,121 @@ export class CohereBackendAdapter implements BackendAdapter<CohereRequest, Coher
     const outputCost = (outputTokens / 1_000_000) * modelPricing.output;
 
     return Promise.resolve(inputCost + outputCost);
+  }
+
+  /**
+   * List available models from Cohere API with caching and fallback.
+   *
+   * Priority order:
+   * 1. Static config override (this.config.models)
+   * 2. Cached result (1 hour TTL)
+   * 3. API fetch (https://api.cohere.ai/v1/models)
+   * 4. Fallback to DEFAULT_COHERE_MODELS
+   *
+   * @param options - Optional filter and refresh settings
+   * @returns Promise resolving to list of models
+   */
+  async listModels(options?: ListModelsOptions): Promise<ListModelsResult> {
+    try {
+      // 1. Check static config override first
+      if (this.config.models && !options?.forceRefresh) {
+        return buildStaticResult(this.config.models, 'cohere');
+      }
+
+      // 2. Check cache
+      if (this.config.cacheModels !== false && !options?.forceRefresh) {
+        const cached = this.modelCache.get(this.metadata.name);
+        if (cached) {
+          return applyModelFilter(cached, options?.filter as ModelCapabilityFilter);
+        }
+      }
+
+      // 3. Fetch from Cohere API
+      const response = await fetch(`${this.baseURL}/models`, {
+        method: 'GET',
+        headers: this.getHeaders(),
+        signal: AbortSignal.timeout(this.config.timeout || 30000),
+      });
+
+      if (!response.ok) {
+        throw createErrorFromHttpResponse(
+          response.status,
+          response.statusText,
+          await response.text(),
+          { backend: this.metadata.name }
+        );
+      }
+
+      const data = (await response.json()) as { models: any[] };
+
+      // 4. Transform to AIModel format - filter for chat models
+      const models = data.models
+        .filter((m) => m.endpoints?.includes('chat'))
+        .map((model) => this.transformCohereModel(model));
+
+      // 5. Build result
+      const result: ListModelsResult = {
+        models,
+        source: 'remote',
+        fetchedAt: Date.now(),
+        isComplete: true,
+      };
+
+      // 6. Cache the result
+      if (this.config.cacheModels !== false) {
+        const ttl = this.config.modelsCacheTTL || 3600000; // 1 hour default
+        this.modelCache.set(this.metadata.name, result, ttl);
+      }
+
+      // 7. Apply filter if requested
+      return applyModelFilter(result, options?.filter as ModelCapabilityFilter);
+    } catch (error) {
+      // 8. Fallback to cached result on error
+      if (!options?.forceRefresh) {
+        const cached = this.modelCache.get(this.metadata.name);
+        if (cached) {
+          return cached;
+        }
+      }
+
+      // 9. Final fallback to DEFAULT_COHERE_MODELS
+      const result: ListModelsResult = {
+        models: [...DEFAULT_COHERE_MODELS],
+        source: 'static',
+        fetchedAt: Date.now(),
+        isComplete: true,
+      };
+      return applyModelFilter(result, options?.filter as ModelCapabilityFilter);
+    }
+  }
+
+  /**
+   * Transform Cohere API model to AIModel format.
+   */
+  private transformCohereModel(model: any): AIModel {
+    return {
+      id: model.name,
+      name: model.name,
+      ownedBy: 'cohere',
+      capabilities: {
+        maxTokens: 4096,
+        contextWindow: model.context_length || 128000,
+        supportsStreaming: true,
+        supportsVision: false,
+        supportsTools: false,
+        supportsJSON: false,
+      },
+    };
+  }
+
+  /**
+   * Invalidate the model cache for this provider.
+   * Useful when you want to force a fresh fetch on next listModels() call.
+   *
+   * @returns this for chaining
+   */
+  invalidateModelCache(): CohereBackendAdapter {
+    this.modelCache.invalidate(this.metadata.name);
+    return this;
   }
 }

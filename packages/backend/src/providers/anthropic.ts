@@ -17,7 +17,7 @@ import type {
   FinishReason,
   MessageContent,
 } from 'ai.matey.types';
-import type { AIModel, ListModelsOptions, ListModelsResult } from 'ai.matey.types';
+import type { ListModelsOptions, ListModelsResult } from 'ai.matey.types';
 import {
   AdapterConversionError,
   NetworkError,
@@ -33,6 +33,7 @@ import {
   buildStaticResult,
   applyModelFilter,
   type ModelCapabilityFilter,
+  DEFAULT_ANTHROPIC_MODELS,
 } from '../shared.js';
 
 // ============================================================================
@@ -129,87 +130,6 @@ export type AnthropicStreamEvent =
     }
   | { type: 'message_stop' }
   | { type: 'error'; error: { type: string; message: string } };
-
-// ============================================================================
-// Default Anthropic Models
-// ============================================================================
-
-/**
- * Default list of Anthropic Claude models.
- * Used when no custom model list is provided in config.
- */
-const DEFAULT_ANTHROPIC_MODELS: readonly AIModel[] = [
-  {
-    id: 'claude-3-5-sonnet-20241022',
-    name: 'Claude 3.5 Sonnet (Oct 2024)',
-    description: 'Most intelligent model with excellent reasoning and analysis',
-    ownedBy: 'anthropic',
-    capabilities: {
-      maxTokens: 8192,
-      contextWindow: 200000,
-      supportsStreaming: true,
-      supportsVision: true,
-      supportsTools: true,
-      supportsJSON: false,
-    },
-  },
-  {
-    id: 'claude-3-5-haiku-20241022',
-    name: 'Claude 3.5 Haiku (Oct 2024)',
-    description: 'Fastest and most compact model for high-throughput tasks',
-    ownedBy: 'anthropic',
-    capabilities: {
-      maxTokens: 8192,
-      contextWindow: 200000,
-      supportsStreaming: true,
-      supportsVision: false,
-      supportsTools: true,
-      supportsJSON: false,
-    },
-  },
-  {
-    id: 'claude-3-opus-20240229',
-    name: 'Claude 3 Opus (Feb 2024)',
-    description: 'Previous top-tier model with strong performance',
-    ownedBy: 'anthropic',
-    capabilities: {
-      maxTokens: 4096,
-      contextWindow: 200000,
-      supportsStreaming: true,
-      supportsVision: true,
-      supportsTools: true,
-      supportsJSON: false,
-    },
-  },
-  {
-    id: 'claude-3-sonnet-20240229',
-    name: 'Claude 3 Sonnet (Feb 2024)',
-    description: 'Balanced intelligence and speed',
-    ownedBy: 'anthropic',
-    capabilities: {
-      maxTokens: 4096,
-      contextWindow: 200000,
-      supportsStreaming: true,
-      supportsVision: true,
-      supportsTools: true,
-      supportsJSON: false,
-    },
-  },
-  {
-    id: 'claude-3-haiku-20240307',
-    name: 'Claude 3 Haiku (Mar 2024)',
-    description: 'Fast and compact model',
-    ownedBy: 'anthropic',
-    capabilities: {
-      maxTokens: 4096,
-      contextWindow: 200000,
-      supportsStreaming: true,
-      supportsVision: false,
-      supportsTools: false,
-      supportsJSON: false,
-    },
-  },
-] as const;
 
 // ============================================================================
 // Anthropic Backend Adapter

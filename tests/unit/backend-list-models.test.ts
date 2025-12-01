@@ -44,6 +44,8 @@ const mockFetchError = (error: Error) => {
 describe('GeminiBackendAdapter.listModels', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
+    // Clear cache to ensure test isolation
+    new GeminiBackendAdapter({ apiKey: 'test' }).invalidateModelCache();
   });
 
   afterEach(() => {
@@ -142,6 +144,8 @@ describe('GeminiBackendAdapter.listModels', () => {
 describe('MistralBackendAdapter.listModels', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
+    // Clear cache to ensure test isolation
+    new MistralBackendAdapter({ apiKey: 'test' }).invalidateModelCache();
   });
 
   it('should return static config models when provided', async () => {
@@ -209,6 +213,8 @@ describe('MistralBackendAdapter.listModels', () => {
 describe('CohereBackendAdapter.listModels', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
+    // Clear cache to ensure test isolation
+    new CohereBackendAdapter({ apiKey: 'test' }).invalidateModelCache();
   });
 
   it('should return static config models when provided', async () => {
