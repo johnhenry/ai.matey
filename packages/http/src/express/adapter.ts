@@ -8,7 +8,6 @@
 
 import type { Request, Response } from 'express';
 import type { GenericRequest, GenericResponse } from 'ai.matey.http.core';
-import { sendSSEHeaders, sendSSEChunk, sendSSEDone } from 'ai.matey.http.core';
 
 /**
  * Adapter that converts Express Request to GenericRequest
@@ -126,32 +125,38 @@ export class ExpressResponseAdapter implements GenericResponse {
 
     this._headersSent = true;
 
-    // Get the underlying Node.js response for SSE
-    const nodeRes = this.res as any;
+    // Set up SSE manually for Express compatibility
+    this.res.status(200);
+    this.res.setHeader('Content-Type', 'text/event-stream');
+    this.res.setHeader('Cache-Control', 'no-cache');
+    this.res.setHeader('Connection', 'keep-alive');
+    this.res.setHeader('Transfer-Encoding', 'chunked');
 
-    // Set SSE headers
-    sendSSEHeaders(nodeRes, {});
+    // Flush headers immediately
+    this.res.flushHeaders();
 
     try {
       // Stream chunks
       for await (const chunk of generator) {
-        if (!this.isWritable()) {
+        if (!this.res.writable) {
           break;
         }
-        sendSSEChunk(nodeRes, chunk);
+
+        // Write SSE formatted data
+        const json = JSON.stringify(chunk);
+        this.res.write(`data: ${json}\n\n`);
       }
 
       // Send done marker
-      if (this.isWritable()) {
-        sendSSEDone(nodeRes);
+      if (this.res.writable) {
+        this.res.write('data: [DONE]\n\n');
+        this.res.end();
       }
     } catch (error) {
       // If error occurs during streaming, we can't change status code
-      // Just log and close
-      console.error('Streaming error:', error);
-
-      if (this.isWritable()) {
-        nodeRes.end();
+      // Just close the connection
+      if (this.res.writable) {
+        this.res.end();
       }
     }
   }
