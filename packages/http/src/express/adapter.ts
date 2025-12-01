@@ -152,7 +152,7 @@ export class ExpressResponseAdapter implements GenericResponse {
         this.res.write('data: [DONE]\n\n');
         this.res.end();
       }
-    } catch (error) {
+    } catch {
       // If error occurs during streaming, we can't change status code
       // Just close the connection
       if (this.res.writable) {

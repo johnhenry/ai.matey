@@ -275,7 +275,9 @@ describe('Chat', () => {
       delete (backend as any).executeStream;
       const chat = new Chat({ backend });
 
-      const response = await chat.stream('Hi');
+      const response = await chat.stream('Hi', {
+        onDone: () => {}, // Callback triggers callback mode which returns Promise<ChatResponse>
+      });
 
       expect(response.content).toBe('Mock response');
     });

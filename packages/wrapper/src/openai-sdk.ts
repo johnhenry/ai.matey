@@ -363,15 +363,24 @@ export class OpenAIClient {
 /**
  * Create an OpenAI SDK-compatible client using any backend adapter.
  *
+ * Supports both calling styles:
+ * - Factory: `OpenAI(backend, config)`
+ * - Constructor: `new OpenAI({ backend, ...config })`
+ *
  * @example
  * ```typescript
  * import { OpenAI } from 'ai.matey.wrapper/openai';
  * import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
  *
  * const backend = new AnthropicBackendAdapter({ apiKey: 'sk-ant-...' });
- * const client = OpenAI(backend);
  *
- * const completion = await client.chat.completions.create({
+ * // Factory style
+ * const client1 = OpenAI(backend);
+ *
+ * // Constructor style
+ * const client2 = new OpenAI({ backend });
+ *
+ * const completion = await client1.chat.completions.create({
  *   model: 'claude-3-5-sonnet',
  *   messages: [
  *     { role: 'user', content: 'Hello!' }
@@ -381,6 +390,16 @@ export class OpenAIClient {
  * console.log(completion.choices[0].message.content);
  * ```
  */
-export function OpenAI(backend: BackendAdapter, config?: OpenAISDKConfig): OpenAIClient {
-  return new OpenAIClient(backend, config);
+export function OpenAI(
+  backendOrConfig: BackendAdapter | ({ backend: BackendAdapter } & OpenAISDKConfig),
+  config?: OpenAISDKConfig
+): OpenAIClient {
+  // Support both calling styles:
+  // 1. OpenAI(backend, config) - factory style
+  // 2. new OpenAI({ backend, ...config }) - constructor style from README
+  if (backendOrConfig && typeof backendOrConfig === 'object' && 'backend' in backendOrConfig) {
+    const { backend, ...restConfig } = backendOrConfig;
+    return new OpenAIClient(backend, restConfig);
+  }
+  return new OpenAIClient(backendOrConfig, config);
 }

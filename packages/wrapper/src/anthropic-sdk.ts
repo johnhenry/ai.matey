@@ -324,15 +324,24 @@ export class AnthropicClient {
 /**
  * Create an Anthropic SDK-compatible client using any backend adapter.
  *
+ * Supports both calling styles:
+ * - Factory: `Anthropic(backend, config)`
+ * - Constructor: `new Anthropic({ backend, ...config })`
+ *
  * @example
  * ```typescript
  * import { Anthropic } from 'ai.matey.wrapper/anthropic';
  * import { OpenAIBackendAdapter } from 'ai.matey.backend/openai';
  *
  * const backend = new OpenAIBackendAdapter({ apiKey: 'sk-...' });
- * const client = Anthropic(backend);
  *
- * const message = await client.messages.create({
+ * // Factory style
+ * const client1 = Anthropic(backend);
+ *
+ * // Constructor style
+ * const client2 = new Anthropic({ backend });
+ *
+ * const message = await client1.messages.create({
  *   model: 'gpt-4',
  *   max_tokens: 1024,
  *   messages: [
@@ -343,6 +352,16 @@ export class AnthropicClient {
  * console.log(message.content[0].text);
  * ```
  */
-export function Anthropic(backend: BackendAdapter, config?: AnthropicSDKConfig): AnthropicClient {
-  return new AnthropicClient(backend, config);
+export function Anthropic(
+  backendOrConfig: BackendAdapter | ({ backend: BackendAdapter } & AnthropicSDKConfig),
+  config?: AnthropicSDKConfig
+): AnthropicClient {
+  // Support both calling styles:
+  // 1. Anthropic(backend, config) - factory style
+  // 2. new Anthropic({ backend, ...config }) - constructor style from README
+  if (backendOrConfig && typeof backendOrConfig === 'object' && 'backend' in backendOrConfig) {
+    const { backend, ...restConfig } = backendOrConfig;
+    return new AnthropicClient(backend, restConfig);
+  }
+  return new AnthropicClient(backendOrConfig, config);
 }

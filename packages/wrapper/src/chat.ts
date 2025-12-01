@@ -187,11 +187,52 @@ export class Chat {
   /**
    * Send a message and stream the response.
    *
+   * Supports two modes:
+   * 1. Generator mode (no callbacks): Returns async iterable for use with `for await...of`
+   * 2. Callback mode (with callbacks): Returns promise and calls callbacks
+   *
    * @param content - The message content
    * @param options - Streaming options with callbacks
-   * @returns The final response after streaming completes
+   * @returns Async iterable of chunks (generator mode) or promise of final response (callback mode)
+   *
+   * @example
+   * // Generator mode
+   * for await (const chunk of chat.stream('Hello')) {
+   *   console.log(chunk.delta);
+   * }
+   *
+   * // Callback mode
+   * await chat.stream('Hello', {
+   *   onChunk: (chunk) => console.log(chunk.delta),
+   *   onDone: (response) => console.log('Done!')
+   * });
    */
-  async stream(
+  stream(
+    content: string | readonly MessageContent[],
+    options?: StreamOptions
+  ): AsyncGenerator<StreamChunkEvent, void, undefined> | Promise<ChatResponse> {
+    // Check if using callback-based API or generator-based API
+    const hasCallbacks =
+      options &&
+      (options.onChunk ||
+        options.onStart ||
+        options.onDone ||
+        options.onError ||
+        options.onToolUse);
+
+    if (hasCallbacks) {
+      // Callback mode: return promise
+      return this.streamWithCallbacks(content, options);
+    } else {
+      // Generator mode: return async iterable
+      return this.streamAsGenerator(content, options);
+    }
+  }
+
+  /**
+   * Stream with callback-based API (legacy).
+   */
+  private async streamWithCallbacks(
     content: string | readonly MessageContent[],
     options?: StreamOptions
   ): Promise<ChatResponse> {
@@ -213,6 +254,86 @@ export class Chat {
       this.setError(err);
       this.setLoading(false);
       options?.onError?.(err);
+      throw err;
+    }
+  }
+
+  /**
+   * Stream as async generator (for `for await...of` usage).
+   */
+  private async *streamAsGenerator(
+    content: string | readonly MessageContent[],
+    options?: StreamOptions
+  ): AsyncGenerator<StreamChunkEvent, void, undefined> {
+    this.setLoading(true);
+    this.setError(null);
+
+    try {
+      // Add user message to history
+      const userMessage = this.createUserMessage(content);
+      this.addMessage(userMessage);
+
+      // Build request
+      const request = await this.buildRequest(options);
+
+      // Check if backend supports streaming
+      if (!this.backend.executeStream) {
+        // Fall back to non-streaming - yield accumulated text as single chunk
+        const irResponse = await this.backend.execute(request, options?.signal);
+        const response = this.processResponse(irResponse);
+        this.addMessage(irResponse.message);
+
+        yield {
+          delta: response.content,
+          accumulated: response.content,
+          sequence: 0,
+        };
+
+        this.setLoading(false);
+        return;
+      }
+
+      const stream = this.backend.executeStream(request, options?.signal);
+
+      let accumulated = '';
+      let sequence = 0;
+
+      for await (const chunk of stream) {
+        if (chunk.type === 'content') {
+          accumulated += chunk.delta;
+          sequence = chunk.sequence;
+
+          const event: StreamChunkEvent = {
+            delta: chunk.delta,
+            accumulated,
+            sequence,
+          };
+
+          yield event;
+        } else if (chunk.type === 'done') {
+          // Add final message to history
+          const message = chunk.message ?? {
+            role: 'assistant' as const,
+            content: accumulated,
+          };
+          this.addMessage(message);
+
+          if (chunk.usage) {
+            this.updateUsage(chunk.usage);
+          }
+
+          this._requestCount++;
+          break;
+        } else if (chunk.type === 'error') {
+          throw new Error(chunk.error.message);
+        }
+      }
+
+      this.setLoading(false);
+    } catch (error) {
+      const err = error instanceof Error ? error : new Error(String(error));
+      this.setError(err);
+      this.setLoading(false);
       throw err;
     }
   }

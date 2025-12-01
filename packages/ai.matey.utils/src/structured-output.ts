@@ -148,8 +148,8 @@ function zodToJsonSchema(schema: any): JSONSchema {
 
   // Handle ZodObject
   if (typeName === 'ZodObject') {
-    // shape is a getter property, not a method
-    const shape = def.shape;
+    // In Zod v3, shape is accessed from the schema object itself, not from _def
+    const shape = schema.shape || def.shape || {};
     const properties: Record<string, JSONSchema> = {};
     const required: string[] = [];
 
@@ -236,13 +236,11 @@ function zodToJsonSchema(schema: any): JSONSchema {
 
   // Handle ZodEnum
   if (typeName === 'ZodEnum') {
-    // Enum values are in _def.entries as an object - extract the values
-    const entries = def.entries;
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
-    const values = entries ? (Object.values(entries) as string[]) : [];
+    // In Zod v3, enum values are in _def.values (array)
+    const values = def.values || [];
     const result: JSONSchema = {
       type: 'string',
-      enum: values,
+      enum: Array.isArray(values) ? values : Object.values(values),
     };
     const description = schema.description;
     if (description) {
