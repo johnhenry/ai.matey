@@ -33,6 +33,18 @@ const mockFetch = (response: any) => {
   });
 };
 
+const mockFetchMultiple = (...responses: any[]) => {
+  const mock = vi.fn();
+  responses.forEach((response) => {
+    mock.mockResolvedValueOnce({
+      ok: true,
+      json: async () => response,
+    });
+  });
+  global.fetch = mock;
+  return mock;
+};
+
 const mockFetchError = (error: Error) => {
   global.fetch = vi.fn().mockRejectedValueOnce(error);
 };
@@ -104,15 +116,16 @@ describe('GeminiBackendAdapter.listModels', () => {
   });
 
   it('should respect forceRefresh option', async () => {
-    mockFetch({ models: [{ name: 'models/test-1' }] });
+    const fetchMock = mockFetchMultiple(
+      { models: [{ name: 'models/test-1', supportedGenerationMethods: ['generateContent'] }] },
+      { models: [{ name: 'models/test-2', supportedGenerationMethods: ['generateContent'] }] }
+    );
     const adapter = new GeminiBackendAdapter({ apiKey: 'test-key' });
 
     await adapter.listModels(); // Fill cache
-
-    mockFetch({ models: [{ name: 'models/test-2' }] });
     await adapter.listModels({ forceRefresh: true });
 
-    expect(global.fetch).toHaveBeenCalledTimes(2);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
   it('should filter models by capabilities', async () => {
@@ -193,16 +206,17 @@ describe('MistralBackendAdapter.listModels', () => {
   });
 
   it('should invalidate cache', async () => {
-    mockFetch({ object: 'list', data: [] });
+    const fetchMock = mockFetchMultiple(
+      { object: 'list', data: [{ id: 'mistral-1', object: 'model' }] },
+      { object: 'list', data: [{ id: 'mistral-2', object: 'model' }] }
+    );
     const adapter = new MistralBackendAdapter({ apiKey: 'test-key' });
 
     await adapter.listModels();
     adapter.invalidateModelCache();
-
-    mockFetch({ object: 'list', data: [] });
     await adapter.listModels();
 
-    expect(global.fetch).toHaveBeenCalledTimes(2);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 });
 
