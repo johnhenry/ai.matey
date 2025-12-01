@@ -8,7 +8,7 @@
  */
 
 import { useState, useCallback, useRef, useId, useEffect } from 'react';
-import { Chat, createChat } from 'ai.matey.wrapper';
+import { Chat, createChat, type ChatResponse } from 'ai.matey.wrapper';
 import type { IRMessage } from 'ai.matey.types';
 import type { Message, UseChatOptions, UseChatReturn, ChatRequestOptions } from './types.js';
 
@@ -214,14 +214,15 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
         setMessages((prev) => [...prev, assistantMessage]);
 
         // Stream the response
-        const response = await chat.stream(lastMessage.content, {
+        // Using callbacks triggers callback mode, which returns Promise<ChatResponse>
+        const response = (await chat.stream(lastMessage.content, {
           signal,
           onChunk: ({ accumulated }: { accumulated: string; delta: string; sequence: number }) => {
             setMessages((prev) =>
               prev.map((msg) => (msg.id === assistantId ? { ...msg, content: accumulated } : msg))
             );
           },
-        });
+        })) as ChatResponse;
 
         // Finalize message
         const finalMessage: Message = {
