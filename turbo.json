@@ -59,6 +59,19 @@
     "dev": {
       "cache": false,
       "persistent": true
+    },
+    "start": {
+      "cache": false,
+      "persistent": true
+    },
+    "serve": {
+      "cache": false,
+      "persistent": true
+    },
+    "docs:build": {
+      "dependsOn": ["^build"],
+      "outputs": ["build/**", ".docusaurus/**"],
+      "cache": true
     }
   }
 }

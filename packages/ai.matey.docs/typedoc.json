@@ -1,0 +1,61 @@
+{
+  "entryPoints": [
+    "../ai.matey.core/src/index.ts",
+    "../ai.matey.frontend/src/index.ts",
+    "../ai.matey.backend/src/index.ts",
+    "../ai.matey.middleware/src/index.ts",
+    "../ai.matey.http/src/index.ts",
+    "../ai.matey.wrapper/src/index.ts",
+    "../ai.matey.cli/src/index.ts",
+    "../ai.matey.react.hooks/src/index.ts",
+    "../ai.matey.utils/src/index.ts",
+    "../ai.matey.types/src/index.ts"
+  ],
+  "entryPointStrategy": "packages",
+  "out": "docs/api/generated",
+  "plugin": ["typedoc-plugin-markdown"],
+  "readme": "none",
+  "tsconfig": "../../tsconfig.json",
+  "exclude": [
+    "**/*.test.ts",
+    "**/*.spec.ts",
+    "**/test-utils/**",
+    "**/tests/**"
+  ],
+  "excludePrivate": true,
+  "excludeProtected": true,
+  "excludeInternal": true,
+  "githubPages": false,
+  "hideGenerator": true,
+  "includeVersion": true,
+  "navigationLinks": {
+    "Documentation": "https://ai-matey.dev",
+    "GitHub": "https://github.com/johnhenry/ai.matey"
+  },
+  "sort": ["source-order"],
+  "categorizeByGroup": true,
+  "defaultCategory": "Other",
+  "categoryOrder": [
+    "Core",
+    "Frontend Adapters",
+    "Backend Adapters",
+    "Middleware",
+    "HTTP",
+    "Wrappers",
+    "CLI",
+    "React Hooks",
+    "Utilities",
+    "Types",
+    "*"
+  ],
+  "outputFileStrategy": "modules",
+  "mergeReadme": true,
+  "kindSortOrder": [
+    "Class",
+    "Interface",
+    "TypeAlias",
+    "Function",
+    "Variable",
+    "Enum"
+  ]
+}

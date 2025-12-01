@@ -1,0 +1,60 @@
+{
+  "name": "ai.matey.docs",
+  "version": "0.1.0",
+  "description": "Documentation site for AI Matey - Universal AI Adapter System",
+  "private": true,
+  "scripts": {
+    "docusaurus": "docusaurus",
+    "start": "docusaurus start",
+    "build": "docusaurus build",
+    "build:examples": "echo 'Skipping example validation for now'",
+    "build:api-docs": "echo 'Skipping API doc generation for now'",
+    "swizzle": "docusaurus swizzle",
+    "deploy": "docusaurus deploy",
+    "clear": "docusaurus clear",
+    "serve": "docusaurus serve",
+    "write-translations": "docusaurus write-translations",
+    "write-heading-ids": "docusaurus write-heading-ids",
+    "examples:validate": "tsx scripts/validate-examples.ts",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf build .docusaurus"
+  },
+  "dependencies": {
+    "@docusaurus/core": "^3.5.2",
+    "@docusaurus/preset-classic": "^3.5.2",
+    "@mdx-js/react": "^3.0.1",
+    "clsx": "^2.1.1",
+    "prism-react-renderer": "^2.4.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@docusaurus/module-type-aliases": "^3.5.2",
+    "@docusaurus/tsconfig": "^3.5.2",
+    "@docusaurus/types": "^3.5.2",
+    "@types/node": "^22.0.0",
+    "@types/react": "^18.3.12",
+    "ai.matey.core": "*",
+    "ai.matey.frontend": "*",
+    "ai.matey.backend": "*",
+    "ai.matey.middleware": "*",
+    "ai.matey.http": "*",
+    "ai.matey.wrapper": "*",
+    "ai.matey.react.core": "*",
+    "ai.matey.react.hooks": "*",
+    "ai.matey.cli": "*",
+    "ai.matey.types": "*",
+    "ai.matey.utils": "*",
+    "tsx": "^4.19.2",
+    "typedoc": "^0.28.1",
+    "typedoc-plugin-markdown": "^4.9.0",
+    "typescript": "^5.7.2"
+  },
+  "browserslist": {
+    "production": [">0.5%", "not dead", "not op_mini all"],
+    "development": ["last 3 chrome versions", "last 3 firefox versions", "last 5 safari versions"]
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
