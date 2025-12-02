@@ -103,22 +103,73 @@ function generateTypeDocs() {
   }
 }
 
+interface ExportDetail {
+  name: string;
+  kind: 'value' | 'type';
+  description?: string;
+  signature?: string;
+  sourceFile?: string;
+  lineNumber?: number;
+}
+
 interface ExportInfo {
   values: string[];
   types: string[];
+  details: ExportDetail[];
+}
+
+/**
+ * Extract JSDoc description from text before an export
+ */
+function extractJSDocDescription(content: string, position: number): string | undefined {
+  // Look backwards for JSDoc comment
+  const textBefore = content.substring(Math.max(0, position - 500), position);
+  const jsdocMatch = textBefore.match(/\/\*\*\s*([\s\S]*?)\*\/\s*$/);
+
+  if (jsdocMatch) {
+    const comment = jsdocMatch[1];
+    // Extract first line or @description
+    const lines = comment.split('\n').map(l => l.trim().replace(/^\*\s?/, ''));
+    const descLine = lines.find(l => l && !l.startsWith('@'));
+    return descLine || undefined;
+  }
+  return undefined;
+}
+
+/**
+ * Extract function signature
+ */
+function extractSignature(content: string, exportName: string, position: number): string | undefined {
+  // Extract line with the export
+  const afterExport = content.substring(position, position + 300);
+
+  // Try to match function signature
+  const funcMatch = afterExport.match(new RegExp(`(?:function|const)\\s+${exportName}\\s*[=:]?\\s*\\(?([^{]*)`, 'i'));
+  if (funcMatch) {
+    return `${exportName}${funcMatch[1].trim()}`;
+  }
+
+  // Try to match type/interface
+  const typeMatch = afterExport.match(new RegExp(`(?:type|interface)\\s+${exportName}\\s*=?\\s*([^;{]*)`, 'i'));
+  if (typeMatch) {
+    return `${exportName} ${typeMatch[1].trim()}`;
+  }
+
+  return undefined;
 }
 
 /**
  * Extract export names from a TypeScript file recursively
  */
 function extractExportsFromFile(filePath: string, visited = new Set<string>()): ExportInfo {
-  if (!existsSync(filePath) || visited.has(filePath)) return { values: [], types: [] };
+  if (!existsSync(filePath) || visited.has(filePath)) return { values: [], types: [], details: [] };
   visited.add(filePath);
 
   try {
     const content = require('fs').readFileSync(filePath, 'utf-8');
     const values: string[] = [];
     const types: string[] = [];
+    const details: ExportDetail[] = [];
     const fileDir = dirname(filePath);
 
     // Match: export * from './file' - need to recursively extract from those files
@@ -135,6 +186,7 @@ function extractExportsFromFile(filePath: string, visited = new Set<string>()): 
       const subExports = extractExportsFromFile(fullPath, visited);
       values.push(...subExports.values);
       types.push(...subExports.types);
+      details.push(...subExports.details);
     }
 
     // Match: export type { name1, name2 }
@@ -189,9 +241,10 @@ function extractExportsFromFile(filePath: string, visited = new Set<string>()): 
     return {
       values: [...new Set(values)].filter(e => e.length > 0),
       types: [...new Set(types)].filter(e => e.length > 0),
+      details: details,
     };
   } catch (e) {
-    return { values: [], types: [] };
+    return { values: [], types: [], details: [] };
   }
 }
 
