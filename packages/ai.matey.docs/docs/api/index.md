@@ -99,7 +99,7 @@ TypeScript type definitions for all packages.
 - `FrontendAdapter` - Frontend interface
 - `Middleware` - Middleware interface
 
-[View Full API Documentation →](#)
+[View Full API Documentation →](/api/all-packages)
 
 ### ai.matey.errors
 
@@ -112,7 +112,7 @@ Error classes and utilities.
 - `AuthenticationError` - Invalid API key
 - `ValidationError` - Request validation failed
 
-[View Full API Documentation →](#)
+[View Full API Documentation →](/api/all-packages)
 
 ## Adapter Packages
 
@@ -191,14 +191,14 @@ HTTP server integration for Express, Fastify, Hono, and Node.js http.
 
 ### By Package
 
-- [ai.matey.core](#) - Bridge, Router, Middleware
-- [ai.matey.frontend](#) - Frontend adapters
-- [ai.matey.backend](#) - Backend adapters
-- [ai.matey.middleware](#) - Middleware
-- [ai.matey.http](#) - HTTP integration
-- [ai.matey.react.core](#) - React hooks
-- [ai.matey.wrapper](#) - SDK wrappers
-- [ai.matey.cli](#) - CLI tools
+- [ai.matey.core](/api/packages/ai.matey.core) - Bridge, Router, Middleware
+- [ai.matey.frontend](/api/packages/frontend) - Frontend adapters
+- [ai.matey.backend](/api/packages/backend) - Backend adapters
+- [ai.matey.middleware](/api/packages/middleware) - Middleware
+- [ai.matey.http](/api/packages/http) - HTTP integration
+- [ai.matey.react-core](/api/packages/react-core) - React hooks
+- [ai.matey.wrapper](/api/packages/wrapper) - SDK wrappers
+- [ai.matey.cli](/api/packages/cli) - CLI tools
 
 ## Common Interfaces
 
@@ -264,7 +264,7 @@ All ai.matey packages use synchronized versioning. Always use matching versions 
 
 Detailed API documentation is auto-generated from TypeScript source code using TypeDoc:
 
-- [View Complete API Documentation →](#) *(Coming soon - TypeDoc generated)*
+- [View All Packages →](/api/all-packages) - Complete reference for all 21 packages with full exports
 
 ## Contributing
 

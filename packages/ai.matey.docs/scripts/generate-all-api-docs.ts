@@ -104,12 +104,96 @@ function generateTypeDocs() {
 }
 
 /**
+ * Extract export names from a TypeScript file recursively
+ */
+function extractExportsFromFile(filePath: string, visited = new Set<string>()): string[] {
+  if (!existsSync(filePath) || visited.has(filePath)) return [];
+  visited.add(filePath);
+
+  try {
+    const content = require('fs').readFileSync(filePath, 'utf-8');
+    const exports: string[] = [];
+    const fileDir = dirname(filePath);
+
+    // Match: export * from './file' - need to recursively extract from those files
+    const reExportAllMatches = content.matchAll(/export\s+\*\s+from\s+['"]([^'"]+)['"]/g);
+    for (const match of reExportAllMatches) {
+      let importPath = match[1];
+      // Handle .js extensions by converting to .ts
+      if (importPath.endsWith('.js')) {
+        importPath = importPath.replace(/\.js$/, '.ts');
+      } else if (!importPath.endsWith('.ts')) {
+        importPath += '.ts';
+      }
+      const fullPath = join(fileDir, importPath);
+      exports.push(...extractExportsFromFile(fullPath, visited));
+    }
+
+    // Match: export { name1, name2 } from './file'
+    const namedExportMatches = content.matchAll(/export\s*{\s*([^}]+)\s*}(?:\s+from)?/g);
+    for (const match of namedExportMatches) {
+      const names = match[1].split(',').map(n => {
+        // Remove 'type' keyword and aliases (as xxx)
+        const cleaned = n.trim().replace(/^type\s+/, '').split(/\s+as\s+/)[0];
+        return cleaned;
+      });
+      exports.push(...names);
+    }
+
+    // Match: export const/function/class/interface/type/enum name
+    const directExportMatches = content.matchAll(/export\s+(?:const|function|class|interface|type|enum)\s+(\w+)/g);
+    for (const match of directExportMatches) {
+      exports.push(match[1]);
+    }
+
+    // Match: export default
+    if (content.includes('export default')) {
+      exports.push('default');
+    }
+
+    // Remove duplicates and filter out empty strings
+    return [...new Set(exports)].filter(e => e.length > 0);
+  } catch (e) {
+    return [];
+  }
+}
+
+/**
+ * Extract export names from a package's index.ts file
+ */
+function extractExports(pkgPath: string): string[] {
+  const indexPath = join(pkgPath, 'src', 'index.ts');
+  return extractExportsFromFile(indexPath);
+}
+
+/**
  * Generate index pages for each package
  */
 function generatePackageIndexes(packages: PackageInfo[]) {
   console.log('\n📝 Generating package index pages...\n');
 
   for (const pkg of packages) {
+    const exports = extractExports(pkg.path);
+
+    // Format exports list
+    let exportsSection = '';
+    if (exports.length > 0) {
+      const exportsList = exports.map(e => `- \`${e}\``).join('\n');
+      exportsSection = `
+## Exports
+
+${exportsList}
+
+## Usage
+
+\`\`\`typescript
+import {
+  ${exports.join(',\n  ')}
+} from '${pkg.name}';
+\`\`\`
+`;
+    }
+
     const indexContent = `---
 sidebar_position: ${packages.indexOf(pkg) + 1}
 ---
@@ -121,7 +205,7 @@ ${pkg.description || `API documentation for ${pkg.name}`}
 ## Overview
 
 This package is part of the ai.matey ecosystem.
-
+${exportsSection}
 ## Source Code
 
 View the complete source code and implementation details:
@@ -134,12 +218,6 @@ View the complete source code and implementation details:
 - [Examples](https://github.com/johnhenry/ai.matey/tree/main/packages/ai.matey.docs/examples)
 - [Main Documentation](/getting-started/installation)
 - [All Packages](/api/all-packages)
-
-## Usage
-
-\`\`\`typescript
-import { /* exports */ } from '${pkg.name}';
-\`\`\`
 
 See the [package source](https://github.com/johnhenry/ai.matey/tree/main/packages/${pkg.name}) for complete API documentation and examples.
 `;
