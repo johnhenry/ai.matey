@@ -363,5 +363,5 @@ export function Anthropic(
     const { backend, ...restConfig } = backendOrConfig;
     return new AnthropicClient(backend, restConfig);
   }
-  return new AnthropicClient(backendOrConfig, config);
+  return new AnthropicClient(backendOrConfig as BackendAdapter, config);
 }

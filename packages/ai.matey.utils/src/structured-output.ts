@@ -476,7 +476,8 @@ export function createGenerateObject(bridge: any) {
         const validation = validateWithSchema(data, schema);
 
         if (!validation.success) {
-          lastError = new Error(`Validation failed: ${JSON.stringify(validation.errors)}`);
+          const errors = 'errors' in validation ? validation.errors : 'unknown error';
+          lastError = new Error(`Validation failed: ${JSON.stringify(errors)}`);
           continue; // Retry
         }
 
@@ -555,7 +556,8 @@ export function createStreamObject(bridge: any) {
     const validation = validateWithSchema(accumulatedData, schema);
 
     if (!validation.success) {
-      throw new Error(`Validation failed: ${JSON.stringify(validation.errors)}`);
+      const errors = 'errors' in validation ? validation.errors : 'unknown error';
+      throw new Error(`Validation failed: ${JSON.stringify(errors)}`);
     }
 
     return validation.data;

@@ -155,7 +155,7 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
    */
   const handleInputChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-      setInput(e.target.value);
+      setInput((e.target as HTMLInputElement | HTMLTextAreaElement).value);
     },
     []
   );
@@ -494,7 +494,13 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
       }
 
       // Find messages up to the last user message
-      const lastUserIndex = messages.findLastIndex((m: Message) => m.role === 'user');
+      let lastUserIndex = -1;
+      for (let i = messages.length - 1; i >= 0; i--) {
+        if (messages[i].role === 'user') {
+          lastUserIndex = i;
+          break;
+        }
+      }
       if (lastUserIndex === -1) {
         return null;
       }

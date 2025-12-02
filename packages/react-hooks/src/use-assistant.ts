@@ -172,7 +172,7 @@ export function useAssistant(options: UseAssistantOptions = {}): UseAssistantRet
    */
   const handleInputChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-      setInput(e.target.value);
+      setInput((e.target as HTMLInputElement | HTMLTextAreaElement).value);
     },
     []
   );
@@ -244,7 +244,7 @@ export function useAssistant(options: UseAssistantOptions = {}): UseAssistantRet
           throw new Error(`HTTP error! status: ${response.status}`);
         }
 
-        const data = await response.json();
+        const data = await response.json() as any;
 
         // Update thread ID if new
         if (data.threadId && !threadId) {

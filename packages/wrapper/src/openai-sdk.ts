@@ -401,5 +401,5 @@ export function OpenAI(
     const { backend, ...restConfig } = backendOrConfig;
     return new OpenAIClient(backend, restConfig);
   }
-  return new OpenAIClient(backendOrConfig, config);
+  return new OpenAIClient(backendOrConfig as BackendAdapter, config);
 }
