@@ -103,16 +103,22 @@ function generateTypeDocs() {
   }
 }
 
+interface ExportInfo {
+  values: string[];
+  types: string[];
+}
+
 /**
  * Extract export names from a TypeScript file recursively
  */
-function extractExportsFromFile(filePath: string, visited = new Set<string>()): string[] {
-  if (!existsSync(filePath) || visited.has(filePath)) return [];
+function extractExportsFromFile(filePath: string, visited = new Set<string>()): ExportInfo {
+  if (!existsSync(filePath) || visited.has(filePath)) return { values: [], types: [] };
   visited.add(filePath);
 
   try {
     const content = require('fs').readFileSync(filePath, 'utf-8');
-    const exports: string[] = [];
+    const values: string[] = [];
+    const types: string[] = [];
     const fileDir = dirname(filePath);
 
     // Match: export * from './file' - need to recursively extract from those files
@@ -126,42 +132,73 @@ function extractExportsFromFile(filePath: string, visited = new Set<string>()): 
         importPath += '.ts';
       }
       const fullPath = join(fileDir, importPath);
-      exports.push(...extractExportsFromFile(fullPath, visited));
+      const subExports = extractExportsFromFile(fullPath, visited);
+      values.push(...subExports.values);
+      types.push(...subExports.types);
     }
 
-    // Match: export { name1, name2 } from './file'
-    const namedExportMatches = content.matchAll(/export\s*{\s*([^}]+)\s*}(?:\s+from)?/g);
-    for (const match of namedExportMatches) {
+    // Match: export type { name1, name2 }
+    const typeExportMatches = content.matchAll(/export\s+type\s*{\s*([^}]+)\s*}(?:\s+from)?/g);
+    for (const match of typeExportMatches) {
       const names = match[1].split(',').map(n => {
-        // Remove 'type' keyword and aliases (as xxx)
         const cleaned = n.trim().replace(/^type\s+/, '').split(/\s+as\s+/)[0];
         return cleaned;
       });
-      exports.push(...names);
+      types.push(...names);
     }
 
-    // Match: export const/function/class/interface/type/enum name
-    const directExportMatches = content.matchAll(/export\s+(?:const|function|class|interface|type|enum)\s+(\w+)/g);
-    for (const match of directExportMatches) {
-      exports.push(match[1]);
+    // Match: export { name1, type name2 } from './file'
+    const namedExportMatches = content.matchAll(/export\s+{\s*([^}]+)\s*}(?:\s+from)?/g);
+    for (const match of namedExportMatches) {
+      // Skip if this was already matched as a type export
+      if (match[0].includes('export type {')) continue;
+
+      const names = match[1].split(',');
+      for (const name of names) {
+        const trimmed = name.trim();
+        if (trimmed.startsWith('type ')) {
+          // Individual type export: export { type Foo }
+          const cleaned = trimmed.replace(/^type\s+/, '').split(/\s+as\s+/)[0];
+          types.push(cleaned);
+        } else {
+          // Value export
+          const cleaned = trimmed.split(/\s+as\s+/)[0];
+          values.push(cleaned);
+        }
+      }
+    }
+
+    // Match: export interface/type/enum name
+    const typeDefMatches = content.matchAll(/export\s+(?:interface|type|enum)\s+(\w+)/g);
+    for (const match of typeDefMatches) {
+      types.push(match[1]);
+    }
+
+    // Match: export const/function/class name
+    const valueDefMatches = content.matchAll(/export\s+(?:const|function|class)\s+(\w+)/g);
+    for (const match of valueDefMatches) {
+      values.push(match[1]);
     }
 
     // Match: export default
     if (content.includes('export default')) {
-      exports.push('default');
+      values.push('default');
     }
 
     // Remove duplicates and filter out empty strings
-    return [...new Set(exports)].filter(e => e.length > 0);
+    return {
+      values: [...new Set(values)].filter(e => e.length > 0),
+      types: [...new Set(types)].filter(e => e.length > 0),
+    };
   } catch (e) {
-    return [];
+    return { values: [], types: [] };
   }
 }
 
 /**
  * Extract export names from a package's index.ts file
  */
-function extractExports(pkgPath: string): string[] {
+function extractExports(pkgPath: string): ExportInfo {
   const indexPath = join(pkgPath, 'src', 'index.ts');
   return extractExportsFromFile(indexPath);
 }
@@ -177,8 +214,24 @@ function generatePackageIndexes(packages: PackageInfo[]) {
 
     // Format exports list
     let exportsSection = '';
-    if (exports.length > 0) {
-      const exportsList = exports.map(e => `- \`${e}\``).join('\n');
+    const totalExports = exports.values.length + exports.types.length;
+
+    if (totalExports > 0) {
+      let exportsList = '';
+
+      if (exports.values.length > 0) {
+        exportsList += '### Values\n\n';
+        exportsList += exports.values.map(e => `- \`${e}\``).join('\n');
+        exportsList += '\n\n';
+      }
+
+      if (exports.types.length > 0) {
+        exportsList += '### Types\n\n';
+        exportsList += exports.types.map(e => `- \`${e}\``).join('\n');
+        exportsList += '\n\n';
+      }
+
+      const allExports = [...exports.values, ...exports.types];
       exportsSection = `
 ## Exports
 
@@ -188,7 +241,7 @@ ${exportsList}
 
 \`\`\`typescript
 import {
-  ${exports.join(',\n  ')}
+  ${allExports.join(',\n  ')}
 } from '${pkg.name}';
 \`\`\`
 `;
