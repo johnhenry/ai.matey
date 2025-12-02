@@ -32,11 +32,13 @@
     "typedoc-plugin-markdown",
     "typedoc-plugin-missing-exports"
   ],
+  "sanitizeComments": true,
   "readme": "none",
   "disableSources": false,
   "excludePrivate": true,
   "excludeProtected": false,
-  "excludeInternal": false,
+  "excludeInternal": true,
+  "excludeExternals": true,
   "includeVersion": true,
   "categorizeByGroup": true,
   "categoryOrder": [
