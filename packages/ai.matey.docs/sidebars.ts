@@ -99,12 +99,77 @@ const sidebars: SidebarsConfig = {
         {
           type: 'doc',
           id: 'api/all-packages',
-          label: 'All Packages (20+)',
+          label: 'All Packages Overview',
         },
-        'packages/core',
-        'packages/frontend',
-        'packages/backend',
-        'packages/middleware',
+        {
+          type: 'category',
+          label: 'Core',
+          collapsed: true,
+          items: [
+            'api/packages/ai.matey.core',
+            'api/packages/ai.matey.types',
+            'api/packages/ai.matey.errors',
+            'api/packages/ai.matey.utils',
+            'api/packages/ai.matey.testing',
+          ],
+        },
+        {
+          type: 'category',
+          label: 'Adapters',
+          collapsed: true,
+          items: [
+            'api/packages/backend',
+            'api/packages/frontend',
+            'api/packages/backend-browser',
+          ],
+        },
+        {
+          type: 'category',
+          label: 'Middleware',
+          collapsed: true,
+          items: [
+            'api/packages/middleware',
+          ],
+        },
+        {
+          type: 'category',
+          label: 'HTTP',
+          collapsed: true,
+          items: [
+            'api/packages/http',
+            'api/packages/http.core',
+          ],
+        },
+        {
+          type: 'category',
+          label: 'React',
+          collapsed: true,
+          items: [
+            'api/packages/react-core',
+            'api/packages/react-hooks',
+            'api/packages/react-stream',
+            'api/packages/react-nextjs',
+          ],
+        },
+        {
+          type: 'category',
+          label: 'Native',
+          collapsed: true,
+          items: [
+            'api/packages/native-apple',
+            'api/packages/native-node-llamacpp',
+            'api/packages/native-model-runner',
+          ],
+        },
+        {
+          type: 'category',
+          label: 'Utilities',
+          collapsed: true,
+          items: [
+            'api/packages/wrapper',
+            'api/packages/cli',
+          ],
+        },
       ],
     },
     {
