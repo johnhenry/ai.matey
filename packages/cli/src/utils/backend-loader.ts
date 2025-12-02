@@ -68,7 +68,9 @@ export async function loadBackend(options: LoadBackendOptions): Promise<BackendA
   } catch (error) {
     if (error instanceof Error) {
       // Re-throw with better error message
-      throw new Error(`Failed to load backend from ${path}: ${error.message}`, { cause: error });
+      const err = new Error(`Failed to load backend from ${path}: ${error.message}`);
+      (err as any).cause = error;
+      throw err;
     }
     throw error;
   }

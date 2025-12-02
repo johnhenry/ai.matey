@@ -25,7 +25,9 @@
     "../backend-browser/src/index.ts"
   ],
   "entryPointStrategy": "expand",
+  "tsconfig": "./tsconfig.typedoc.json",
   "out": "docs/api/generated",
+  "emit": "docs",
   "plugin": [
     "typedoc-plugin-markdown",
     "typedoc-plugin-missing-exports"

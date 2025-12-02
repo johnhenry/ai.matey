@@ -126,37 +126,69 @@ interface ExportInfo {
  * Extract JSDoc description from text before an export
  */
 function extractJSDocDescription(content: string, position: number): string | undefined {
-  // Look backwards for JSDoc comment
-  const textBefore = content.substring(Math.max(0, position - 500), position);
+  // Look backwards for JSDoc comment, but only immediate preceding comment
+  const textBefore = content.substring(Math.max(0, position - 300), position);
+
+  // Match JSDoc that's directly before the export (with only whitespace/newlines between)
   const jsdocMatch = textBefore.match(/\/\*\*\s*([\s\S]*?)\*\/\s*$/);
 
   if (jsdocMatch) {
     const comment = jsdocMatch[1];
-    // Extract first line or @description
-    const lines = comment.split('\n').map(l => l.trim().replace(/^\*\s?/, ''));
-    const descLine = lines.find(l => l && !l.startsWith('@'));
-    return descLine || undefined;
+
+    // Skip module-level JSDoc comments
+    if (comment.includes('@module') || comment.includes('@packageDocumentation')) {
+      return undefined;
+    }
+
+    // Skip inline property comments (they end with */ on same line)
+    if (comment.includes('*/') || comment.length < 10) {
+      return undefined;
+    }
+
+    // Extract first meaningful line (not @tags)
+    const lines = comment.split('\n')
+      .map(l => l.trim().replace(/^\*\s?/, ''))
+      .filter(l => l.length > 0 && !l.startsWith('@'));
+
+    const firstLine = lines[0];
+
+    // Skip if it looks like a truncated inline comment
+    if (firstLine && (firstLine.includes('*/') || firstLine.endsWith('*/'))) {
+      return undefined;
+    }
+
+    // Return the first non-empty, non-tag line
+    return firstLine || undefined;
   }
   return undefined;
 }
 
 /**
- * Extract function signature
+ * Extract function signature or type definition
  */
 function extractSignature(content: string, exportName: string, position: number): string | undefined {
-  // Extract line with the export
-  const afterExport = content.substring(position, position + 300);
+  // Extract more content to capture full definitions
+  const afterExport = content.substring(position, position + 500);
 
   // Try to match function signature
   const funcMatch = afterExport.match(new RegExp(`(?:function|const)\\s+${exportName}\\s*[=:]?\\s*\\(?([^{]*)`, 'i'));
   if (funcMatch) {
-    return `${exportName}${funcMatch[1].trim()}`;
+    const sig = funcMatch[1].trim();
+    // Clean up the signature
+    return `${exportName}${sig}`.replace(/\s+/g, ' ');
   }
 
-  // Try to match type/interface
-  const typeMatch = afterExport.match(new RegExp(`(?:type|interface)\\s+${exportName}\\s*=?\\s*([^;{]*)`, 'i'));
+  // Try to match type/interface - capture until the first { or ;
+  const typeMatch = afterExport.match(new RegExp(`(?:type|interface)\\s+${exportName}([^;{]*)`, 'i'));
   if (typeMatch) {
-    return `${exportName} ${typeMatch[1].trim()}`;
+    let sig = typeMatch[1].trim();
+    // Clean up the signature
+    sig = sig.replace(/\s+/g, ' ').replace(/\s*=\s*/, ' = ');
+    // Truncate if too long
+    if (sig.length > 100) {
+      sig = sig.substring(0, 100) + '...';
+    }
+    return sig ? `${exportName} ${sig}` : exportName;
   }
 
   return undefined;
@@ -193,47 +225,116 @@ function extractExportsFromFile(filePath: string, visited = new Set<string>()): 
       details.push(...subExports.details);
     }
 
-    // Match: export type { name1, name2 }
-    const typeExportMatches = content.matchAll(/export\s+type\s*{\s*([^}]+)\s*}(?:\s+from)?/g);
+    // Match: export type { name1, name2 } from './file'
+    const typeExportMatches = content.matchAll(/export\s+type\s*{\s*([^}]+)\s*}(?:\s+from\s+['"]([^'"]+)['"])?/g);
     for (const match of typeExportMatches) {
       const names = match[1].split(',').map(n => {
         const cleaned = n.trim().replace(/^type\s+/, '').split(/\s+as\s+/)[0];
         return cleaned;
       });
       types.push(...names);
+
+      // If this is a re-export, follow it to get details
+      if (match[2]) {
+        let importPath = match[2];
+        if (importPath.endsWith('.js')) {
+          importPath = importPath.replace(/\.js$/, '.ts');
+        } else if (!importPath.endsWith('.ts')) {
+          importPath += '.ts';
+        }
+        const fullPath = join(fileDir, importPath);
+        const subExports = extractExportsFromFile(fullPath, visited);
+
+        // Copy details for exported names
+        for (const name of names) {
+          const detail = subExports.details.find(d => d.name === name);
+          if (detail) {
+            details.push(detail);
+          }
+        }
+      }
     }
 
     // Match: export { name1, type name2 } from './file'
-    const namedExportMatches = content.matchAll(/export\s+{\s*([^}]+)\s*}(?:\s+from)?/g);
+    const namedExportMatches = content.matchAll(/export\s+{\s*([^}]+)\s*}(?:\s+from\s+['"]([^'"]+)['"])?/g);
     for (const match of namedExportMatches) {
       // Skip if this was already matched as a type export
       if (match[0].includes('export type {')) continue;
 
       const names = match[1].split(',');
+      const valueNames: string[] = [];
+      const typeNames: string[] = [];
+
       for (const name of names) {
         const trimmed = name.trim();
         if (trimmed.startsWith('type ')) {
           // Individual type export: export { type Foo }
           const cleaned = trimmed.replace(/^type\s+/, '').split(/\s+as\s+/)[0];
           types.push(cleaned);
+          typeNames.push(cleaned);
         } else {
           // Value export
           const cleaned = trimmed.split(/\s+as\s+/)[0];
           values.push(cleaned);
+          valueNames.push(cleaned);
+        }
+      }
+
+      // If this is a re-export, follow it to get details
+      if (match[2]) {
+        let importPath = match[2];
+        if (importPath.endsWith('.js')) {
+          importPath = importPath.replace(/\.js$/, '.ts');
+        } else if (!importPath.endsWith('.ts')) {
+          importPath += '.ts';
+        }
+        const fullPath = join(fileDir, importPath);
+        const subExports = extractExportsFromFile(fullPath, visited);
+
+        // Copy details for exported names
+        for (const name of [...valueNames, ...typeNames]) {
+          const detail = subExports.details.find(d => d.name === name);
+          if (detail) {
+            details.push(detail);
+          }
         }
       }
     }
 
-    // Match: export interface/type/enum name
+    // Match: export interface/type/enum name (with details)
     const typeDefMatches = content.matchAll(/export\s+(?:interface|type|enum)\s+(\w+)/g);
     for (const match of typeDefMatches) {
-      types.push(match[1]);
+      const name = match[1];
+      types.push(name);
+
+      const description = extractJSDocDescription(content, match.index!);
+      const signature = extractSignature(content, name, match.index!);
+
+      details.push({
+        name,
+        kind: 'type',
+        description,
+        signature,
+        sourceFile: filePath,
+      });
     }
 
-    // Match: export const/function/class name
+    // Match: export const/function/class name (with details)
     const valueDefMatches = content.matchAll(/export\s+(?:const|function|class)\s+(\w+)/g);
     for (const match of valueDefMatches) {
-      values.push(match[1]);
+      const name = match[1];
+      values.push(name);
+
+      const description = extractJSDocDescription(content, match.index!);
+      const signature = extractSignature(content, name, match.index!);
+
+      details.push({
+        name,
+        kind: 'value',
+        description,
+        signature,
+        sourceFile: filePath,
+      });
     }
 
     // Match: export default
@@ -276,16 +377,35 @@ function generatePackageIndexes(packages: PackageInfo[]) {
     if (totalExports > 0) {
       let exportsList = '';
 
+      // Helper to find detail for an export
+      const getDetail = (name: string) => exports.details.find(d => d.name === name);
+
       if (exports.values.length > 0) {
         exportsList += '### Values\n\n';
-        exportsList += exports.values.map(e => `- \`${e}\``).join('\n');
-        exportsList += '\n\n';
+        for (const exportName of exports.values) {
+          const detail = getDetail(exportName);
+          exportsList += `#### \`${exportName}\`\n\n`;
+          if (detail?.description) {
+            exportsList += `${detail.description}\n\n`;
+          }
+          if (detail?.signature) {
+            exportsList += `\`\`\`typescript\n${detail.signature}\n\`\`\`\n\n`;
+          }
+        }
       }
 
       if (exports.types.length > 0) {
         exportsList += '### Types\n\n';
-        exportsList += exports.types.map(e => `- \`${e}\``).join('\n');
-        exportsList += '\n\n';
+        for (const exportName of exports.types) {
+          const detail = getDetail(exportName);
+          exportsList += `#### \`${exportName}\`\n\n`;
+          if (detail?.description) {
+            exportsList += `${detail.description}\n\n`;
+          }
+          if (detail?.signature) {
+            exportsList += `\`\`\`typescript\n${detail.signature}\n\`\`\`\n\n`;
+          }
+        }
       }
 
       // Build usage section with separate import statements
