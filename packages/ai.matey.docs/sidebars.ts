@@ -106,6 +106,7 @@ const sidebars: SidebarsConfig = {
           label: 'Core',
           collapsed: true,
           items: [
+            'api/packages/ai.matey',
             'api/packages/ai.matey.core',
             'api/packages/ai.matey.types',
             'api/packages/ai.matey.errors',

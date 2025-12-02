@@ -4,10 +4,18 @@ sidebar_position: 1
 
 # All Packages
 
-Complete reference for all 20 ai.matey packages.
+Complete reference for all 21 ai.matey packages.
 
 
 ## Core
+
+### [ai.matey](./packages/ai.matey)
+
+Universal AI Adapter System - Provider-agnostic interface for AI APIs
+
+[View API →](./packages/ai.matey)
+
+---
 
 ### [ai.matey.core](./packages/ai.matey.core)
 

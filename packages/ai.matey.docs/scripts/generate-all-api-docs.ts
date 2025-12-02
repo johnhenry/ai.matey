@@ -16,6 +16,7 @@ const apiOutputDir = join(docsRoot, 'docs', 'api', 'generated');
 
 // List of all packages to document
 const packages = [
+  'ai.matey',
   'ai.matey.core',
   'ai.matey.types',
   'ai.matey.errors',
@@ -159,7 +160,7 @@ function generatePackagesOverview(packages: PackageInfo[]) {
   console.log('\n📝 Generating packages overview...\n');
 
   const categories = {
-    Core: ['ai.matey.core', 'ai.matey.types', 'ai.matey.errors', 'ai.matey.utils', 'ai.matey.testing'],
+    Core: ['ai.matey', 'ai.matey.core', 'ai.matey.types', 'ai.matey.errors', 'ai.matey.utils', 'ai.matey.testing'],
     Adapters: ['backend', 'frontend', 'backend-browser'],
     Middleware: ['middleware'],
     HTTP: ['http', 'http.core'],
