@@ -40,7 +40,8 @@ const packages = [
 ];
 
 interface PackageInfo {
-  name: string;
+  name: string; // npm package name from package.json
+  dirName: string; // directory name
   path: string;
   hasSource: boolean;
   description?: string;
@@ -58,20 +59,23 @@ function discoverPackages(): PackageInfo[] {
     const indexPath = join(srcPath, 'index.ts');
 
     if (existsSync(indexPath)) {
-      // Read package.json for description
+      // Read package.json for description and actual package name
       let description = '';
+      let packageName = pkg; // fallback to directory name
       const packageJsonPath = join(pkgPath, 'package.json');
       if (existsSync(packageJsonPath)) {
         try {
           const packageJson = JSON.parse(require('fs').readFileSync(packageJsonPath, 'utf-8'));
           description = packageJson.description || '';
+          packageName = packageJson.name || pkg; // use npm package name
         } catch (e) {
           // Ignore
         }
       }
 
       discovered.push({
-        name: pkg,
+        name: packageName,
+        dirName: pkg,
         path: pkgPath,
         hasSource: true,
         description,
@@ -325,8 +329,8 @@ ${exportsSection}
 
 View the complete source code and implementation details:
 
-- [Package Source Code](https://github.com/johnhenry/ai.matey/tree/main/packages/${pkg.name})
-- [View on GitHub](https://github.com/johnhenry/ai.matey/tree/main/packages/${pkg.name}/src)
+- [Package Source Code](https://github.com/johnhenry/ai.matey/tree/main/packages/${pkg.dirName})
+- [View on GitHub](https://github.com/johnhenry/ai.matey/tree/main/packages/${pkg.dirName}/src)
 
 ## Quick Links
 
@@ -334,10 +338,10 @@ View the complete source code and implementation details:
 - [Main Documentation](/getting-started/installation)
 - [All Packages](/api/all-packages)
 
-See the [package source](https://github.com/johnhenry/ai.matey/tree/main/packages/${pkg.name}) for complete API documentation and examples.
+See the [package source](https://github.com/johnhenry/ai.matey/tree/main/packages/${pkg.dirName}) for complete API documentation and examples.
 `;
 
-    const outputPath = join(docsRoot, 'docs', 'api', 'packages', `${pkg.name}.md`);
+    const outputPath = join(docsRoot, 'docs', 'api', 'packages', `${pkg.dirName}.md`);
     mkdirSync(dirname(outputPath), { recursive: true });
     writeFileSync(outputPath, indexContent);
     console.log(`  ✓ ${pkg.name}.md`);
@@ -372,18 +376,18 @@ Complete reference for all ${packages.length} ai.matey packages.
 
 `;
 
-  for (const [category, pkgNames] of Object.entries(categories)) {
-    const categoryPackages = packages.filter(p => pkgNames.includes(p.name));
+  for (const [category, pkgDirNames] of Object.entries(categories)) {
+    const categoryPackages = packages.filter(p => pkgDirNames.includes(p.dirName));
     if (categoryPackages.length === 0) continue;
 
     content += `\n## ${category}\n\n`;
 
     for (const pkg of categoryPackages) {
-      content += `### [${pkg.name}](./packages/${pkg.name})\n\n`;
+      content += `### [${pkg.name}](./packages/${pkg.dirName})\n\n`;
       if (pkg.description) {
         content += `${pkg.description}\n\n`;
       }
-      content += `[View API →](./packages/${pkg.name})\n\n---\n\n`;
+      content += `[View API →](./packages/${pkg.dirName})\n\n---\n\n`;
     }
   }
 

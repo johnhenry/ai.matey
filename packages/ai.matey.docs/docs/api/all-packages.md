@@ -60,7 +60,7 @@ Testing utilities for AI Matey - Universal AI Adapter System
 
 ## Adapters
 
-### [backend](./packages/backend)
+### [ai.matey.backend](./packages/backend)
 
 Backend provider adapters for AI Matey - Universal AI Adapter System
 
@@ -68,7 +68,7 @@ Backend provider adapters for AI Matey - Universal AI Adapter System
 
 ---
 
-### [frontend](./packages/frontend)
+### [ai.matey.frontend](./packages/frontend)
 
 Frontend adapters for AI Matey - Universal AI Adapter System
 
@@ -76,7 +76,7 @@ Frontend adapters for AI Matey - Universal AI Adapter System
 
 ---
 
-### [backend-browser](./packages/backend-browser)
+### [ai.matey.backend.browser](./packages/backend-browser)
 
 Browser-compatible backend adapters for AI Matey - Chrome AI, Function, Mock
 
@@ -87,7 +87,7 @@ Browser-compatible backend adapters for AI Matey - Chrome AI, Function, Mock
 
 ## Middleware
 
-### [middleware](./packages/middleware)
+### [ai.matey.middleware](./packages/middleware)
 
 Middleware components for AI Matey - Universal AI Adapter System
 
@@ -98,7 +98,7 @@ Middleware components for AI Matey - Universal AI Adapter System
 
 ## HTTP
 
-### [http](./packages/http)
+### [ai.matey.http](./packages/http)
 
 HTTP framework adapters for AI Matey - Universal AI Adapter System
 
@@ -106,7 +106,7 @@ HTTP framework adapters for AI Matey - Universal AI Adapter System
 
 ---
 
-### [http.core](./packages/http.core)
+### [ai.matey.http.core](./packages/http.core)
 
 Framework-agnostic HTTP core utilities for AI Matey
 
@@ -117,7 +117,7 @@ Framework-agnostic HTTP core utilities for AI Matey
 
 ## React
 
-### [react-core](./packages/react-core)
+### [ai.matey.react.core](./packages/react-core)
 
 Core React hooks for AI Matey - useChat, useCompletion, useObject
 
@@ -125,7 +125,7 @@ Core React hooks for AI Matey - useChat, useCompletion, useObject
 
 ---
 
-### [react-hooks](./packages/react-hooks)
+### [ai.matey.react.hooks](./packages/react-hooks)
 
 Additional React hooks for AI Matey - useAssistant, useStream, useTokenCount
 
@@ -133,7 +133,7 @@ Additional React hooks for AI Matey - useAssistant, useStream, useTokenCount
 
 ---
 
-### [react-stream](./packages/react-stream)
+### [ai.matey.react.stream](./packages/react-stream)
 
 React streaming utilities for AI Matey - StreamProvider, StreamContext
 
@@ -141,7 +141,7 @@ React streaming utilities for AI Matey - StreamProvider, StreamContext
 
 ---
 
-### [react-nextjs](./packages/react-nextjs)
+### [ai.matey.react.nextjs](./packages/react-nextjs)
 
 Next.js integration for AI Matey - App Router, Server Actions, API Routes
 
@@ -152,7 +152,7 @@ Next.js integration for AI Matey - App Router, Server Actions, API Routes
 
 ## Native
 
-### [native-apple](./packages/native-apple)
+### [ai.matey.native.apple](./packages/native-apple)
 
 apple native backend for AI Matey
 
@@ -160,7 +160,7 @@ apple native backend for AI Matey
 
 ---
 
-### [native-node-llamacpp](./packages/native-node-llamacpp)
+### [ai.matey.native.node-llamacpp](./packages/native-node-llamacpp)
 
 node-llamacpp native backend for AI Matey
 
@@ -168,7 +168,7 @@ node-llamacpp native backend for AI Matey
 
 ---
 
-### [native-model-runner](./packages/native-model-runner)
+### [ai.matey.native.model-runner](./packages/native-model-runner)
 
 Model runner base class for AI Matey native backends
 
@@ -179,7 +179,7 @@ Model runner base class for AI Matey native backends
 
 ## Utilities
 
-### [wrapper](./packages/wrapper)
+### [ai.matey.wrapper](./packages/wrapper)
 
 SDK wrappers for AI Matey - Use familiar SDK patterns with any provider
 
@@ -187,7 +187,7 @@ SDK wrappers for AI Matey - Use familiar SDK patterns with any provider
 
 ---
 
-### [cli](./packages/cli)
+### [ai.matey.cli](./packages/cli)
 
 CLI tools for AI Matey - proxy server, format converters, Ollama emulation
 
