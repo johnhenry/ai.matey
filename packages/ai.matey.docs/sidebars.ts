@@ -74,11 +74,18 @@ const sidebars: SidebarsConfig = {
     {
       type: 'category',
       label: 'API Reference',
+      collapsed: false,
       link: {
         type: 'doc',
         id: 'api/index',
       },
-      items: [],
+      items: [
+        'api/bridge',
+        'api/router',
+        'api/middleware',
+        'api/types',
+        'api/errors',
+      ],
     },
     {
       type: 'category',
