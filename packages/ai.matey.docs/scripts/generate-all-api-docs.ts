@@ -284,7 +284,18 @@ function generatePackageIndexes(packages: PackageInfo[]) {
         exportsList += '\n\n';
       }
 
-      const allExports = [...exports.values, ...exports.types];
+      // Build usage section with separate import statements
+      let usageSection = '';
+
+      if (exports.values.length > 0) {
+        usageSection += `import {\n  ${exports.values.join(',\n  ')}\n} from '${pkg.name}';\n`;
+      }
+
+      if (exports.types.length > 0) {
+        if (exports.values.length > 0) usageSection += '\n';
+        usageSection += `import type {\n  ${exports.types.join(',\n  ')}\n} from '${pkg.name}';`;
+      }
+
       exportsSection = `
 ## Exports
 
@@ -293,9 +304,7 @@ ${exportsList}
 ## Usage
 
 \`\`\`typescript
-import {
-  ${allExports.join(',\n  ')}
-} from '${pkg.name}';
+${usageSection}
 \`\`\`
 `;
     }
