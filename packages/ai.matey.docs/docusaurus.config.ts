@@ -7,11 +7,15 @@ const config: Config = {
   tagline: 'Universal AI Adapter System - Write once, run anywhere',
   favicon: 'img/favicon.ico',
 
-  url: 'https://ai-matey.dev',
-  baseUrl: '/',
+  // GitHub Pages deployment config
+  url: 'https://johnhenry.github.io',
+  baseUrl: '/ai.matey/',
 
   organizationName: 'johnhenry',
   projectName: 'ai.matey',
+
+  deploymentBranch: 'gh-pages',
+  trailingSlash: false,
 
   onBrokenLinks: 'warn',
 
