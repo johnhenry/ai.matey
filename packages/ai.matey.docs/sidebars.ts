@@ -90,11 +90,17 @@ const sidebars: SidebarsConfig = {
     {
       type: 'category',
       label: 'Packages',
+      collapsed: false,
       link: {
         type: 'doc',
         id: 'packages/overview',
       },
       items: [
+        {
+          type: 'doc',
+          id: 'api/all-packages',
+          label: 'All Packages (20+)',
+        },
         'packages/core',
         'packages/frontend',
         'packages/backend',

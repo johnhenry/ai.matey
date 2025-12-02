@@ -6,9 +6,12 @@
   "scripts": {
     "docusaurus": "docusaurus",
     "start": "docusaurus start",
+    "prebuild": "npm run build:api-docs",
     "build": "docusaurus build",
     "build:examples": "echo 'Skipping example validation for now'",
-    "build:api-docs": "echo 'Skipping API doc generation for now'",
+    "build:api-docs": "tsx scripts/generate-all-api-docs.ts",
+    "api:generate": "tsx scripts/generate-all-api-docs.ts",
+    "api:watch": "tsx watch scripts/generate-all-api-docs.ts",
     "swizzle": "docusaurus swizzle",
     "deploy": "docusaurus deploy",
     "clear": "docusaurus clear",
@@ -17,7 +20,7 @@
     "write-heading-ids": "docusaurus write-heading-ids",
     "examples:validate": "tsx scripts/validate-examples.ts",
     "typecheck": "tsc --noEmit",
-    "clean": "rm -rf build .docusaurus"
+    "clean": "rm -rf build .docusaurus docs/api/generated docs/api/packages"
   },
   "dependencies": {
     "@docusaurus/core": "^3.5.2",
@@ -34,25 +37,34 @@
     "@docusaurus/types": "^3.5.2",
     "@types/node": "^22.0.0",
     "@types/react": "^18.3.12",
+    "ai.matey.backend": "*",
+    "ai.matey.cli": "*",
     "ai.matey.core": "*",
     "ai.matey.frontend": "*",
-    "ai.matey.backend": "*",
-    "ai.matey.middleware": "*",
     "ai.matey.http": "*",
-    "ai.matey.wrapper": "*",
+    "ai.matey.middleware": "*",
     "ai.matey.react.core": "*",
     "ai.matey.react.hooks": "*",
-    "ai.matey.cli": "*",
     "ai.matey.types": "*",
     "ai.matey.utils": "*",
+    "ai.matey.wrapper": "*",
     "tsx": "^4.19.2",
     "typedoc": "^0.28.1",
     "typedoc-plugin-markdown": "^4.9.0",
+    "typedoc-plugin-missing-exports": "^4.1.2",
     "typescript": "^5.7.2"
   },
   "browserslist": {
-    "production": [">0.5%", "not dead", "not op_mini all"],
-    "development": ["last 3 chrome versions", "last 3 firefox versions", "last 5 safari versions"]
+    "production": [
+      ">0.5%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 3 chrome versions",
+      "last 3 firefox versions",
+      "last 5 safari versions"
+    ]
   },
   "engines": {
     "node": ">=18.0.0"
