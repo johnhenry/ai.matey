@@ -30,6 +30,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Build packages
+        run: npm run build
+
       - name: Build documentation
         run: npm run build --workspace=ai.matey.docs
         env:
