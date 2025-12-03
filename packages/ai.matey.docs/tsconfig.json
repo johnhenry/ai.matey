@@ -21,7 +21,6 @@
   "include": [
     "src",
     "docs",
-    "examples",
     "scripts",
     "docusaurus.config.ts",
     "sidebars.ts"
@@ -29,6 +28,7 @@
   "exclude": [
     "node_modules",
     "build",
-    ".docusaurus"
+    ".docusaurus",
+    "examples"
   ]
 }

@@ -112,7 +112,8 @@ export class GeminiBackendAdapter implements BackendAdapter<GeminiRequest, Gemin
   async execute(request: IRChatRequest, signal?: AbortSignal): Promise<IRChatResponse> {
     try {
       const geminiRequest = this.fromIR(request);
-      const model = request.parameters?.model || this.config.defaultModel || 'gemini-2.0-flash-lite';
+      const model =
+        request.parameters?.model || this.config.defaultModel || 'gemini-2.0-flash-lite';
       const endpoint = `${this.baseURL}/models/${model}:generateContent?key=${this.config.apiKey}`;
 
       const startTime = Date.now();
@@ -149,7 +150,8 @@ export class GeminiBackendAdapter implements BackendAdapter<GeminiRequest, Gemin
   async *executeStream(request: IRChatRequest, signal?: AbortSignal): IRChatStream {
     try {
       const geminiRequest = this.fromIR(request);
-      const model = request.parameters?.model || this.config.defaultModel || 'gemini-2.0-flash-lite';
+      const model =
+        request.parameters?.model || this.config.defaultModel || 'gemini-2.0-flash-lite';
       const endpoint = `${this.baseURL}/models/${model}:streamGenerateContent?key=${this.config.apiKey}`;
 
       // Get effective streaming configuration
