@@ -129,11 +129,25 @@ function extractJSDocDescription(content: string, position: number): string | un
   // Look backwards for JSDoc comment, but only immediate preceding comment
   const textBefore = content.substring(Math.max(0, position - 300), position);
 
-  // Match JSDoc that's directly before the export (with only whitespace/newlines between)
-  const jsdocMatch = textBefore.match(/\/\*\*\s*([\s\S]*?)\*\/\s*$/);
+  // Find ALL JSDoc blocks, then take the last one (closest to the export)
+  const jsdocMatches = Array.from(textBefore.matchAll(/\/\*\*([\s\S]*?)\*\//g));
 
-  if (jsdocMatch) {
-    const comment = jsdocMatch[1];
+  if (jsdocMatches.length === 0) {
+    return undefined;
+  }
+
+  // Get the last JSDoc block
+  const lastMatch = jsdocMatches[jsdocMatches.length - 1];
+  const comment = lastMatch[1];
+
+  // Check that there's only whitespace between JSDoc and export
+  const afterJSDoc = textBefore.substring(lastMatch.index! + lastMatch[0].length);
+  if (afterJSDoc.trim().length > 0) {
+    // There's code between JSDoc and export, skip it
+    return undefined;
+  }
+
+  if (comment) {
 
     // Skip module-level JSDoc comments
     if (comment.includes('@module') || comment.includes('@packageDocumentation')) {
