@@ -18,6 +18,7 @@ const config: Config = {
   trailingSlash: false,
 
   onBrokenLinks: 'warn',
+  onBrokenAnchors: 'warn',
 
   markdown: {
     format: 'mdx',
