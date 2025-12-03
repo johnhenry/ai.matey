@@ -236,8 +236,8 @@ function zodToJsonSchema(schema: any): JSONSchema {
 
   // Handle ZodEnum
   if (typeName === 'ZodEnum') {
-    // In Zod v3, enum values are in _def.values (array)
-    const values = def.values || [];
+    // In Zod v3, enum values can be in _def.values (array) or _def.options (array)
+    const values = def.values || def.options || [];
     const result: JSONSchema = {
       type: 'string',
       enum: Array.isArray(values) ? values : Object.values(values),

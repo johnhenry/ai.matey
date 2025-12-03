@@ -390,7 +390,7 @@ export class OllamaBackendAdapter implements BackendAdapter<OllamaRequest, Ollam
 
       // 5. Apply filter if requested
       return applyModelFilter(result, options?.filter as ModelCapabilityFilter);
-    } catch (error) {
+    } catch {
       // 6. Return empty list if Ollama not running or error
       // No fallback models for Ollama since it's dynamic/local
       const result: ListModelsResult = {

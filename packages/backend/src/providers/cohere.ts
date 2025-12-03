@@ -29,7 +29,12 @@ import {
 } from 'ai.matey.errors';
 import { normalizeSystemMessages, getModelCache } from 'ai.matey.utils';
 import { getEffectiveStreamMode, mergeStreamingConfig } from 'ai.matey.utils';
-import { buildStaticResult, applyModelFilter, DEFAULT_COHERE_MODELS, type ModelCapabilityFilter } from '../shared.js';
+import {
+  buildStaticResult,
+  applyModelFilter,
+  DEFAULT_COHERE_MODELS,
+  type ModelCapabilityFilter,
+} from '../shared.js';
 
 // ============================================================================
 // Cohere API Types (Custom API)
@@ -583,7 +588,7 @@ export class CohereBackendAdapter implements BackendAdapter<CohereRequest, Coher
 
       // 7. Apply filter if requested
       return applyModelFilter(result, options?.filter as ModelCapabilityFilter);
-    } catch (error) {
+    } catch {
       // 8. Fallback to cached result on error
       if (!options?.forceRefresh) {
         const cached = this.modelCache.get(this.metadata.name);

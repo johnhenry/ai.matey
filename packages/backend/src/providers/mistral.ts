@@ -27,7 +27,12 @@ import {
 import { normalizeSystemMessages } from 'ai.matey.utils';
 import { getModelCache } from 'ai.matey.utils';
 import { getEffectiveStreamMode, mergeStreamingConfig } from 'ai.matey.utils';
-import { buildStaticResult, applyModelFilter, DEFAULT_MISTRAL_MODELS, type ModelCapabilityFilter } from '../shared.js';
+import {
+  buildStaticResult,
+  applyModelFilter,
+  DEFAULT_MISTRAL_MODELS,
+  type ModelCapabilityFilter,
+} from '../shared.js';
 import type { ListModelsOptions, ListModelsResult, AIModel } from 'ai.matey.types';
 
 // ============================================================================
@@ -335,10 +340,12 @@ export class MistralBackendAdapter implements BackendAdapter<MistralRequest, Mis
       }
 
       return applyModelFilter(result, options?.filter as ModelCapabilityFilter);
-    } catch (error) {
+    } catch {
       if (!options?.forceRefresh) {
         const cached = this.modelCache.get(this.metadata.name);
-        if (cached) return cached;
+        if (cached) {
+          return cached;
+        }
       }
 
       const result: ListModelsResult = {

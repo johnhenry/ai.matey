@@ -25,7 +25,12 @@ import {
 } from 'ai.matey.errors';
 import { normalizeSystemMessages } from 'ai.matey.utils';
 import { getEffectiveStreamMode, mergeStreamingConfig } from 'ai.matey.utils';
-import { buildStaticResult, applyModelFilter, DEFAULT_AI21_MODELS, type ModelCapabilityFilter } from '../shared.js';
+import {
+  buildStaticResult,
+  applyModelFilter,
+  DEFAULT_AI21_MODELS,
+  type ModelCapabilityFilter,
+} from '../shared.js';
 import type { ListModelsOptions, ListModelsResult } from 'ai.matey.types';
 
 // ============================================================================

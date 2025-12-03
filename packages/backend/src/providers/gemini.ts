@@ -27,7 +27,12 @@ import {
 import { normalizeSystemMessages } from 'ai.matey.utils';
 import { getModelCache } from 'ai.matey.utils';
 import { getEffectiveStreamMode, mergeStreamingConfig } from 'ai.matey.utils';
-import { buildStaticResult, applyModelFilter, DEFAULT_GEMINI_MODELS, type ModelCapabilityFilter } from '../shared.js';
+import {
+  buildStaticResult,
+  applyModelFilter,
+  DEFAULT_GEMINI_MODELS,
+  type ModelCapabilityFilter,
+} from '../shared.js';
 import type { ListModelsOptions, ListModelsResult, AIModel } from 'ai.matey.types';
 
 // ============================================================================
@@ -346,7 +351,7 @@ export class GeminiBackendAdapter implements BackendAdapter<GeminiRequest, Gemin
 
       // 7. Apply filter if requested
       return applyModelFilter(result, options?.filter as ModelCapabilityFilter);
-    } catch (error) {
+    } catch {
       // 8. Fallback to cached result on error
       if (!options?.forceRefresh) {
         const cached = this.modelCache.get(this.metadata.name);
