@@ -122,7 +122,6 @@ async function main() {
           content: 'Generate a person profile with name, age, and occupation.',
         },
       ],
-      response_format: { type: 'json_object' },
       temperature: 0.7,
       max_tokens: 150
     });

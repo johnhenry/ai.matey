@@ -55,9 +55,9 @@ async function main() {
         maxSize: 100,                 // Store up to 100 responses
         keyGenerator: (request) => {   // Custom cache key generation
           return JSON.stringify({
-            model: request.model,
-            messages: request.messages,
-            temperature: request.temperature,
+            model: request.parameters.model,
+            messages: request.parameters.messages,
+            temperature: request.parameters.temperature,
           });
         },
       })

@@ -77,10 +77,14 @@ async function main() {
   console.log('Example 1: Round-Robin Load Balancing');
   console.log('═'.repeat(60) + '\n');
 
-  const roundRobinRouter = new Router(new OpenAIFrontendAdapter(), {
-    backends,
+  const roundRobinRouter = new Router(backends, {
     strategy: 'round-robin', // Distribute load evenly
   });
+
+  const roundRobinBridge = new Bridge(
+    new OpenAIFrontendAdapter(),
+    roundRobinRouter
+  );
 
   console.log('Strategy: Distribute requests evenly across all providers\n');
 
@@ -94,7 +98,7 @@ async function main() {
   // Make 5 requests
   for (let i = 1; i <= Math.min(5, backends.length * 2); i++) {
     try {
-      await roundRobinRouter.chat({
+      await roundRobinBridge.chat({
         model: 'gpt-3.5-turbo',
         messages: [{ role: 'user', content: `Request ${i}: What is ${i} squared?` }],
         max_tokens: 20
@@ -111,11 +115,15 @@ async function main() {
   console.log('Example 2: Priority Routing with Fallback');
   console.log('═'.repeat(60) + '\n');
 
-  const priorityRouter = new Router(new OpenAIFrontendAdapter(), {
-    backends,
+  const priorityRouter = new Router(backends, {
     strategy: 'priority', // Try in order
     fallbackOnError: true, // Auto-fallback if primary fails
   });
+
+  const priorityBridge = new Bridge(
+    new OpenAIFrontendAdapter(),
+    priorityRouter
+  );
 
   console.log('Strategy: Try primary first, fallback to secondary if it fails\n');
 
@@ -128,7 +136,7 @@ async function main() {
   });
 
   try {
-    const response = await priorityRouter.chat({
+    const response = await priorityBridge.chat({
       model: 'gpt-4',
       messages: [
         {
@@ -166,16 +174,20 @@ async function main() {
     return costA - costB;
   });
 
-  const costRouter = new Router(new OpenAIFrontendAdapter(), {
-    backends: costOptimizedBackends,
+  const costRouter = new Router(costOptimizedBackends, {
     strategy: 'priority', // Use cheapest available
   });
+
+  const costBridge = new Bridge(
+    new OpenAIFrontendAdapter(),
+    costRouter
+  );
 
   console.log('Strategy: Route to cheapest provider first\n');
   console.log('Cost priority: Groq > Gemini > Anthropic > OpenAI\n');
 
   try {
-    const response = await costRouter.chat({
+    const response = await costBridge.chat({
       model: 'gpt-3.5-turbo',
       messages: [
         {

@@ -134,8 +134,8 @@ async function main() {
       const response = await provider.bridge.chat(testRequest);
       const duration = Date.now() - start;
 
-      const content = response.choices[0].message.content || '';
-      const tokens = response.usage || { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 };
+      const content: string = response.choices[0].message.content || '';
+      const tokens: { prompt_tokens: number; completion_tokens: number; total_tokens: number } = response.usage || { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 };
 
       // Estimate cost (very rough)
       const cost = (tokens.total_tokens / 1000000) * provider.estimatedCost;

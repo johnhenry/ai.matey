@@ -49,7 +49,7 @@ async function main() {
     const ollamaBridge = new Bridge(
       new OpenAIFrontendAdapter(),
       new OllamaBackendAdapter({
-        baseUrl: 'http://localhost:11434', // Default Ollama port
+        baseURL: 'http://localhost:11434', // Default Ollama port
         model: 'llama3.2', // or llama3, mistral, etc.
       })
     );
@@ -87,7 +87,7 @@ async function main() {
     const lmStudioBridge = new Bridge(
       new OpenAIFrontendAdapter(),
       new LMStudioBackendAdapter({
-        baseUrl: 'http://localhost:1234', // Default LM Studio port
+        baseURL: 'http://localhost:1234', // Default LM Studio port
       })
     );
 
@@ -126,25 +126,31 @@ async function main() {
   if (keys.anthropic) {
     try {
       // Create router that tries local first, falls back to cloud
-      const router = new Router(new OpenAIFrontendAdapter(), {
-        backends: [
-          // Primary: Local Ollama (fast, private, free)
-          new OllamaBackendAdapter({
-            baseUrl: 'http://localhost:11434',
-            model: 'llama3.2',
-          }),
-          // Fallback: Anthropic cloud (reliable, but costs money)
-          new AnthropicBackendAdapter({
-            apiKey: keys.anthropic,
-          }),
-        ],
+      const backends = [
+        // Primary: Local Ollama (fast, private, free)
+        new OllamaBackendAdapter({
+          baseURL: 'http://localhost:11434',
+          model: 'llama3.2',
+        }),
+        // Fallback: Anthropic cloud (reliable, but costs money)
+        new AnthropicBackendAdapter({
+          apiKey: keys.anthropic,
+        }),
+      ];
+
+      const router = new Router(backends, {
         strategy: 'priority', // Try in order
         fallbackOnError: true,
       });
 
+      const hybridBridge = new Bridge(
+        new OpenAIFrontendAdapter(),
+        router
+      );
+
       console.log('Trying local Ollama first, cloud fallback if unavailable...\n');
 
-      const response3 = await router.chat({
+      const response3 = await hybridBridge.chat({
         model: 'gpt-4',
         messages: [
           {

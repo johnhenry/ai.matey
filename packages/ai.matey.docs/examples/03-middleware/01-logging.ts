@@ -54,7 +54,6 @@ async function main() {
         logRequests: true,           // Log outgoing requests
         logResponses: true,          // Log incoming responses
         logErrors: true,             // Log errors
-        includeTimestamps: true,     // Add timestamps to logs
         redactFields: [              // Fields to redact (for security)
           'apiKey',
           'api_key',

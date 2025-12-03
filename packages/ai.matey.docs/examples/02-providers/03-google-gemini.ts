@@ -37,7 +37,7 @@ async function main() {
   );
 
   try {
-    const googleKey = requireAPIKey('google');
+    const googleKey = requireAPIKey('gemini');
 
     // Example 1: Using Gemini Pro
     console.log('\n📝 Example 1: Gemini 1.5 Pro');
