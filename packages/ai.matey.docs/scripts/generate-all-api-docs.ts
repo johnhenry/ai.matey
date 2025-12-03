@@ -184,12 +184,18 @@ function extractSignature(content: string, exportName: string, position: number)
   // Extract more content to capture full definitions
   const afterExport = content.substring(position, position + 500);
 
-  // Try to match function signature
-  const funcMatch = afterExport.match(new RegExp(`(?:function|const)\\s+${exportName}\\s*[=:]?\\s*\\(([^{]*)`, 'i'));
+  // Try to match function signature - need to handle default params with {} and return types
+  // Match from function/const name through params to either function body { or end of line
+  const funcMatch = afterExport.match(new RegExp(`(?:function|const)\\s+${exportName}\\s*[=:]?\\s*\\((.*?)\\)\\s*(?::\\s*([^{]+?))?\\s*[{=]`, 'is'));
   if (funcMatch) {
-    const sig = funcMatch[1].trim();
-    // Clean up the signature - add opening paren since it's not captured
-    return `${exportName}(${sig}`.replace(/\s+/g, ' ');
+    const params = funcMatch[1].trim();
+    const returnType = funcMatch[2]?.trim();
+    // Clean up the signature
+    let sig = `${exportName}(${params})`;
+    if (returnType) {
+      sig += `: ${returnType}`;
+    }
+    return sig.replace(/\s+/g, ' ');
   }
 
   // Try to match type/interface - capture until the first { or ;
