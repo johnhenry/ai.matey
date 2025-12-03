@@ -4,36 +4,40 @@
  * Shows automatic failover to backup backends.
  */
 
-import { Router } from 'ai.matey.core';
+import { Bridge, Router } from 'ai.matey.core';
 import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
 import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
 import { OpenAIBackendAdapter } from 'ai.matey.backend/openai';
 
 async function main() {
-  const router = new Router(new OpenAIFrontendAdapter(), {
-    backends: [
-      // Primary backend (might fail)
-      new AnthropicBackendAdapter({
-        apiKey: 'invalid-key', // Will fail
-      }),
-      // Fallback backend
-      new OpenAIBackendAdapter({
-        apiKey: process.env.OPENAI_API_KEY || 'sk-...',
-      }),
-    ],
+  // Create backends array
+  const backends = [
+    // Primary backend (might fail)
+    new AnthropicBackendAdapter({
+      apiKey: 'invalid-key', // Will fail
+    }),
+    // Fallback backend
+    new OpenAIBackendAdapter({
+      apiKey: process.env.OPENAI_API_KEY || 'sk-...',
+    }),
+  ];
+
+  // Create router with backends array as first argument
+  const router = new Router(backends, {
     strategy: 'priority', // Try first backend first
     fallbackStrategy: 'next', // Fall back to next on failure
   });
 
-  // Listen to backend switches
-  router.on('backend:switch', (event) => {
-    console.log('Switched backend:', event.data);
-  });
+  // Create bridge with router backend and frontend adapter
+  const bridge = new Bridge(
+    new OpenAIFrontendAdapter(),
+    router
+  );
 
   console.log('Making request (will automatically fallback)...\n');
 
   try {
-    const response = await router.chat({
+    const response = await bridge.chat({
       model: 'gpt-4',
       messages: [
         {
@@ -48,9 +52,6 @@ async function main() {
   } catch (error) {
     console.error('All backends failed:', error);
   }
-
-  console.log('\nRouter Stats:');
-  console.log(router.getStats());
 }
 
 main().catch(console.error);

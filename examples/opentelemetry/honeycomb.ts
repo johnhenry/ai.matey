@@ -22,8 +22,8 @@
  */
 
 import { Bridge } from 'ai.matey.core';
-import { createOpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
-import { createOpenAIBackendAdapter } from 'ai.matey.backend/openai';
+import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
+import { OpenAIBackendAdapter } from 'ai.matey.backend/openai';
 import { createOpenTelemetryMiddleware, shutdownOpenTelemetry } from 'ai.matey.middleware/opentelemetry';
 
 async function main() {
@@ -41,12 +41,12 @@ async function main() {
   }
 
   // Create bridge with OpenAI
-  const bridge = new Bridge({
-    frontend: createOpenAIFrontendAdapter(),
-    backend: createOpenAIBackendAdapter({
+  const bridge = new Bridge(
+    new OpenAIFrontendAdapter(),
+    new OpenAIBackendAdapter({
       apiKey: process.env.OPENAI_API_KEY,
-    }),
-  });
+    })
+  );
 
   // Add OpenTelemetry middleware with Honeycomb configuration (async)
   const otelMiddleware = await createOpenTelemetryMiddleware({

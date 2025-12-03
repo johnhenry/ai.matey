@@ -84,36 +84,38 @@ async function lmStudioExample() {
 }
 
 async function hybridExample() {
-  // Create router that tries local first, falls back to cloud
-  const router = new Router(new OpenAIFrontendAdapter(), {
-    backends: [
-      // Primary: Local Ollama (fast, private, free)
-      new OllamaBackendAdapter({
-        baseUrl: 'http://localhost:11434',
-        model: 'llama3.2',
-      }),
-      // Fallback: OpenAI cloud (reliable, but costs money)
-      new OpenAIBackendAdapter({
-        apiKey: process.env.OPENAI_API_KEY || 'sk-...',
-      }),
-    ],
+  // Create backends array
+  const backends = [
+    // Primary: Local Ollama (fast, private, free)
+    new OllamaBackendAdapter({
+      baseUrl: 'http://localhost:11434',
+      model: 'llama3.2',
+    }),
+    // Fallback: OpenAI cloud (reliable, but costs money)
+    new OpenAIBackendAdapter({
+      apiKey: process.env.OPENAI_API_KEY || 'sk-...',
+    }),
+  ];
+
+  // Create router with backends array as first argument
+  const router = new Router(backends, {
     strategy: 'priority',
     fallbackStrategy: 'next',
   });
 
-  // Listen for backend switches
-  router.on('backend:switch', (event) => {
-    console.log(`  Switched backend: ${event.data.from} -> ${event.data.to}`);
-  });
+  // Create bridge with router backend and frontend adapter
+  const bridge = new Bridge(
+    new OpenAIFrontendAdapter(),
+    router
+  );
 
   try {
-    const response = await router.chat({
+    const response = await bridge.chat({
       model: 'gpt-4', // Request GPT-4 format, will be handled by available backend
       messages: [{ role: 'user', content: 'What is the capital of Japan?' }],
     });
 
     console.log('  Response:', response.choices[0].message.content);
-    console.log('  Stats:', router.getStats());
   } catch (error) {
     console.log('  All backends failed:', (error as Error).message);
   }

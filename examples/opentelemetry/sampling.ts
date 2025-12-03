@@ -21,17 +21,17 @@
  */
 
 import { Bridge } from 'ai.matey.core';
-import { createOpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
-import { createMockBackendAdapter } from 'ai.matey.backend/mock';
+import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
+import { MockBackendAdapter } from 'ai.matey.backend/mock';
 import { createOpenTelemetryMiddleware, shutdownOpenTelemetry } from 'ai.matey.middleware/opentelemetry';
 
 async function main() {
   console.log('📊 OpenTelemetry Sampling Example\n');
 
   // Create bridge with mock backend (no API key needed)
-  const bridge = new Bridge({
-    frontend: createOpenAIFrontendAdapter(),
-    backend: createMockBackendAdapter({
+  const bridge = new Bridge(
+    new OpenAIFrontendAdapter(),
+    new MockBackendAdapter({
       responses: [
         {
           content: 'This is a mock response.',
@@ -43,8 +43,8 @@ async function main() {
           },
         },
       ],
-    }),
-  });
+    })
+  );
 
   // Add OpenTelemetry middleware with 10% sampling (async)
   // This means only 1 out of 10 requests will be traced

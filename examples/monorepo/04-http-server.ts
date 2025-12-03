@@ -16,8 +16,7 @@ import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
 import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
 
 // HTTP framework integration - only install what you need
-import { createExpressHandler } from 'ai.matey.http/express';
-import { createCorsMiddleware, validateApiKey } from 'ai.matey.http.core';
+import { ExpressMiddleware } from 'ai.matey.http/express';
 
 // Middleware
 import { createLoggingMiddleware } from 'ai.matey.middleware';
@@ -45,30 +44,14 @@ async function main() {
   // JSON body parser
   app.use(express.json());
 
-  // CORS middleware from http-core package
-  app.use(
-    createCorsMiddleware({
-      allowedOrigins: ['http://localhost:3000', 'https://your-app.com'],
-      allowedMethods: ['GET', 'POST', 'OPTIONS'],
-      allowedHeaders: ['Content-Type', 'Authorization'],
+  // AI chat endpoint using Express middleware
+  app.post(
+    '/v1/chat/completions',
+    ExpressMiddleware(bridge, {
+      cors: true,
+      streaming: true,
     })
   );
-
-  // API key validation middleware
-  app.use('/v1/*', (req, res, next) => {
-    const apiKey = req.headers.authorization?.replace('Bearer ', '');
-    if (!validateApiKey(apiKey, { required: true })) {
-      res.status(401).json({ error: 'Invalid API key' });
-      return;
-    }
-    next();
-  });
-
-  // AI chat endpoint using Express handler
-  app.post('/v1/chat/completions', createExpressHandler(bridge, {
-    streaming: true,
-    timeout: 30000,
-  }));
 
   // Health check
   app.get('/health', (_req, res) => {

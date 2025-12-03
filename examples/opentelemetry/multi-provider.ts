@@ -24,10 +24,10 @@
  *    npx tsx examples/opentelemetry/multi-provider.ts
  */
 
-import { Router } from 'ai.matey.core';
-import { createOpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
-import { createOpenAIBackendAdapter } from 'ai.matey.backend/openai';
-import { createAnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
+import { Bridge, Router } from 'ai.matey.core';
+import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
+import { OpenAIBackendAdapter } from 'ai.matey.backend/openai';
+import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
 import { createOpenTelemetryMiddleware, shutdownOpenTelemetry } from 'ai.matey.middleware/opentelemetry';
 
 async function main() {
@@ -39,25 +39,26 @@ async function main() {
     console.log('Using mock backend as fallback\n');
   }
 
-  // Create router with multiple backends
-  const router = new Router({
-    frontend: createOpenAIFrontendAdapter(),
-    backends: [
-      {
-        name: 'openai',
-        adapter: createOpenAIBackendAdapter({
-          apiKey: process.env.OPENAI_API_KEY || 'mock',
-        }),
-      },
-      {
-        name: 'anthropic',
-        adapter: createAnthropicBackendAdapter({
-          apiKey: process.env.ANTHROPIC_API_KEY || 'mock',
-        }),
-      },
-    ],
+  // Create backends array
+  const backends = [
+    new OpenAIBackendAdapter({
+      apiKey: process.env.OPENAI_API_KEY || 'mock',
+    }),
+    new AnthropicBackendAdapter({
+      apiKey: process.env.ANTHROPIC_API_KEY || 'mock',
+    }),
+  ];
+
+  // Create router with backends array as first argument
+  const router = new Router(backends, {
     strategy: 'fallback', // Try OpenAI first, fall back to Anthropic
   });
+
+  // Create bridge with router backend and frontend adapter
+  const bridge = new Bridge(
+    new OpenAIFrontendAdapter(),
+    router
+  );
 
   // Add OpenTelemetry middleware (async)
   // This will trace requests across ALL backends
@@ -70,7 +71,7 @@ async function main() {
       'service.type': 'multi-provider-router',
     },
   });
-  router.use(otelMiddleware);
+  bridge.use(otelMiddleware);
 
   console.log('📡 Sending requests with provider fallback...\n');
 
@@ -81,7 +82,7 @@ async function main() {
     for (const query of queries) {
       console.log(`🔍 Query: ${query}`);
 
-      const response = await router.chat({
+      const response = await bridge.chat({
         messages: [
           {
             role: 'user',
