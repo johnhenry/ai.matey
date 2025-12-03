@@ -55,14 +55,14 @@ describe('ModelCache', () => {
       expect(cached?.models).toHaveLength(2);
     });
 
-    it('should update source to "cache" on retrieval', () => {
+    it('should preserve original source on retrieval', () => {
       const cache = new ModelCache();
       const result = createMockResult(['gpt-4']);
 
       cache.set('openai', result, 60000);
 
       const cached = cache.get('openai');
-      expect(cached?.source).toBe('cache');
+      expect(cached?.source).toBe('api'); // Preserves original source
     });
 
     it('should return null for expired entries', () => {

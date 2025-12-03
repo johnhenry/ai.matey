@@ -236,11 +236,21 @@ function zodToJsonSchema(schema: any): JSONSchema {
 
   // Handle ZodEnum
   if (typeName === 'ZodEnum') {
-    // In Zod v3, enum values can be in _def.values (array) or _def.options (array)
-    const values = def.values || def.options || [];
+    // In Zod v3+, enum values are stored in _def.entries as an object or _def.values as an array
+    let enumValues: string[] = [];
+
+    if (def.entries) {
+      // _def.entries is an object like { "active": "active", "inactive": "inactive" }
+      enumValues = Object.values(def.entries);
+    } else if (def.values) {
+      enumValues = Array.isArray(def.values) ? def.values : Object.values(def.values);
+    } else if (def.options) {
+      enumValues = Array.isArray(def.options) ? def.options : Object.values(def.options);
+    }
+
     const result: JSONSchema = {
       type: 'string',
-      enum: Array.isArray(values) ? values : Object.values(values),
+      enum: enumValues,
     };
     const description = schema.description;
     if (description) {
