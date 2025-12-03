@@ -171,11 +171,11 @@ function extractSignature(content: string, exportName: string, position: number)
   const afterExport = content.substring(position, position + 500);
 
   // Try to match function signature
-  const funcMatch = afterExport.match(new RegExp(`(?:function|const)\\s+${exportName}\\s*[=:]?\\s*\\(?([^{]*)`, 'i'));
+  const funcMatch = afterExport.match(new RegExp(`(?:function|const)\\s+${exportName}\\s*[=:]?\\s*\\(([^{]*)`, 'i'));
   if (funcMatch) {
     const sig = funcMatch[1].trim();
-    // Clean up the signature
-    return `${exportName}${sig}`.replace(/\s+/g, ' ');
+    // Clean up the signature - add opening paren since it's not captured
+    return `${exportName}(${sig}`.replace(/\s+/g, ' ');
   }
 
   // Try to match type/interface - capture until the first { or ;
