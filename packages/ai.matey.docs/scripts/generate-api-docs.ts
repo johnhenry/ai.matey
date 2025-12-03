@@ -27,9 +27,9 @@ try {
   });
 
   console.log('\n✨ API documentation generation complete!\n');
-} catch (error) {
+} catch (error: unknown) {
   console.error('\n❌ Error generating API documentation:');
-  console.error(error.message);
+  console.error(error instanceof Error ? error.message : String(error));
   // Don't exit with error - docs can still build without API docs
   console.log('\n⚠️  Continuing without API docs...\n');
 }

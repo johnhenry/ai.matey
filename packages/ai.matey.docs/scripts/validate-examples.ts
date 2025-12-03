@@ -54,8 +54,8 @@ try {
     console.log(`\n⚠️  Found ${errorCount} issues in ${fileCount} examples\n`);
     // Don't fail build for warnings
   }
-} catch (error) {
+} catch (error: unknown) {
   console.error('❌ Error validating examples:');
-  console.error(error.message);
+  console.error(error instanceof Error ? error.message : String(error));
   process.exit(1);
 }

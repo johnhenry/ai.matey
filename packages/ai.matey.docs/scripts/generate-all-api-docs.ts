@@ -228,7 +228,7 @@ function extractExportsFromFile(filePath: string, visited = new Set<string>()): 
     // Match: export type { name1, name2 } from './file'
     const typeExportMatches = content.matchAll(/export\s+type\s*{\s*([^}]+)\s*}(?:\s+from\s+['"]([^'"]+)['"])?/g);
     for (const match of typeExportMatches) {
-      const names = match[1].split(',').map(n => {
+      const names = match[1].split(',').map((n: string) => {
         const cleaned = n.trim().replace(/^type\s+/, '').split(/\s+as\s+/)[0];
         return cleaned;
       });
