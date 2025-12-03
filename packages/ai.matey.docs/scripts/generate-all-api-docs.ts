@@ -127,7 +127,8 @@ interface ExportInfo {
  */
 function extractJSDocDescription(content: string, position: number): string | undefined {
   // Look backwards for JSDoc comment, but only immediate preceding comment
-  const textBefore = content.substring(Math.max(0, position - 300), position);
+  // Increased to 5000 to handle large JSDoc comments with extensive examples
+  const textBefore = content.substring(Math.max(0, position - 5000), position);
 
   // Find ALL JSDoc blocks, then take the last one (closest to the export)
   const jsdocMatches = Array.from(textBefore.matchAll(/\/\*\*([\s\S]*?)\*\//g));
