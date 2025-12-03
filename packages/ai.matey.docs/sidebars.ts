@@ -93,7 +93,7 @@ const sidebars: SidebarsConfig = {
       collapsed: true,
       link: {
         type: 'doc',
-        id: 'api/generated/README',
+        id: 'api/index',
       },
       items: [
         {

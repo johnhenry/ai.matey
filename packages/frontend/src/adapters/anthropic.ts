@@ -24,7 +24,50 @@ import { convertStreamMode } from 'ai.matey.utils';
 // ============================================================================
 
 /**
- * Anthropic message content block.
+ * Anthropic content block type supporting text, images, and tool usage.
+ *
+ * Claude uses a structured content block format where each piece of content
+ * is represented as an object with a discriminated `type` field. This enables
+ * multimodal messages mixing text, images, and tool interactions.
+ *
+ * @see AnthropicMessage
+ * @see https://docs.anthropic.com/en/api/messages
+ *
+ * @example
+ * ```typescript
+ * // Text block
+ * const text: AnthropicContentBlock = {
+ *   type: 'text',
+ *   text: 'Hello, Claude!'
+ * };
+ *
+ * // Image from URL
+ * const imageUrl: AnthropicContentBlock = {
+ *   type: 'image',
+ *   source: {
+ *     type: 'url',
+ *     url: 'https://example.com/photo.jpg'
+ *   }
+ * };
+ *
+ * // Base64 image
+ * const imageB64: AnthropicContentBlock = {
+ *   type: 'image',
+ *   source: {
+ *     type: 'base64',
+ *     media_type: 'image/jpeg',
+ *     data: '/9j/4AAQSkZJRg...'
+ *   }
+ * };
+ *
+ * // Tool use request
+ * const toolUse: AnthropicContentBlock = {
+ *   type: 'tool_use',
+ *   id: 'toolu_123',
+ *   name: 'get_weather',
+ *   input: { location: 'San Francisco' }
+ * };
+ * ```
  */
 export type AnthropicContentBlock =
   | { type: 'text'; text: string }
@@ -35,50 +78,185 @@ export type AnthropicContentBlock =
   | { type: 'tool_use'; id: string; name: string; input: Record<string, unknown> };
 
 /**
- * Anthropic message.
+ * Anthropic message structure in a conversation.
+ *
+ * Claude messages support only 'user' and 'assistant' roles. System messages
+ * are handled separately via the `system` parameter at the request level.
+ * Content can be a simple string or an array of structured blocks.
+ *
+ * @see AnthropicContentBlock
+ * @see AnthropicRequest
  */
 export interface AnthropicMessage {
+  /** Message role - only 'user' or 'assistant' (system is separate) */
   role: 'user' | 'assistant';
+
+  /** Message content - simple string or array of content blocks for multimodal */
   content: string | AnthropicContentBlock[];
 }
 
 /**
- * Anthropic Messages API request.
+ * Anthropic Messages API request structure.
+ *
+ * Defines all parameters for making a request to Claude via Anthropic's Messages API.
+ * Key differences from OpenAI: system message is a separate parameter (not in messages),
+ * max_tokens is required, and supports top_k sampling parameter.
+ *
+ * @see AnthropicMessage
+ * @see AnthropicResponse
+ * @see https://docs.anthropic.com/en/api/messages
+ *
+ * @example
+ * ```typescript
+ * const request: AnthropicRequest = {
+ *   model: 'claude-3-5-sonnet-20241022',
+ *   max_tokens: 1024,
+ *   messages: [
+ *     { role: 'user', content: 'Hello, Claude!' }
+ *   ],
+ *   system: 'You are a helpful assistant.',
+ *   temperature: 0.7
+ * };
+ * ```
  */
 export interface AnthropicRequest {
+  /** Model ID (e.g., 'claude-3-5-sonnet-20241022', 'claude-3-opus-20240229') */
   model: string;
+
+  /** Array of conversation messages (user and assistant only) */
   messages: AnthropicMessage[];
+
+  /** System prompt/instructions (separate from messages array) */
   system?: string;
+
+  /** Maximum tokens to generate - REQUIRED by Anthropic API */
   max_tokens: number;
+
+  /** Sampling temperature 0-1. Higher = more random. Default 1 */
   temperature?: number;
+
+  /** Nucleus sampling parameter 0-1. Alternative to temperature */
   top_p?: number;
+
+  /** Top-K sampling parameter. Only sample from top K tokens */
   top_k?: number;
+
+  /** Stop sequences - generation stops when encountered */
   stop_sequences?: string[];
+
+  /** Enable streaming responses via Server-Sent Events */
   stream?: boolean;
+
+  /** Optional metadata for tracking and abuse prevention */
   metadata?: {
+    /** User identifier for abuse monitoring */
     user_id?: string;
   };
 }
 
 /**
- * Anthropic Messages API response.
+ * Anthropic Messages API response structure.
+ *
+ * Contains the complete response from Claude including the generated content,
+ * stop reason, and token usage. Content is always returned as an array of
+ * structured blocks, even for simple text responses.
+ *
+ * @see AnthropicRequest
+ * @see AnthropicContentBlock
+ * @see https://docs.anthropic.com/en/api/messages
+ *
+ * @example
+ * ```typescript
+ * const response: AnthropicResponse = {
+ *   id: 'msg_123',
+ *   type: 'message',
+ *   role: 'assistant',
+ *   content: [
+ *     { type: 'text', text: 'Hello! How can I help you today?' }
+ *   ],
+ *   model: 'claude-3-5-sonnet-20241022',
+ *   stop_reason: 'end_turn',
+ *   usage: {
+ *     input_tokens: 12,
+ *     output_tokens: 8
+ *   }
+ * };
+ * ```
  */
 export interface AnthropicResponse {
+  /** Unique identifier for this message */
   id: string;
+
+  /** Object type - always 'message' for Messages API */
   type: 'message';
+
+  /** Role of the responder - always 'assistant' */
   role: 'assistant';
+
+  /** Array of content blocks (even for simple text responses) */
   content: AnthropicContentBlock[];
+
+  /** Model that generated the response */
   model: string;
+
+  /** Reason generation stopped: 'end_turn' (natural), 'max_tokens', 'stop_sequence', 'tool_use', or null */
   stop_reason: 'end_turn' | 'max_tokens' | 'stop_sequence' | 'tool_use' | null;
+
+  /** The actual stop sequence matched (if stop_reason is 'stop_sequence') */
   stop_sequence?: string | null;
+
+  /** Token usage statistics */
   usage: {
+    /** Number of tokens in the input/prompt */
     input_tokens: number;
+
+    /** Number of tokens in the output/completion */
     output_tokens: number;
   };
 }
 
 /**
- * Anthropic SSE stream event.
+ * Anthropic streaming event types via Server-Sent Events.
+ *
+ * Claude uses a more complex streaming protocol than OpenAI, with distinct
+ * events for different stages: message start, content block start/delta/stop,
+ * and message completion. This enables fine-grained control over streaming
+ * display and supports tool use streaming.
+ *
+ * Event flow:
+ * 1. `message_start` - Stream begins with metadata
+ * 2. `content_block_start` - Each content block (text/tool) starts
+ * 3. `content_block_delta` - Incremental content for the block
+ * 4. `content_block_stop` - Block is complete
+ * 5. `message_delta` - Final metadata (stop reason, usage)
+ * 6. `message_stop` - Stream ends
+ *
+ * @see AnthropicRequest
+ * @see AnthropicResponse
+ * @see https://docs.anthropic.com/en/api/messages-streaming
+ *
+ * @example
+ * ```typescript
+ * // Message start event
+ * const start: AnthropicStreamEvent = {
+ *   type: 'message_start',
+ *   message: { id: 'msg_123', model: 'claude-3-5-sonnet-20241022' }
+ * };
+ *
+ * // Text delta event
+ * const delta: AnthropicStreamEvent = {
+ *   type: 'content_block_delta',
+ *   index: 0,
+ *   delta: { type: 'text_delta', text: 'Hello' }
+ * };
+ *
+ * // Completion event
+ * const done: AnthropicStreamEvent = {
+ *   type: 'message_delta',
+ *   delta: { stop_reason: 'end_turn' },
+ *   usage: { output_tokens: 42 }
+ * };
+ * ```
  */
 export type AnthropicStreamEvent =
   | { type: 'message_start'; message: Partial<AnthropicResponse> }
@@ -129,7 +307,27 @@ export class AnthropicFrontendAdapter implements FrontendAdapter<
   };
 
   /**
-   * Convert Anthropic request to Universal IR.
+   * Convert Anthropic Messages API request to Universal IR format.
+   *
+   * This method transforms an Anthropic-formatted request into the standardized
+   * Intermediate Representation (IR) format. It handles Anthropic's unique system
+   * message format (separate from messages array) by converting it to IR's
+   * in-messages format, and maps Anthropic-specific parameters like top_k.
+   *
+   * @param request - Anthropic Messages API request
+   * @returns Promise resolving to IR chat request
+   * @throws {AdapterConversionError} If conversion fails
+   *
+   * @example
+   * ```typescript
+   * const adapter = new AnthropicFrontendAdapter();
+   * const irRequest = await adapter.toIR({
+   *   model: 'claude-3-5-sonnet-20241022',
+   *   max_tokens: 1024,
+   *   messages: [{ role: 'user', content: 'Hello!' }],
+   *   system: 'You are a helpful assistant'
+   * });
+   * ```
    */
   toIR(request: AnthropicRequest): Promise<IRChatRequest> {
     try {
@@ -183,7 +381,23 @@ export class AnthropicFrontendAdapter implements FrontendAdapter<
   }
 
   /**
-   * Convert Universal IR response to Anthropic format.
+   * Convert Universal IR response back to Anthropic Messages API format.
+   *
+   * This method transforms the standardized IR response into the format
+   * expected by Anthropic's Messages API. It handles message conversion,
+   * stop reason mapping, and usage statistics formatting specific to
+   * Anthropic's response structure.
+   *
+   * @param response - Universal IR chat response
+   * @returns Promise resolving to Anthropic Messages API response
+   * @throws {AdapterConversionError} If conversion fails
+   *
+   * @example
+   * ```typescript
+   * const adapter = new AnthropicFrontendAdapter();
+   * const anthropicResponse = await adapter.fromIR(irResponse);
+   * console.log(anthropicResponse.content[0].text);
+   * ```
    */
   fromIR(response: IRChatResponse): Promise<AnthropicResponse> {
     try {
@@ -221,7 +435,28 @@ export class AnthropicFrontendAdapter implements FrontendAdapter<
   }
 
   /**
-   * Convert Universal IR stream to Anthropic SSE format.
+   * Convert Universal IR stream to Anthropic Server-Sent Events (SSE) format.
+   *
+   * This async generator method transforms a stream of IR chunks into
+   * Anthropic-formatted streaming events. It handles stream mode conversion,
+   * tracks message metadata, and emits properly formatted SSE events
+   * compatible with Anthropic's streaming API including message_start,
+   * content_block_delta, and message_stop events.
+   *
+   * @param stream - Universal IR chat stream
+   * @param options - Optional stream conversion options (stream mode, etc.)
+   * @yields Anthropic-formatted streaming events
+   * @throws {AdapterConversionError} If stream conversion fails
+   *
+   * @example
+   * ```typescript
+   * const adapter = new AnthropicFrontendAdapter();
+   * for await (const event of adapter.fromIRStream(irStream)) {
+   *   if (event.type === 'content_block_delta') {
+   *     console.log(event.delta.text);
+   *   }
+   * }
+   * ```
    */
   async *fromIRStream(
     stream: IRChatStream,

@@ -21,11 +21,28 @@ export interface CreateTextStreamOptions {
 }
 
 /**
- * Create a controlled text stream from a fetch response.
+ * Create a controlled text stream from a fetch response with streaming body.
  *
- * @param response - Fetch response with streaming body
- * @param options - Stream options
- * @returns Promise resolving to full text
+ * This function reads a streaming response body chunk by chunk, decodes the
+ * bytes as UTF-8 text, and provides callbacks for processing each chunk as it
+ * arrives. It accumulates the full text and returns it when the stream completes.
+ * Supports abort signals for cancellation and error handling.
+ *
+ * @param response - Fetch Response object with a streaming body
+ * @param options - Configuration including chunk/complete/error callbacks and abort signal
+ * @returns Promise resolving to the complete accumulated text
+ * @throws {Error} If response body is null or if stream reading fails
+ *
+ * @example
+ * ```typescript
+ * const response = await fetch('/api/stream');
+ * const fullText = await createTextStream(response, {
+ *   onChunk: (chunk) => console.log('Received:', chunk),
+ *   onComplete: (text) => console.log('Done:', text),
+ *   onError: (err) => console.error('Error:', err),
+ *   signal: abortController.signal
+ * });
+ * ```
  */
 export async function createTextStream(
   response: Response,
@@ -69,11 +86,30 @@ export async function createTextStream(
 }
 
 /**
- * Parse Server-Sent Events (SSE) stream.
+ * Parse Server-Sent Events (SSE) stream from a fetch response.
  *
- * @param response - Fetch response with SSE body
- * @param options - Stream options
- * @returns Async generator yielding parsed events
+ * This async generator reads a streaming response body conforming to the
+ * Server-Sent Events specification and yields parsed event objects. It handles
+ * SSE event delimiters (double newlines), parses event fields (event, data, id,
+ * retry), and buffers incomplete events. Supports cancellation via abort signal.
+ *
+ * @param response - Fetch Response object with SSE formatted body
+ * @param options - Configuration including optional abort signal
+ * @yields Parsed SSE events with event type, data, id, and retry fields
+ * @throws {Error} If response body is null
+ *
+ * @example
+ * ```typescript
+ * const response = await fetch('/api/chat');
+ * const abortController = new AbortController();
+ *
+ * for await (const event of parseSSEStream(response, {
+ *   signal: abortController.signal
+ * })) {
+ *   console.log('Event:', event.event, 'Data:', event.data);
+ *   if (event.data === '[DONE]') break;
+ * }
+ * ```
  */
 export async function* parseSSEStream(
   response: Response,
@@ -143,7 +179,20 @@ export interface SSEEvent {
 }
 
 /**
- * Parse a single SSE event.
+ * Parse a single Server-Sent Event from text.
+ *
+ * This internal function parses the text of a single SSE event, extracting
+ * the event type, data (supporting multi-line data), id, and retry fields
+ * according to the SSE specification. Returns null if no data is present.
+ *
+ * @param text - Raw SSE event text
+ * @returns Parsed SSE event object or null if invalid
+ *
+ * @example
+ * ```typescript
+ * const event = parseSSEEvent('event: message\ndata: hello\nid: 123\n');
+ * // Returns: { event: 'message', data: 'hello', id: '123' }
+ * ```
  */
 function parseSSEEvent(text: string): SSEEvent | null {
   const lines = text.split('\n');
@@ -174,11 +223,25 @@ function parseSSEEvent(text: string): SSEEvent | null {
 }
 
 /**
- * Transform a ReadableStream with a function.
+ * Transform a ReadableStream by applying a function to each chunk.
  *
- * @param stream - Source stream
- * @param transform - Transform function
- * @returns Transformed stream
+ * This utility creates a new ReadableStream that applies a transformation
+ * function to each chunk from the source stream. The transform function can
+ * be synchronous or asynchronous, allowing for complex processing pipelines.
+ * Useful for modifying stream data types or content on-the-fly.
+ *
+ * @param stream - Source ReadableStream to transform
+ * @param transform - Function to apply to each chunk (sync or async)
+ * @returns New ReadableStream emitting transformed chunks
+ *
+ * @example
+ * ```typescript
+ * const textStream = fetchStream(); // ReadableStream<Uint8Array>
+ * const uppercaseStream = transformStream(textStream, (chunk) => {
+ *   const text = new TextDecoder().decode(chunk);
+ *   return new TextEncoder().encode(text.toUpperCase());
+ * });
+ * ```
  */
 export function transformStream<T, U>(
   stream: ReadableStream<T>,
@@ -205,10 +268,26 @@ export function transformStream<T, U>(
 }
 
 /**
- * Merge multiple streams into one.
+ * Merge multiple ReadableStreams into a single stream.
  *
- * @param streams - Streams to merge
- * @returns Merged stream
+ * This utility combines multiple source streams into one output stream,
+ * reading from all sources concurrently and emitting chunks as they arrive
+ * from any source. The merged stream closes when all source streams complete.
+ * Useful for combining multiple AI model responses or parallel data sources.
+ *
+ * @param streams - Variable number of ReadableStreams to merge
+ * @returns Single ReadableStream emitting chunks from all sources
+ *
+ * @example
+ * ```typescript
+ * const stream1 = fetch('/api/model1').then(r => r.body!);
+ * const stream2 = fetch('/api/model2').then(r => r.body!);
+ * const combined = mergeStreams(stream1, stream2);
+ *
+ * for await (const chunk of toAsyncIterable(combined)) {
+ *   console.log('Chunk from either stream:', chunk);
+ * }
+ * ```
  */
 export function mergeStreams<T>(...streams: ReadableStream<T>[]): ReadableStream<T> {
   const readers = streams.map((s) => s.getReader());
@@ -246,10 +325,27 @@ export function mergeStreams<T>(...streams: ReadableStream<T>[]): ReadableStream
 }
 
 /**
- * Create a stream from an async iterable.
+ * Create a ReadableStream from an async iterable source.
  *
- * @param iterable - Async iterable source
- * @returns ReadableStream
+ * This utility converts any async iterable (like async generators) into a
+ * ReadableStream, making it compatible with browser streaming APIs and
+ * React streaming hooks. Useful for bridging between Node.js-style async
+ * iterators and Web Streams API.
+ *
+ * @param iterable - Any async iterable source (async generator, etc.)
+ * @returns ReadableStream emitting values from the iterable
+ *
+ * @example
+ * ```typescript
+ * async function* generateData() {
+ *   yield 'chunk 1';
+ *   yield 'chunk 2';
+ *   yield 'chunk 3';
+ * }
+ *
+ * const stream = fromAsyncIterable(generateData());
+ * const response = new Response(stream);
+ * ```
  */
 export function fromAsyncIterable<T>(iterable: AsyncIterable<T>): ReadableStream<T> {
   const iterator = iterable[Symbol.asyncIterator]();
@@ -272,10 +368,23 @@ export function fromAsyncIterable<T>(iterable: AsyncIterable<T>): ReadableStream
 }
 
 /**
- * Convert a ReadableStream to an async iterable.
+ * Convert a ReadableStream to an async iterable for use in for-await loops.
  *
- * @param stream - ReadableStream source
- * @returns Async iterable
+ * This async generator wraps a ReadableStream and yields each chunk,
+ * allowing you to consume Web Streams using async iteration syntax.
+ * Properly handles reader lifecycle and ensures the lock is released.
+ * Useful for consuming fetch responses in a more ergonomic way.
+ *
+ * @param stream - ReadableStream to convert
+ * @yields Each chunk from the stream
+ *
+ * @example
+ * ```typescript
+ * const response = await fetch('/api/stream');
+ * for await (const chunk of toAsyncIterable(response.body!)) {
+ *   console.log('Received chunk:', chunk);
+ * }
+ * ```
  */
 export async function* toAsyncIterable<T>(
   stream: ReadableStream<T>

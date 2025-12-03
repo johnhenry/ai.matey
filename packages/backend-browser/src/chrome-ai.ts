@@ -44,7 +44,13 @@ declare global {
 // ============================================================================
 
 /**
- * Get the global window object if in browser environment.
+ * Get the global window object if running in a browser environment.
+ *
+ * This helper function safely checks for the existence of the window object
+ * to determine if code is running in a browser context. Returns undefined
+ * in Node.js or other non-browser environments.
+ *
+ * @returns Window object if in browser, undefined otherwise
  */
 function getWindow(): (Window & typeof globalThis) | undefined {
   return typeof globalThis !== 'undefined' && 'window' in globalThis
@@ -103,6 +109,30 @@ export class ChromeAIBackendAdapter implements BackendAdapter {
     return response;
   }
 
+  /**
+   * Execute a chat request using Chrome's built-in AI.
+   *
+   * This method processes an IR chat request through Chrome AI's streaming API,
+   * collecting all chunks into a complete response. Chrome AI always streams
+   * internally, so this method consumes the stream and returns the final result.
+   * Requires Chrome 129+ with AI features enabled.
+   *
+   * @param request - Universal IR chat request
+   * @param signal - Optional AbortSignal for cancellation
+   * @returns Promise resolving to IR chat response
+   * @throws {ProviderError} If Chrome AI is unavailable or request fails
+   *
+   * @example
+   * ```typescript
+   * const adapter = new ChromeAIBackendAdapter();
+   * const response = await adapter.execute({
+   *   messages: [{ role: 'user', content: 'Hello!' }],
+   *   parameters: { temperature: 0.7, topK: 40 },
+   *   metadata: { requestId: 'req_123', timestamp: Date.now(), provenance: {} }
+   * });
+   * console.log(response.message.content);
+   * ```
+   */
   async execute(request: IRChatRequest, signal?: AbortSignal): Promise<IRChatResponse> {
     try {
       // Chrome AI always streams, so we collect the stream
@@ -152,6 +182,32 @@ export class ChromeAIBackendAdapter implements BackendAdapter {
     }
   }
 
+  /**
+   * Execute a streaming chat request using Chrome's built-in AI.
+   *
+   * This async generator method processes an IR chat request through Chrome AI's
+   * streaming interface, yielding IR stream chunks as they arrive. It checks for
+   * Chrome AI availability, creates a session with the specified parameters,
+   * combines all messages into a single prompt, and streams the response.
+   * Supports abort signals for cancellation.
+   *
+   * @param request - Universal IR chat request
+   * @param signal - Optional AbortSignal for cancellation
+   * @yields IR stream chunks including start, content, done, and error events
+   * @throws Yields error chunk if Chrome AI unavailable or stream fails
+   *
+   * @example
+   * ```typescript
+   * const adapter = new ChromeAIBackendAdapter();
+   * for await (const chunk of adapter.executeStream(request)) {
+   *   if (chunk.type === 'content') {
+   *     console.log('Delta:', chunk.delta);
+   *   } else if (chunk.type === 'done') {
+   *     console.log('Complete:', chunk.message.content);
+   *   }
+   * }
+   * ```
+   */
   async *executeStream(request: IRChatRequest, signal?: AbortSignal): IRChatStream {
     try {
       // Check if Chrome AI is available
@@ -264,6 +320,25 @@ export class ChromeAIBackendAdapter implements BackendAdapter {
     }
   }
 
+  /**
+   * Check if Chrome AI is available and healthy.
+   *
+   * This method verifies that Chrome AI is present in the browser environment
+   * and reports being available. Returns false if Chrome AI is not supported,
+   * not enabled, or if the device doesn't support on-device AI.
+   *
+   * @returns Promise resolving to true if Chrome AI is available, false otherwise
+   *
+   * @example
+   * ```typescript
+   * const adapter = new ChromeAIBackendAdapter();
+   * if (await adapter.healthCheck()) {
+   *   console.log('Chrome AI is ready!');
+   * } else {
+   *   console.log('Chrome AI not available - use a different backend');
+   * }
+   * ```
+   */
   async healthCheck(): Promise<boolean> {
     try {
       const win = getWindow();
@@ -277,6 +352,22 @@ export class ChromeAIBackendAdapter implements BackendAdapter {
     }
   }
 
+  /**
+   * Estimate the cost of a Chrome AI request.
+   *
+   * Chrome AI is completely free as it runs locally on-device, so this always
+   * returns 0. No API keys or payment required.
+   *
+   * @param _request - IR chat request (unused)
+   * @returns Promise resolving to 0 (Chrome AI is free)
+   *
+   * @example
+   * ```typescript
+   * const adapter = new ChromeAIBackendAdapter();
+   * const cost = await adapter.estimateCost(request);
+   * console.log(cost); // Always 0
+   * ```
+   */
   estimateCost(_request: IRChatRequest): Promise<number | null> {
     return Promise.resolve(0); // Chrome AI is free
   }

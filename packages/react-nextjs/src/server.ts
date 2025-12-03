@@ -269,7 +269,23 @@ export function createChatHandler(options: CreateChatHandlerOptions) {
 }
 
 /**
- * Transform stream chunks.
+ * Transform stream chunks with a custom transformation function.
+ *
+ * This internal async generator applies a transformation function to each chunk
+ * in a stream. It handles both string chunks and object chunks with a 'content'
+ * property, preserving the structure while transforming the text content.
+ *
+ * @param stream - Source async iterable of chunks (strings or objects)
+ * @param transform - Transformation function to apply to each chunk's content
+ * @yields Transformed chunks in their original format
+ *
+ * @example
+ * ```typescript
+ * // Used internally by createChatHandler to transform stream chunks
+ * const transformedStream = transformStreamChunks(stream, (chunk) => {
+ *   return chunk.toUpperCase(); // Example: convert to uppercase
+ * });
+ * ```
  */
 async function* transformStreamChunks(
   stream: AsyncIterable<unknown>,

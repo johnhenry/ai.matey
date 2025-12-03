@@ -53,11 +53,21 @@
   ],
   "sort": ["source-order"],
   "kindSortOrder": [
+    "Function",
     "Class",
     "Interface",
     "TypeAlias",
-    "Function",
+    "Enum",
     "Variable"
+  ],
+  "groupOrder": [
+    "Functions",
+    "Classes",
+    "Interfaces",
+    "Type Aliases",
+    "Enumerations",
+    "Variables",
+    "*"
   ],
   "outputFileStrategy": "modules",
   "flattenOutputFiles": false,
@@ -82,5 +92,11 @@
   "hideGenerator": false,
   "searchInComments": true,
   "cacheBust": true,
-  "cleanOutputDir": true
+  "cleanOutputDir": true,
+  "excludeNotDocumented": false,
+  "validation": {
+    "notExported": true,
+    "invalidLink": true,
+    "notDocumented": true
+  }
 }

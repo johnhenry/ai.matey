@@ -30,9 +30,15 @@ export interface UseNextChatOptions extends UseChatOptions {
 }
 
 /**
- * useChat hook optimized for Next.js.
+ * useChat hook optimized for Next.js with App Router support.
  *
- * Wraps the core useChat hook with Next.js-specific defaults.
+ * This hook wraps the core useChat hook with Next.js-specific defaults and
+ * conventions. It automatically configures the API route to `/api/chat` following
+ * Next.js conventions, and sets the stream protocol to 'data' (Server-Sent Events)
+ * which works seamlessly with Next.js App Router streaming responses.
+ *
+ * @param options - Configuration options extending core useChat options with Next.js features
+ * @returns Chat state and handlers including messages, input, submit, and loading states
  *
  * @example
  * ```tsx
@@ -41,12 +47,24 @@ export interface UseNextChatOptions extends UseChatOptions {
  * import { useChat } from 'ai.matey.react.nextjs';
  *
  * export function ChatComponent() {
- *   const { messages, input, handleInputChange, handleSubmit } = useChat();
+ *   const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat({
+ *     api: '/api/chat', // Optional, defaults to this
+ *     onError: (error) => console.error('Chat error:', error)
+ *   });
  *
  *   return (
  *     <form onSubmit={handleSubmit}>
- *       {messages.map((m) => <div key={m.id}>{m.content}</div>)}
- *       <input value={input} onChange={handleInputChange} />
+ *       {messages.map((m) => (
+ *         <div key={m.id}>
+ *           <strong>{m.role}:</strong> {m.content}
+ *         </div>
+ *       ))}
+ *       <input
+ *         value={input}
+ *         onChange={handleInputChange}
+ *         disabled={isLoading}
+ *       />
+ *       <button type="submit" disabled={isLoading}>Send</button>
  *     </form>
  *   );
  * }
@@ -75,7 +93,15 @@ export interface UseNextCompletionOptions extends UseCompletionOptions {
 }
 
 /**
- * useCompletion hook optimized for Next.js.
+ * useCompletion hook optimized for Next.js with App Router support.
+ *
+ * This hook wraps the core useCompletion hook with Next.js-specific defaults.
+ * It automatically configures the API route to `/api/completion` and uses
+ * Server-Sent Events (SSE) streaming, making it ideal for text completion
+ * use cases like autocomplete, text generation, and inline suggestions.
+ *
+ * @param options - Configuration options extending core useCompletion options
+ * @returns Completion state and handlers including completion text, input, and submit
  *
  * @example
  * ```tsx
@@ -84,12 +110,27 @@ export interface UseNextCompletionOptions extends UseCompletionOptions {
  * import { useCompletion } from 'ai.matey.react.nextjs';
  *
  * export function CompletionComponent() {
- *   const { completion, input, handleInputChange, handleSubmit } = useCompletion();
+ *   const {
+ *     completion,
+ *     input,
+ *     handleInputChange,
+ *     handleSubmit,
+ *     isLoading
+ *   } = useCompletion({
+ *     onFinish: (prompt, completion) => {
+ *       console.log('Completed:', { prompt, completion });
+ *     }
+ *   });
  *
  *   return (
  *     <form onSubmit={handleSubmit}>
- *       <input value={input} onChange={handleInputChange} />
- *       <p>{completion}</p>
+ *       <textarea
+ *         value={input}
+ *         onChange={handleInputChange}
+ *         placeholder="Enter prompt..."
+ *       />
+ *       <button type="submit" disabled={isLoading}>Generate</button>
+ *       <div className="completion">{completion}</div>
  *     </form>
  *   );
  * }

@@ -133,9 +133,26 @@ export class GenericFrontendAdapter implements FrontendAdapter<
   }
 
   /**
-   * Pass through IR request (no conversion needed).
+   * Pass through Universal IR request without conversion.
    *
-   * Optionally adds provenance tracking if enabled.
+   * This method accepts an IR request and returns it directly, as this is
+   * a passthrough adapter. When provenance tracking is enabled (default),
+   * it adds the frontend adapter name to the provenance metadata for
+   * tracking purposes, but otherwise performs no transformations.
+   *
+   * @param request - Universal IR chat request
+   * @returns Promise resolving to the same IR request (with optional provenance)
+   *
+   * @example
+   * ```typescript
+   * const adapter = new GenericFrontendAdapter();
+   * const irRequest = await adapter.toIR({
+   *   messages: [{ role: 'user', content: 'Hello!' }],
+   *   parameters: { model: 'gpt-4', temperature: 0.7 },
+   *   metadata: { requestId: 'req_123', timestamp: Date.now(), provenance: {} }
+   * });
+   * // Returns the same request with provenance.frontend = 'generic-frontend'
+   * ```
    */
   toIR(request: IRChatRequest): Promise<IRChatRequest> {
     // Optionally add provenance
@@ -156,14 +173,49 @@ export class GenericFrontendAdapter implements FrontendAdapter<
   }
 
   /**
-   * Pass through IR response (no conversion needed).
+   * Pass through Universal IR response without conversion.
+   *
+   * This method accepts an IR response and returns it directly without
+   * any transformation. Since this is a passthrough adapter, the response
+   * remains in IR format, allowing applications to work directly with
+   * the universal format.
+   *
+   * @param response - Universal IR chat response
+   * @returns Promise resolving to the same IR response
+   *
+   * @example
+   * ```typescript
+   * const adapter = new GenericFrontendAdapter();
+   * const irResponse = await adapter.fromIR(irResponse);
+   * // Returns the exact same response unchanged
+   * console.log(irResponse.message.content);
+   * ```
    */
   fromIR(response: IRChatResponse): Promise<IRChatResponse> {
     return Promise.resolve(response);
   }
 
   /**
-   * Pass through IR stream chunks (no conversion needed).
+   * Pass through Universal IR stream chunks without conversion.
+   *
+   * This async generator method accepts an IR stream and yields each chunk
+   * directly without any transformation. Unlike other frontend adapters that
+   * convert to provider-specific formats (SSE, JSON, etc.), this maintains
+   * the raw IR chunk structure for direct consumption.
+   *
+   * @param stream - Universal IR chat stream
+   * @param _options - Optional stream conversion options (currently unused)
+   * @yields IR stream chunks unchanged
+   *
+   * @example
+   * ```typescript
+   * const adapter = new GenericFrontendAdapter();
+   * for await (const chunk of adapter.fromIRStream(irStream)) {
+   *   if (chunk.type === 'content') {
+   *     console.log(chunk.delta); // Access IR structure directly
+   *   }
+   * }
+   * ```
    */
   async *fromIRStream(
     stream: IRChatStream,

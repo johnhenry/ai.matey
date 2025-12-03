@@ -280,7 +280,28 @@ export class MockBackendAdapter implements BackendAdapter {
   }
 
   /**
-   * Execute request and return response
+   * Execute a chat request with predefined mock response.
+   *
+   * This method processes an IR chat request and returns a mock response without
+   * making any real API calls. It simulates delays, errors, and usage statistics
+   * based on configuration. Useful for testing, development, and demonstrations
+   * where you need predictable responses without external dependencies.
+   *
+   * @param irRequest - Universal IR chat request
+   * @returns Promise resolving to mock IR chat response
+   * @throws {Error} If mock response is configured to throw an error
+   *
+   * @example
+   * ```typescript
+   * const adapter = new MockBackendAdapter({
+   *   responses: [{
+   *     content: 'This is a mock response!',
+   *     delay: 100 // Simulate 100ms network delay
+   *   }]
+   * });
+   * const response = await adapter.execute(request);
+   * console.log(response.message.content);
+   * ```
    */
   async execute(irRequest: IRChatRequest): Promise<IRChatResponse> {
     // Track request for testing
@@ -340,7 +361,31 @@ export class MockBackendAdapter implements BackendAdapter {
   }
 
   /**
-   * Execute streaming request
+   * Execute a streaming chat request with predefined mock response.
+   *
+   * This async generator processes an IR chat request and yields mock stream
+   * chunks without making any real API calls. It simulates realistic streaming
+   * behavior by splitting responses into chunks with configurable delays between
+   * them. Supports error simulation and usage statistics. Perfect for testing
+   * streaming UI components without external dependencies.
+   *
+   * @param irRequest - Universal IR chat request
+   * @yields IR stream chunks including start, content, done, and error events
+   *
+   * @example
+   * ```typescript
+   * const adapter = new MockBackendAdapter({
+   *   responses: [{
+   *     content: 'Streaming mock response!',
+   *     streamDelayMs: 50 // 50ms between chunks
+   *   }]
+   * });
+   * for await (const chunk of adapter.executeStream(request)) {
+   *   if (chunk.type === 'content') {
+   *     console.log('Chunk:', chunk.delta);
+   *   }
+   * }
+   * ```
    */
   async *executeStream(irRequest: IRChatRequest): IRChatStream {
     // Track request for testing

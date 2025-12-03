@@ -153,7 +153,7 @@ export function translateModel(
 /**
  * Create a model translator with pre-configured options.
  *
- * @param options - Default translation options
+ * @param defaultOptions - Default translation options
  * @returns Translator function
  *
  * @example
