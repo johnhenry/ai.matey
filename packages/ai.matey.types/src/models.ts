@@ -84,6 +84,21 @@ export interface ModelCapabilities {
   readonly supportsVision?: boolean;
 
   /**
+   * Whether the model supports audio inputs.
+   */
+  readonly supportsAudio?: boolean;
+
+  /**
+   * Whether the model supports document inputs (e.g., PDFs).
+   */
+  readonly supportsDocuments?: boolean;
+
+  /**
+   * Whether the model supports video inputs.
+   */
+  readonly supportsVideo?: boolean;
+
+  /**
    * Whether the model supports function/tool calling.
    */
   readonly supportsTools?: boolean;
@@ -152,6 +167,9 @@ export interface ListModelsOptions {
   readonly filter?: {
     readonly supportsStreaming?: boolean;
     readonly supportsVision?: boolean;
+    readonly supportsAudio?: boolean;
+    readonly supportsDocuments?: boolean;
+    readonly supportsVideo?: boolean;
     readonly supportsTools?: boolean;
     readonly supportsJSON?: boolean;
   };

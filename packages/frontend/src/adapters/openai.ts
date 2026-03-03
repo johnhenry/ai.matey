@@ -56,6 +56,7 @@ export type OpenAIMessageContent =
   | Array<
       | { type: 'text'; text: string }
       | { type: 'image_url'; image_url: { url: string; detail?: 'auto' | 'low' | 'high' } }
+      | { type: 'input_audio'; input_audio: { data: string; format: string } }
     >;
 
 /**
@@ -546,6 +547,17 @@ export class OpenAIFrontendAdapter implements FrontendAdapter<
       content = message.content.map((block) => {
         if (block.type === 'text') {
           return { type: 'text', text: block.text };
+        } else if (block.type === 'input_audio') {
+          // Derive mediaType from format (e.g., 'mp3' -> 'audio/mp3', 'wav' -> 'audio/wav')
+          const format = block.input_audio.format || 'mp3';
+          return {
+            type: 'audio',
+            source: {
+              type: 'base64',
+              mediaType: `audio/${format}`,
+              data: block.input_audio.data,
+            },
+          } as MessageContent;
         } else {
           return {
             type: 'image',
@@ -592,6 +604,41 @@ export class OpenAIFrontendAdapter implements FrontendAdapter<
               return {
                 type: 'image_url',
                 image_url: { url: dataUrl },
+              };
+            }
+
+          case 'audio':
+            if (block.source.type === 'base64') {
+              // Extract format from mediaType (e.g., 'audio/mp3' -> 'mp3')
+              const format = block.source.mediaType.split('/')[1] || 'mp3';
+              return {
+                type: 'input_audio',
+                input_audio: { data: block.source.data, format },
+              };
+            } else {
+              // URL-based audio: OpenAI doesn't support audio URLs natively, fallback to text
+              return { type: 'text', text: `[Audio: ${block.source.url}]` };
+            }
+
+          case 'document':
+            // OpenAI doesn't natively support document uploads; represent as text fallback
+            if (block.source.type === 'url') {
+              return { type: 'text', text: `[Document: ${block.filename || block.source.url}]` };
+            } else {
+              return {
+                type: 'text',
+                text: `[Document: ${block.filename || 'attachment'} (${block.source.mediaType})]`,
+              };
+            }
+
+          case 'video':
+            // OpenAI doesn't natively support video uploads; represent as text fallback
+            if (block.source.type === 'url') {
+              return { type: 'text', text: `[Video: ${block.source.url}]` };
+            } else {
+              return {
+                type: 'text',
+                text: `[Video: attachment (${block.source.mediaType})]`,
               };
             }
 

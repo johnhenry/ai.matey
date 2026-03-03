@@ -80,6 +80,139 @@ export interface ImageContent {
 }
 
 /**
+ * Audio content block.
+ *
+ * Supports both URLs and base64-encoded audio files.
+ *
+ * @example
+ * ```typescript
+ * // Audio from URL
+ * const audioUrl: AudioContent = {
+ *   type: 'audio',
+ *   source: {
+ *     type: 'url',
+ *     url: 'https://example.com/recording.mp3'
+ *   }
+ * };
+ *
+ * // Base64 audio with transcript
+ * const audioBase64: AudioContent = {
+ *   type: 'audio',
+ *   source: {
+ *     type: 'base64',
+ *     mediaType: 'audio/mp3',
+ *     data: 'SGVsbG8gd29ybGQ...'
+ *   },
+ *   transcript: 'Hello world'
+ * };
+ * ```
+ */
+export interface AudioContent {
+  readonly type: 'audio';
+  readonly source:
+    | {
+        readonly type: 'url';
+        readonly url: string;
+      }
+    | {
+        readonly type: 'base64';
+        readonly mediaType: string;
+        readonly data: string;
+      };
+  /** Optional transcript for accessibility and fallback. */
+  readonly transcript?: string;
+}
+
+/**
+ * Document content block.
+ *
+ * Supports both URLs and base64-encoded documents (e.g., PDFs).
+ *
+ * @example
+ * ```typescript
+ * // Document from URL
+ * const docUrl: DocumentContent = {
+ *   type: 'document',
+ *   source: {
+ *     type: 'url',
+ *     url: 'https://example.com/report.pdf'
+ *   },
+ *   filename: 'report.pdf'
+ * };
+ *
+ * // Base64 document
+ * const docBase64: DocumentContent = {
+ *   type: 'document',
+ *   source: {
+ *     type: 'base64',
+ *     mediaType: 'application/pdf',
+ *     data: 'JVBERi0xLjQ...'
+ *   },
+ *   filename: 'invoice.pdf'
+ * };
+ * ```
+ */
+export interface DocumentContent {
+  readonly type: 'document';
+  readonly source:
+    | {
+        readonly type: 'url';
+        readonly url: string;
+      }
+    | {
+        readonly type: 'base64';
+        readonly mediaType: string;
+        readonly data: string;
+      };
+  /** Optional filename for display and download purposes. */
+  readonly filename?: string;
+}
+
+/**
+ * Video content block.
+ *
+ * Supports both URLs and base64-encoded video files.
+ *
+ * @example
+ * ```typescript
+ * // Video from URL
+ * const videoUrl: VideoContent = {
+ *   type: 'video',
+ *   source: {
+ *     type: 'url',
+ *     url: 'https://example.com/clip.mp4'
+ *   },
+ *   poster: 'https://example.com/clip-thumb.jpg'
+ * };
+ *
+ * // Base64 video
+ * const videoBase64: VideoContent = {
+ *   type: 'video',
+ *   source: {
+ *     type: 'base64',
+ *     mediaType: 'video/mp4',
+ *     data: 'AAAAIGZ0eXBpc29t...'
+ *   }
+ * };
+ * ```
+ */
+export interface VideoContent {
+  readonly type: 'video';
+  readonly source:
+    | {
+        readonly type: 'url';
+        readonly url: string;
+      }
+    | {
+        readonly type: 'base64';
+        readonly mediaType: string;
+        readonly data: string;
+      };
+  /** Optional poster/thumbnail URL for preview. */
+  readonly poster?: string;
+}
+
+/**
  * Tool use request (AI wants to call a tool).
  */
 export interface ToolUseContent {
@@ -104,7 +237,14 @@ export interface ToolResultContent {
  *
  * Uses discriminated union pattern for type-safe content handling.
  */
-export type MessageContent = TextContent | ImageContent | ToolUseContent | ToolResultContent;
+export type MessageContent =
+  | TextContent
+  | ImageContent
+  | AudioContent
+  | DocumentContent
+  | VideoContent
+  | ToolUseContent
+  | ToolResultContent;
 
 /**
  * A message in the conversation.
@@ -392,6 +532,21 @@ export interface IRCapabilities {
    * Supports multi-modal content (images, etc.).
    */
   readonly multiModal: boolean;
+
+  /**
+   * Supports audio inputs.
+   */
+  readonly supportsAudio?: boolean;
+
+  /**
+   * Supports document inputs (e.g., PDFs).
+   */
+  readonly supportsDocuments?: boolean;
+
+  /**
+   * Supports video inputs.
+   */
+  readonly supportsVideo?: boolean;
 
   /**
    * Supports tool/function calling.
