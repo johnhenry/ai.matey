@@ -23,20 +23,37 @@ import { getEffectiveStreamMode, mergeStreamingConfig } from 'ai.matey.utils';
 // ============================================================================
 
 export interface ChromeAISession {
-  prompt(input: string): Promise<string>;
+  prompt(input: string, options?: { signal?: AbortSignal }): Promise<string>;
   promptStreaming(input: string): ReadableStream;
   destroy(): void;
+  clone?(): ChromeAISession;
 }
 
 export interface ChromeAI {
-  createTextSession(options?: { temperature?: number; topK?: number }): Promise<ChromeAISession>;
-  capabilities(): Promise<{ available: 'readily' | 'after-download' | 'no' }>;
+  // New API (Chrome 138+)
+  create?(options?: {
+    temperature?: number;
+    topK?: number;
+    systemPrompt?: string;
+  }): Promise<ChromeAISession>;
+  availability?(): Promise<{ available: 'readily' | 'after-download' | 'no' }>;
+  params?(): Promise<{
+    defaultTopK: number;
+    maxTopK: number;
+    defaultTemperature: number;
+    maxTemperature: number;
+  }>;
+
+  // Legacy API (Chrome 129-137) - for backward compatibility
+  createTextSession?(options?: { temperature?: number; topK?: number }): Promise<ChromeAISession>;
+  capabilities?(): Promise<{ available: 'readily' | 'after-download' | 'no' }>;
 }
 
 declare global {
   interface Window {
     ai?: { languageModel: ChromeAI };
   }
+  var ai: { languageModel: ChromeAI } | undefined;
 }
 
 // ============================================================================
@@ -210,9 +227,11 @@ export class ChromeAIBackendAdapter implements BackendAdapter {
    */
   async *executeStream(request: IRChatRequest, signal?: AbortSignal): IRChatStream {
     try {
-      // Check if Chrome AI is available
+      // Check if Chrome AI is available (try both global scopes)
       const win = getWindow();
-      if (!win?.ai?.languageModel) {
+      const chromeAI = win?.ai?.languageModel || (typeof globalThis !== 'undefined' && (globalThis as any).ai?.languageModel);
+
+      if (!chromeAI) {
         throw new ProviderError({
           code: ErrorCode.PROVIDER_UNAVAILABLE,
           message: 'Chrome AI is not available (requires Chrome 129+ with AI features enabled)',
@@ -220,19 +239,39 @@ export class ChromeAIBackendAdapter implements BackendAdapter {
         });
       }
 
-      const capabilities = await win.ai.languageModel.capabilities();
-      if (capabilities.available === 'no') {
+      // Check availability using new or legacy API
+      const checkAvailability = chromeAI.availability || chromeAI.capabilities;
+      if (checkAvailability) {
+        const capabilities = await checkAvailability.call(chromeAI);
+        if (capabilities.available === 'no') {
+          throw new ProviderError({
+            code: ErrorCode.PROVIDER_UNAVAILABLE,
+            message: 'Chrome AI is not available on this device',
+            provenance: { backend: this.metadata.name },
+          });
+        }
+      }
+
+      // Extract system prompt from messages if present
+      const systemMessage = request.messages.find(msg => msg.role === 'system');
+      const systemPrompt = systemMessage ?
+        (typeof systemMessage.content === 'string' ? systemMessage.content : '') :
+        undefined;
+
+      // Create session using new or legacy API
+      const createSession = chromeAI.create || chromeAI.createTextSession;
+      if (!createSession) {
         throw new ProviderError({
           code: ErrorCode.PROVIDER_UNAVAILABLE,
-          message: 'Chrome AI is not available on this device',
+          message: 'Chrome AI session creation is not available',
           provenance: { backend: this.metadata.name },
         });
       }
 
-      // Create session
-      const session = await win.ai.languageModel.createTextSession({
+      const session = await createSession.call(chromeAI, {
         temperature: request.parameters?.temperature,
         topK: request.parameters?.topK,
+        ...(systemPrompt && { systemPrompt }),
       });
 
       // Combine messages into single prompt
@@ -342,10 +381,19 @@ export class ChromeAIBackendAdapter implements BackendAdapter {
   async healthCheck(): Promise<boolean> {
     try {
       const win = getWindow();
-      if (!win?.ai?.languageModel) {
+      const chromeAI = win?.ai?.languageModel || (typeof globalThis !== 'undefined' && (globalThis as any).ai?.languageModel);
+
+      if (!chromeAI) {
         return false;
       }
-      const capabilities = await win.ai.languageModel.capabilities();
+
+      // Check availability using new or legacy API
+      const checkAvailability = chromeAI.availability || chromeAI.capabilities;
+      if (!checkAvailability) {
+        return false;
+      }
+
+      const capabilities = await checkAvailability.call(chromeAI);
       return capabilities.available !== 'no';
     } catch {
       return false;
