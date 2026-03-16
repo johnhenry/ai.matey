@@ -4,6 +4,9 @@ import {
   AnthropicBackendAdapter,
   DeepSeekBackendAdapter,
   GroqBackendAdapter,
+  InceptionBackendAdapter,
+  MoonshotBackendAdapter,
+  SambaNovaBackendAdapter,
 } from 'ai.matey.backend';
 import {
   MockBackendAdapter,
@@ -123,6 +126,115 @@ describe('Backend Adapters', () => {
     });
   });
 
+  describe('InceptionBackendAdapter', () => {
+    it('should create adapter with config', () => {
+      const adapter = new InceptionBackendAdapter({
+        apiKey: 'test-key',
+      });
+
+      expect(adapter).toBeDefined();
+      expect(adapter.metadata.name).toBe('inception-backend');
+    });
+
+    it('should provide metadata', () => {
+      const adapter = new InceptionBackendAdapter({ apiKey: 'test-key' });
+      const metadata = adapter.metadata;
+
+      expect(metadata.name).toBe('inception-backend');
+      expect(metadata.provider).toBe('Inception Labs');
+      expect(metadata.capabilities.streaming).toBe(true);
+      expect(metadata.capabilities.multiModal).toBe(false);
+    });
+
+    it('should use default model and base URL', () => {
+      const adapter = new InceptionBackendAdapter({ apiKey: 'test-key' });
+
+      expect(adapter.metadata.config?.baseURL).toBe('https://api.inceptionlabs.ai/v1');
+    });
+
+    it('should accept custom base URL', () => {
+      const adapter = new InceptionBackendAdapter({
+        apiKey: 'test-key',
+        baseURL: 'https://custom.inception.api/v1',
+      });
+
+      expect(adapter).toBeDefined();
+    });
+  });
+
+  describe('MoonshotBackendAdapter', () => {
+    it('should create adapter with config', () => {
+      const adapter = new MoonshotBackendAdapter({
+        apiKey: 'test-key',
+      });
+
+      expect(adapter).toBeDefined();
+      expect(adapter.metadata.name).toBe('moonshot-backend');
+    });
+
+    it('should provide metadata', () => {
+      const adapter = new MoonshotBackendAdapter({ apiKey: 'test-key' });
+      const metadata = adapter.metadata;
+
+      expect(metadata.name).toBe('moonshot-backend');
+      expect(metadata.provider).toBe('Moonshot AI');
+      expect(metadata.capabilities.streaming).toBe(true);
+      expect(metadata.capabilities.tools).toBe(true);
+      expect(metadata.capabilities.maxContextTokens).toBe(128000);
+    });
+
+    it('should use default base URL', () => {
+      const adapter = new MoonshotBackendAdapter({ apiKey: 'test-key' });
+
+      expect(adapter.metadata.config?.baseURL).toBe('https://api.moonshot.cn/v1');
+    });
+
+    it('should accept custom base URL', () => {
+      const adapter = new MoonshotBackendAdapter({
+        apiKey: 'test-key',
+        baseURL: 'https://custom.moonshot.api/v1',
+      });
+
+      expect(adapter).toBeDefined();
+    });
+  });
+
+  describe('SambaNovaBackendAdapter', () => {
+    it('should create adapter with config', () => {
+      const adapter = new SambaNovaBackendAdapter({
+        apiKey: 'test-key',
+      });
+
+      expect(adapter).toBeDefined();
+      expect(adapter.metadata.name).toBe('sambanova-backend');
+    });
+
+    it('should provide metadata', () => {
+      const adapter = new SambaNovaBackendAdapter({ apiKey: 'test-key' });
+      const metadata = adapter.metadata;
+
+      expect(metadata.name).toBe('sambanova-backend');
+      expect(metadata.provider).toBe('SambaNova');
+      expect(metadata.capabilities.streaming).toBe(true);
+      expect(metadata.capabilities.tools).toBe(true);
+    });
+
+    it('should use default base URL', () => {
+      const adapter = new SambaNovaBackendAdapter({ apiKey: 'test-key' });
+
+      expect(adapter.metadata.config?.baseURL).toBe('https://api.sambanova.ai/v1');
+    });
+
+    it('should accept custom base URL', () => {
+      const adapter = new SambaNovaBackendAdapter({
+        apiKey: 'test-key',
+        baseURL: 'https://custom.sambanova.api/v1',
+      });
+
+      expect(adapter).toBeDefined();
+    });
+  });
+
   describe('MockBackendAdapter', () => {
     it('should create mock adapter', () => {
       const adapter = new MockBackendAdapter();
@@ -227,6 +339,9 @@ describe('Backend Adapters', () => {
       { name: 'Anthropic', adapter: new AnthropicBackendAdapter({ apiKey: 'test' }) },
       { name: 'DeepSeek', adapter: new DeepSeekBackendAdapter({ apiKey: 'test' }) },
       { name: 'Groq', adapter: new GroqBackendAdapter({ apiKey: 'test' }) },
+      { name: 'Inception', adapter: new InceptionBackendAdapter({ apiKey: 'test' }) },
+      { name: 'Moonshot', adapter: new MoonshotBackendAdapter({ apiKey: 'test' }) },
+      { name: 'SambaNova', adapter: new SambaNovaBackendAdapter({ apiKey: 'test' }) },
       { name: 'Mock', adapter: new MockBackendAdapter() },
     ];
 
