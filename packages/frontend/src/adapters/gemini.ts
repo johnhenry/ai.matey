@@ -8,7 +8,13 @@
  */
 
 import type { FrontendAdapter, AdapterMetadata } from 'ai.matey.types';
-import type { IRChatRequest, IRChatResponse, IRStreamChunk, IRMessage } from 'ai.matey.types';
+import type {
+  IRChatRequest,
+  IRChatResponse,
+  IRStreamChunk,
+  IRMessage,
+  MessageContent,
+} from 'ai.matey.types';
 import type { StreamConversionOptions } from 'ai.matey.types';
 
 // ============================================================================
@@ -203,14 +209,60 @@ export class GeminiFrontendAdapter implements FrontendAdapter<GeminiRequest, Gem
    * ```
    */
   toIR(request: GeminiRequest): Promise<IRChatRequest> {
-    const messages: IRMessage[] = request.contents.map((c: GeminiContent) => ({
-      role: c.role === 'model' ? 'assistant' : 'user',
-      content: c.parts
-        .map((p: { text: string } | { inlineData: { mimeType: string; data: string } }) =>
-          'text' in p ? p.text : ''
-        )
-        .join(''),
-    }));
+    const messages: IRMessage[] = request.contents.map((c: GeminiContent) => {
+      // Check if there are any non-text parts (inlineData)
+      const hasInlineData = c.parts.some((p) => 'inlineData' in p);
+
+      if (!hasInlineData) {
+        // All text parts - join into a simple string
+        return {
+          role: c.role === 'model' ? 'assistant' : 'user',
+          content: c.parts
+            .map((p) => ('text' in p ? p.text : ''))
+            .join(''),
+        } as IRMessage;
+      }
+
+      // Multimodal content - convert to structured MessageContent[]
+      const contentBlocks: MessageContent[] = c.parts.map((p) => {
+        if ('text' in p) {
+          return { type: 'text', text: p.text } as MessageContent;
+        }
+        // inlineData part - determine IR type based on mimeType
+        const mimeType = p.inlineData.mimeType;
+        if (mimeType.startsWith('image/')) {
+          return {
+            type: 'image',
+            source: { type: 'base64', mediaType: mimeType, data: p.inlineData.data },
+          } as MessageContent;
+        } else if (mimeType.startsWith('audio/')) {
+          return {
+            type: 'audio',
+            source: { type: 'base64', mediaType: mimeType, data: p.inlineData.data },
+          } as MessageContent;
+        } else if (mimeType.startsWith('video/')) {
+          return {
+            type: 'video',
+            source: { type: 'base64', mediaType: mimeType, data: p.inlineData.data },
+          } as MessageContent;
+        } else if (mimeType === 'application/pdf' || mimeType.startsWith('application/')) {
+          return {
+            type: 'document',
+            source: { type: 'base64', mediaType: mimeType, data: p.inlineData.data },
+          } as MessageContent;
+        }
+        // Fallback: treat as document
+        return {
+          type: 'document',
+          source: { type: 'base64', mediaType: mimeType, data: p.inlineData.data },
+        } as MessageContent;
+      });
+
+      return {
+        role: c.role === 'model' ? 'assistant' : 'user',
+        content: contentBlocks,
+      } as IRMessage;
+    });
     if (request.systemInstruction) {
       messages.unshift({
         role: 'system',

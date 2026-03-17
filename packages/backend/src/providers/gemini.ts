@@ -418,9 +418,51 @@ export class GeminiBackendAdapter implements BackendAdapter<GeminiRequest, Gemin
       parts:
         typeof msg.content === 'string'
           ? [{ text: msg.content }]
-          : msg.content.map((c) =>
-              c.type === 'text' ? { text: c.text } : { text: JSON.stringify(c) }
-            ),
+          : msg.content.map((c) => {
+              switch (c.type) {
+                case 'text':
+                  return { text: c.text };
+
+                case 'image':
+                  if (c.source.type === 'base64') {
+                    return {
+                      inlineData: { mimeType: c.source.mediaType, data: c.source.data },
+                    };
+                  }
+                  // URL-based images: Gemini supports fileData for URLs
+                  return { text: `[Image: ${c.source.url}]` };
+
+                case 'audio':
+                  // Gemini supports audio via inlineData
+                  if (c.source.type === 'base64') {
+                    return {
+                      inlineData: { mimeType: c.source.mediaType, data: c.source.data },
+                    };
+                  }
+                  return { text: c.transcript ? `[Audio transcript: ${c.transcript}]` : `[Audio: ${c.source.url}]` };
+
+                case 'video':
+                  // Gemini supports video via inlineData
+                  if (c.source.type === 'base64') {
+                    return {
+                      inlineData: { mimeType: c.source.mediaType, data: c.source.data },
+                    };
+                  }
+                  return { text: `[Video: ${c.source.url}]` };
+
+                case 'document':
+                  // Gemini supports documents (PDF) via inlineData
+                  if (c.source.type === 'base64') {
+                    return {
+                      inlineData: { mimeType: c.source.mediaType, data: c.source.data },
+                    };
+                  }
+                  return { text: `[Document: ${c.filename || c.source.url}]` };
+
+                default:
+                  return { text: JSON.stringify(c) };
+              }
+            }),
     }));
 
     const systemInstruction = systemParameter ? { parts: [{ text: systemParameter }] } : undefined;
