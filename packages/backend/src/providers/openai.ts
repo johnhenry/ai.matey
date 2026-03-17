@@ -47,6 +47,7 @@ export type OpenAIMessageContent =
   | Array<
       | { type: 'text'; text: string }
       | { type: 'image_url'; image_url: { url: string; detail?: 'auto' | 'low' | 'high' } }
+      | { type: 'input_audio'; input_audio: { data: string; format: string } }
     >;
 
 /**
@@ -737,6 +738,49 @@ export class OpenAIBackendAdapter implements BackendAdapter<OpenAIRequest, OpenA
               return {
                 type: 'image_url',
                 image_url: { url: dataUrl },
+              };
+            }
+
+          case 'audio':
+            if (block.source.type === 'base64') {
+              // OpenAI supports input_audio for audio content
+              const format = block.source.mediaType.split('/')[1] || 'mp3';
+              return {
+                type: 'input_audio',
+                input_audio: { data: block.source.data, format },
+              };
+            } else {
+              // URL-based audio not natively supported; fallback to text
+              return {
+                type: 'text',
+                text: block.transcript
+                  ? `[Audio transcript: ${block.transcript}]`
+                  : `[Audio: ${block.source.url}]`,
+              };
+            }
+
+          case 'document':
+            // OpenAI doesn't natively support document uploads; fallback to text
+            if (block.source.type === 'url') {
+              return {
+                type: 'text',
+                text: `[Document: ${block.filename || block.source.url}]`,
+              };
+            } else {
+              return {
+                type: 'text',
+                text: `[Document: ${block.filename || 'attachment'} (${block.source.mediaType})]`,
+              };
+            }
+
+          case 'video':
+            // OpenAI doesn't natively support video uploads; fallback to text
+            if (block.source.type === 'url') {
+              return { type: 'text', text: `[Video: ${block.source.url}]` };
+            } else {
+              return {
+                type: 'text',
+                text: `[Video: attachment (${block.source.mediaType})]`,
               };
             }
 
