@@ -633,6 +633,10 @@ export class Router implements IRouter {
       const stream = this.executeStreamOnBackend(primaryBackend, translatedRequest, signal);
 
       for await (const chunk of stream) {
+        // Check AbortSignal before yielding each chunk
+        if (signal?.aborted) {
+          break;
+        }
         yield chunk;
       }
 

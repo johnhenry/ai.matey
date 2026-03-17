@@ -268,6 +268,10 @@ export class Bridge<
       // Step 8: Yield chunks to caller
       let chunkSequence = 0;
       for await (const chunk of frontendStream) {
+        // Check AbortSignal before yielding each chunk
+        if (options?.signal?.aborted) {
+          break;
+        }
         chunkSequence++;
         yield chunk as InferFrontendStreamChunk<TFrontend>;
       }
