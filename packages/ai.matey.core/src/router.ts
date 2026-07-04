@@ -23,6 +23,7 @@ import type {
   ParallelDispatchResult,
 } from 'ai.matey.types';
 import { AdapterError, ErrorCode } from 'ai.matey.errors';
+import { createWarning } from 'ai.matey.utils';
 import type { TranslationResult } from './model-translation.js';
 import type { AIModel } from 'ai.matey.types';
 import type { CapabilityRequirements, BackendModel } from './capability-matcher.js';
@@ -97,6 +98,7 @@ export class Router implements IRouter {
       capabilityCacheDuration: config.capabilityCacheDuration ?? 3600000, // 1 hour
       customRouter: config.customRouter,
       customFallback: config.customFallback,
+      onWarning: config.onWarning,
       modelTranslation: config.modelTranslation ?? {
         strategy: 'hybrid',
         warnOnDefault: true,
@@ -561,18 +563,8 @@ export class Router implements IRouter {
       const primaryBackend = await this.selectBackend(request, preferredBackend);
       attemptedBackends.push(primaryBackend);
 
-      // Translate model for this backend
-      const originalModel = request.parameters?.model ?? '';
-      const translationResult = this.translateModelForBackend(originalModel, primaryBackend);
-
-      // Create request with translated model
-      const translatedRequest: IRChatRequest = {
-        ...request,
-        parameters: {
-          ...request.parameters,
-          model: translationResult.translated,
-        },
-      };
+      // Translate model for this backend (attaches substitution warnings)
+      const translatedRequest = this.applyModelTranslation(request, primaryBackend);
 
       // Try primary backend
       const response = await this.executeOnBackend(primaryBackend, translatedRequest, signal);
@@ -616,18 +608,8 @@ export class Router implements IRouter {
       const primaryBackend = await this.selectBackend(request, preferredBackend);
       attemptedBackends.push(primaryBackend);
 
-      // Translate model for this backend
-      const originalModel = request.parameters?.model ?? '';
-      const translationResult = this.translateModelForBackend(originalModel, primaryBackend);
-
-      // Create request with translated model
-      const translatedRequest: IRChatRequest = {
-        ...request,
-        parameters: {
-          ...request.parameters,
-          model: translationResult.translated,
-        },
-      };
+      // Translate model for this backend (attaches substitution warnings)
+      const translatedRequest = this.applyModelTranslation(request, primaryBackend);
 
       // Try primary backend streaming
       const stream = this.executeStreamOnBackend(primaryBackend, translatedRequest, signal);
@@ -1140,6 +1122,53 @@ export class Router implements IRouter {
   }
 
   /**
+   * Translate a request's model for a backend and return the request to send.
+   *
+   * When hybrid translation falls back to the backend's default model (a
+   * silent substitution) and `modelTranslation.warnOnDefault` is not
+   * disabled, a `model-substituted` warning is attached to the request
+   * metadata and `config.onWarning` is invoked.
+   */
+  private applyModelTranslation(request: IRChatRequest, backendName: string): IRChatRequest {
+    const originalModel = request.parameters?.model ?? '';
+    const translationResult = this.translateModelForBackend(originalModel, backendName);
+
+    let translatedRequest: IRChatRequest = {
+      ...request,
+      parameters: {
+        ...request.parameters,
+        model: translationResult.translated,
+      },
+    };
+
+    const warnOnDefault = this.config.modelTranslation?.warnOnDefault ?? true;
+    if (translationResult.source === 'default' && warnOnDefault) {
+      const warning = createWarning(
+        'model-substituted',
+        `Model '${originalModel}' has no translation for backend '${backendName}'; using its default model '${translationResult.translated}'`,
+        {
+          field: 'parameters.model',
+          originalValue: originalModel,
+          transformedValue: translationResult.translated,
+          source: this.metadata.name,
+        }
+      );
+
+      translatedRequest = {
+        ...translatedRequest,
+        metadata: {
+          ...translatedRequest.metadata,
+          warnings: [...(translatedRequest.metadata.warnings ?? []), warning],
+        },
+      };
+
+      this.config.onWarning?.(warning);
+    }
+
+    return translatedRequest;
+  }
+
+  /**
    * Translate model name for a specific backend.
    *
    * Applies translation strategy: backend-specific exact → global exact → pattern → default → passthrough
@@ -1204,8 +1233,8 @@ export class Router implements IRouter {
       const defaultModel = adapter?.config?.defaultModel;
 
       if (defaultModel) {
-        // TODO: Emit warning event when warnOnDefault is true
-        // For now, the translation result indicates wasTranslated=true
+        // Warning emission happens in applyModelTranslation (which sees the
+        // full request context); the result's source flags the substitution
         return {
           translated: defaultModel,
           source: 'default',
@@ -1256,18 +1285,8 @@ export class Router implements IRouter {
       try {
         attemptedBackends.push(backendName);
 
-        // Translate model for this backend
-        const originalModel = request.parameters?.model ?? '';
-        const translationResult = this.translateModelForBackend(originalModel, backendName);
-
-        // Create request with translated model
-        const translatedRequest: IRChatRequest = {
-          ...request,
-          parameters: {
-            ...request.parameters,
-            model: translationResult.translated,
-          },
-        };
+        // Translate model for this backend (attaches substitution warnings)
+        const translatedRequest = this.applyModelTranslation(request, backendName);
 
         return await this.executeOnBackend(backendName, translatedRequest, signal);
       } catch (error) {
@@ -1309,20 +1328,8 @@ export class Router implements IRouter {
     }
 
     // Create promises with model translation for each backend
-    const originalModel = request.parameters?.model ?? '';
     const promises = available.map((backendName) => {
-      // Translate model for this backend
-      const translationResult = this.translateModelForBackend(originalModel, backendName);
-
-      // Create request with translated model
-      const translatedRequest: IRChatRequest = {
-        ...request,
-        parameters: {
-          ...request.parameters,
-          model: translationResult.translated,
-        },
-      };
-
+      const translatedRequest = this.applyModelTranslation(request, backendName);
       return this.executeOnBackend(backendName, translatedRequest, signal);
     });
 

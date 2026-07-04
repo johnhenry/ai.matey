@@ -70,6 +70,7 @@ export {
 // Rate limiting
 export {
   RateLimiter,
+  GenericRateLimiter,
   userIDKeyGenerator,
   tokenKeyGenerator,
   combineKeyGenerators,

@@ -14,7 +14,7 @@ import type {
   CoreHandlerOptions,
   ParsedGenericRequest,
 } from './types.js';
-import { RateLimiter } from './rate-limiter.js';
+import { GenericRateLimiter } from './rate-limiter.js';
 import { RouteMatcher, applyPathPrefix } from './route-matcher.js';
 import { normalizeCORSOptions } from './cors.js';
 import { detectProviderFormat } from './response-formatter.js';
@@ -33,7 +33,7 @@ export class CoreHTTPHandler {
     routes?: CoreHandlerOptions['routes'];
     corsOptions: ReturnType<typeof normalizeCORSOptions>;
   };
-  private readonly rateLimiter: RateLimiter | null;
+  private readonly rateLimiter: GenericRateLimiter | null;
   private readonly routeMatcher: RouteMatcher | null;
 
   constructor(options: CoreHandlerOptions) {
@@ -65,9 +65,8 @@ export class CoreHTTPHandler {
     };
 
     // Create rate limiter if configured
-    // TODO: Refactor RateLimiter to use generic types
     this.rateLimiter = this.options.rateLimit
-      ? new RateLimiter(this.options.rateLimit as any)
+      ? new GenericRateLimiter(this.options.rateLimit)
       : null;
 
     // Create route matcher if routes configured
@@ -168,31 +167,7 @@ export class CoreHTTPHandler {
 
       // Check rate limit
       if (this.rateLimiter && res.isWritable()) {
-        // Create minimal Node.js-like request/response for rate limiter
-        // TODO: Refactor rate limiter to use generic types
-        const nodeReq = {
-          headers: req.headers,
-          socket: { remoteAddress: req.ip },
-        } as any;
-
-        const nodeRes = {
-          setHeader: (name: string, value: string) => res.header(name, value),
-          end: (data?: string) => {
-            if (data) {
-              res.send(JSON.parse(data));
-            }
-          },
-          get statusCode() {
-            return this._statusCode || 200;
-          },
-          set statusCode(value: number) {
-            this._statusCode = value;
-            res.status(value);
-          },
-          _statusCode: 200,
-        } as any;
-
-        const isLimited = await this.rateLimiter.check(nodeReq, nodeRes);
+        const isLimited = await this.rateLimiter.check(req, res);
         if (isLimited) {
           return; // Rate limiter already sent response
         }
@@ -238,14 +213,7 @@ export class CoreHTTPHandler {
       let activeBridge = this.bridge;
 
       if (this.routeMatcher) {
-        // Create minimal Node.js-like request for route matcher
-        // TODO: Refactor route matcher to use generic types
-        const nodeReq = {
-          url: req.url,
-          method: req.method,
-        } as any;
-
-        const matchedRoute = this.routeMatcher.match(nodeReq);
+        const matchedRoute = this.routeMatcher.match(req);
 
         if (!matchedRoute) {
           res.status(404);
