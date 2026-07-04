@@ -167,10 +167,18 @@ publish_batch "Middleware" \
 wait_between "$DELAY_BETWEEN_BATCHES"
 
 # ============================================================================
+# BATCH 6b: Patterns (depends on core)
+# ============================================================================
+publish_batch "Patterns" \
+  "ai.matey.patterns"
+
+wait_between "$DELAY_BETWEEN_BATCHES"
+
+# ============================================================================
 # BATCH 7: HTTP (depends on core, middleware)
 # ============================================================================
 publish_batch "HTTP Adapters" \
-  "ai.matey.http-core" \
+  "ai.matey.http.core" \
   "ai.matey.http"
 
 wait_between "$DELAY_BETWEEN_BATCHES"
