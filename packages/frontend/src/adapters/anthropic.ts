@@ -493,6 +493,13 @@ export class AnthropicFrontendAdapter implements FrontendAdapter<
       // Apply stream mode conversion if options provided
       const processedStream = options ? convertStreamMode(stream, options) : stream;
 
+      // Content blocks are opened lazily (a tool-only stream must not emit
+      // an empty text block) and closed when a different block starts.
+      let nextBlockIndex = 0;
+      let openBlockIndex: number | null = null;
+      let openTextBlockIndex: number | null = null;
+      const toolBlockIndexById = new Map<string, number>();
+
       for await (const chunk of processedStream) {
         switch (chunk.type) {
           case 'start':
@@ -506,29 +513,68 @@ export class AnthropicFrontendAdapter implements FrontendAdapter<
                 model: chunk.metadata.provenance?.backend || 'unknown',
               },
             };
-            // Emit content_block_start
-            yield {
-              type: 'content_block_start',
-              index: 0,
-              content_block: { type: 'text', text: '' },
-            };
             break;
 
           case 'content':
-            // Emit content delta
+            // Open a text block on first text delta (or after a tool block)
+            if (openTextBlockIndex === null) {
+              if (openBlockIndex !== null) {
+                yield { type: 'content_block_stop', index: openBlockIndex };
+              }
+              openTextBlockIndex = nextBlockIndex++;
+              openBlockIndex = openTextBlockIndex;
+              yield {
+                type: 'content_block_start',
+                index: openTextBlockIndex,
+                content_block: { type: 'text', text: '' },
+              };
+            }
+
             yield {
               type: 'content_block_delta',
-              index: 0,
+              index: openTextBlockIndex,
               delta: { type: 'text_delta', text: chunk.delta },
             };
             break;
 
+          case 'tool_use': {
+            let blockIndex = toolBlockIndexById.get(chunk.id);
+
+            // First chunk for this tool call: open its content block
+            if (blockIndex === undefined) {
+              if (openBlockIndex !== null) {
+                yield { type: 'content_block_stop', index: openBlockIndex };
+                if (openBlockIndex === openTextBlockIndex) {
+                  openTextBlockIndex = null;
+                }
+              }
+              blockIndex = nextBlockIndex++;
+              toolBlockIndexById.set(chunk.id, blockIndex);
+              openBlockIndex = blockIndex;
+              yield {
+                type: 'content_block_start',
+                index: blockIndex,
+                content_block: { type: 'tool_use', id: chunk.id, name: chunk.name, input: {} },
+              };
+            }
+
+            if (chunk.inputDelta) {
+              yield {
+                type: 'content_block_delta',
+                index: blockIndex,
+                delta: { type: 'input_json_delta', partial_json: chunk.inputDelta },
+              };
+            }
+            break;
+          }
+
           case 'done': {
-            // Emit content_block_stop
-            yield {
-              type: 'content_block_stop',
-              index: 0,
-            };
+            // Close the open content block (if any)
+            if (openBlockIndex !== null) {
+              yield { type: 'content_block_stop', index: openBlockIndex };
+              openBlockIndex = null;
+              openTextBlockIndex = null;
+            }
             // Emit message_delta with stop reason
             const stopReason = this.mapFinishReason(chunk.finishReason);
             yield {

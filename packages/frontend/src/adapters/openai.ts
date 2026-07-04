@@ -297,6 +297,17 @@ export interface OpenAIStreamChunk {
 
       /** Incremental text content to append */
       content?: string;
+
+      /** Incremental tool-call deltas (id/name on first chunk per index) */
+      tool_calls?: Array<{
+        index: number;
+        id?: string;
+        type?: 'function';
+        function?: {
+          name?: string;
+          arguments?: string;
+        };
+      }>;
     };
 
     /** Non-null when stream is complete. Indicates why generation stopped */
@@ -509,6 +520,9 @@ export class OpenAIFrontendAdapter implements FrontendAdapter<
       let model = '';
       let created = 0;
 
+      // Tool-call ids already announced (id/name are only emitted once per call)
+      const announcedToolCalls = new Map<string, number>();
+
       for await (const chunk of processedStream) {
         switch (chunk.type) {
           case 'start':
@@ -517,6 +531,49 @@ export class OpenAIFrontendAdapter implements FrontendAdapter<
             model = chunk.metadata.provenance?.backend || 'unknown';
             created = Math.floor(chunk.metadata.timestamp / 1000);
             break;
+
+          case 'tool_use': {
+            const isFirst = !announcedToolCalls.has(chunk.id);
+            const index = isFirst
+              ? (chunk.index ?? announcedToolCalls.size)
+              : (announcedToolCalls.get(chunk.id) as number);
+            if (isFirst) {
+              announcedToolCalls.set(chunk.id, index);
+            }
+
+            yield {
+              id: messageId,
+              object: 'chat.completion.chunk',
+              created,
+              model,
+              choices: [
+                {
+                  index: 0,
+                  delta: {
+                    tool_calls: [
+                      {
+                        index,
+                        ...(isFirst
+                          ? {
+                              id: chunk.id,
+                              type: 'function' as const,
+                              function: {
+                                name: chunk.name,
+                                arguments: chunk.inputDelta ?? '',
+                              },
+                            }
+                          : {
+                              function: { arguments: chunk.inputDelta ?? '' },
+                            }),
+                      },
+                    ],
+                  },
+                  finish_reason: null,
+                },
+              ],
+            };
+            break;
+          }
 
           case 'content':
             // Emit content delta

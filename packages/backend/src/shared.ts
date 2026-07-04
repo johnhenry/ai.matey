@@ -7,7 +7,7 @@
  * @module
  */
 
-import type { IRChatRequest, AIModel, ListModelsResult } from 'ai.matey.types';
+import type { IRChatRequest, IRMessage, AIModel, ListModelsResult } from 'ai.matey.types';
 
 // ============================================================================
 // Token Estimation
@@ -223,6 +223,48 @@ export function estimateCost(inputTokens: number, outputTokens: number, rates: C
  * object when the input is empty, malformed, or not a JSON object, so a bad
  * tool-arguments payload degrades to `{}` rather than failing the response.
  */
+export interface StreamedToolCall {
+  id: string;
+  name: string;
+  /** Concatenated raw JSON argument fragments. */
+  args: string;
+  /** Zero-based position of the tool call within the message. */
+  index: number;
+}
+
+/**
+ * Assemble the final message for a stream's `done` chunk.
+ *
+ * When tool calls were streamed, the message content is a structured block
+ * array: an optional leading text block followed by one `tool_use` block per
+ * call (in index order), with accumulated argument fragments parsed via
+ * {@link safeParseJSON}. Without tool calls the content stays a plain string
+ * for backward compatibility.
+ */
+export function buildStreamDoneMessage(
+  text: string,
+  toolCalls: readonly StreamedToolCall[]
+): IRMessage {
+  if (toolCalls.length === 0) {
+    return { role: 'assistant', content: text };
+  }
+
+  return {
+    role: 'assistant',
+    content: [
+      ...(text ? [{ type: 'text' as const, text }] : []),
+      ...[...toolCalls]
+        .sort((a, b) => a.index - b.index)
+        .map((call) => ({
+          type: 'tool_use' as const,
+          id: call.id,
+          name: call.name,
+          input: safeParseJSON(call.args),
+        })),
+    ],
+  };
+}
+
 export function safeParseJSON(text: string | undefined | null): Record<string, unknown> {
   if (!text) {
     return {};

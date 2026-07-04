@@ -32,8 +32,10 @@ import {
   estimateTokens,
   buildStaticResult,
   applyModelFilter,
+  buildStreamDoneMessage,
   safeParseJSON,
   type ModelCapabilityFilter,
+  type StreamedToolCall,
 } from '../shared.js';
 
 // ============================================================================
@@ -142,6 +144,12 @@ export interface OpenAIStreamChunk {
     };
     finish_reason: 'stop' | 'length' | 'tool_calls' | 'content_filter' | null;
   }>;
+  /** Final usage chunk (sent when stream_options.include_usage is set). */
+  usage?: {
+    prompt_tokens: number;
+    completion_tokens: number;
+    total_tokens: number;
+  } | null;
 }
 
 /**
@@ -315,6 +323,23 @@ export class OpenAIBackendAdapter implements BackendAdapter<OpenAIRequest, OpenA
         | { promptTokens: number; completionTokens: number; totalTokens: number }
         | undefined;
 
+      // Tool calls accumulated by OpenAI tool_calls[].index
+      const toolCallsByIndex = new Map<number, StreamedToolCall>();
+      let doneYielded = false;
+
+      const buildDoneChunk = (): IRStreamChunk => {
+        doneYielded = true;
+        const finishReason =
+          finishReasonReceived ?? (toolCallsByIndex.size > 0 ? 'tool_calls' : 'stop');
+        return {
+          type: 'done',
+          sequence: sequence++,
+          finishReason,
+          usage,
+          message: buildStreamDoneMessage(contentBuffer, [...toolCallsByIndex.values()]),
+        } as IRStreamChunk;
+      };
+
       // Yield start chunk
       yield {
         type: 'start',
@@ -354,20 +379,10 @@ export class OpenAIBackendAdapter implements BackendAdapter<OpenAIRequest, OpenA
               const data = line.slice(6).trim();
 
               if (data === '[DONE]') {
-                // Stream complete - yield done chunk if not already sent
-                if (!finishReasonReceived) {
-                  const message: IRMessage = {
-                    role: 'assistant',
-                    content: contentBuffer,
-                  };
-
-                  yield {
-                    type: 'done',
-                    sequence: sequence++,
-                    finishReason: 'stop',
-                    usage,
-                    message,
-                  } as IRStreamChunk;
+                // Stream complete - yield the done chunk (deferred until here
+                // so the trailing include_usage chunk can be folded in)
+                if (!doneYielded) {
+                  yield buildDoneChunk();
                 }
                 continue;
               }
@@ -375,9 +390,20 @@ export class OpenAIBackendAdapter implements BackendAdapter<OpenAIRequest, OpenA
               try {
                 const chunk: OpenAIStreamChunk = JSON.parse(data);
 
+                // Final usage chunk (stream_options.include_usage) has empty choices
+                if (chunk.usage) {
+                  usage = {
+                    promptTokens: chunk.usage.prompt_tokens,
+                    completionTokens: chunk.usage.completion_tokens,
+                    totalTokens: chunk.usage.total_tokens,
+                  };
+                }
+
                 // Validate chunk structure
                 if (!chunk.choices || chunk.choices.length === 0) {
-                  console.warn('Invalid chunk structure: no choices', chunk);
+                  if (!chunk.usage) {
+                    console.warn('Invalid chunk structure: no choices', chunk);
+                  }
                   continue;
                 }
 
@@ -406,29 +432,47 @@ export class OpenAIBackendAdapter implements BackendAdapter<OpenAIRequest, OpenA
                   yield contentChunk;
                 }
 
-                // Tool calls delta (not implemented yet - Phase 5)
+                // Tool call deltas: accumulate by index and re-emit as IR chunks
                 if (choice.delta.tool_calls) {
-                  // TODO: Handle tool call deltas in Phase 5
-                  console.warn('Tool calls delta received but not yet implemented');
+                  for (const toolCallDelta of choice.delta.tool_calls) {
+                    let toolCall = toolCallsByIndex.get(toolCallDelta.index);
+
+                    if (!toolCall) {
+                      toolCall = {
+                        id: toolCallDelta.id ?? `call_${toolCallDelta.index}`,
+                        name: toolCallDelta.function?.name ?? '',
+                        args: '',
+                        index: toolCallDelta.index,
+                      };
+                      toolCallsByIndex.set(toolCallDelta.index, toolCall);
+                    } else {
+                      // id/name only arrive on the first delta; backfill if late
+                      if (toolCallDelta.id) {
+                        toolCall.id = toolCallDelta.id;
+                      }
+                      if (toolCallDelta.function?.name) {
+                        toolCall.name = toolCallDelta.function.name;
+                      }
+                    }
+
+                    const inputDelta = toolCallDelta.function?.arguments ?? '';
+                    toolCall.args += inputDelta;
+
+                    yield {
+                      type: 'tool_use',
+                      sequence: sequence++,
+                      id: toolCall.id,
+                      name: toolCall.name,
+                      inputDelta,
+                      index: toolCall.index,
+                    } as IRStreamChunk;
+                  }
                 }
 
-                // Finish reason
+                // Finish reason: record it; the done chunk is yielded at [DONE]
+                // (or stream end) so trailing usage data can be included
                 if (choice.finish_reason && !finishReasonReceived) {
                   finishReasonReceived = this.mapFinishReason(choice.finish_reason);
-
-                  // Build final message
-                  const message: IRMessage = {
-                    role: 'assistant',
-                    content: contentBuffer,
-                  };
-
-                  yield {
-                    type: 'done',
-                    sequence: sequence++,
-                    finishReason: finishReasonReceived,
-                    usage,
-                    message,
-                  } as IRStreamChunk;
                 }
               } catch (parseError) {
                 // Log parse errors but continue streaming
@@ -446,20 +490,9 @@ export class OpenAIBackendAdapter implements BackendAdapter<OpenAIRequest, OpenA
           }
         }
 
-        // If stream ended without finish_reason, yield a done chunk
-        if (!finishReasonReceived) {
-          const message: IRMessage = {
-            role: 'assistant',
-            content: contentBuffer,
-          };
-
-          yield {
-            type: 'done',
-            sequence: sequence++,
-            finishReason: 'stop',
-            usage,
-            message,
-          } as IRStreamChunk;
+        // If stream ended without a [DONE] sentinel, yield the done chunk
+        if (!doneYielded) {
+          yield buildDoneChunk();
         }
       } finally {
         reader.releaseLock();
