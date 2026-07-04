@@ -226,7 +226,7 @@ export function generateAIMetadata(
 
   // Add AI attribution if requested
   if (includeAttribution && aiMetadata) {
-    const attribution = [];
+    const attribution: string[] = [];
     if (aiMetadata.provider) attribution.push(`Provider: ${aiMetadata.provider}`);
     if (aiMetadata.model) attribution.push(`Model: ${aiMetadata.model}`);
 

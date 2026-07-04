@@ -28,6 +28,7 @@ import {
 } from 'ai.matey.errors';
 import { normalizeSystemMessages } from 'ai.matey.utils';
 import { getEffectiveStreamMode, mergeStreamingConfig } from 'ai.matey.utils';
+import { getModelPricingInfo } from 'ai.matey.utils';
 import {
   estimateTokens,
   buildStaticResult,
@@ -486,7 +487,7 @@ export class AnthropicBackendAdapter implements BackendAdapter<
         method: 'POST',
         headers: this.getHeaders(),
         body: JSON.stringify({
-          model: 'claude-3-haiku-20240307',
+          model: 'claude-haiku-4-5-20251001',
           max_tokens: 1,
           messages: [{ role: 'user', content: 'test' }],
         }),
@@ -504,8 +505,12 @@ export class AnthropicBackendAdapter implements BackendAdapter<
   estimateCost(request: IRChatRequest): Promise<number | null> {
     // Use shared token estimation utility
     const estimatedInputTokens = estimateTokens(request);
-    // Rough cost: $0.015 per 1000 tokens for Claude 3.5 Sonnet
-    return Promise.resolve((estimatedInputTokens / 1000) * 0.015);
+    // Price the requested model via the shared registry; fall back to a
+    // representative Sonnet-tier rate when the model is unknown
+    const model =
+      request.parameters?.model || this.config.defaultModel || 'claude-sonnet-4-5-20250929';
+    const inputPer1M = getModelPricingInfo(model)?.inputPer1M ?? 3.0;
+    return Promise.resolve((estimatedInputTokens / 1_000_000) * inputPer1M);
   }
 
   /**
@@ -561,7 +566,8 @@ export class AnthropicBackendAdapter implements BackendAdapter<
 
       // Build Anthropic request
       const anthropicRequest: AnthropicRequest = {
-        model: request.parameters?.model || this.config.defaultModel || 'claude-3-haiku-20240307',
+        model:
+          request.parameters?.model || this.config.defaultModel || 'claude-sonnet-4-5-20250929',
         messages: anthropicMessages,
         system: systemParameter || undefined,
         max_tokens: maxTokens,

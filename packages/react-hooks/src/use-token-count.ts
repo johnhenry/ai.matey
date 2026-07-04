@@ -7,6 +7,7 @@
  */
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
+import { getModelContextWindow } from 'ai.matey.utils';
 
 /**
  * Token count options.
@@ -145,19 +146,36 @@ export function useTokenCount(options: UseTokenCountOptions = {}): UseTokenCount
 }
 
 /**
- * Model-specific token limits.
+ * Model-specific token limits (context windows).
+ *
+ * Static fallback for models the shared model registry does not know;
+ * the registry in `ai.matey.utils` is consulted first, so registering a
+ * model there also fixes token counting here.
  */
 export const MODEL_TOKEN_LIMITS: Record<string, number> = {
-  'gpt-4': 8192,
+  'gpt-5.1': 400000,
+  'gpt-5': 400000,
+  'gpt-4.1': 1047576,
+  'gpt-4o': 128000,
   'gpt-4-32k': 32768,
   'gpt-4-turbo': 128000,
-  'gpt-4o': 128000,
+  'gpt-4': 8192,
   'gpt-3.5-turbo': 16385,
+  o3: 200000,
+  'o4-mini': 200000,
+  'claude-opus-4': 200000,
+  'claude-sonnet-4': 200000,
+  'claude-haiku-4': 200000,
   'claude-3-opus': 200000,
   'claude-3-sonnet': 200000,
   'claude-3-haiku': 200000,
-  'gemini-pro': 30720,
+  'gemini-3-pro': 1000000,
+  'gemini-2.5-pro': 1048576,
+  'gemini-2.5-flash': 1048576,
   'gemini-1.5-pro': 1000000,
+  'gemini-pro': 30720,
+  'grok-4': 256000,
+  'grok-3': 131072,
   'command-r': 128000,
   'command-r-plus': 128000,
   'mixtral-8x7b': 32768,
@@ -167,8 +185,17 @@ export const MODEL_TOKEN_LIMITS: Record<string, number> = {
 
 /**
  * Get token limit for a model.
+ *
+ * Consults the shared model registry first, then this module's static
+ * table (exact match, then prefix/substring match).
  */
 export function getModelTokenLimit(model: string): number | undefined {
+  // Shared model registry is the source of truth when it knows the model
+  const registryWindow = getModelContextWindow(model);
+  if (registryWindow !== null) {
+    return registryWindow;
+  }
+
   // Try exact match
   if (MODEL_TOKEN_LIMITS[model]) {
     return MODEL_TOKEN_LIMITS[model];

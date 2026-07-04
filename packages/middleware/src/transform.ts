@@ -270,7 +270,7 @@ export function createMessageFilter(
   predicate: (message: IRMessage) => boolean | Promise<boolean>
 ): RequestTransformer {
   return async (request: IRChatRequest): Promise<IRChatRequest> => {
-    const filteredMessages = [];
+    const filteredMessages: IRMessage[] = [];
 
     for (const message of request.messages) {
       if (await predicate(message)) {

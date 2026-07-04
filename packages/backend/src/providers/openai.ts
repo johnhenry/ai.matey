@@ -28,6 +28,7 @@ import {
 import { normalizeSystemMessages } from 'ai.matey.utils';
 import { getModelCache } from 'ai.matey.utils';
 import { getEffectiveStreamMode, mergeStreamingConfig } from 'ai.matey.utils';
+import { getModelPricingInfo } from 'ai.matey.utils';
 import {
   estimateTokens,
   buildStaticResult,
@@ -532,8 +533,11 @@ export class OpenAIBackendAdapter implements BackendAdapter<OpenAIRequest, OpenA
   estimateCost(request: IRChatRequest): Promise<number | null> {
     // Use shared token estimation utility
     const estimatedInputTokens = estimateTokens(request);
-    // Rough cost: $0.01 per 1000 tokens (varies by model)
-    return Promise.resolve((estimatedInputTokens / 1000) * 0.01);
+    // Price the requested model via the shared registry; fall back to the
+    // flagship gpt-5.x input rate when the model is unknown
+    const model = request.parameters?.model || this.config.defaultModel || 'gpt-5-mini';
+    const inputPer1M = getModelPricingInfo(model)?.inputPer1M ?? 1.25;
+    return Promise.resolve((estimatedInputTokens / 1_000_000) * inputPer1M);
   }
 
   /**
@@ -665,7 +669,7 @@ export class OpenAIBackendAdapter implements BackendAdapter<OpenAIRequest, OpenA
 
       // Build OpenAI request
       const openaiRequest: OpenAIRequest = {
-        model: request.parameters?.model || this.config.defaultModel || 'gpt-3.5-turbo',
+        model: request.parameters?.model || this.config.defaultModel || 'gpt-5-mini',
         messages: openaiMessages,
         temperature: request.parameters?.temperature,
         max_tokens: request.parameters?.maxTokens,
