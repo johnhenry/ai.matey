@@ -13,6 +13,7 @@ import type {
   IRChatResponse,
   IRChatStream,
   IRMessage,
+  JSONSchema,
   MessageContent,
 } from 'ai.matey.types';
 import type { StreamConversionOptions } from 'ai.matey.types';
@@ -75,7 +76,13 @@ export type AnthropicContentBlock =
       type: 'image';
       source: { type: 'url'; url: string } | { type: 'base64'; media_type: string; data: string };
     }
-  | { type: 'tool_use'; id: string; name: string; input: Record<string, unknown> };
+  | { type: 'tool_use'; id: string; name: string; input: Record<string, unknown> }
+  | {
+      type: 'tool_result';
+      tool_use_id: string;
+      content: string | { type: 'text'; text: string }[];
+      is_error?: boolean;
+    };
 
 /**
  * Anthropic message structure in a conversation.
@@ -152,6 +159,20 @@ export interface AnthropicRequest {
     /** User identifier for abuse monitoring */
     user_id?: string;
   };
+
+  /** Tools Claude may use */
+  tools?: Array<{
+    name: string;
+    description?: string;
+    input_schema: Record<string, unknown>;
+  }>;
+
+  /** Controls how Claude uses tools */
+  tool_choice?:
+    | { type: 'auto' }
+    | { type: 'any' }
+    | { type: 'none' }
+    | { type: 'tool'; name: string };
 }
 
 /**
@@ -354,6 +375,12 @@ export class AnthropicFrontendAdapter implements FrontendAdapter<
           topK: request.top_k,
           stopSequences: request.stop_sequences,
         },
+        tools: request.tools?.map((tool) => ({
+          name: tool.name,
+          description: tool.description ?? '',
+          parameters: tool.input_schema as unknown as JSONSchema,
+        })),
+        toolChoice: this.convertToolChoiceToIR(request.tool_choice),
         stream: request.stream ?? false,
         metadata: {
           requestId: crypto.randomUUID(),
@@ -549,6 +576,27 @@ export class AnthropicFrontendAdapter implements FrontendAdapter<
   // ==========================================================================
 
   /**
+   * Convert Anthropic tool_choice to IR toolChoice.
+   */
+  private convertToolChoiceToIR(
+    toolChoice: AnthropicRequest['tool_choice']
+  ): IRChatRequest['toolChoice'] {
+    if (toolChoice === undefined) {
+      return undefined;
+    }
+    switch (toolChoice.type) {
+      case 'auto':
+        return 'auto';
+      case 'any':
+        return 'required';
+      case 'none':
+        return 'none';
+      case 'tool':
+        return { name: toolChoice.name };
+    }
+  }
+
+  /**
    * Convert Anthropic message to IR message.
    */
   private convertMessageToIR(message: AnthropicMessage): IRMessage {
@@ -606,6 +654,17 @@ export class AnthropicFrontendAdapter implements FrontendAdapter<
           input: block.input,
         };
 
+      case 'tool_result':
+        return {
+          type: 'tool_result',
+          toolUseId: block.tool_use_id,
+          content:
+            typeof block.content === 'string'
+              ? block.content
+              : block.content.map((text) => ({ type: 'text' as const, text: text.text })),
+          isError: block.is_error,
+        };
+
       default:
         // Unknown block type, convert to text
         return {
@@ -653,6 +712,17 @@ export class AnthropicFrontendAdapter implements FrontendAdapter<
             id: block.id,
             name: block.name,
             input: block.input,
+          };
+
+        case 'tool_result':
+          return {
+            type: 'tool_result',
+            tool_use_id: block.toolUseId,
+            content:
+              typeof block.content === 'string'
+                ? block.content
+                : block.content.map((text) => ({ type: 'text' as const, text: text.text })),
+            is_error: block.isError,
           };
 
         default:

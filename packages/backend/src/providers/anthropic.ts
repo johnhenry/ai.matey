@@ -80,6 +80,16 @@ export interface AnthropicRequest {
   metadata?: {
     user_id?: string;
   };
+  tools?: Array<{
+    name: string;
+    description?: string;
+    input_schema: Record<string, unknown>;
+  }>;
+  tool_choice?:
+    | { type: 'auto' }
+    | { type: 'any' }
+    | { type: 'none' }
+    | { type: 'tool'; name: string };
 }
 
 /**
@@ -530,6 +540,12 @@ export class AnthropicBackendAdapter implements BackendAdapter<
             typeof request.metadata.custom.userId === 'number')
             ? { user_id: String(request.metadata.custom.userId) }
             : undefined,
+        tools: request.tools?.map((tool) => ({
+          name: tool.name,
+          description: tool.description,
+          input_schema: tool.parameters as unknown as Record<string, unknown>,
+        })),
+        tool_choice: this.convertToolChoice(request.toolChoice),
       };
 
       return anthropicRequest;
@@ -542,6 +558,26 @@ export class AnthropicBackendAdapter implements BackendAdapter<
         },
         cause: error instanceof Error ? error : undefined,
       });
+    }
+  }
+
+  /**
+   * Convert IR toolChoice to Anthropic tool_choice.
+   */
+  private convertToolChoice(
+    toolChoice: IRChatRequest['toolChoice']
+  ): AnthropicRequest['tool_choice'] {
+    switch (toolChoice) {
+      case undefined:
+        return undefined;
+      case 'auto':
+        return { type: 'auto' };
+      case 'required':
+        return { type: 'any' };
+      case 'none':
+        return { type: 'none' };
+      default:
+        return { type: 'tool', name: toolChoice.name };
     }
   }
 

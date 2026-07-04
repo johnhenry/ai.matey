@@ -32,6 +32,7 @@ import {
   estimateTokens,
   buildStaticResult,
   applyModelFilter,
+  safeParseJSON,
   type ModelCapabilityFilter,
 } from '../shared.js';
 
@@ -80,8 +81,20 @@ export interface OpenAIRequest {
   presence_penalty?: number;
   stop?: string | string[];
   stream?: boolean;
+  stream_options?: {
+    include_usage?: boolean;
+  };
   user?: string;
   seed?: number;
+  tools?: Array<{
+    type: 'function';
+    function: {
+      name: string;
+      description?: string;
+      parameters?: Record<string, unknown>;
+    };
+  }>;
+  tool_choice?: 'auto' | 'none' | 'required' | { type: 'function'; function: { name: string } };
 }
 
 /**
@@ -611,8 +624,9 @@ export class OpenAIBackendAdapter implements BackendAdapter<OpenAIRequest, OpenA
         this.metadata.capabilities.supportsMultipleSystemMessages
       );
 
-      // Convert messages
-      const openaiMessages: OpenAIMessage[] = messages.map((msg) =>
+      // Convert messages (a single IR message may expand to multiple OpenAI
+      // messages, e.g. tool results become separate role:'tool' messages)
+      const openaiMessages: OpenAIMessage[] = messages.flatMap((msg) =>
         this.convertMessageToOpenAI(msg)
       );
 
@@ -627,8 +641,18 @@ export class OpenAIBackendAdapter implements BackendAdapter<OpenAIRequest, OpenA
         presence_penalty: request.parameters?.presencePenalty,
         stop: request.parameters?.stopSequences ? [...request.parameters.stopSequences] : undefined,
         stream: request.stream,
+        stream_options: request.stream ? { include_usage: true } : undefined,
         user: request.parameters?.user,
         seed: request.parameters?.seed,
+        tools: request.tools?.map((tool) => ({
+          type: 'function' as const,
+          function: {
+            name: tool.name,
+            description: tool.description,
+            parameters: tool.parameters as unknown as Record<string, unknown>,
+          },
+        })),
+        tool_choice: this.convertToolChoice(request.toolChoice),
       };
 
       return openaiRequest;
@@ -660,11 +684,28 @@ export class OpenAIBackendAdapter implements BackendAdapter<OpenAIRequest, OpenA
         throw new Error('No choices in OpenAI response');
       }
 
-      // Convert message
-      const message: IRMessage = {
-        role: 'assistant',
-        content: this.convertMessageContentFromOpenAI(choice.message.content),
-      };
+      // Convert message (including any tool calls)
+      const text = this.convertMessageContentFromOpenAI(choice.message.content);
+      const toolCalls = choice.message.tool_calls ?? [];
+
+      const message: IRMessage =
+        toolCalls.length > 0
+          ? {
+              role: 'assistant',
+              content: [
+                ...(text ? [{ type: 'text' as const, text }] : []),
+                ...toolCalls.map((call) => ({
+                  type: 'tool_use' as const,
+                  id: call.id,
+                  name: call.function.name,
+                  input: safeParseJSON(call.function.arguments),
+                })),
+              ],
+            }
+          : {
+              role: 'assistant',
+              content: text,
+            };
 
       // Map finish reason
       const finishReason = this.mapFinishReason(choice.finish_reason || 'stop');
@@ -710,48 +751,107 @@ export class OpenAIBackendAdapter implements BackendAdapter<OpenAIRequest, OpenA
   }
 
   /**
-   * Convert IR message to OpenAI message.
+   * Convert IR toolChoice to OpenAI tool_choice.
    */
-  private convertMessageToOpenAI(message: IRMessage): OpenAIMessage {
-    // Convert content
-    let content: OpenAIMessageContent;
+  private convertToolChoice(toolChoice: IRChatRequest['toolChoice']): OpenAIRequest['tool_choice'] {
+    if (toolChoice === undefined) {
+      return undefined;
+    }
+    if (typeof toolChoice === 'string') {
+      return toolChoice;
+    }
+    return { type: 'function', function: { name: toolChoice.name } };
+  }
 
+  /**
+   * Convert IR message to OpenAI message(s).
+   *
+   * Returns an array because OpenAI represents tool results as separate
+   * role:'tool' messages (one per tool_use id), while the IR allows multiple
+   * tool_result blocks inside a single message.
+   */
+  private convertMessageToOpenAI(message: IRMessage): OpenAIMessage[] {
     if (typeof message.content === 'string') {
-      content = message.content;
-    } else {
-      // Convert content blocks
-      content = message.content.map((block) => {
-        switch (block.type) {
-          case 'text':
-            return { type: 'text', text: block.text };
+      return [
+        {
+          role: message.role as 'system' | 'user' | 'assistant' | 'tool',
+          content: message.content,
+          name: message.name,
+        },
+      ];
+    }
 
-          case 'image':
-            if (block.source.type === 'url') {
-              return {
-                type: 'image_url',
-                image_url: { url: block.source.url },
-              };
-            } else {
-              // Convert base64 to data URL
-              const dataUrl = `data:${block.source.mediaType};base64,${block.source.data}`;
-              return {
-                type: 'image_url',
-                image_url: { url: dataUrl },
-              };
-            }
+    // Partition structured content blocks
+    const toolResults = message.content.filter((block) => block.type === 'tool_result');
+    const toolUses = message.content.filter((block) => block.type === 'tool_use');
+    const otherBlocks = message.content.filter(
+      (block) => block.type !== 'tool_result' && block.type !== 'tool_use'
+    );
 
-          default:
-            // Fallback to text for unsupported types
-            return { type: 'text', text: JSON.stringify(block) };
-        }
+    const messages: OpenAIMessage[] = [];
+
+    // Each tool result becomes its own role:'tool' message
+    for (const block of toolResults) {
+      messages.push({
+        role: 'tool',
+        tool_call_id: block.toolUseId,
+        content:
+          typeof block.content === 'string'
+            ? block.content
+            : block.content.map((text) => text.text).join(''),
       });
     }
 
-    return {
-      role: message.role as 'system' | 'user' | 'assistant' | 'tool',
-      content,
-      name: message.name,
-    };
+    // Remaining content (text/images) plus any tool calls form one message
+    if (otherBlocks.length > 0 || toolUses.length > 0) {
+      const content: OpenAIMessageContent =
+        otherBlocks.length > 0
+          ? otherBlocks.map((block) => {
+              switch (block.type) {
+                case 'text':
+                  return { type: 'text' as const, text: block.text };
+
+                case 'image':
+                  if (block.source.type === 'url') {
+                    return {
+                      type: 'image_url' as const,
+                      image_url: { url: block.source.url },
+                    };
+                  } else {
+                    // Convert base64 to data URL
+                    const dataUrl = `data:${block.source.mediaType};base64,${block.source.data}`;
+                    return {
+                      type: 'image_url' as const,
+                      image_url: { url: dataUrl },
+                    };
+                  }
+
+                default:
+                  // Fallback to text for unsupported types
+                  return { type: 'text' as const, text: JSON.stringify(block) };
+              }
+            })
+          : '';
+
+      messages.push({
+        role: message.role as 'system' | 'user' | 'assistant' | 'tool',
+        content,
+        name: message.name,
+        tool_calls:
+          toolUses.length > 0
+            ? toolUses.map((block) => ({
+                id: block.id,
+                type: 'function' as const,
+                function: {
+                  name: block.name,
+                  arguments: JSON.stringify(block.input),
+                },
+              }))
+            : undefined,
+      });
+    }
+
+    return messages;
   }
 
   /**

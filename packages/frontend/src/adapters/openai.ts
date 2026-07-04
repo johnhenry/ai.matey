@@ -13,6 +13,7 @@ import type {
   IRChatResponse,
   IRChatStream,
   IRMessage,
+  JSONSchema,
   MessageContent,
 } from 'ai.matey.types';
 import type { StreamConversionOptions } from 'ai.matey.types';
@@ -79,6 +80,16 @@ export interface OpenAIMessage {
 
   /** Tool call ID when role is 'tool' - links tool results to the original tool call */
   tool_call_id?: string;
+
+  /** Tool calls requested by the assistant (role 'assistant' only) */
+  tool_calls?: Array<{
+    id: string;
+    type: 'function';
+    function: {
+      name: string;
+      arguments: string;
+    };
+  }>;
 }
 
 /**
@@ -138,6 +149,19 @@ export interface OpenAIRequest {
 
   /** Deterministic sampling seed for reproducible outputs */
   seed?: number;
+
+  /** Tools (functions) the model may call */
+  tools?: Array<{
+    type: 'function';
+    function: {
+      name: string;
+      description?: string;
+      parameters?: Record<string, unknown>;
+    };
+  }>;
+
+  /** Controls which (if any) tool the model must call */
+  tool_choice?: 'auto' | 'none' | 'required' | { type: 'function'; function: { name: string } };
 }
 
 /**
@@ -354,6 +378,20 @@ export class OpenAIFrontendAdapter implements FrontendAdapter<
           seed: request.seed,
           user: request.user,
         },
+        tools: request.tools?.map((tool) => ({
+          name: tool.function.name,
+          description: tool.function.description ?? '',
+          parameters: (tool.function.parameters ?? {
+            type: 'object',
+            properties: {},
+          }) as JSONSchema,
+        })),
+        toolChoice:
+          request.tool_choice === undefined
+            ? undefined
+            : typeof request.tool_choice === 'string'
+              ? request.tool_choice
+              : { name: request.tool_choice.function.name },
         stream: request.stream ?? false,
         metadata: {
           requestId: crypto.randomUUID(),
@@ -537,6 +575,26 @@ export class OpenAIFrontendAdapter implements FrontendAdapter<
    * Convert OpenAI message to IR message.
    */
   private convertMessageToIR(message: OpenAIMessage): IRMessage {
+    // Tool result message (role 'tool') becomes a tool_result content block
+    if (message.role === 'tool' && message.tool_call_id) {
+      return {
+        role: 'tool',
+        content: [
+          {
+            type: 'tool_result',
+            toolUseId: message.tool_call_id,
+            content:
+              typeof message.content === 'string'
+                ? message.content
+                : message.content
+                    .map((block) => (block.type === 'text' ? block.text : ''))
+                    .join(''),
+          },
+        ],
+        name: message.name,
+      };
+    }
+
     // Convert content
     let content: string | MessageContent[];
 
@@ -558,6 +616,24 @@ export class OpenAIFrontendAdapter implements FrontendAdapter<
       });
     }
 
+    // Assistant tool calls become tool_use content blocks
+    if (message.tool_calls && message.tool_calls.length > 0) {
+      const blocks: MessageContent[] =
+        typeof content === 'string' ? (content ? [{ type: 'text', text: content }] : []) : content;
+
+      content = [
+        ...blocks,
+        ...message.tool_calls.map(
+          (call): MessageContent => ({
+            type: 'tool_use',
+            id: call.id,
+            name: call.function.name,
+            input: this.parseToolArguments(call.function.arguments),
+          })
+        ),
+      ];
+    }
+
     return {
       role: message.role,
       content,
@@ -566,46 +642,77 @@ export class OpenAIFrontendAdapter implements FrontendAdapter<
   }
 
   /**
+   * Parse tool-call arguments defensively (malformed JSON degrades to {}).
+   */
+  private parseToolArguments(args: string): Record<string, unknown> {
+    try {
+      const parsed: unknown = JSON.parse(args);
+      if (parsed !== null && typeof parsed === 'object' && !Array.isArray(parsed)) {
+        return parsed as Record<string, unknown>;
+      }
+      return {};
+    } catch {
+      return {};
+    }
+  }
+
+  /**
    * Convert IR message to OpenAI message.
    */
   private convertMessageFromIR(message: IRMessage): OpenAIMessage {
-    // Convert content
-    let content: OpenAIMessageContent;
-
     if (typeof message.content === 'string') {
-      content = message.content;
-    } else {
-      content = message.content.map((block) => {
-        switch (block.type) {
-          case 'text':
-            return { type: 'text', text: block.text };
-
-          case 'image':
-            if (block.source.type === 'url') {
-              return {
-                type: 'image_url',
-                image_url: { url: block.source.url },
-              };
-            } else {
-              // Convert base64 to data URL
-              const dataUrl = `data:${block.source.mediaType};base64,${block.source.data}`;
-              return {
-                type: 'image_url',
-                image_url: { url: dataUrl },
-              };
-            }
-
-          default:
-            // Fallback to text
-            return { type: 'text', text: JSON.stringify(block) };
-        }
-      });
+      return {
+        role: message.role as 'system' | 'user' | 'assistant' | 'tool',
+        content: message.content,
+        name: message.name,
+      };
     }
+
+    // Separate tool calls from displayable content
+    const toolUses = message.content.filter((block) => block.type === 'tool_use');
+    const otherBlocks = message.content.filter((block) => block.type !== 'tool_use');
+
+    const content: OpenAIMessageContent = otherBlocks.map((block) => {
+      switch (block.type) {
+        case 'text':
+          return { type: 'text' as const, text: block.text };
+
+        case 'image':
+          if (block.source.type === 'url') {
+            return {
+              type: 'image_url' as const,
+              image_url: { url: block.source.url },
+            };
+          } else {
+            // Convert base64 to data URL
+            const dataUrl = `data:${block.source.mediaType};base64,${block.source.data}`;
+            return {
+              type: 'image_url' as const,
+              image_url: { url: dataUrl },
+            };
+          }
+
+        default:
+          // Fallback to text
+          return { type: 'text' as const, text: JSON.stringify(block) };
+      }
+    });
 
     return {
       role: message.role as 'system' | 'user' | 'assistant' | 'tool',
       content,
       name: message.name,
+      tool_calls:
+        toolUses.length > 0
+          ? toolUses.map((block) => ({
+              id: block.id,
+              type: 'function' as const,
+              function: {
+                name: block.name,
+                arguments: JSON.stringify(block.input),
+              },
+            }))
+          : undefined,
     };
   }
 

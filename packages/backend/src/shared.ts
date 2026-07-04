@@ -215,6 +215,29 @@ export function estimateCost(inputTokens: number, outputTokens: number, rates: C
   return inputCost + outputCost;
 }
 
+/**
+ * Parse a JSON object string defensively.
+ *
+ * Used for provider-supplied tool-call arguments, which arrive as JSON text
+ * (and, when streamed, may be truncated mid-document). Returns an empty
+ * object when the input is empty, malformed, or not a JSON object, so a bad
+ * tool-arguments payload degrades to `{}` rather than failing the response.
+ */
+export function safeParseJSON(text: string | undefined | null): Record<string, unknown> {
+  if (!text) {
+    return {};
+  }
+  try {
+    const parsed: unknown = JSON.parse(text);
+    if (parsed !== null && typeof parsed === 'object' && !Array.isArray(parsed)) {
+      return parsed as Record<string, unknown>;
+    }
+    return {};
+  } catch {
+    return {};
+  }
+}
+
 // ============================================================================
 // Default Model Lists
 // ============================================================================
