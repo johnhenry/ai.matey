@@ -16,6 +16,9 @@ import type {
 } from './types.js';
 import { GenericRateLimiter } from './rate-limiter.js';
 import { RouteMatcher, applyPathPrefix } from './route-matcher.js';
+import { createHealthCheck, createReadinessCheck, createLivenessCheck } from './health.js';
+import { createMetricsHandler } from './metrics.js';
+import { openaiEmbedRequestToIR, irToOpenAIEmbedResponse } from 'ai.matey.utils';
 import { normalizeCORSOptions } from './cors.js';
 import { detectProviderFormat } from './response-formatter.js';
 
@@ -25,16 +28,36 @@ import { detectProviderFormat } from './response-formatter.js';
 export class CoreHTTPHandler {
   private readonly bridge: Bridge;
   private readonly options: Required<
-    Omit<CoreHandlerOptions, 'validateAuth' | 'onError' | 'rateLimit' | 'routes' | 'cors'>
+    Omit<
+      CoreHandlerOptions,
+      | 'validateAuth'
+      | 'onError'
+      | 'rateLimit'
+      | 'routes'
+      | 'cors'
+      | 'health'
+      | 'metrics'
+      | 'embeddings'
+    >
   > & {
     validateAuth?: CoreHandlerOptions['validateAuth'];
     onError?: CoreHandlerOptions['onError'];
     rateLimit?: CoreHandlerOptions['rateLimit'];
     routes?: CoreHandlerOptions['routes'];
+    health?: CoreHandlerOptions['health'];
+    metrics?: CoreHandlerOptions['metrics'];
+    embeddings?: CoreHandlerOptions['embeddings'];
     corsOptions: ReturnType<typeof normalizeCORSOptions>;
   };
   private readonly rateLimiter: GenericRateLimiter | null;
   private readonly routeMatcher: RouteMatcher | null;
+  private readonly routeRateLimiters = new Map<string, GenericRateLimiter>();
+  private readonly healthHandlers: {
+    full: (req: GenericRequest, res: GenericResponse) => Promise<void> | void;
+    ready: (req: GenericRequest, res: GenericResponse) => Promise<void> | void;
+    live: (req: GenericRequest, res: GenericResponse) => Promise<void> | void;
+  } | null;
+  private readonly metricsHandler: ((req: GenericRequest, res: GenericResponse) => void) | null;
 
   constructor(options: CoreHandlerOptions) {
     this.bridge = options.bridge;
@@ -62,6 +85,9 @@ export class CoreHTTPHandler {
       log: options.log ?? (() => {}), // no-op by default
       maxBodySize: options.maxBodySize ?? 10 * 1024 * 1024, // 10MB
       streaming: options.streaming ?? true,
+      health: options.health,
+      metrics: options.metrics,
+      embeddings: options.embeddings,
     };
 
     // Create rate limiter if configured
@@ -71,6 +97,30 @@ export class CoreHTTPHandler {
 
     // Create route matcher if routes configured
     this.routeMatcher = this.options.routes ? new RouteMatcher(this.options.routes) : null;
+
+    // Per-route rate limiters (replace the global limiter for their route)
+    for (const route of this.options.routes ?? []) {
+      if (route.rateLimit) {
+        this.routeRateLimiters.set(route.path, new GenericRateLimiter(route.rateLimit));
+      }
+    }
+
+    // Built-in health endpoints
+    if (this.options.health?.enabled) {
+      const healthCheck = createHealthCheck(this.bridge);
+      this.healthHandlers = {
+        full: (req, res) => healthCheck.handle(req, res),
+        ready: createReadinessCheck(this.bridge),
+        live: createLivenessCheck(),
+      };
+    } else {
+      this.healthHandlers = null;
+    }
+
+    // Built-in metrics endpoint
+    this.metricsHandler = this.options.metrics?.enabled
+      ? createMetricsHandler({ bridge: this.bridge, prefix: this.options.metrics.prefix })
+      : null;
   }
 
   /**
@@ -78,6 +128,10 @@ export class CoreHTTPHandler {
    * Call this when the handler is no longer needed to prevent memory leaks.
    */
   dispose(): void {
+    for (const limiter of this.routeRateLimiters.values()) {
+      limiter.dispose();
+    }
+    this.routeRateLimiters.clear();
     if (this.rateLimiter) {
       this.rateLimiter.dispose();
     }
@@ -173,6 +227,11 @@ export class CoreHTTPHandler {
         }
       }
 
+      // Built-in endpoints (health, metrics, embeddings) before route matching
+      if (await this.handleBuiltinEndpoints(req, res)) {
+        return;
+      }
+
       // Validate authentication
       if (this.options.validateAuth) {
         const isAuthenticated = await this.options.validateAuth(req);
@@ -214,6 +273,17 @@ export class CoreHTTPHandler {
 
       if (this.routeMatcher) {
         const matchedRoute = this.routeMatcher.match(req);
+
+        // Per-route rate limit replaces the global one for matched routes
+        if (matchedRoute) {
+          const routeLimiter = this.routeRateLimiters.get(matchedRoute.config.path);
+          if (routeLimiter && res.isWritable()) {
+            const isLimited = await routeLimiter.check(req, res);
+            if (isLimited) {
+              return;
+            }
+          }
+        }
 
         if (!matchedRoute) {
           res.status(404);
@@ -269,6 +339,95 @@ export class CoreHTTPHandler {
   /**
    * Handle errors
    */
+  /**
+   * Serve built-in health/metrics/embeddings endpoints.
+   *
+   * @returns true when the request was handled
+   */
+  private async handleBuiltinEndpoints(
+    req: GenericRequest,
+    res: GenericResponse
+  ): Promise<boolean> {
+    const path = (req.url || '').split('?')[0] ?? '';
+
+    // Health endpoints (GET, unauthenticated by design: probes need access)
+    if (this.healthHandlers && req.method === 'GET') {
+      const base = this.options.health?.path ?? '/health';
+      if (path === `${base}/live`) {
+        await this.healthHandlers.live(req, res);
+        return true;
+      }
+      if (path === `${base}/ready`) {
+        await this.healthHandlers.ready(req, res);
+        return true;
+      }
+      if (path === base) {
+        await this.healthHandlers.full(req, res);
+        return true;
+      }
+    }
+
+    // Metrics endpoint (GET; auth honored by default when configured)
+    if (this.metricsHandler && req.method === 'GET') {
+      const metricsPath = this.options.metrics?.path ?? '/metrics';
+      if (path === metricsPath) {
+        const requireAuth = this.options.metrics?.auth ?? Boolean(this.options.validateAuth);
+        if (requireAuth && this.options.validateAuth) {
+          const isAuthenticated = await this.options.validateAuth(req);
+          if (!isAuthenticated) {
+            res.status(401);
+            res.send({ error: { message: 'Unauthorized' } });
+            return true;
+          }
+        }
+        this.metricsHandler(req, res);
+        return true;
+      }
+    }
+
+    // OpenAI-compatible embeddings endpoint (POST)
+    if (this.options.embeddings?.enabled && req.method === 'POST') {
+      const embedPath = this.options.embeddings.path ?? '/v1/embeddings';
+      if (path === embedPath) {
+        if (this.options.validateAuth) {
+          const isAuthenticated = await this.options.validateAuth(req);
+          if (!isAuthenticated) {
+            res.status(401);
+            res.send({ error: { message: 'Unauthorized' } });
+            return true;
+          }
+        }
+
+        const body = req.body as { model?: string; input?: string | string[] } | null;
+        if (body?.input === undefined || !body.model) {
+          res.status(400);
+          res.send({ error: { message: "'model' and 'input' are required" } });
+          return true;
+        }
+
+        try {
+          const irRequest = openaiEmbedRequestToIR({
+            model: body.model,
+            input: body.input,
+            ...(body as Record<string, unknown>),
+          });
+          const irResponse = await this.bridge.embed(irRequest.input, {
+            model: irRequest.parameters?.model,
+            dimensions: irRequest.parameters?.dimensions,
+          });
+          res.status(200);
+          res.header('Content-Type', 'application/json');
+          res.send(irToOpenAIEmbedResponse(irResponse));
+        } catch (error) {
+          await this.handleError(error as Error, req, res);
+        }
+        return true;
+      }
+    }
+
+    return false;
+  }
+
   private async handleError(
     error: Error,
     req: GenericRequest,

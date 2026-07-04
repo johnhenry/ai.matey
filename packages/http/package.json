@@ -76,6 +76,16 @@
         "types": "./dist/types/deno/index.d.ts",
         "default": "./dist/cjs/deno/index.js"
       }
+    },
+    "./websocket": {
+      "import": {
+        "types": "./dist/types/websocket/index.d.ts",
+        "default": "./dist/esm/websocket/index.js"
+      },
+      "require": {
+        "types": "./dist/types/websocket/index.d.ts",
+        "default": "./dist/cjs/websocket/index.js"
+      }
     }
   },
   "files": [

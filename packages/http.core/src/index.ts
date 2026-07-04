@@ -116,3 +116,5 @@ export {
   type HealthStatus,
   type ComponentHealth,
 } from './health.js';
+
+export * from './metrics.js';
