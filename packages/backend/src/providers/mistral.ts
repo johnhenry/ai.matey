@@ -8,6 +8,7 @@
  */
 
 import type { BackendAdapter, BackendAdapterConfig, AdapterMetadata } from 'ai.matey.types';
+import type { IREmbedRequest, IREmbedResponse } from 'ai.matey.types';
 import type {
   IRChatRequest,
   IRChatResponse,
@@ -28,6 +29,7 @@ import { normalizeSystemMessages } from 'ai.matey.utils';
 import { getModelCache } from 'ai.matey.utils';
 import { getEffectiveStreamMode, mergeStreamingConfig } from 'ai.matey.utils';
 import {
+  executeOpenAICompatibleEmbed,
   buildStaticResult,
   applyModelFilter,
   DEFAULT_MISTRAL_MODELS,
@@ -91,6 +93,9 @@ export class MistralBackendAdapter implements BackendAdapter<MistralRequest, Mis
       version: '1.0.0',
       provider: 'Mistral',
       capabilities: {
+        embeddings: true,
+        embeddingModels: ['mistral-embed'],
+        maxEmbeddingBatchSize: 512,
         streaming: true,
         multiModal: false,
         tools: true,
@@ -107,6 +112,20 @@ export class MistralBackendAdapter implements BackendAdapter<MistralRequest, Mis
       },
       config: { baseURL: this.baseURL },
     };
+  }
+
+  /**
+   * Generate embeddings via the OpenAI-compatible /embeddings endpoint.
+   */
+  embed(request: IREmbedRequest, signal?: AbortSignal): Promise<IREmbedResponse> {
+    return executeOpenAICompatibleEmbed({
+      baseURL: this.baseURL,
+      headers: { Authorization: `Bearer ${this.config.apiKey}` },
+      request,
+      backendName: this.metadata.name,
+      defaultModel: 'mistral-embed',
+      signal,
+    });
   }
 
   async execute(request: IRChatRequest, signal?: AbortSignal): Promise<IRChatResponse> {

@@ -527,9 +527,10 @@ describe('DEFAULT_ANTHROPIC_MODELS', () => {
     }
   });
 
-  it('should have 200K context window', () => {
+  it('should have at least a 200K context window', () => {
     for (const model of DEFAULT_ANTHROPIC_MODELS) {
-      expect(model.capabilities?.contextWindow).toBe(200000);
+      // Claude 4.x models are 200K; Claude Sonnet 5 is 1M
+      expect(model.capabilities?.contextWindow).toBeGreaterThanOrEqual(200000);
     }
   });
 });

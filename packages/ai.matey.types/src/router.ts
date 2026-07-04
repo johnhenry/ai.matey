@@ -8,7 +8,7 @@
  */
 
 import type { BackendAdapter, AdapterMetadata } from './adapters.js';
-import type { IRChatRequest, IRChatResponse, IRChatStream } from './ir.js';
+import type { IRChatRequest, IRChatResponse, IRChatStream, IRWarning } from './ir.js';
 import type { AdapterError } from './errors.js';
 import type { ModelTranslationConfig, ModelMapping } from './model-translation.js';
 
@@ -193,6 +193,14 @@ export interface RouterConfig {
    * @default { strategy: 'hybrid', warnOnDefault: true, strictMode: false }
    */
   readonly modelTranslation?: ModelTranslationConfig;
+
+  /**
+   * Called when the router generates a warning — currently emitted when a
+   * request's model is silently substituted with a backend's default model
+   * during hybrid translation (and `modelTranslation.warnOnDefault` is not
+   * disabled). The same warning is also attached to the request metadata.
+   */
+  readonly onWarning?: (warning: IRWarning) => void;
 }
 
 /**

@@ -38,6 +38,18 @@ import type {
 // ============================================================================
 
 /**
+ * A tool call being assembled from streamed deltas.
+ */
+export interface AccumulatedToolCall {
+  id: string;
+  name: string;
+  /** Concatenated raw JSON argument fragments. */
+  args: string;
+  /** Zero-based position of the tool call within the message. */
+  index: number;
+}
+
+/**
  * Accumulated stream state.
  */
 export interface StreamAccumulator {
@@ -45,6 +57,8 @@ export interface StreamAccumulator {
   role: 'assistant';
   sequence: number;
   metadata?: Partial<IRMetadata>;
+  /** Tool calls assembled from tool_use chunks, keyed by tool-call id. */
+  toolCalls?: Map<string, AccumulatedToolCall>;
 }
 
 /**
@@ -78,6 +92,26 @@ export function accumulateChunk(
       updated.content += chunk.delta;
       break;
 
+    case 'tool_use': {
+      const toolCalls = new Map(updated.toolCalls);
+      const existing = toolCalls.get(chunk.id);
+      if (existing) {
+        toolCalls.set(chunk.id, {
+          ...existing,
+          args: existing.args + (chunk.inputDelta ?? ''),
+        });
+      } else {
+        toolCalls.set(chunk.id, {
+          id: chunk.id,
+          name: chunk.name,
+          args: chunk.inputDelta ?? '',
+          index: chunk.index ?? toolCalls.size,
+        });
+      }
+      updated.toolCalls = toolCalls;
+      break;
+    }
+
     case 'metadata':
       updated.metadata = {
         ...updated.metadata,
@@ -96,14 +130,56 @@ export function accumulateChunk(
 /**
  * Convert accumulated state to IR message.
  *
+ * Returns plain string content when no tool calls were streamed (backward
+ * compatible); otherwise structured content blocks: optional leading text
+ * followed by one tool_use block per call in index order. Tool argument
+ * fragments are parsed as JSON, degrading to `{}` when malformed.
+ *
  * @param accumulator Stream accumulator
  * @returns IR message
  */
 export function accumulatorToMessage(accumulator: StreamAccumulator): IRMessage {
+  const toolCalls = accumulator.toolCalls ? [...accumulator.toolCalls.values()] : [];
+
+  if (toolCalls.length === 0) {
+    return {
+      role: accumulator.role,
+      content: accumulator.content,
+    };
+  }
+
   return {
     role: accumulator.role,
-    content: accumulator.content,
+    content: [
+      ...(accumulator.content ? [{ type: 'text' as const, text: accumulator.content }] : []),
+      ...toolCalls
+        .sort((a, b) => a.index - b.index)
+        .map((call) => ({
+          type: 'tool_use' as const,
+          id: call.id,
+          name: call.name,
+          input: parseToolCallArgs(call.args),
+        })),
+    ],
   };
+}
+
+/**
+ * Parse accumulated tool-call arguments defensively.
+ */
+function parseToolCallArgs(args: string): Record<string, unknown> {
+  if (!args) {
+    return {};
+  }
+  try {
+    const parsed: unknown = JSON.parse(args);
+    if (parsed !== null && typeof parsed === 'object' && !Array.isArray(parsed)) {
+      return parsed as Record<string, unknown>;
+    }
+    return {};
+  } catch {
+    return {};
+  }
 }
 
 /**
@@ -405,7 +481,7 @@ export async function* streamWithTimeout(
         break;
       }
 
-      yield result.value as IRStreamChunk;
+      yield result.value;
     }
   } catch (error) {
     if ((error as Error).message === 'Stream timeout') {

@@ -153,7 +153,9 @@ export function TypeWriter({
     setDisplayedText('');
     setIsTyping(false);
 
-    if (!text) return;
+    if (!text) {
+      return;
+    }
 
     // Start delay
     const delayTimeout = setTimeout(() => {

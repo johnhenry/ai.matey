@@ -7,7 +7,15 @@
  * @module
  */
 
-import type { IRChatRequest, AIModel, ListModelsResult } from 'ai.matey.types';
+import type {
+  IRChatRequest,
+  IRMessage,
+  IREmbedRequest,
+  IREmbedResponse,
+  AIModel,
+  ListModelsResult,
+} from 'ai.matey.types';
+import { createErrorFromHttpResponse, NetworkError, ErrorCode } from 'ai.matey.errors';
 
 // ============================================================================
 // Token Estimation
@@ -215,6 +223,161 @@ export function estimateCost(inputTokens: number, outputTokens: number, rates: C
   return inputCost + outputCost;
 }
 
+/**
+ * Parse a JSON object string defensively.
+ *
+ * Used for provider-supplied tool-call arguments, which arrive as JSON text
+ * (and, when streamed, may be truncated mid-document). Returns an empty
+ * object when the input is empty, malformed, or not a JSON object, so a bad
+ * tool-arguments payload degrades to `{}` rather than failing the response.
+ */
+export interface StreamedToolCall {
+  id: string;
+  name: string;
+  /** Concatenated raw JSON argument fragments. */
+  args: string;
+  /** Zero-based position of the tool call within the message. */
+  index: number;
+}
+
+/**
+ * Assemble the final message for a stream's `done` chunk.
+ *
+ * When tool calls were streamed, the message content is a structured block
+ * array: an optional leading text block followed by one `tool_use` block per
+ * call (in index order), with accumulated argument fragments parsed via
+ * {@link safeParseJSON}. Without tool calls the content stays a plain string
+ * for backward compatibility.
+ */
+export function buildStreamDoneMessage(
+  text: string,
+  toolCalls: readonly StreamedToolCall[]
+): IRMessage {
+  if (toolCalls.length === 0) {
+    return { role: 'assistant', content: text };
+  }
+
+  return {
+    role: 'assistant',
+    content: [
+      ...(text ? [{ type: 'text' as const, text }] : []),
+      ...[...toolCalls]
+        .sort((a, b) => a.index - b.index)
+        .map((call) => ({
+          type: 'tool_use' as const,
+          id: call.id,
+          name: call.name,
+          input: safeParseJSON(call.args),
+        })),
+    ],
+  };
+}
+
+// ============================================================================
+// Embeddings (OpenAI-compatible)
+// ============================================================================
+
+/**
+ * Execute an embedding request against an OpenAI-compatible `/embeddings`
+ * endpoint (OpenAI, Azure OpenAI, Mistral, Together, Fireworks, DeepInfra,
+ * NVIDIA, LM Studio, ...).
+ *
+ * Providers wrap this with their base URL, headers, and default model; the
+ * response is normalized to `IREmbedResponse` with input order preserved.
+ */
+export async function executeOpenAICompatibleEmbed(options: {
+  baseURL: string;
+  headers: Record<string, string>;
+  request: IREmbedRequest;
+  backendName: string;
+  defaultModel: string;
+  /** Endpoint path relative to baseURL. @default '/embeddings' */
+  path?: string;
+  signal?: AbortSignal;
+}): Promise<IREmbedResponse> {
+  const { baseURL, headers, request, backendName, defaultModel, path, signal } = options;
+
+  const model = request.parameters?.model || defaultModel;
+  const body: Record<string, unknown> = {
+    model,
+    input: request.input,
+    ...(request.parameters?.dimensions !== undefined && {
+      dimensions: request.parameters.dimensions,
+    }),
+    ...(request.parameters?.user !== undefined && { user: request.parameters.user }),
+    ...request.parameters?.custom,
+  };
+
+  let response: Response;
+  try {
+    response = await fetch(`${baseURL}${path ?? '/embeddings'}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...headers },
+      body: JSON.stringify(body),
+      signal,
+    });
+  } catch (error) {
+    throw new NetworkError({
+      code: ErrorCode.NETWORK_ERROR,
+      message: `Embedding request failed: ${error instanceof Error ? error.message : String(error)}`,
+      provenance: { backend: backendName },
+      cause: error instanceof Error ? error : undefined,
+    });
+  }
+
+  if (!response.ok) {
+    const errorBody = await response.text();
+    throw createErrorFromHttpResponse(response.status, response.statusText, errorBody, {
+      backend: backendName,
+    });
+  }
+
+  const json = (await response.json()) as {
+    data: Array<{ index: number; embedding: number[] }>;
+    model?: string;
+    usage?: { prompt_tokens?: number; total_tokens?: number };
+  };
+
+  const embeddings = [...(json.data ?? [])]
+    .sort((a, b) => a.index - b.index)
+    .map((item) => ({ index: item.index, vector: item.embedding }));
+
+  return {
+    embeddings,
+    model: json.model ?? model,
+    dimensions: embeddings[0]?.vector.length ?? 0,
+    usage: json.usage
+      ? {
+          promptTokens: json.usage.prompt_tokens ?? 0,
+          totalTokens: json.usage.total_tokens ?? json.usage.prompt_tokens ?? 0,
+        }
+      : undefined,
+    metadata: {
+      ...request.metadata,
+      provenance: {
+        ...request.metadata.provenance,
+        backend: backendName,
+      },
+    },
+    raw: json as unknown as Record<string, unknown>,
+  };
+}
+
+export function safeParseJSON(text: string | undefined | null): Record<string, unknown> {
+  if (!text) {
+    return {};
+  }
+  try {
+    const parsed: unknown = JSON.parse(text);
+    if (parsed !== null && typeof parsed === 'object' && !Array.isArray(parsed)) {
+      return parsed as Record<string, unknown>;
+    }
+    return {};
+  } catch {
+    return {};
+  }
+}
+
 // ============================================================================
 // Default Model Lists
 // ============================================================================
@@ -286,6 +449,20 @@ export const DEFAULT_OPENAI_MODELS: readonly AIModel[] = [
  * Updated: 2025-11-30
  */
 export const DEFAULT_ANTHROPIC_MODELS: readonly AIModel[] = [
+  {
+    id: 'claude-sonnet-5',
+    name: 'Claude Sonnet 5',
+    description: 'Default Anthropic model with a 1M-token context window',
+    ownedBy: 'anthropic',
+    capabilities: {
+      maxTokens: 128000,
+      contextWindow: 1000000,
+      supportsStreaming: true,
+      supportsVision: true,
+      supportsTools: true,
+      supportsJSON: true,
+    },
+  },
   {
     id: 'claude-opus-4.5-20251124',
     name: 'Claude Opus 4.5 (Nov 2025)',
@@ -413,6 +590,20 @@ export const DEFAULT_AI21_MODELS: readonly AIModel[] = [
  * Updated: 2025-11-30
  */
 export const DEFAULT_GEMINI_MODELS: readonly AIModel[] = [
+  {
+    id: 'gemini-3.5-flash',
+    name: 'Gemini 3.5 Flash',
+    description: 'Fast multimodal model with 1M context (GA)',
+    ownedBy: 'google',
+    capabilities: {
+      maxTokens: 65536,
+      contextWindow: 1048576,
+      supportsStreaming: true,
+      supportsVision: true,
+      supportsTools: true,
+      supportsJSON: true,
+    },
+  },
   {
     id: 'gemini-2.0-flash',
     name: 'Gemini 2.0 Flash',

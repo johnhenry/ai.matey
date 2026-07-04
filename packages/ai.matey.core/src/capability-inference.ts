@@ -58,6 +58,9 @@ export function inferCapabilities(
  */
 function detectModelFamily(normalizedName: string): string | undefined {
   // GPT family
+  if (normalizedName.includes('gpt-5')) {
+    return 'gpt-5';
+  }
   if (normalizedName.includes('gpt-4o')) {
     return 'gpt-4';
   }
@@ -71,7 +74,28 @@ function detectModelFamily(normalizedName: string): string | undefined {
     return 'gpt-3';
   }
 
+  // OpenAI reasoning models (o1/o3/o4-mini, avoid matching random 'o3' substrings)
+  if (/^o[134](-|$)/.test(normalizedName)) {
+    return 'o-series';
+  }
+
   // Claude family
+  if (
+    normalizedName.includes('claude-sonnet-5') ||
+    normalizedName.includes('claude-opus-5') ||
+    normalizedName.includes('claude-haiku-5') ||
+    normalizedName.includes('claude-5')
+  ) {
+    return 'claude-5';
+  }
+  if (
+    normalizedName.includes('claude-opus-4') ||
+    normalizedName.includes('claude-sonnet-4') ||
+    normalizedName.includes('claude-haiku-4') ||
+    normalizedName.includes('claude-4')
+  ) {
+    return 'claude-4';
+  }
   if (normalizedName.includes('claude-3.5')) {
     return 'claude-3';
   }
@@ -83,6 +107,15 @@ function detectModelFamily(normalizedName: string): string | undefined {
   }
 
   // Gemini family
+  if (normalizedName.includes('gemini-3')) {
+    return 'gemini-3';
+  }
+  if (normalizedName.includes('gemini-2.5')) {
+    return 'gemini-2.5';
+  }
+  if (normalizedName.includes('gemini-2')) {
+    return 'gemini-2.0';
+  }
   if (normalizedName.includes('gemini-1.5')) {
     return 'gemini-1.5';
   }
@@ -90,7 +123,12 @@ function detectModelFamily(normalizedName: string): string | undefined {
     return 'gemini-1.0';
   }
   if (normalizedName.includes('gemini')) {
-    return 'gemini-1.5';
+    return 'gemini-2.5';
+  }
+
+  // Grok family
+  if (normalizedName.includes('grok')) {
+    return 'grok';
   }
 
   // Mistral family
@@ -110,6 +148,9 @@ function detectModelFamily(normalizedName: string): string | undefined {
   }
 
   // Other families
+  if (normalizedName.includes('deepseek-v4')) {
+    return 'deepseek-v4';
+  }
   if (normalizedName.includes('deepseek')) {
     return 'deepseek';
   }
@@ -131,6 +172,77 @@ function detectModelFamily(normalizedName: string): string | undefined {
  */
 function getDefaultCapabilitiesByFamily(family: string): Partial<ModelCapabilities> {
   const defaults: Record<string, Partial<ModelCapabilities>> = {
+    'gpt-5': {
+      contextWindow: 400000,
+      maxTokens: 128000,
+      supportsStreaming: true,
+      supportsVision: true,
+      supportsTools: true,
+      supportsJSON: true,
+      qualityScore: 95,
+    },
+    'o-series': {
+      contextWindow: 200000,
+      maxTokens: 100000,
+      supportsStreaming: true,
+      supportsVision: true,
+      supportsTools: true,
+      supportsJSON: true,
+      qualityScore: 93,
+    },
+    'claude-5': {
+      contextWindow: 1000000,
+      maxTokens: 128000,
+      supportsStreaming: true,
+      supportsVision: true,
+      supportsTools: true,
+      supportsJSON: true,
+      qualityScore: 97,
+    },
+    'claude-4': {
+      contextWindow: 200000,
+      maxTokens: 64000,
+      supportsStreaming: true,
+      supportsVision: true,
+      supportsTools: true,
+      supportsJSON: true,
+      qualityScore: 95,
+    },
+    'gemini-3': {
+      contextWindow: 1000000,
+      maxTokens: 65536,
+      supportsStreaming: true,
+      supportsVision: true,
+      supportsTools: true,
+      supportsJSON: true,
+      qualityScore: 95,
+    },
+    'gemini-2.5': {
+      contextWindow: 1048576,
+      maxTokens: 65536,
+      supportsStreaming: true,
+      supportsVision: true,
+      supportsTools: true,
+      supportsJSON: true,
+      qualityScore: 90,
+    },
+    'gemini-2.0': {
+      contextWindow: 1048576,
+      maxTokens: 8192,
+      supportsStreaming: true,
+      supportsVision: true,
+      supportsTools: true,
+      supportsJSON: true,
+      qualityScore: 84,
+    },
+    grok: {
+      contextWindow: 131072,
+      maxTokens: 16384,
+      supportsStreaming: true,
+      supportsTools: true,
+      supportsJSON: true,
+      qualityScore: 88,
+    },
     'gpt-4': {
       contextWindow: 8192,
       maxTokens: 4096,
@@ -195,6 +307,15 @@ function getDefaultCapabilitiesByFamily(family: string): Partial<ModelCapabiliti
       supportsTools: false,
       supportsJSON: false,
       qualityScore: 70,
+    },
+    'deepseek-v4': {
+      contextWindow: 1000000,
+      maxTokens: 384000,
+      supportsStreaming: true,
+      supportsVision: true,
+      supportsTools: true,
+      supportsJSON: true,
+      qualityScore: 92,
     },
     deepseek: {
       contextWindow: 64000,

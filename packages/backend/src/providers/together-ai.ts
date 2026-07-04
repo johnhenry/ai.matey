@@ -8,6 +8,8 @@
  */
 
 import type { BackendAdapter, BackendAdapterConfig, AdapterMetadata } from 'ai.matey.types';
+import type { IREmbedRequest, IREmbedResponse } from 'ai.matey.types';
+import { executeOpenAICompatibleEmbed } from '../shared.js';
 import type {
   IRChatRequest,
   IRChatResponse,
@@ -122,6 +124,8 @@ export class TogetherAIBackendAdapter implements BackendAdapter<
       version: '1.0.0',
       provider: 'Together AI',
       capabilities: {
+        embeddings: true,
+        maxEmbeddingBatchSize: 100,
         streaming: true,
         multiModal: true, // Vision models available
         tools: true, // Function calling
@@ -252,6 +256,20 @@ export class TogetherAIBackendAdapter implements BackendAdapter<
   /**
    * Execute non-streaming request.
    */
+  /**
+   * Generate embeddings via the OpenAI-compatible /embeddings endpoint.
+   */
+  embed(request: IREmbedRequest, signal?: AbortSignal): Promise<IREmbedResponse> {
+    return executeOpenAICompatibleEmbed({
+      baseURL: this.baseURL,
+      headers: this.getHeaders(),
+      request,
+      backendName: this.metadata.name,
+      defaultModel: 'togethercomputer/m2-bert-80M-32k-retrieval',
+      signal,
+    });
+  }
+
   async execute(request: IRChatRequest, signal?: AbortSignal): Promise<IRChatResponse> {
     try {
       const togetherRequest = this.fromIR(request);

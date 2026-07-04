@@ -46,3 +46,4 @@ temp/
 
 web.env.local.mjs
 models/
+.claude-trace/

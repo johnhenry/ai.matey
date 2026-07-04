@@ -199,7 +199,7 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
 
         // Get the last user message content
         const lastMessage = messagesToSend[messagesToSend.length - 1];
-        if (!lastMessage || lastMessage.role !== 'user') {
+        if (lastMessage?.role !== 'user') {
           throw new Error('Last message must be a user message');
         }
 
@@ -479,7 +479,7 @@ export function useChat(options: UseChatOptions = {}): UseChatReturn {
       setMessages(newMessages);
       setInput('');
 
-      sendRequest(newMessages, options);
+      void sendRequest(newMessages, options);
     },
     [generateId, input, messages, sendRequest]
   );

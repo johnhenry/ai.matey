@@ -31,6 +31,7 @@ export interface PsCommandOptions {
 /**
  * Execute the ps command.
  */
+// eslint-disable-next-line @typescript-eslint/require-await -- CLI commands share an async signature
 export async function psCommand(options: PsCommandOptions): Promise<void> {
   const { backend, json = false, verbose = false } = options;
 

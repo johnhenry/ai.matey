@@ -52,7 +52,7 @@ export async function listCommand(options: ListCommandOptions): Promise<void> {
     // Fetch models
     const result = await listModels.call(backend);
 
-    if (!result || !result.models || result.models.length === 0) {
+    if (!result?.models || result.models.length === 0) {
       console.log(colorize('No models available', 'gray'));
       return;
     }

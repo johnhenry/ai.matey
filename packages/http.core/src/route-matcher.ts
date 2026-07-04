@@ -6,8 +6,19 @@
  * @module
  */
 
-import type { IncomingMessage } from 'http';
 import type { RouteConfig, MatchedRoute } from './types.js';
+
+/**
+ * Minimal request shape needed for route matching.
+ *
+ * Structurally satisfied by Node's IncomingMessage and by GenericRequest,
+ * so any framework adapter can pass its request straight through.
+ */
+export interface RouteMatchable {
+  url?: string;
+  method?: string;
+  headers?: { host?: string | string[] } & Record<string, unknown>;
+}
 
 /**
  * Route matcher class
@@ -22,8 +33,9 @@ export class RouteMatcher {
   /**
    * Match request to a route
    */
-  match(req: IncomingMessage): MatchedRoute | null {
-    const url = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`);
+  match(req: RouteMatchable): MatchedRoute | null {
+    const host = Array.isArray(req.headers?.host) ? req.headers.host[0] : req.headers?.host;
+    const url = new URL(req.url || '/', `http://${host || 'localhost'}`);
     const path = url.pathname;
     const method = req.method?.toUpperCase() || 'GET';
 

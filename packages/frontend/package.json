@@ -1,6 +1,6 @@
 {
   "name": "ai.matey.frontend",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Frontend adapters for AI Matey - Universal AI Adapter System",
   "type": "module",
   "main": "./dist/cjs/index.js",
@@ -109,8 +109,7 @@
   "dependencies": {
     "ai.matey.types": "*",
     "ai.matey.errors": "*",
-    "ai.matey.utils": "*",
-    "ai.matey.backend": "*"
+    "ai.matey.utils": "*"
   },
   "devDependencies": {
     "ai.matey.testing": "*",

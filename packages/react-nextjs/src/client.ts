@@ -71,7 +71,7 @@ export interface UseNextChatOptions extends UseChatOptions {
  * ```
  */
 export function useChat(options: UseNextChatOptions = {}): UseChatReturn {
-  const { serverAction, experimental, ...coreOptions } = options;
+  const { serverAction: _serverAction, experimental: _experimental, ...coreOptions } = options;
 
   // Default API to Next.js convention
   const api = coreOptions.api ?? '/api/chat';
@@ -137,7 +137,7 @@ export interface UseNextCompletionOptions extends UseCompletionOptions {
  * ```
  */
 export function useCompletion(options: UseNextCompletionOptions = {}): UseCompletionReturn {
-  const { serverAction, ...coreOptions } = options;
+  const { serverAction: _serverAction, ...coreOptions } = options;
 
   // Default API to Next.js convention
   const api = coreOptions.api ?? '/api/completion';
@@ -226,9 +226,13 @@ export function generateAIMetadata(
 
   // Add AI attribution if requested
   if (includeAttribution && aiMetadata) {
-    const attribution = [];
-    if (aiMetadata.provider) attribution.push(`Provider: ${aiMetadata.provider}`);
-    if (aiMetadata.model) attribution.push(`Model: ${aiMetadata.model}`);
+    const attribution: string[] = [];
+    if (aiMetadata.provider) {
+      attribution.push(`Provider: ${aiMetadata.provider}`);
+    }
+    if (aiMetadata.model) {
+      attribution.push(`Model: ${aiMetadata.model}`);
+    }
 
     metadata.other = {
       'ai-generated': 'true',
