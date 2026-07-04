@@ -399,6 +399,27 @@ export interface IRCapabilities {
   readonly tools?: boolean;
 
   /**
+   * Whether the backend can generate embeddings (implements `embed()`).
+   */
+  readonly embeddings?: boolean;
+
+  /**
+   * Embedding model ids offered by the backend.
+   */
+  readonly embeddingModels?: readonly string[];
+
+  /**
+   * Maximum number of inputs per embedding request (batch limit).
+   */
+  readonly maxEmbeddingBatchSize?: number;
+
+  /**
+   * Whether the provider accepts a native `dimensions` parameter
+   * (e.g. OpenAI text-embedding-3, Matryoshka-style models).
+   */
+  readonly supportsEmbeddingDimensions?: boolean;
+
+  /**
    * Maximum context window size (tokens).
    */
   readonly maxContextTokens?: number;

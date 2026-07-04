@@ -65,6 +65,7 @@ export class DeepSeekBackendAdapter
       version: '1.0.0',
       provider: 'DeepSeek',
       capabilities: {
+        embeddings: false,
         streaming: true,
         multiModal: false, // DeepSeek currently doesn't support vision
         tools: true,

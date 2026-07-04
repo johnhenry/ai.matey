@@ -17,6 +17,7 @@ import type {
   FinishReason,
 } from 'ai.matey.types';
 import type { AIModel, ListModelsOptions, ListModelsResult } from 'ai.matey.types';
+import type { IREmbedRequest, IREmbedResponse } from 'ai.matey.types';
 import {
   AdapterConversionError,
   NetworkError,
@@ -34,6 +35,7 @@ import {
   buildStaticResult,
   applyModelFilter,
   buildStreamDoneMessage,
+  executeOpenAICompatibleEmbed,
   safeParseJSON,
   type ModelCapabilityFilter,
   type StreamedToolCall,
@@ -204,6 +206,10 @@ export class OpenAIBackendAdapter implements BackendAdapter<OpenAIRequest, OpenA
         streaming: true,
         multiModal: true,
         tools: true,
+        embeddings: true,
+        embeddingModels: ['text-embedding-3-small', 'text-embedding-3-large'],
+        maxEmbeddingBatchSize: 2048,
+        supportsEmbeddingDimensions: true,
         maxContextTokens: 128000,
         systemMessageStrategy: 'in-messages',
         supportsMultipleSystemMessages: false, // OpenAI prefers single system message
@@ -538,6 +544,34 @@ export class OpenAIBackendAdapter implements BackendAdapter<OpenAIRequest, OpenA
     const model = request.parameters?.model || this.config.defaultModel || 'gpt-5-mini';
     const inputPer1M = getModelPricingInfo(model)?.inputPer1M ?? 1.25;
     return Promise.resolve((estimatedInputTokens / 1_000_000) * inputPer1M);
+  }
+
+  /**
+   * Generate embeddings via the /embeddings endpoint.
+   */
+  embed(request: IREmbedRequest, signal?: AbortSignal): Promise<IREmbedResponse> {
+    return executeOpenAICompatibleEmbed({
+      baseURL: this.baseURL,
+      headers: this.getHeaders(),
+      request,
+      backendName: this.metadata.name,
+      defaultModel: 'text-embedding-3-small',
+      signal,
+    });
+  }
+
+  /**
+   * Estimate embedding cost in USD via the model registry.
+   */
+  estimateEmbedCost(request: IREmbedRequest): Promise<number | null> {
+    const model = request.parameters?.model || 'text-embedding-3-small';
+    const inputPer1M = getModelPricingInfo(model)?.inputPer1M;
+    if (inputPer1M === undefined) {
+      return Promise.resolve(null);
+    }
+    const inputs = typeof request.input === 'string' ? [request.input] : request.input;
+    const totalChars = inputs.reduce((sum, text) => sum + text.length, 0);
+    return Promise.resolve((Math.ceil(totalChars / 4) / 1_000_000) * inputPer1M);
   }
 
   /**

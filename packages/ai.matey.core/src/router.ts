@@ -23,7 +23,8 @@ import type {
   ParallelDispatchResult,
 } from 'ai.matey.types';
 import { AdapterError, ErrorCode } from 'ai.matey.errors';
-import { createWarning } from 'ai.matey.utils';
+import { createWarning, supportsEmbeddings } from 'ai.matey.utils';
+import type { IREmbedRequest, IREmbedResponse } from 'ai.matey.types';
 import type { TranslationResult } from './model-translation.js';
 import type { AIModel } from 'ai.matey.types';
 import type { CapabilityRequirements, BackendModel } from './capability-matcher.js';
@@ -987,6 +988,110 @@ export class Router implements IRouter {
   /**
    * Execute request on specific backend.
    */
+  /**
+   * Generate embeddings via the best available backend.
+   *
+   * Candidates are registered backends that implement embeddings and whose
+   * circuit is not open, tried in fallback-chain order (default backend
+   * first). Success/failure and cost are tracked like chat requests.
+   */
+  async embed(request: IREmbedRequest, signal?: AbortSignal): Promise<IREmbedResponse> {
+    const candidates = this.getAvailableBackends().filter((name) => {
+      const adapter = this.backends.get(name)?.adapter;
+      return adapter !== undefined && supportsEmbeddings(adapter);
+    });
+
+    // Prefer fallback-chain order, then default backend, then registration order
+    const ordered = [
+      ...this.fallbackChain.filter((name) => candidates.includes(name)),
+      ...(this.config.defaultBackend && candidates.includes(this.config.defaultBackend)
+        ? [this.config.defaultBackend]
+        : []),
+      ...candidates,
+    ].filter((name, index, all) => all.indexOf(name) === index);
+
+    if (ordered.length === 0) {
+      throw new AdapterError({
+        code: ErrorCode.UNSUPPORTED_FEATURE,
+        message: 'No registered backend supports embeddings',
+        isRetryable: false,
+        provenance: { router: this.metadata.name },
+      });
+    }
+
+    let lastError: Error | undefined;
+
+    for (const name of ordered) {
+      const state = this.backends.get(name);
+      if (!state) {
+        continue;
+      }
+
+      if (this.config.enableCircuitBreaker) {
+        try {
+          this.checkCircuitBreaker(name, state);
+        } catch {
+          continue;
+        }
+      }
+
+      state.totalRequests++;
+      const startTime = Date.now();
+
+      try {
+        const adapter = state.adapter;
+        if (!supportsEmbeddings(adapter)) {
+          continue;
+        }
+        const response = await adapter.embed(request, signal);
+
+        state.successfulRequests++;
+        state.consecutiveFailures = 0;
+        if (this.config.trackLatency) {
+          state.latencies.push(Date.now() - startTime);
+          if (state.latencies.length > 100) {
+            state.latencies.shift();
+          }
+        }
+        if (this.config.trackCost && adapter.estimateEmbedCost) {
+          const cost = await adapter.estimateEmbedCost(request);
+          if (cost !== null) {
+            state.totalCost += cost;
+          }
+        }
+        if (state.circuitBreakerState === 'half-open') {
+          state.circuitBreakerState = 'closed';
+        }
+
+        return response;
+      } catch (error) {
+        lastError = error as Error;
+        state.failedRequests++;
+        state.consecutiveFailures++;
+        if (
+          this.config.enableCircuitBreaker &&
+          state.consecutiveFailures >= (this.config.circuitBreakerThreshold ?? 5)
+        ) {
+          this.openCircuitBreaker(name);
+        }
+        // Fall through to the next candidate (sequential fallback)
+        if (this.config.fallbackStrategy === 'none') {
+          throw error;
+        }
+      }
+    }
+
+    throw (
+      lastError ??
+      new AdapterError({
+        code: ErrorCode.ALL_BACKENDS_FAILED,
+        message: 'All embedding-capable backends failed',
+        isRetryable: false,
+        provenance: { router: this.metadata.name },
+      })
+    );
+  }
+
   private async executeOnBackend(
     name: string,
     request: IRChatRequest,

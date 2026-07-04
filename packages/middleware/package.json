@@ -116,6 +116,16 @@
         "types": "./dist/types/transform.d.ts",
         "default": "./dist/cjs/transform.js"
       }
+    },
+    "./embeddings": {
+      "import": {
+        "types": "./dist/types/embeddings.d.ts",
+        "default": "./dist/esm/embeddings.js"
+      },
+      "require": {
+        "types": "./dist/types/embeddings.d.ts",
+        "default": "./dist/cjs/embeddings.js"
+      }
     }
   },
   "files": [

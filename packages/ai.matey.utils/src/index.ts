@@ -30,6 +30,9 @@ export * from './conversation-history.js';
 // Model cache utilities
 export * from './model-cache.js';
 
+// Embedding utilities
+export * from './embeddings.js';
+
 // Model registry (pricing, context windows, capabilities)
 export * from './model-registry.js';
 export { MODEL_REGISTRY_SEED } from './model-registry-data.js';

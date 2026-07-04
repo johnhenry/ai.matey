@@ -35,6 +35,18 @@ import {
 } from './middleware-stack.js';
 import { AdapterError, ErrorCode, ValidationError } from 'ai.matey.errors';
 import { validateIRChatRequest, createGenerateObject, createStreamObject } from 'ai.matey.utils';
+import {
+  supportsEmbeddings,
+  chunkEmbedInputs,
+  normalizeDimensions,
+  createWarning,
+} from 'ai.matey.utils';
+import type {
+  EmbedMiddleware,
+  EmbedOptions,
+  IREmbedRequest,
+  IREmbedResponse,
+} from 'ai.matey.types';
 
 // ============================================================================
 // Bridge Implementation
@@ -52,6 +64,7 @@ export class Bridge<
   readonly backend: BackendAdapter;
   readonly config: BridgeConfig;
   private middlewareStack: MiddlewareStack;
+  private embedMiddleware: EmbedMiddleware[] = [];
 
   // Statistics tracking
   private _totalRequests = 0;
@@ -578,6 +591,181 @@ export class Bridge<
    */
   dispose(): void {
     // Cleanup logic if needed
+  }
+
+  // ==========================================================================
+  // Embeddings
+  // ==========================================================================
+
+  /**
+   * Register embedding middleware (runs outermost-first).
+   */
+  useEmbed(middleware: EmbedMiddleware): this {
+    this.embedMiddleware.push(middleware);
+    return this;
+  }
+
+  /**
+   * Generate embeddings for one input or a batch.
+   *
+   * Builds the IR request directly (embedding input is universal, so no
+   * frontend adapter is involved), chunks batches to the backend's limit,
+   * and normalizes vector dimensions client-side when requested but not
+   * natively supported — attaching a `parameter-normalized` warning.
+   *
+   * @throws AdapterError UNSUPPORTED_FEATURE when the backend lacks embed()
+   */
+  async embed(
+    input: string | readonly string[],
+    options: EmbedOptions = {}
+  ): Promise<IREmbedResponse> {
+    const backend = this.backend;
+    if (!supportsEmbeddings(backend)) {
+      throw new AdapterError({
+        code: ErrorCode.UNSUPPORTED_FEATURE,
+        message: `Backend '${backend.metadata.name}' does not support embeddings`,
+        isRetryable: false,
+        provenance: { backend: backend.metadata.name },
+      });
+    }
+
+    const capabilities = backend.metadata.capabilities;
+    const nativeDimensions =
+      options.dimensions !== undefined && capabilities.supportsEmbeddingDimensions === true;
+
+    if (
+      options.dimensions !== undefined &&
+      !nativeDimensions &&
+      options.dimensionStrategy === 'native-only'
+    ) {
+      throw new AdapterError({
+        code: ErrorCode.UNSUPPORTED_FEATURE,
+        message: `Backend '${backend.metadata.name}' does not support native embedding dimensions`,
+        isRetryable: false,
+        provenance: { backend: backend.metadata.name },
+      });
+    }
+
+    const request: IREmbedRequest = {
+      input,
+      parameters: {
+        model: options.model,
+        // Only pass dimensions through when natively supported
+        ...(nativeDimensions && { dimensions: options.dimensions }),
+        inputType: options.inputType,
+        custom: options.custom,
+      },
+      metadata: {
+        requestId: this.generateRequestId(),
+        timestamp: Date.now(),
+        provenance: { frontend: this.frontend.metadata.name },
+        custom: options.metadata,
+      },
+    };
+
+    // Compose the embed middleware chain around the core executor
+    const execute = (finalRequest: IREmbedRequest): Promise<IREmbedResponse> =>
+      this.executeEmbed(backend, finalRequest, options);
+
+    const chain = this.embedMiddleware.reduceRight<
+      (request: IREmbedRequest) => Promise<IREmbedResponse>
+    >((next, middleware) => (req) => middleware(req, next), execute);
+
+    return chain(request);
+  }
+
+  /**
+   * Execute an embedding request with batch chunking and dimension
+   * normalization.
+   */
+  private async executeEmbed(
+    backend: BackendAdapter & Required<Pick<BackendAdapter, 'embed'>>,
+    request: IREmbedRequest,
+    options: EmbedOptions
+  ): Promise<IREmbedResponse> {
+    const inputs =
+      typeof request.input === 'string' ? [request.input] : [...request.input];
+    const maxBatchSize =
+      options.maxBatchSize ?? backend.metadata.capabilities.maxEmbeddingBatchSize ?? inputs.length;
+
+    let response: IREmbedResponse;
+
+    if (inputs.length <= maxBatchSize) {
+      response = await backend.embed(request, options.signal);
+    } else {
+      // Sequential batch execution (rate-limit friendly), merged in order
+      const batches = chunkEmbedInputs(inputs, { maxBatchSize });
+      const merged: { index: number; vector: readonly number[] }[] = [];
+      let promptTokens = 0;
+      let totalTokens = 0;
+      let hasUsage = false;
+      let model = '';
+      let dimensions = 0;
+      let lastMetadata = request.metadata;
+      let offset = 0;
+
+      for (const batch of batches) {
+        const batchResponse = await backend.embed(
+          { ...request, input: batch },
+          options.signal
+        );
+        for (const embedding of batchResponse.embeddings) {
+          merged.push({ index: offset + embedding.index, vector: embedding.vector });
+        }
+        if (batchResponse.usage) {
+          hasUsage = true;
+          promptTokens += batchResponse.usage.promptTokens;
+          totalTokens += batchResponse.usage.totalTokens;
+        }
+        model = batchResponse.model;
+        dimensions = batchResponse.dimensions;
+        lastMetadata = batchResponse.metadata;
+        offset += batch.length;
+      }
+
+      response = {
+        embeddings: merged.sort((a, b) => a.index - b.index),
+        model,
+        dimensions,
+        usage: hasUsage ? { promptTokens, totalTokens } : undefined,
+        metadata: lastMetadata,
+      };
+    }
+
+    // Client-side dimension normalization when not handled natively
+    const wantsDimensions = options.dimensions;
+    if (
+      wantsDimensions !== undefined &&
+      response.dimensions !== wantsDimensions &&
+      backend.metadata.capabilities.supportsEmbeddingDimensions !== true
+    ) {
+      const strategy = options.dimensionStrategy === 'pad' ? 'pad' : 'truncate';
+      const warning = createWarning(
+        'parameter-normalized',
+        `Embedding dimensions normalized from ${response.dimensions} to ${wantsDimensions} via '${strategy}' (provider has no native dimensions support)`,
+        {
+          field: 'dimensions',
+          originalValue: response.dimensions,
+          transformedValue: wantsDimensions,
+          source: this.backend.metadata.name,
+        }
+      );
+
+      response = {
+        ...response,
+        embeddings: response.embeddings.map((embedding) => ({
+          index: embedding.index,
+          vector: normalizeDimensions(embedding.vector, wantsDimensions, strategy),
+        })),
+        dimensions: wantsDimensions,
+        metadata: {
+          ...response.metadata,
+          warnings: [...(response.metadata.warnings ?? []), warning],
+        },
+      };
+    }
+
+    return response;
   }
 
   // ==========================================================================

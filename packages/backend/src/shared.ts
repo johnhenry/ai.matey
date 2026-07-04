@@ -7,7 +7,15 @@
  * @module
  */
 
-import type { IRChatRequest, IRMessage, AIModel, ListModelsResult } from 'ai.matey.types';
+import type {
+  IRChatRequest,
+  IRMessage,
+  IREmbedRequest,
+  IREmbedResponse,
+  AIModel,
+  ListModelsResult,
+} from 'ai.matey.types';
+import { createErrorFromHttpResponse, NetworkError, ErrorCode } from 'ai.matey.errors';
 
 // ============================================================================
 // Token Estimation
@@ -262,6 +270,97 @@ export function buildStreamDoneMessage(
           input: safeParseJSON(call.args),
         })),
     ],
+  };
+}
+
+
+// ============================================================================
+// Embeddings (OpenAI-compatible)
+// ============================================================================
+
+/**
+ * Execute an embedding request against an OpenAI-compatible `/embeddings`
+ * endpoint (OpenAI, Azure OpenAI, Mistral, Together, Fireworks, DeepInfra,
+ * NVIDIA, LM Studio, ...).
+ *
+ * Providers wrap this with their base URL, headers, and default model; the
+ * response is normalized to `IREmbedResponse` with input order preserved.
+ */
+export async function executeOpenAICompatibleEmbed(options: {
+  baseURL: string;
+  headers: Record<string, string>;
+  request: IREmbedRequest;
+  backendName: string;
+  defaultModel: string;
+  /** Endpoint path relative to baseURL. @default '/embeddings' */
+  path?: string;
+  signal?: AbortSignal;
+}): Promise<IREmbedResponse> {
+  const { baseURL, headers, request, backendName, defaultModel, path, signal } = options;
+
+  const model = request.parameters?.model || defaultModel;
+  const body: Record<string, unknown> = {
+    model,
+    input: request.input,
+    ...(request.parameters?.dimensions !== undefined && {
+      dimensions: request.parameters.dimensions,
+    }),
+    ...(request.parameters?.user !== undefined && { user: request.parameters.user }),
+    ...request.parameters?.custom,
+  };
+
+  let response: Response;
+  try {
+    response = await fetch(`${baseURL}${path ?? '/embeddings'}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...headers },
+      body: JSON.stringify(body),
+      signal,
+    });
+  } catch (error) {
+    throw new NetworkError({
+      code: ErrorCode.NETWORK_ERROR,
+      message: `Embedding request failed: ${error instanceof Error ? error.message : String(error)}`,
+      provenance: { backend: backendName },
+      cause: error instanceof Error ? error : undefined,
+    });
+  }
+
+  if (!response.ok) {
+    const errorBody = await response.text();
+    throw createErrorFromHttpResponse(response.status, response.statusText, errorBody, {
+      backend: backendName,
+    });
+  }
+
+  const json = (await response.json()) as {
+    data: Array<{ index: number; embedding: number[] }>;
+    model?: string;
+    usage?: { prompt_tokens?: number; total_tokens?: number };
+  };
+
+  const embeddings = [...(json.data ?? [])]
+    .sort((a, b) => a.index - b.index)
+    .map((item) => ({ index: item.index, vector: item.embedding }));
+
+  return {
+    embeddings,
+    model: json.model ?? model,
+    dimensions: embeddings[0]?.vector.length ?? 0,
+    usage: json.usage
+      ? {
+          promptTokens: json.usage.prompt_tokens ?? 0,
+          totalTokens: json.usage.total_tokens ?? json.usage.prompt_tokens ?? 0,
+        }
+      : undefined,
+    metadata: {
+      ...request.metadata,
+      provenance: {
+        ...request.metadata.provenance,
+        backend: backendName,
+      },
+    },
+    raw: json as unknown as Record<string, unknown>,
   };
 }
 
