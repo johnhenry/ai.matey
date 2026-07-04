@@ -8,12 +8,7 @@
  * @module
  */
 
-import type {
-  BackendAdapter,
-  IREmbedRequest,
-  IREmbedResponse,
-  IRMetadata,
-} from 'ai.matey.types';
+import type { BackendAdapter, IREmbedRequest, IREmbedResponse, IRMetadata } from 'ai.matey.types';
 
 // ============================================================================
 // Capability Detection
@@ -28,9 +23,7 @@ export function supportsEmbeddings(
   // An inherited embed() can be explicitly opted out of via the capability
   // flag (e.g. providers subclassing the OpenAI adapter without an
   // embeddings endpoint set `capabilities.embeddings: false`)
-  return (
-    typeof adapter.embed === 'function' && adapter.metadata.capabilities.embeddings !== false
-  );
+  return typeof adapter.embed === 'function' && adapter.metadata.capabilities.embeddings !== false;
 }
 
 // ============================================================================

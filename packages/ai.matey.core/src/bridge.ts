@@ -35,6 +35,7 @@ import {
 } from './middleware-stack.js';
 import { AdapterError, ErrorCode, ValidationError } from 'ai.matey.errors';
 import { validateIRChatRequest, createGenerateObject, createStreamObject } from 'ai.matey.utils';
+import { createRunTools } from './run-tools.js';
 import {
   supportsEmbeddings,
   chunkEmbedInputs,
@@ -593,6 +594,34 @@ export class Bridge<
     // Cleanup logic if needed
   }
 
+  /**
+   * Execute an IR request directly (no frontend conversion).
+   *
+   * Runs the same enrich → validate → middleware → backend → enrich-response
+   * pipeline as `chat()`, but takes and returns IR. Useful for agentic
+   * loops (`runTools`) and programmatic callers that already speak IR.
+   * Single-attempt: layer retry middleware for retries.
+   */
+  async executeIR(request: IRChatRequest, options?: RequestOptions): Promise<IRChatResponse> {
+    const enrichedRequest = this.enrichRequest(request, options);
+
+    validateIRChatRequest(enrichedRequest, {
+      frontend: this.frontend.metadata.name,
+    });
+
+    const context = createMiddlewareContext(
+      enrichedRequest,
+      this.config as Record<string, unknown>,
+      options?.signal
+    );
+
+    const irResponse = await this.middlewareStack.execute(context, async () => {
+      return await this.backend.execute(enrichedRequest, options?.signal);
+    });
+
+    return this.enrichResponse(irResponse, enrichedRequest);
+  }
+
   // ==========================================================================
   // Embeddings
   // ==========================================================================
@@ -683,8 +712,7 @@ export class Bridge<
     request: IREmbedRequest,
     options: EmbedOptions
   ): Promise<IREmbedResponse> {
-    const inputs =
-      typeof request.input === 'string' ? [request.input] : [...request.input];
+    const inputs = typeof request.input === 'string' ? [request.input] : [...request.input];
     const maxBatchSize =
       options.maxBatchSize ?? backend.metadata.capabilities.maxEmbeddingBatchSize ?? inputs.length;
 
@@ -705,10 +733,7 @@ export class Bridge<
       let offset = 0;
 
       for (const batch of batches) {
-        const batchResponse = await backend.embed(
-          { ...request, input: batch },
-          options.signal
-        );
+        const batchResponse = await backend.embed({ ...request, input: batch }, options.signal);
         for (const embedding of batchResponse.embeddings) {
           merged.push({ index: offset + embedding.index, vector: embedding.vector });
         }
@@ -859,6 +884,32 @@ export class Bridge<
    * ```
    */
   generateObject = createGenerateObject(this);
+
+  /**
+   * Run an agentic tool-execution loop: the model calls tools, their
+   * handlers run (in parallel by default), results feed back, and the loop
+   * continues until the model answers or maxIterations is reached.
+   *
+   * @example
+   * ```typescript
+   * const result = await bridge.runTools({
+   *   prompt: 'What is the weather in SF?',
+   *   tools: {
+   *     get_weather: {
+   *       description: 'Get current weather for a city',
+   *       parameters: {
+   *         type: 'object',
+   *         properties: { city: { type: 'string' } },
+   *         required: ['city'],
+   *       },
+   *       execute: async ({ city }) => fetchWeather(city),
+   *     },
+   *   },
+   * });
+   * console.log(result.text);
+   * ```
+   */
+  runTools = createRunTools(this);
 
   /**
    * Stream a structured object matching a Zod schema using an LLM.

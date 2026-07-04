@@ -346,10 +346,7 @@ export class CohereBackendAdapter implements BackendAdapter<CohereRequest, Coher
       embeddings,
       model,
       dimensions: embeddings[0]?.vector.length ?? 0,
-      usage:
-        promptTokens !== undefined
-          ? { promptTokens, totalTokens: promptTokens }
-          : undefined,
+      usage: promptTokens !== undefined ? { promptTokens, totalTokens: promptTokens } : undefined,
       metadata: {
         ...request.metadata,
         provenance: { ...request.metadata.provenance, backend: this.metadata.name },
