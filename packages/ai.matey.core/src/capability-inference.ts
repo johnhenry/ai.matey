@@ -81,6 +81,14 @@ function detectModelFamily(normalizedName: string): string | undefined {
 
   // Claude family
   if (
+    normalizedName.includes('claude-sonnet-5') ||
+    normalizedName.includes('claude-opus-5') ||
+    normalizedName.includes('claude-haiku-5') ||
+    normalizedName.includes('claude-5')
+  ) {
+    return 'claude-5';
+  }
+  if (
     normalizedName.includes('claude-opus-4') ||
     normalizedName.includes('claude-sonnet-4') ||
     normalizedName.includes('claude-haiku-4') ||
@@ -140,6 +148,9 @@ function detectModelFamily(normalizedName: string): string | undefined {
   }
 
   // Other families
+  if (normalizedName.includes('deepseek-v4')) {
+    return 'deepseek-v4';
+  }
   if (normalizedName.includes('deepseek')) {
     return 'deepseek';
   }
@@ -178,6 +189,15 @@ function getDefaultCapabilitiesByFamily(family: string): Partial<ModelCapabiliti
       supportsTools: true,
       supportsJSON: true,
       qualityScore: 93,
+    },
+    'claude-5': {
+      contextWindow: 1000000,
+      maxTokens: 128000,
+      supportsStreaming: true,
+      supportsVision: true,
+      supportsTools: true,
+      supportsJSON: true,
+      qualityScore: 97,
     },
     'claude-4': {
       contextWindow: 200000,
@@ -287,6 +307,15 @@ function getDefaultCapabilitiesByFamily(family: string): Partial<ModelCapabiliti
       supportsTools: false,
       supportsJSON: false,
       qualityScore: 70,
+    },
+    'deepseek-v4': {
+      contextWindow: 1000000,
+      maxTokens: 384000,
+      supportsStreaming: true,
+      supportsVision: true,
+      supportsTools: true,
+      supportsJSON: true,
+      qualityScore: 92,
     },
     deepseek: {
       contextWindow: 64000,

@@ -99,6 +99,39 @@ describe('reset isolation', () => {
   });
 });
 
+describe('2026-07 provider refresh', () => {
+  it('resolves DeepSeek V4 models with vision and current pricing', () => {
+    const flash = getModelEntry('deepseek-v4-flash');
+    expect(flash?.capabilities?.vision).toBe(true);
+    expect(flash?.contextWindow).toBe(1000000);
+    expect(flash?.pricing).toEqual({ inputPer1M: 0.14, outputPer1M: 0.28, cachedInputPer1M: 0.003 });
+
+    expect(getModelEntry('deepseek-v4-pro')?.pricing?.inputPer1M).toBe(0.435);
+  });
+
+  it('marks retired DeepSeek ids deprecated but priced', () => {
+    const chat = getModelEntry('deepseek-chat');
+    expect(chat?.deprecated).toBe(true);
+    expect(chat?.pricing?.inputPer1M).toBe(0.27);
+    expect(getModelEntry('deepseek-reasoner')?.deprecated).toBe(true);
+  });
+
+  it('resolves claude-sonnet-5 with 1M context', () => {
+    const sonnet5 = getModelEntry('claude-sonnet-5');
+    expect(sonnet5?.family).toBe('claude-5');
+    expect(sonnet5?.contextWindow).toBe(1000000);
+    expect(getModelContextWindow('claude-sonnet-5')).toBe(1000000);
+  });
+
+  it('resolves current Gemini and Grok generations', () => {
+    expect(getModelEntry('gemini-3.5-flash')?.pricing?.inputPer1M).toBe(1.5);
+    expect(getModelEntry('gemini-3.1-pro')?.id).toBe('gemini-3.1-pro-preview');
+    expect(getModelEntry('grok-4.3')?.capabilities?.vision).toBe(true);
+    // Alias resolution for the grok-4.20 variants
+    expect(getModelEntry('grok-4.20-0309-non-reasoning')?.id).toBe('grok-4.20-0309-reasoning');
+  });
+});
+
 describe('queries', () => {
   it('lists models by provider and family', () => {
     const anthropic = getModelsByProvider('anthropic');

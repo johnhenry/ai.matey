@@ -14,7 +14,7 @@
  * - Users can add or correct models at runtime with `registerModels()`,
  *   so an out-of-date seed never blocks anyone.
  *
- * Data last refreshed: 2026-07 (from provider pricing pages).
+ * Data last refreshed: 2026-07-04 (verified against provider pricing pages).
  *
  * @module
  */
@@ -224,6 +224,19 @@ export const MODEL_REGISTRY_SEED: readonly ModelRegistryEntry[] = [
   // Anthropic
   // ==========================================================================
   {
+    id: 'claude-sonnet-5',
+    provider: 'anthropic',
+    family: 'claude-5',
+    releaseDate: '2026-06-30',
+    contextWindow: 1000000,
+    maxOutputTokens: 128000,
+    // Standard pricing; introductory $2/$10 applies through 2026-08-31
+    pricing: { inputPer1M: 3.0, outputPer1M: 15.0, cachedInputPer1M: 0.3 },
+    capabilities: { streaming: true, vision: true, tools: true, json: true },
+    latency: { p50: 1400, p95: 2900 },
+    qualityScore: 98,
+  },
+  {
     id: 'claude-opus-4-5-20251101',
     provider: 'anthropic',
     family: 'claude-4',
@@ -364,6 +377,32 @@ export const MODEL_REGISTRY_SEED: readonly ModelRegistryEntry[] = [
   // ==========================================================================
   // Google Gemini
   // ==========================================================================
+  {
+    id: 'gemini-3.5-flash',
+    provider: 'gemini',
+    family: 'gemini-3',
+    releaseDate: '2026-06-17',
+    contextWindow: 1048576,
+    maxOutputTokens: 65536,
+    pricing: { inputPer1M: 1.5, outputPer1M: 9.0, cachedInputPer1M: 0.15 },
+    capabilities: { streaming: true, vision: true, tools: true, json: true },
+    latency: { p50: 900, p95: 2000 },
+    qualityScore: 94,
+  },
+  {
+    id: 'gemini-3.1-pro-preview',
+    provider: 'gemini',
+    family: 'gemini-3',
+    aliases: ['gemini-3.1-pro'],
+    releaseDate: '2026-03-01',
+    contextWindow: 1048576,
+    maxOutputTokens: 65536,
+    // Base tier; input doubles and output rises ~50% above 200K tokens
+    pricing: { inputPer1M: 2.0, outputPer1M: 12.0 },
+    capabilities: { streaming: true, vision: true, tools: true, json: true },
+    latency: { p50: 1500, p95: 3300 },
+    qualityScore: 97,
+  },
   {
     id: 'gemini-3-pro',
     provider: 'gemini',
@@ -545,10 +584,37 @@ export const MODEL_REGISTRY_SEED: readonly ModelRegistryEntry[] = [
   // DeepSeek
   // ==========================================================================
   {
+    id: 'deepseek-v4-flash',
+    provider: 'deepseek',
+    family: 'deepseek-v4',
+    releaseDate: '2026-04-24',
+    contextWindow: 1000000,
+    maxOutputTokens: 384000,
+    pricing: { inputPer1M: 0.14, outputPer1M: 0.28, cachedInputPer1M: 0.003 },
+    // Vision (OpenAI-style image_url) with the V4 generation
+    capabilities: { streaming: true, vision: true, tools: true, json: true },
+    latency: { p50: 700, p95: 1500 },
+    qualityScore: 90,
+  },
+  {
+    id: 'deepseek-v4-pro',
+    provider: 'deepseek',
+    family: 'deepseek-v4',
+    releaseDate: '2026-04-24',
+    contextWindow: 1000000,
+    maxOutputTokens: 384000,
+    pricing: { inputPer1M: 0.435, outputPer1M: 0.87, cachedInputPer1M: 0.004 },
+    capabilities: { streaming: true, vision: true, tools: true, json: true },
+    latency: { p50: 1600, p95: 3800 },
+    qualityScore: 95,
+  },
+  {
     id: 'deepseek-chat',
     provider: 'deepseek',
     family: 'deepseek',
     releaseDate: '2024-12-26',
+    // Retired by DeepSeek on 2026-07-24; kept for historical cost tracking
+    deprecated: true,
     contextWindow: 64000,
     maxOutputTokens: 8192,
     pricing: { inputPer1M: 0.27, outputPer1M: 1.1, cachedInputPer1M: 0.07 },
@@ -561,6 +627,8 @@ export const MODEL_REGISTRY_SEED: readonly ModelRegistryEntry[] = [
     provider: 'deepseek',
     family: 'deepseek',
     releaseDate: '2025-01-20',
+    // Retired by DeepSeek on 2026-07-24; kept for historical cost tracking
+    deprecated: true,
     contextWindow: 64000,
     maxOutputTokens: 65536,
     pricing: { inputPer1M: 0.55, outputPer1M: 2.19, cachedInputPer1M: 0.14 },
@@ -585,6 +653,43 @@ export const MODEL_REGISTRY_SEED: readonly ModelRegistryEntry[] = [
   // ==========================================================================
   // xAI
   // ==========================================================================
+  {
+    id: 'grok-4.3',
+    provider: 'xai',
+    family: 'grok',
+    releaseDate: '2026-06-15',
+    contextWindow: 1000000,
+    maxOutputTokens: 32768,
+    pricing: { inputPer1M: 1.25, outputPer1M: 2.5 },
+    capabilities: { streaming: true, vision: true, tools: true, json: true },
+    latency: { p50: 1400, p95: 3200 },
+    qualityScore: 96,
+  },
+  {
+    id: 'grok-4.20-0309-reasoning',
+    provider: 'xai',
+    family: 'grok',
+    aliases: ['grok-4.20', 'grok-4.20-0309-non-reasoning', 'grok-4.20-multi-agent-0309'],
+    releaseDate: '2026-03-09',
+    contextWindow: 1000000,
+    maxOutputTokens: 32768,
+    pricing: { inputPer1M: 1.25, outputPer1M: 2.5 },
+    capabilities: { streaming: true, vision: true, tools: true, json: true },
+    latency: { p50: 1800, p95: 4200 },
+    qualityScore: 94,
+  },
+  {
+    id: 'grok-build-0.1',
+    provider: 'xai',
+    family: 'grok-build',
+    releaseDate: '2026-06-01',
+    contextWindow: 256000,
+    maxOutputTokens: 32768,
+    pricing: { inputPer1M: 1.0, outputPer1M: 2.0 },
+    capabilities: { streaming: true, vision: false, tools: true, json: true },
+    latency: { p50: 600, p95: 1400 },
+    qualityScore: 90,
+  },
   {
     id: 'grok-4',
     provider: 'xai',

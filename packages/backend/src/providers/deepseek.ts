@@ -33,7 +33,7 @@ import type { BackendAdapter, BackendAdapterConfig } from 'ai.matey.types';
  *
  * const response = await adapter.execute({
  *   messages: [{ role: 'user', content: 'Hello!' }],
- *   parameters: { model: 'deepseek-chat' },
+ *   parameters: { model: 'deepseek-v4-flash' },
  * });
  * ```
  *
@@ -53,10 +53,13 @@ export class DeepSeekBackendAdapter
   implements BackendAdapter<OpenAIRequest, OpenAIResponse>
 {
   constructor(config: BackendAdapterConfig) {
-    // DeepSeek API endpoint
+    // DeepSeek API endpoint; default to the current V4 generation
+    // (deepseek-chat/deepseek-reasoner are retired as of 2026-07-24).
+    // Without this, the inherited OpenAI fallback model would be sent.
     const deepseekConfig: BackendAdapterConfig = {
       ...config,
       baseURL: config.baseURL ?? 'https://api.deepseek.com/v1',
+      defaultModel: config.defaultModel ?? 'deepseek-v4-flash',
     };
 
     // Pass DeepSeek-specific metadata to parent constructor
@@ -67,9 +70,11 @@ export class DeepSeekBackendAdapter
       capabilities: {
         embeddings: false,
         streaming: true,
-        multiModal: false, // DeepSeek currently doesn't support vision
+        // V4 accepts OpenAI-style image_url content (vision rolled out to
+        // the API with the V4 generation, 2026)
+        multiModal: true,
         tools: true,
-        maxContextTokens: 64000, // DeepSeek V2.5 supports 64K context
+        maxContextTokens: 1_000_000, // V4 default context window
         systemMessageStrategy: 'in-messages',
         supportsMultipleSystemMessages: false,
         supportsTemperature: true,

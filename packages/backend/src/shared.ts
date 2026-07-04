@@ -450,6 +450,20 @@ export const DEFAULT_OPENAI_MODELS: readonly AIModel[] = [
  */
 export const DEFAULT_ANTHROPIC_MODELS: readonly AIModel[] = [
   {
+    id: 'claude-sonnet-5',
+    name: 'Claude Sonnet 5',
+    description: 'Default Anthropic model with a 1M-token context window',
+    ownedBy: 'anthropic',
+    capabilities: {
+      maxTokens: 128000,
+      contextWindow: 1000000,
+      supportsStreaming: true,
+      supportsVision: true,
+      supportsTools: true,
+      supportsJSON: true,
+    },
+  },
+  {
     id: 'claude-opus-4.5-20251124',
     name: 'Claude Opus 4.5 (Nov 2025)',
     description: 'Most capable Claude model',
@@ -576,6 +590,20 @@ export const DEFAULT_AI21_MODELS: readonly AIModel[] = [
  * Updated: 2025-11-30
  */
 export const DEFAULT_GEMINI_MODELS: readonly AIModel[] = [
+  {
+    id: 'gemini-3.5-flash',
+    name: 'Gemini 3.5 Flash',
+    description: 'Fast multimodal model with 1M context (GA)',
+    ownedBy: 'google',
+    capabilities: {
+      maxTokens: 65536,
+      contextWindow: 1048576,
+      supportsStreaming: true,
+      supportsVision: true,
+      supportsTools: true,
+      supportsJSON: true,
+    },
+  },
   {
     id: 'gemini-2.0-flash',
     name: 'Gemini 2.0 Flash',
