@@ -501,7 +501,7 @@ Legend: ⭐⭐ = Excellent (best-in-class), ⭐ = Good (competitive), ⚠️ = L
 - 🎯 **Zero-dependency**: Zod is an **optional peer dependency** - only required if you use structured output features
 - 💡 **Installation**: Users only install `zod` if they need `generateObject()` or `streamObject()`
 
-**2. Integration Patterns as Reusable Components** (Q1 2026)
+**2. ✅ Integration Patterns as Reusable Components** (COMPLETED 2026-07 — `ai.matey.patterns`)
 - **Status**: ✅ 8 patterns validated and documented in [PATTERNS.md](./PATTERNS.md)
 - **Goal**: Extract patterns into reusable, importable utilities
 - **Deliverables**:
@@ -535,7 +535,7 @@ Legend: ⭐⭐ = Excellent (best-in-class), ⭐ = Good (competitive), ⚠️ = L
 - Per-model circuit breakers (not just per-provider)
 - Health check improvements with circuit status
 
-**5. HTTP Server Improvements** (Q2 2026) (⭐ → ⭐⭐)
+**5. ✅ HTTP Server Improvements** (LARGELY COMPLETED 2026-07 — WebSocket subpath, /metrics, /health endpoints, per-route rate limits; compression still open)
 - **WebSocket support** for real-time streaming ✅ **Validated** (15/15 tests passing, 101ms latency)
 - Server-Sent Events (SSE) improvements
 - Better error handling and status codes
@@ -547,7 +547,7 @@ Legend: ⭐⭐ = Excellent (best-in-class), ⭐ = Good (competitive), ⚠️ = L
   - Circuit breaker status included
 - Health check endpoints with detailed status (`/health`, `/health/ready`, `/health/live`)
 
-**6. Embeddings Support** (Q2 2026)
+**6. ✅ Embeddings Support** (COMPLETED 2026-07)
 - Embedding generation across providers (24 backends)
 - Batch embedding support with automatic chunking
 - Vector dimension normalization across providers

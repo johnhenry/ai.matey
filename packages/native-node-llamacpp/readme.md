@@ -1,34 +1,63 @@
 # ai.matey.native.node-llamacpp
 
-Native llama.cpp integration via node-llama-cpp
-
-Part of the [ai.matey](https://github.com/johnhenry/ai.matey) monorepo.
-
-## Installation
-
-```bash
-npm install ai.matey.native.node-llamacpp
-```
+Run AI Matey against local GGUF models via [node-llama-cpp](https://github.com/withcatai/node-llama-cpp) —
+fully offline, GPU-accelerated where available. Part of the
+[ai.matey](https://github.com/johnhenry/ai.matey) monorepo.
 
 ## Requirements
 
 - Node.js 18+
+- The optional peer dependency: `npm install node-llama-cpp` (prebuilt binaries for most
+  platforms; falls back to a local build, which needs a C++ toolchain)
+- A GGUF model file (e.g. from [Hugging Face](https://huggingface.co/models?library=gguf))
 
-- GGUF model file
+## Installation
+
+```bash
+npm install ai.matey.native.node-llamacpp node-llama-cpp
+```
 
 ## Quick Start
 
 ```typescript
+import { Bridge } from 'ai.matey.core';
+import { OpenAIFrontendAdapter } from 'ai.matey.frontend';
 import { NodeLlamaCppBackend } from 'ai.matey.native.node-llamacpp';
 
 const backend = new NodeLlamaCppBackend({
-  // configuration
+  modelPath: '/models/llama-3.1-8b-instruct.Q4_K_M.gguf',
+  contextSize: 8192,
+  gpuLayers: 33,     // number of layers to offload to the GPU (0 = CPU only)
+  threads: 8,
+  temperature: 0.7,
 });
+
+const bridge = new Bridge(new OpenAIFrontendAdapter(), backend);
+
+const response = await bridge.chat({
+  model: 'llama-3.1-8b', // informational; the loaded GGUF decides
+  messages: [{ role: 'user', content: 'Explain what a GGUF file is in one paragraph.' }],
+});
+
+console.log(response.choices[0]?.message.content);
 ```
 
-## Exports
+## Configuration
 
-- `NodeLlamaCppBackend`
+| Option | Type | Description |
+|---|---|---|
+| `modelPath` | string | Path to the GGUF model file (required) |
+| `contextSize` | number | Context window in tokens |
+| `gpuLayers` | number | Layers offloaded to GPU (Metal/CUDA/Vulkan) |
+| `threads` | number | CPU threads for inference |
+| `batchSize` | number | Prompt evaluation batch size |
+| `temperature`, `topP`, `topK` | number | Sampling parameters |
+
+## Tips
+
+- Quantized `Q4_K_M` models are a good speed/quality starting point.
+- Watch memory: the model file size approximates RAM/VRAM needed.
+- The first request loads the model; keep the backend instance alive between requests.
 
 ## License
 

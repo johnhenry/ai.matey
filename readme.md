@@ -265,6 +265,99 @@ const response = await client.chat.completions.create({
 console.log(response.choices[0].message.content);
 ```
 
+### Embeddings
+
+Generate embeddings through the same provider-agnostic interface:
+
+```typescript
+const response = await bridge.embed(['first document', 'second document'], {
+  model: 'text-embedding-3-small',
+  dimensions: 512, // normalized client-side when the provider lacks native support
+});
+
+console.log(response.embeddings[0].vector.length); // 512
+```
+
+Supported backends: OpenAI, Mistral, Gemini, Cohere, Ollama, Together, Fireworks, DeepInfra,
+NVIDIA, LM Studio. Routers route embedding requests with the same fallback and circuit-breaker
+behavior as chat. Caching and cost-tracking middleware: `bridge.useEmbed(createEmbeddingCachingMiddleware())`.
+
+### Agentic Tool Loop
+
+Let the model call your tools until it reaches an answer:
+
+```typescript
+const result = await bridge.runTools({
+  prompt: 'What is the weather in SF?',
+  tools: {
+    get_weather: {
+      description: 'Get current weather for a city',
+      parameters: {
+        type: 'object',
+        properties: { city: { type: 'string' } },
+        required: ['city'],
+      },
+      execute: async ({ city }) => fetchWeather(city),
+    },
+  },
+});
+
+console.log(result.text); // final answer after tool round-trips
+```
+
+Tool calls stream too: both OpenAI and Anthropic backends emit `tool_use` chunks with incremental
+arguments, and frontend adapters re-emit them in their native streaming formats.
+
+### Production Patterns
+
+The validated pattern library is importable from [`ai.matey.patterns`](./packages/patterns):
+
+```typescript
+import { createComplexityRouter, createBatchProcessor } from 'ai.matey.patterns';
+```
+
+Complexity-based routing, parallel aggregation, failover, cost optimization with budget windows,
+and rate-limited batch processing.
+
+### Production HTTP Endpoints
+
+The HTTP handler ships health, metrics, and embeddings endpoints for every framework adapter:
+
+```typescript
+const handler = new CoreHTTPHandler({
+  bridge,
+  health: { enabled: true },      // GET /health, /health/ready, /health/live
+  metrics: { enabled: true },     // GET /metrics (Prometheus text format)
+  embeddings: { enabled: true },  // POST /v1/embeddings (OpenAI-compatible)
+});
+```
+
+Real-time streaming over WebSocket (any socket implementation — ws, Deno, Bun):
+
+```typescript
+import { createWebSocketHandler } from 'ai.matey.http/websocket';
+new WebSocketServer({ port: 8080 }).on('connection', createWebSocketHandler(bridge));
+```
+
+### Model Registry
+
+Pricing, context windows, and capabilities come from a runtime-extensible registry — register new
+models the day they ship instead of waiting for a library release:
+
+```typescript
+import { registerModels } from 'ai.matey.utils';
+
+registerModels([
+  {
+    id: 'gpt-6-preview',
+    provider: 'openai',
+    family: 'gpt-6',
+    contextWindow: 800000,
+    pricing: { inputPer1M: 4.0, outputPer1M: 20.0 },
+  },
+]);
+```
+
 ## Documentation
 
 | Document | Description |
@@ -287,6 +380,7 @@ console.log(response.choices[0].message.content);
 | [`ai.matey.utils`](./packages/ai.matey.utils) | Shared utility functions | [README](./packages/ai.matey.utils/readme.md) |
 | [`ai.matey.testing`](./packages/ai.matey.testing) | Testing utilities and mocks | [README](./packages/ai.matey.testing/readme.md) |
 | [`ai.matey.cli`](./packages/cli) | CLI and conversion utilities | [README](./packages/cli/readme.md) |
+| [`ai.matey.patterns`](./packages/patterns) | Production integration patterns | [README](./packages/patterns/readme.md) |
 
 ### Backend Adapters
 
