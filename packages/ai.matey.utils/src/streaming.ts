@@ -405,7 +405,7 @@ export async function* streamWithTimeout(
         break;
       }
 
-      yield result.value as IRStreamChunk;
+      yield result.value;
     }
   } catch (error) {
     if ((error as Error).message === 'Stream timeout') {
