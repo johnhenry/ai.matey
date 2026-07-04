@@ -257,10 +257,10 @@ export class Bridge<
 
       // Step 6: Execute middleware stack + backend
 
-      const irStream = await this.middlewareStack.executeStream(context, async () => {
+      const irStream = await this.middlewareStack.executeStream(context, () =>
         // Call backend adapter streaming
-        return this.backend.executeStream(enrichedRequest, options?.signal);
-      });
+        Promise.resolve(this.backend.executeStream(enrichedRequest, options?.signal))
+      );
 
       // Step 7: Convert IR stream to frontend format
       const frontendStream = this.frontend.fromIRStream(irStream);

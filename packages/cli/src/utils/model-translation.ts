@@ -48,13 +48,13 @@ export function translateModel(modelName: string, options: ModelTranslationOptio
   const { backend, mapping, useBackendDefault = true } = options;
 
   // Check external mapping first
-  if (mapping && mapping[modelName]) {
+  if (mapping?.[modelName]) {
     return mapping[modelName];
   }
 
   // Check backend.modelMapping
   const backendMapping = (backend as any).modelMapping as ModelMapping | undefined;
-  if (backendMapping && backendMapping[modelName]) {
+  if (backendMapping?.[modelName]) {
     return backendMapping[modelName];
   }
 
@@ -77,12 +77,12 @@ export function translateModel(modelName: string, options: ModelTranslationOptio
  * @returns Model mapping
  */
 export async function loadModelMapping(path: string): Promise<ModelMapping> {
-  const { readFile } = await import('node:fs/promises');
-  const { resolve } = await import('node:path');
+  const fs = await import('node:fs/promises');
+  const nodePath = await import('node:path');
 
   try {
-    const resolvedPath = resolve(process.cwd(), path);
-    const content = await readFile(resolvedPath, 'utf-8');
+    const resolvedPath = nodePath.resolve(process.cwd(), path);
+    const content = await fs.readFile(resolvedPath, 'utf-8');
     const mapping = JSON.parse(content);
 
     if (typeof mapping !== 'object' || mapping === null) {
@@ -124,12 +124,12 @@ export function hasTranslation(
 ): boolean {
   const { backend, mapping } = options;
 
-  if (mapping && mapping[modelName]) {
+  if (mapping?.[modelName]) {
     return true;
   }
 
   const backendMapping = (backend as any).modelMapping as ModelMapping | undefined;
-  if (backendMapping && backendMapping[modelName]) {
+  if (backendMapping?.[modelName]) {
     return true;
   }
 

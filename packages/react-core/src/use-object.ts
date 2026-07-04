@@ -209,7 +209,9 @@ export function useObject<T>(options: UseObjectOptions<T> = {}): UseObjectReturn
 
   return {
     object,
-    submit,
+    submit: (prompt: string) => {
+      void submit(prompt);
+    },
     stop,
     isLoading,
     error,
@@ -219,7 +221,7 @@ export function useObject<T>(options: UseObjectOptions<T> = {}): UseObjectReturn
 /**
  * Try to repair incomplete JSON by closing open brackets.
  */
-function tryRepairJson(json: string): unknown | null {
+function tryRepairJson(json: string): unknown {
   if (!json.trim()) {
     return null;
   }
@@ -250,10 +252,18 @@ function tryRepairJson(json: string): unknown | null {
       continue;
     }
 
-    if (char === '{') openBraces++;
-    if (char === '}') openBraces--;
-    if (char === '[') openBrackets++;
-    if (char === ']') openBrackets--;
+    if (char === '{') {
+      openBraces++;
+    }
+    if (char === '}') {
+      openBraces--;
+    }
+    if (char === '[') {
+      openBrackets++;
+    }
+    if (char === ']') {
+      openBrackets--;
+    }
   }
 
   // Try to close the JSON

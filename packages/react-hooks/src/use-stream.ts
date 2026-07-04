@@ -140,7 +140,7 @@ export function useStream(options: UseStreamOptions = {}): UseStreamReturn {
         while (true) {
           // Check if aborted
           if (abortControllerRef.current?.signal.aborted) {
-            reader.cancel();
+            void reader.cancel();
             break;
           }
 

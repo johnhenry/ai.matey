@@ -46,7 +46,9 @@ export interface UseTokenCountReturn {
  * which is approximately accurate for GPT models with English text.
  */
 function defaultTokenizer(text: string): number {
-  if (!text) return 0;
+  if (!text) {
+    return 0;
+  }
 
   // More sophisticated estimation:
   // - Count words (average ~1.3 tokens per word)
@@ -57,7 +59,7 @@ function defaultTokenizer(text: string): number {
   const wordTokens = words.length * 1.3;
 
   // Count punctuation and special characters
-  const punctuation = (text.match(/[.,!?;:'"()\[\]{}<>@#$%^&*+=|\\/-]/g) || []).length;
+  const punctuation = (text.match(/[.,!?;:'"()[\]{}<>@#$%^&*+=|\\/-]/g) || []).length;
 
   // Count numbers as separate tokens
   const numbers = (text.match(/\d+/g) || []).length;
@@ -104,7 +106,9 @@ export function useTokenCount(options: UseTokenCountOptions = {}): UseTokenCount
 
   // Word count (memoized)
   const wordCount = useMemo(() => {
-    if (!text.trim()) return 0;
+    if (!text.trim()) {
+      return 0;
+    }
     return text.split(/\s+/).filter(Boolean).length;
   }, [text]);
 

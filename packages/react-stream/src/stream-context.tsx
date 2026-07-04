@@ -150,7 +150,9 @@ export function StreamProvider({ children, maxStreams = 100 }: StreamProviderPro
   const updateStream = useCallback((id: string, text: string) => {
     setStreams((prev) => {
       const state = prev.get(id);
-      if (!state) return prev;
+      if (!state) {
+        return prev;
+      }
 
       const newMap = new Map(prev);
       newMap.set(id, { ...state, text });
@@ -164,7 +166,9 @@ export function StreamProvider({ children, maxStreams = 100 }: StreamProviderPro
   const appendToStream = useCallback((id: string, chunk: string) => {
     setStreams((prev) => {
       const state = prev.get(id);
-      if (!state) return prev;
+      if (!state) {
+        return prev;
+      }
 
       const newMap = new Map(prev);
       newMap.set(id, { ...state, text: state.text + chunk });
@@ -178,7 +182,9 @@ export function StreamProvider({ children, maxStreams = 100 }: StreamProviderPro
   const completeStream = useCallback((id: string) => {
     setStreams((prev) => {
       const state = prev.get(id);
-      if (!state) return prev;
+      if (!state) {
+        return prev;
+      }
 
       const newMap = new Map(prev);
       newMap.set(id, { ...state, isStreaming: false });
@@ -192,7 +198,9 @@ export function StreamProvider({ children, maxStreams = 100 }: StreamProviderPro
   const setStreamError = useCallback((id: string, error: Error) => {
     setStreams((prev) => {
       const state = prev.get(id);
-      if (!state) return prev;
+      if (!state) {
+        return prev;
+      }
 
       const newMap = new Map(prev);
       newMap.set(id, { ...state, isStreaming: false, error });

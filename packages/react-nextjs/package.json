@@ -41,7 +41,9 @@
     "build:types": "tsc -p tsconfig.types.json",
     "clean": "rm -rf dist",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "lint": "eslint src --ext .ts,.tsx",
+    "lint:fix": "eslint src --ext .ts,.tsx --fix"
   },
   "dependencies": {
     "ai.matey.types": "*",

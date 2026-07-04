@@ -247,11 +247,11 @@ function generateBackendFile(
   const envVarPrefix = preset.envVarPrefix || preset.name.toUpperCase().replace(/[^A-Z0-9]/g, '_');
   const apiKeyEnvVar = `${envVarPrefix}_API_KEY`;
 
-  let imports = `import { ${preset.adapterClass} } from '${preset.importPath}';`;
+  const imports = `import { ${preset.adapterClass} } from '${preset.importPath}';`;
 
-  let envVarDeclarations: string[] = [];
-  let configObject: string[] = [];
-  let envVarChecks: string[] = [];
+  const envVarDeclarations: string[] = [];
+  const configObject: string[] = [];
+  const envVarChecks: string[] = [];
 
   // API key
   if (preset.requiresApiKey) {
@@ -357,7 +357,9 @@ async function confirm(
   const answer = await rl.question(`${question}${suffix}: `);
   const normalized = answer.trim().toLowerCase();
 
-  if (normalized === '') return defaultValue;
+  if (normalized === '') {
+    return defaultValue;
+  }
   return normalized === 'y' || normalized === 'yes';
 }
 
@@ -459,7 +461,7 @@ async function runWizard(): Promise<void> {
 
               // Type conversion
               if (typeof option.default === 'number') {
-                value = parseInt(input, 10) || option.default!;
+                value = parseInt(input, 10) || option.default;
               } else if (typeof option.default === 'boolean') {
                 value = input.toLowerCase() === 'true';
               } else {
@@ -561,7 +563,9 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<void
 
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
-    if (!arg) continue;
+    if (!arg) {
+      continue;
+    }
 
     switch (arg) {
       case '--help':
@@ -615,7 +619,7 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<void
   }
 
   try {
-    const preset = BACKEND_PRESETS[provider]!;
+    const preset = BACKEND_PRESETS[provider];
     const config: Record<string, string | number | boolean> = {
       baseURL: options.baseUrl || preset.defaultBaseURL || '',
       defaultModel: preset.defaultModel || '',

@@ -129,19 +129,19 @@ export function visualizePipeline(trace: PipelineTrace): string {
   lines.push('\nPipeline Flow:');
   lines.push('─'.repeat(60));
 
-  let offset = 0;
   const totalDuration = trace.duration || Date.now() - trace.startTime;
   const scale = 50 / totalDuration;
 
   for (const step of trace.steps) {
-    if (!step.duration) continue;
+    if (!step.duration) {
+      continue;
+    }
 
     const barLength = Math.max(1, Math.floor(step.duration * scale));
     const bar = '█'.repeat(barLength);
     const status = step.error ? '✗' : '✓';
 
     lines.push(`${status} ${step.name.padEnd(20)} ${bar} ${step.duration}ms`);
-    offset += step.duration;
   }
 
   lines.push('─'.repeat(60));

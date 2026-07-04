@@ -61,7 +61,7 @@ export async function createTextStream(
 
     while (true) {
       if (signal?.aborted) {
-        reader.cancel();
+        void reader.cancel();
         break;
       }
 
@@ -128,7 +128,7 @@ export async function* parseSSEStream(
   try {
     while (true) {
       if (signal?.aborted) {
-        reader.cancel();
+        void reader.cancel();
         break;
       }
 
@@ -262,7 +262,7 @@ export function transformStream<T, U>(
       controller.enqueue(transformed);
     },
     cancel() {
-      reader.cancel();
+      void reader.cancel();
     },
   });
 }
@@ -319,7 +319,7 @@ export function mergeStreams<T>(...streams: ReadableStream<T>[]): ReadableStream
       }
     },
     cancel() {
-      readers.forEach((reader) => reader.cancel());
+      readers.forEach((reader) => void reader.cancel());
     },
   });
 }
@@ -362,7 +362,7 @@ export function fromAsyncIterable<T>(iterable: AsyncIterable<T>): ReadableStream
       controller.enqueue(value);
     },
     cancel() {
-      iterator.return?.();
+      void iterator.return?.();
     },
   });
 }
