@@ -1,21 +1,20 @@
 name: Deploy Documentation
 
+# Manual trigger only — deliberately not wired to push-to-main yet, and no
+# longer targets GitHub Pages (migrated Docusaurus → Starlight + Cloudflare
+# Workers static assets, matching the rest of the erisera family). Requires
+# repo secrets CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID (Workers
+# Scripts:Edit scope) before this can actually run.
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - 'packages/ai.matey.docs/**'
-      - '.github/workflows/deploy-docs.yml'
-  workflow_dispatch: # Allow manual triggering
-
-permissions:
-  contents: write
+  workflow_dispatch:
 
 jobs:
   deploy:
-    name: Deploy to GitHub Pages
+    name: Deploy to Cloudflare Workers
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/ai.matey.docs
 
     steps:
       - name: Checkout repository
@@ -24,26 +23,20 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
           cache: 'npm'
 
       - name: Install dependencies
         run: npm ci
-
-      - name: Build packages
-        run: npm run build
+        working-directory: .
 
       - name: Build documentation
-        run: npm run build --workspace=ai.matey.docs
+        run: npm run build
         env:
           NODE_ENV: production
 
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v4
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./packages/ai.matey.docs/build
-          publish_branch: gh-pages
-          user_name: 'github-actions[bot]'
-          user_email: 'github-actions[bot]@users.noreply.github.com'
-          commit_message: 'docs: deploy documentation site'
+      - name: Deploy
+        run: npx wrangler deploy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
