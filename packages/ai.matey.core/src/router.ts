@@ -732,8 +732,14 @@ export class Router implements IRouter {
         });
       }
 
-      const firstSuccess = successful[0];
-      if (!firstSuccess?.response) {
+      // 'fastest' picks the lowest-latency success; others take the first
+      const primary =
+        strategy === 'fastest'
+          ? successful.reduce((best, candidate) =>
+              (candidate.latencyMs ?? Infinity) < (best.latencyMs ?? Infinity) ? candidate : best
+            )
+          : successful[0];
+      if (!primary?.response) {
         throw new AdapterError({
           code: ErrorCode.INTERNAL_ERROR,
           message: 'No successful response in parallel dispatch',
@@ -743,7 +749,7 @@ export class Router implements IRouter {
       }
 
       return {
-        response: firstSuccess.response,
+        response: primary.response,
         allResponses:
           strategy === 'all'
             ? successful.map((s) => ({
