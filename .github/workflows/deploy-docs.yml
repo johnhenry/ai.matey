@@ -30,6 +30,19 @@ jobs:
         run: npm ci
         working-directory: .
 
+      - name: Build workspace packages
+        # starlight-typedoc discovers each package's API entry point via its
+        # package.json main/exports fields, which point at ./dist/*.d.ts —
+        # without this, a fresh checkout (like this one) silently generates
+        # zero API reference pages per package instead of erroring.
+        # continue-on-error: ai.matey.http has a pre-existing, unrelated tsc
+        # failure (Express type mismatch in adapter.ts) that would otherwise
+        # block every other package's docs from deploying too; typedoc just
+        # skips packages with no built entry point (warning, not fatal).
+        run: npm run build
+        working-directory: .
+        continue-on-error: true
+
       - name: Build documentation
         run: npm run build
         env:
