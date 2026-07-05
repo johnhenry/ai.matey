@@ -57,6 +57,7 @@ export type OpenAIMessageContent =
   | Array<
       | { type: 'text'; text: string }
       | { type: 'image_url'; image_url: { url: string; detail?: 'auto' | 'low' | 'high' } }
+      | { type: 'input_audio'; input_audio: { data: string; format: string } }
     >;
 
 /**
@@ -661,6 +662,17 @@ export class OpenAIFrontendAdapter implements FrontendAdapter<
       content = message.content.map((block) => {
         if (block.type === 'text') {
           return { type: 'text', text: block.text };
+        } else if (block.type === 'input_audio') {
+          // Derive mediaType from format (e.g., 'mp3' -> 'audio/mp3', 'wav' -> 'audio/wav')
+          const format = block.input_audio.format || 'mp3';
+          return {
+            type: 'audio',
+            source: {
+              type: 'base64',
+              mediaType: `audio/${format}`,
+              data: block.input_audio.data,
+            },
+          } as MessageContent;
         } else {
           return {
             type: 'image',
@@ -746,6 +758,45 @@ export class OpenAIFrontendAdapter implements FrontendAdapter<
             return {
               type: 'image_url' as const,
               image_url: { url: dataUrl },
+            };
+          }
+
+        case 'audio':
+          if (block.source.type === 'base64') {
+            return {
+              type: 'input_audio' as const,
+              input_audio: {
+                data: block.source.data,
+                format: block.source.mediaType.split('/')[1] || 'mp3',
+              },
+            };
+          } else {
+            // OpenAI has no audio-URL input; fall back to text
+            return { type: 'text' as const, text: `[Audio: ${block.source.url}]` };
+          }
+
+        case 'document':
+          // OpenAI has no document upload in chat; fall back to text
+          if (block.source.type === 'url') {
+            return {
+              type: 'text' as const,
+              text: `[Document: ${block.filename || block.source.url}]`,
+            };
+          } else {
+            return {
+              type: 'text' as const,
+              text: `[Document: ${block.filename || 'attachment'} (${block.source.mediaType})]`,
+            };
+          }
+
+        case 'video':
+          // OpenAI has no video upload in chat; fall back to text
+          if (block.source.type === 'url') {
+            return { type: 'text' as const, text: `[Video: ${block.source.url}]` };
+          } else {
+            return {
+              type: 'text' as const,
+              text: `[Video: attachment (${block.source.mediaType})]`,
             };
           }
 
