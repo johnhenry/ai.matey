@@ -39,6 +39,9 @@ export * from './providers/perplexity.js';
 export * from './providers/replicate.js';
 export * from './providers/together-ai.js';
 export * from './providers/xai.js';
+export * from './providers/inception.js';
+export * from './providers/moonshot.js';
+export * from './providers/sambanova.js';
 
 // Note: The following adapters have been moved to ai.matey.backend.browser:
 // - chrome-ai (Chrome's built-in AI)

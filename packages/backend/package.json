@@ -257,6 +257,36 @@
         "default": "./dist/cjs/providers/xai.js"
       }
     },
+    "./inception": {
+      "import": {
+        "types": "./dist/types/providers/inception.d.ts",
+        "default": "./dist/esm/providers/inception.js"
+      },
+      "require": {
+        "types": "./dist/types/providers/inception.d.ts",
+        "default": "./dist/cjs/providers/inception.js"
+      }
+    },
+    "./moonshot": {
+      "import": {
+        "types": "./dist/types/providers/moonshot.d.ts",
+        "default": "./dist/esm/providers/moonshot.js"
+      },
+      "require": {
+        "types": "./dist/types/providers/moonshot.d.ts",
+        "default": "./dist/cjs/providers/moonshot.js"
+      }
+    },
+    "./sambanova": {
+      "import": {
+        "types": "./dist/types/providers/sambanova.d.ts",
+        "default": "./dist/esm/providers/sambanova.js"
+      },
+      "require": {
+        "types": "./dist/types/providers/sambanova.d.ts",
+        "default": "./dist/cjs/providers/sambanova.js"
+      }
+    },
     "./shared": {
       "import": {
         "types": "./dist/types/shared.d.ts",
