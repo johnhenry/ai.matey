@@ -9,7 +9,7 @@
     "build": "astro build",
     "preview": "astro preview",
     "deploy": "npm run build && wrangler deploy",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "astro sync && tsc --noEmit",
     "clean": "rm -rf dist .astro"
   },
   "dependencies": {
