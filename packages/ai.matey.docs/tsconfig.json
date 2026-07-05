@@ -1,5 +1,5 @@
 {
-  "extends": "@docusaurus/tsconfig",
+  "extends": "astro/tsconfigs/strict",
   "compilerOptions": {
     "baseUrl": ".",
     "module": "ESNext",
@@ -10,7 +10,6 @@
     "allowJs": true,
     "checkJs": false,
     "skipLibCheck": true,
-    "strict": true,
     "noEmit": true,
     "jsx": "react-jsx",
     "esModuleInterop": true,
@@ -20,15 +19,13 @@
   },
   "include": [
     "src",
-    "docs",
     "scripts",
-    "docusaurus.config.ts",
-    "sidebars.ts"
+    "astro.config.mjs"
   ],
   "exclude": [
     "node_modules",
-    "build",
-    ".docusaurus",
+    "dist",
+    ".astro",
     "examples"
   ]
 }
