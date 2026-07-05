@@ -189,3 +189,79 @@ export interface ListModelsResult {
    */
   readonly isComplete: boolean;
 }
+
+// ============================================================================
+// Model Registry
+// ============================================================================
+
+/**
+ * Pricing for a model in USD per 1 million tokens.
+ */
+export interface ModelPricingInfo {
+  readonly inputPer1M: number;
+  readonly outputPer1M: number;
+  /** Discounted rate for cached/prompt-cached input tokens, when offered. */
+  readonly cachedInputPer1M?: number;
+}
+
+/**
+ * A single model's entry in the shared model registry.
+ *
+ * The registry (in `ai.matey.utils`) is the single source of truth for
+ * model metadata — pricing, context windows, capabilities — consumed by
+ * cost estimation, capability inference, routing, and token counting.
+ * Entries are data, not code: refresh the seed data file or call
+ * `registerModels()` at runtime to add or correct models without waiting
+ * for a library release.
+ */
+export interface ModelRegistryEntry {
+  /** Canonical model identifier (e.g. 'claude-sonnet-4-5-20250929'). */
+  readonly id: string;
+
+  /** Provider key (e.g. 'openai', 'anthropic', 'gemini', 'mistral'). */
+  readonly provider: string;
+
+  /** Model family for grouping and fallback matching (e.g. 'gpt-5', 'claude-3'). */
+  readonly family: string;
+
+  /** What the model does. Defaults to 'chat'. */
+  readonly kind?: 'chat' | 'embedding';
+
+  /** Alternate identifiers that resolve to this entry (e.g. 'claude-sonnet-4-5'). */
+  readonly aliases?: readonly string[];
+
+  /** ISO release date, when known. */
+  readonly releaseDate?: string;
+
+  /** True when the provider has deprecated or superseded the model. */
+  readonly deprecated?: boolean;
+
+  /** Maximum input context window in tokens. */
+  readonly contextWindow?: number;
+
+  /** Maximum output tokens per response. */
+  readonly maxOutputTokens?: number;
+
+  /** Pricing in USD per 1M tokens. */
+  readonly pricing?: ModelPricingInfo;
+
+  /** Coarse capability flags. */
+  readonly capabilities?: {
+    readonly streaming?: boolean;
+    readonly vision?: boolean;
+    readonly tools?: boolean;
+    readonly json?: boolean;
+  };
+
+  /** Observed latency percentiles in milliseconds. */
+  readonly latency?: {
+    readonly p50?: number;
+    readonly p95?: number;
+  };
+
+  /** Relative quality score 0-100 (heuristic, for cost/quality routing). */
+  readonly qualityScore?: number;
+
+  /** Output vector dimensions (embedding models only). */
+  readonly embeddingDimensions?: number;
+}

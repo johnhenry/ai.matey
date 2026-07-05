@@ -218,7 +218,7 @@ export function useCompletion(options: UseCompletionOptions = {}): UseCompletion
 
       const prompt = input;
       setInput('');
-      complete(prompt);
+      void complete(prompt);
     },
     [complete, input]
   );

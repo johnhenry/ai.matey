@@ -113,9 +113,10 @@ describe('getModelPricing', () => {
   it('should return pricing for DeepSeek models', () => {
     const pricing = getModelPricing('deepseek-chat');
 
+    // Current deepseek-chat list price (refreshed 2026-07)
     expect(pricing).not.toBeNull();
-    expect(pricing?.input).toBe(0.00014);
-    expect(pricing?.output).toBe(0.00028);
+    expect(pricing?.input).toBe(0.00027);
+    expect(pricing?.output).toBe(0.0011);
   });
 
   it('should return null for unknown model', () => {

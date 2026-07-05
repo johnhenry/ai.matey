@@ -13,6 +13,7 @@
  */
 
 import type { IRChatRequest, IRChatResponse, IRChatStream, IRCapabilities } from './ir.js';
+import type { IREmbedRequest, IREmbedResponse } from './embeddings.js';
 import type { AIModel, ListModelsOptions, ListModelsResult } from './models.js';
 import type { StreamingConfig, StreamConversionOptions } from './streaming.js';
 
@@ -355,6 +356,20 @@ export interface BackendAdapter<TRequest = unknown, TResponse = unknown> {
    * @throws {NetworkError} If network request fails
    */
   listModels?(options?: ListModelsOptions): Promise<ListModelsResult>;
+
+  /**
+   * Generate embeddings (optional capability).
+   *
+   * Present when the provider offers an embeddings API; advertise it via
+   * `capabilities.embeddings`. Accepts single or batched input and must
+   * preserve input order in the response.
+   */
+  embed?(request: IREmbedRequest, signal?: AbortSignal): Promise<IREmbedResponse>;
+
+  /**
+   * Estimate the cost of an embedding request in USD (optional).
+   */
+  estimateEmbedCost?(request: IREmbedRequest): Promise<number | null>;
 }
 
 // ============================================================================

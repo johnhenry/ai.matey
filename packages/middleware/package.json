@@ -1,6 +1,6 @@
 {
   "name": "ai.matey.middleware",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Middleware components for AI Matey - Universal AI Adapter System",
   "type": "module",
   "main": "./dist/cjs/index.js",
@@ -115,6 +115,16 @@
       "require": {
         "types": "./dist/types/transform.d.ts",
         "default": "./dist/cjs/transform.js"
+      }
+    },
+    "./embeddings": {
+      "import": {
+        "types": "./dist/types/embeddings.d.ts",
+        "default": "./dist/esm/embeddings.js"
+      },
+      "require": {
+        "types": "./dist/types/embeddings.d.ts",
+        "default": "./dist/cjs/embeddings.js"
       }
     }
   },

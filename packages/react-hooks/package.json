@@ -1,6 +1,6 @@
 {
   "name": "ai.matey.react.hooks",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Additional React hooks for AI Matey - useAssistant, useStream, useTokenCount",
   "type": "module",
   "main": "./dist/cjs/index.js",
@@ -31,11 +31,14 @@
     "build:types": "tsc -p tsconfig.types.json",
     "clean": "rm -rf dist",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "lint": "eslint src --ext .ts,.tsx",
+    "lint:fix": "eslint src --ext .ts,.tsx --fix"
   },
   "dependencies": {
     "ai.matey.types": "*",
-    "ai.matey.react.core": "*"
+    "ai.matey.react.core": "*",
+    "ai.matey.utils": "*"
   },
   "peerDependencies": {
     "react": ">=18.0.0"

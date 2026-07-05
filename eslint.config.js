@@ -62,17 +62,20 @@ export default tseslint.config(
       '@typescript-eslint/no-unnecessary-type-assertion': 'error',
       '@typescript-eslint/prefer-optional-chain': 'warn',
 
-      // Temporarily disable strict type-checked rules for monorepo migration
-      // TODO: Re-enable and fix these in follow-up PRs
-      '@typescript-eslint/no-unsafe-assignment': 'off',
-      '@typescript-eslint/no-unsafe-member-access': 'off',
-      '@typescript-eslint/no-unsafe-call': 'off',
-      '@typescript-eslint/no-unsafe-return': 'off',
-      '@typescript-eslint/no-unsafe-argument': 'off',
-      '@typescript-eslint/no-explicit-any': 'off',
-      '@typescript-eslint/prefer-nullish-coalescing': 'off',
-      '@typescript-eslint/require-await': 'off',
-      '@typescript-eslint/no-redundant-type-constituents': 'off',
+      // Type-safety ratchet: these were fully disabled during the monorepo
+      // migration. They now run as warnings so violations are visible in
+      // every lint run (~860 sites, concentrated in provider wire-format
+      // handling). Fix opportunistically and promote to 'error' per-package
+      // as counts reach zero.
+      '@typescript-eslint/no-unsafe-assignment': 'warn',
+      '@typescript-eslint/no-unsafe-member-access': 'warn',
+      '@typescript-eslint/no-unsafe-call': 'warn',
+      '@typescript-eslint/no-unsafe-return': 'warn',
+      '@typescript-eslint/no-unsafe-argument': 'warn',
+
+      // Nullish coalescing: advisory only — mechanically converting || to ??
+      // changes falsy-vs-nullish semantics, so existing code is not rewritten
+      '@typescript-eslint/prefer-nullish-coalescing': 'warn',
 
       // General
       'no-console': ['warn', { allow: ['warn', 'error'] }],
@@ -80,6 +83,14 @@ export default tseslint.config(
       'no-var': 'error',
       eqeqeq: ['error', 'always'],
       curly: ['error', 'all'],
+    },
+  },
+
+  // CLI package: console output IS the product
+  {
+    files: ['packages/cli/src/**/*.ts'],
+    rules: {
+      'no-console': 'off',
     },
   }
 );

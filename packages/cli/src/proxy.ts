@@ -84,7 +84,7 @@ function providerRequestToIR(data: any, format: string): IRChatRequest {
         },
       };
 
-    case 'anthropic':
+    case 'anthropic': {
       // Add system message if present
       const messages = data.messages || [];
       if (data.system) {
@@ -108,8 +108,9 @@ function providerRequestToIR(data: any, format: string): IRChatRequest {
           provenance: { frontend: 'anthropic' },
         },
       };
+    }
 
-    case 'gemini':
+    case 'gemini': {
       const geminiMessages = (data.contents || []).map((content: any) => ({
         role: content.role === 'model' ? 'assistant' : content.role,
         content: content.parts?.map((p: any) => p.text).join('') || '',
@@ -131,6 +132,7 @@ function providerRequestToIR(data: any, format: string): IRChatRequest {
           provenance: { frontend: 'gemini' },
         },
       };
+    }
 
     case 'ollama':
       return {
@@ -426,7 +428,9 @@ export async function main(argv: string[] = process.argv.slice(2)): Promise<void
 
     // Create server
     const handler = createHandler(backend, options.format || 'openai', options.verbose || false);
-    const server = createServer(handler);
+    const server = createServer((req, res) => {
+      void handler(req, res);
+    });
 
     // Start listening
     server.listen(options.port, options.host, () => {

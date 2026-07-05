@@ -8,6 +8,7 @@
  */
 
 import type { BackendAdapter, BackendAdapterConfig, AdapterMetadata } from 'ai.matey.types';
+import type { IREmbedRequest, IREmbedResponse } from 'ai.matey.types';
 import type {
   IRChatRequest,
   IRChatResponse,
@@ -91,6 +92,10 @@ export class GeminiBackendAdapter implements BackendAdapter<GeminiRequest, Gemin
       version: '1.0.0',
       provider: 'Google Gemini',
       capabilities: {
+        embeddings: true,
+        embeddingModels: ['gemini-embedding-001'],
+        maxEmbeddingBatchSize: 100,
+        supportsEmbeddingDimensions: true,
         streaming: true,
         multiModal: true,
         tools: true,
@@ -106,6 +111,61 @@ export class GeminiBackendAdapter implements BackendAdapter<GeminiRequest, Gemin
         maxStopSequences: 5,
       },
       config: { baseURL: this.baseURL },
+    };
+  }
+
+  /**
+   * Generate embeddings via Gemini's batchEmbedContents endpoint.
+   */
+  async embed(request: IREmbedRequest, signal?: AbortSignal): Promise<IREmbedResponse> {
+    const model = request.parameters?.model || this.config.defaultModel || 'gemini-embedding-001';
+    const inputs = typeof request.input === 'string' ? [request.input] : [...request.input];
+    const taskTypeMap: Record<string, string> = {
+      query: 'RETRIEVAL_QUERY',
+      document: 'RETRIEVAL_DOCUMENT',
+      classification: 'CLASSIFICATION',
+      clustering: 'CLUSTERING',
+    };
+    const taskType = request.parameters?.inputType
+      ? taskTypeMap[request.parameters.inputType]
+      : undefined;
+
+    const endpoint = `${this.baseURL}/models/${model}:batchEmbedContents?key=${this.config.apiKey}`;
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        requests: inputs.map((text) => ({
+          model: `models/${model}`,
+          content: { parts: [{ text }] },
+          ...(taskType && { taskType }),
+          ...(request.parameters?.dimensions !== undefined && {
+            outputDimensionality: request.parameters.dimensions,
+          }),
+        })),
+      }),
+      signal,
+    });
+
+    if (!response.ok) {
+      const errorBody = await response.text();
+      throw createErrorFromHttpResponse(response.status, response.statusText, errorBody, {
+        backend: this.metadata.name,
+      });
+    }
+
+    const json = (await response.json()) as { embeddings: Array<{ values: number[] }> };
+    const embeddings = json.embeddings.map((item, index) => ({ index, vector: item.values }));
+
+    return {
+      embeddings,
+      model,
+      dimensions: embeddings[0]?.vector.length ?? 0,
+      metadata: {
+        ...request.metadata,
+        provenance: { ...request.metadata.provenance, backend: this.metadata.name },
+      },
+      raw: json as unknown as Record<string, unknown>,
     };
   }
 

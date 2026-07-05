@@ -82,7 +82,7 @@ async function fetchManifest(name: string, tag: string, verbose: boolean): Promi
 
   const manifest = await response.json();
 
-  const data = manifest as any;
+  const data = manifest;
 
   if (verbose) {
     info(`Manifest retrieved: ${data.layers?.length || 0} layers`);

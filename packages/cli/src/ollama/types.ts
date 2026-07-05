@@ -55,9 +55,9 @@ export interface RunOptions extends GlobalOptions {
   system?: string;
 }
 
-export interface ListOptions extends GlobalOptions {}
+export type ListOptions = GlobalOptions;
 
-export interface PsOptions extends GlobalOptions {}
+export type PsOptions = GlobalOptions;
 
 export interface ShowOptions extends GlobalOptions {
   /**

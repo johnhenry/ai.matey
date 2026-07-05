@@ -9,6 +9,7 @@
 
 import type { Middleware, StreamingMiddleware } from 'ai.matey.types';
 import type { IRUsage } from 'ai.matey.types';
+import { getModelPricingInfo } from 'ai.matey.utils';
 
 /**
  * Provider pricing configuration
@@ -256,11 +257,16 @@ export interface CostTrackingConfig {
 }
 
 /**
- * Default pricing for common providers (as of 2024)
- * Prices in USD per 1M tokens
+ * Provider-level fallback pricing (USD per 1M tokens).
+ *
+ * Model-specific pricing comes from the shared model registry in
+ * `ai.matey.utils` (see calculateCost); these entries only cover the case
+ * where the model itself is unknown, using a mid-tier model of each
+ * provider as the representative rate. Model-keyed entries
+ * (`provider:model`) remain supported for explicit overrides.
  */
 export const DEFAULT_PRICING: Record<string, ProviderPricing> = {
-  // Anthropic Claude
+  // Anthropic Claude (representative: Sonnet)
   anthropic: {
     inputCostPer1M: 3.0,
     outputCostPer1M: 15.0,
@@ -278,10 +284,10 @@ export const DEFAULT_PRICING: Record<string, ProviderPricing> = {
     outputCostPer1M: 1.25,
   },
 
-  // OpenAI
+  // OpenAI (representative: gpt-5.x flagship)
   openai: {
-    inputCostPer1M: 10.0,
-    outputCostPer1M: 30.0,
+    inputCostPer1M: 1.25,
+    outputCostPer1M: 10.0,
   },
   'openai:gpt-4': {
     inputCostPer1M: 30.0,
@@ -296,26 +302,32 @@ export const DEFAULT_PRICING: Record<string, ProviderPricing> = {
     outputCostPer1M: 1.5,
   },
 
-  // Google Gemini
+  // Google Gemini (representative: Flash)
   gemini: {
-    inputCostPer1M: 0.125,
-    outputCostPer1M: 0.375,
+    inputCostPer1M: 0.3,
+    outputCostPer1M: 2.5,
   },
   'gemini:gemini-pro': {
     inputCostPer1M: 0.5,
     outputCostPer1M: 1.5,
   },
 
-  // Mistral
+  // Mistral (representative: Medium)
   mistral: {
-    inputCostPer1M: 1.0,
-    outputCostPer1M: 3.0,
+    inputCostPer1M: 0.4,
+    outputCostPer1M: 2.0,
   },
 
   // DeepSeek
   deepseek: {
-    inputCostPer1M: 0.14,
-    outputCostPer1M: 0.28,
+    inputCostPer1M: 0.27,
+    outputCostPer1M: 1.1,
+  },
+
+  // xAI Grok
+  xai: {
+    inputCostPer1M: 3.0,
+    outputCostPer1M: 15.0,
   },
 
   // Groq (very low cost)
@@ -370,10 +382,27 @@ export function calculateCost(
     pricing = config.providers[providerKey] || config.providers[provider];
   }
 
-  // Fall back to default pricing
+  // Fall back to explicit provider:model / provider defaults
   if (!pricing) {
     const providerKey = `${provider}:${model}`;
-    pricing = DEFAULT_PRICING[providerKey] || DEFAULT_PRICING[provider];
+    pricing = DEFAULT_PRICING[providerKey];
+  }
+
+  // Fall back to the shared model registry (single source of truth for
+  // per-model pricing, including user-registered models)
+  if (!pricing) {
+    const registryPricing = getModelPricingInfo(model);
+    if (registryPricing) {
+      pricing = {
+        inputCostPer1M: registryPricing.inputPer1M,
+        outputCostPer1M: registryPricing.outputPer1M,
+      };
+    }
+  }
+
+  // Last resort: provider-level representative rate
+  if (!pricing) {
+    pricing = DEFAULT_PRICING[provider];
   }
 
   // If still no pricing, use zero cost

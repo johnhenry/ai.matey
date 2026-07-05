@@ -73,6 +73,7 @@ export class GroqBackendAdapter
       version: '1.0.0',
       provider: 'Groq',
       capabilities: {
+        embeddings: false,
         streaming: true,
         multiModal: false, // Groq currently focuses on text
         tools: true,

@@ -8,6 +8,7 @@
  */
 
 import type { BackendAdapter, BackendAdapterConfig, AdapterMetadata } from 'ai.matey.types';
+import type { IREmbedRequest, IREmbedResponse } from 'ai.matey.types';
 import type {
   IRChatRequest,
   IRChatResponse,
@@ -82,6 +83,7 @@ export class OllamaBackendAdapter implements BackendAdapter<OllamaRequest, Ollam
         streaming: true,
         multiModal: false,
         tools: false,
+        embeddings: true,
         maxContextTokens: 4096, // Varies by model
         systemMessageStrategy: 'in-messages',
         supportsMultipleSystemMessages: false,
@@ -94,6 +96,51 @@ export class OllamaBackendAdapter implements BackendAdapter<OllamaRequest, Ollam
         maxStopSequences: 4,
       },
       config: { baseURL: this.baseURL },
+    };
+  }
+
+  /**
+   * Generate embeddings via Ollama's /api/embed endpoint.
+   */
+  async embed(request: IREmbedRequest, signal?: AbortSignal): Promise<IREmbedResponse> {
+    const model = request.parameters?.model || this.config.defaultModel || 'nomic-embed-text';
+    const inputs = typeof request.input === 'string' ? [request.input] : [...request.input];
+
+    const response = await fetch(`${this.baseURL}/api/embed`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model, input: inputs, truncate: request.parameters?.truncate }),
+      signal,
+    });
+
+    if (!response.ok) {
+      const errorBody = await response.text();
+      throw createErrorFromHttpResponse(response.status, response.statusText, errorBody, {
+        backend: this.metadata.name,
+      });
+    }
+
+    const json = (await response.json()) as {
+      model?: string;
+      embeddings: number[][];
+      prompt_eval_count?: number;
+    };
+
+    const embeddings = json.embeddings.map((vector, index) => ({ index, vector }));
+
+    return {
+      embeddings,
+      model: json.model ?? model,
+      dimensions: embeddings[0]?.vector.length ?? 0,
+      usage:
+        json.prompt_eval_count !== undefined
+          ? { promptTokens: json.prompt_eval_count, totalTokens: json.prompt_eval_count }
+          : undefined,
+      metadata: {
+        ...request.metadata,
+        provenance: { ...request.metadata.provenance, backend: this.metadata.name },
+      },
+      raw: json as unknown as Record<string, unknown>,
     };
   }
 
