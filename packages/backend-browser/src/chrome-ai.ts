@@ -229,7 +229,9 @@ export class ChromeAIBackendAdapter implements BackendAdapter {
     try {
       // Check if Chrome AI is available (try both global scopes)
       const win = getWindow();
-      const chromeAI = win?.ai?.languageModel || (typeof globalThis !== 'undefined' && (globalThis as any).ai?.languageModel);
+      const chromeAI =
+        win?.ai?.languageModel ||
+        (typeof globalThis !== 'undefined' && (globalThis as any).ai?.languageModel);
 
       if (!chromeAI) {
         throw new ProviderError({
@@ -253,10 +255,12 @@ export class ChromeAIBackendAdapter implements BackendAdapter {
       }
 
       // Extract system prompt from messages if present
-      const systemMessage = request.messages.find(msg => msg.role === 'system');
-      const systemPrompt = systemMessage ?
-        (typeof systemMessage.content === 'string' ? systemMessage.content : '') :
-        undefined;
+      const systemMessage = request.messages.find((msg) => msg.role === 'system');
+      const systemPrompt = systemMessage
+        ? typeof systemMessage.content === 'string'
+          ? systemMessage.content
+          : ''
+        : undefined;
 
       // Create session using new or legacy API
       const createSession = chromeAI.create || chromeAI.createTextSession;
@@ -381,7 +385,9 @@ export class ChromeAIBackendAdapter implements BackendAdapter {
   async healthCheck(): Promise<boolean> {
     try {
       const win = getWindow();
-      const chromeAI = win?.ai?.languageModel || (typeof globalThis !== 'undefined' && (globalThis as any).ai?.languageModel);
+      const chromeAI =
+        win?.ai?.languageModel ||
+        (typeof globalThis !== 'undefined' && (globalThis as any).ai?.languageModel);
 
       if (!chromeAI) {
         return false;

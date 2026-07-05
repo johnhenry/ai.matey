@@ -499,7 +499,11 @@ export class GeminiBackendAdapter implements BackendAdapter<GeminiRequest, Gemin
                       inlineData: { mimeType: c.source.mediaType, data: c.source.data },
                     };
                   }
-                  return { text: c.transcript ? `[Audio transcript: ${c.transcript}]` : `[Audio: ${c.source.url}]` };
+                  return {
+                    text: c.transcript
+                      ? `[Audio transcript: ${c.transcript}]`
+                      : `[Audio: ${c.source.url}]`,
+                  };
 
                 case 'video':
                   // Gemini supports video via inlineData

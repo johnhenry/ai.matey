@@ -217,9 +217,7 @@ export class GeminiFrontendAdapter implements FrontendAdapter<GeminiRequest, Gem
         // All text parts - join into a simple string
         return {
           role: c.role === 'model' ? 'assistant' : 'user',
-          content: c.parts
-            .map((p) => ('text' in p ? p.text : ''))
-            .join(''),
+          content: c.parts.map((p) => ('text' in p ? p.text : '')).join(''),
         } as IRMessage;
       }
 
