@@ -8,6 +8,8 @@
  */
 
 import type { BackendAdapter, BackendAdapterConfig, AdapterMetadata } from 'ai.matey.types';
+import type { IREmbedRequest, IREmbedResponse } from 'ai.matey.types';
+import { executeOpenAICompatibleEmbed } from '../shared.js';
 import type {
   IRChatRequest,
   IRChatResponse,
@@ -122,6 +124,8 @@ export class DeepInfraBackendAdapter implements BackendAdapter<
       version: '1.0.0',
       provider: 'DeepInfra',
       capabilities: {
+        embeddings: true,
+        maxEmbeddingBatchSize: 100,
         streaming: true,
         multiModal: true, // Vision models available
         tools: true, // Function calling
@@ -252,6 +256,20 @@ export class DeepInfraBackendAdapter implements BackendAdapter<
   /**
    * Execute non-streaming request.
    */
+  /**
+   * Generate embeddings via the OpenAI-compatible /embeddings endpoint.
+   */
+  embed(request: IREmbedRequest, signal?: AbortSignal): Promise<IREmbedResponse> {
+    return executeOpenAICompatibleEmbed({
+      baseURL: this.baseURL,
+      headers: this.getHeaders(),
+      request,
+      backendName: this.metadata.name,
+      defaultModel: 'BAAI/bge-large-en-v1.5',
+      signal,
+    });
+  }
+
   async execute(request: IRChatRequest, signal?: AbortSignal): Promise<IRChatResponse> {
     try {
       const deepinfraRequest = this.fromIR(request);

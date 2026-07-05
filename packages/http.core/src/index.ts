@@ -70,6 +70,7 @@ export {
 // Rate limiting
 export {
   RateLimiter,
+  GenericRateLimiter,
   userIDKeyGenerator,
   tokenKeyGenerator,
   combineKeyGenerators,
@@ -115,3 +116,5 @@ export {
   type HealthStatus,
   type ComponentHealth,
 } from './health.js';
+
+export * from './metrics.js';

@@ -13,6 +13,7 @@ import type {
   IRChatResponse,
   IRChatStream,
   IRMessage,
+  JSONSchema,
   MessageContent,
 } from 'ai.matey.types';
 import type { StreamConversionOptions } from 'ai.matey.types';
@@ -80,7 +81,13 @@ export type AnthropicContentBlock =
       source: { type: 'url'; url: string } | { type: 'base64'; media_type: string; data: string };
       filename?: string;
     }
-  | { type: 'tool_use'; id: string; name: string; input: Record<string, unknown> };
+  | { type: 'tool_use'; id: string; name: string; input: Record<string, unknown> }
+  | {
+      type: 'tool_result';
+      tool_use_id: string;
+      content: string | { type: 'text'; text: string }[];
+      is_error?: boolean;
+    };
 
 /**
  * Anthropic message structure in a conversation.
@@ -157,6 +164,20 @@ export interface AnthropicRequest {
     /** User identifier for abuse monitoring */
     user_id?: string;
   };
+
+  /** Tools Claude may use */
+  tools?: Array<{
+    name: string;
+    description?: string;
+    input_schema: Record<string, unknown>;
+  }>;
+
+  /** Controls how Claude uses tools */
+  tool_choice?:
+    | { type: 'auto' }
+    | { type: 'any' }
+    | { type: 'none' }
+    | { type: 'tool'; name: string };
 }
 
 /**
@@ -359,6 +380,12 @@ export class AnthropicFrontendAdapter implements FrontendAdapter<
           topK: request.top_k,
           stopSequences: request.stop_sequences,
         },
+        tools: request.tools?.map((tool) => ({
+          name: tool.name,
+          description: tool.description ?? '',
+          parameters: tool.input_schema as unknown as JSONSchema,
+        })),
+        toolChoice: this.convertToolChoiceToIR(request.tool_choice),
         stream: request.stream ?? false,
         metadata: {
           requestId: crypto.randomUUID(),
@@ -471,6 +498,13 @@ export class AnthropicFrontendAdapter implements FrontendAdapter<
       // Apply stream mode conversion if options provided
       const processedStream = options ? convertStreamMode(stream, options) : stream;
 
+      // Content blocks are opened lazily (a tool-only stream must not emit
+      // an empty text block) and closed when a different block starts.
+      let nextBlockIndex = 0;
+      let openBlockIndex: number | null = null;
+      let openTextBlockIndex: number | null = null;
+      const toolBlockIndexById = new Map<string, number>();
+
       for await (const chunk of processedStream) {
         switch (chunk.type) {
           case 'start':
@@ -484,29 +518,68 @@ export class AnthropicFrontendAdapter implements FrontendAdapter<
                 model: chunk.metadata.provenance?.backend || 'unknown',
               },
             };
-            // Emit content_block_start
-            yield {
-              type: 'content_block_start',
-              index: 0,
-              content_block: { type: 'text', text: '' },
-            };
             break;
 
           case 'content':
-            // Emit content delta
+            // Open a text block on first text delta (or after a tool block)
+            if (openTextBlockIndex === null) {
+              if (openBlockIndex !== null) {
+                yield { type: 'content_block_stop', index: openBlockIndex };
+              }
+              openTextBlockIndex = nextBlockIndex++;
+              openBlockIndex = openTextBlockIndex;
+              yield {
+                type: 'content_block_start',
+                index: openTextBlockIndex,
+                content_block: { type: 'text', text: '' },
+              };
+            }
+
             yield {
               type: 'content_block_delta',
-              index: 0,
+              index: openTextBlockIndex,
               delta: { type: 'text_delta', text: chunk.delta },
             };
             break;
 
+          case 'tool_use': {
+            let blockIndex = toolBlockIndexById.get(chunk.id);
+
+            // First chunk for this tool call: open its content block
+            if (blockIndex === undefined) {
+              if (openBlockIndex !== null) {
+                yield { type: 'content_block_stop', index: openBlockIndex };
+                if (openBlockIndex === openTextBlockIndex) {
+                  openTextBlockIndex = null;
+                }
+              }
+              blockIndex = nextBlockIndex++;
+              toolBlockIndexById.set(chunk.id, blockIndex);
+              openBlockIndex = blockIndex;
+              yield {
+                type: 'content_block_start',
+                index: blockIndex,
+                content_block: { type: 'tool_use', id: chunk.id, name: chunk.name, input: {} },
+              };
+            }
+
+            if (chunk.inputDelta) {
+              yield {
+                type: 'content_block_delta',
+                index: blockIndex,
+                delta: { type: 'input_json_delta', partial_json: chunk.inputDelta },
+              };
+            }
+            break;
+          }
+
           case 'done': {
-            // Emit content_block_stop
-            yield {
-              type: 'content_block_stop',
-              index: 0,
-            };
+            // Close the open content block (if any)
+            if (openBlockIndex !== null) {
+              yield { type: 'content_block_stop', index: openBlockIndex };
+              openBlockIndex = null;
+              openTextBlockIndex = null;
+            }
             // Emit message_delta with stop reason
             const stopReason = this.mapFinishReason(chunk.finishReason);
             yield {
@@ -552,6 +625,27 @@ export class AnthropicFrontendAdapter implements FrontendAdapter<
   // ==========================================================================
   // Private Helper Methods
   // ==========================================================================
+
+  /**
+   * Convert Anthropic tool_choice to IR toolChoice.
+   */
+  private convertToolChoiceToIR(
+    toolChoice: AnthropicRequest['tool_choice']
+  ): IRChatRequest['toolChoice'] {
+    if (toolChoice === undefined) {
+      return undefined;
+    }
+    switch (toolChoice.type) {
+      case 'auto':
+        return 'auto';
+      case 'any':
+        return 'required';
+      case 'none':
+        return 'none';
+      case 'tool':
+        return { name: toolChoice.name };
+    }
+  }
 
   /**
    * Convert Anthropic message to IR message.
@@ -631,6 +725,17 @@ export class AnthropicFrontendAdapter implements FrontendAdapter<
           id: block.id,
           name: block.name,
           input: block.input,
+        };
+
+      case 'tool_result':
+        return {
+          type: 'tool_result',
+          toolUseId: block.tool_use_id,
+          content:
+            typeof block.content === 'string'
+              ? block.content
+              : block.content.map((text) => ({ type: 'text' as const, text: text.text })),
+          isError: block.is_error,
         };
 
       default:
@@ -713,6 +818,17 @@ export class AnthropicFrontendAdapter implements FrontendAdapter<
             id: block.id,
             name: block.name,
             input: block.input,
+          };
+
+        case 'tool_result':
+          return {
+            type: 'tool_result',
+            tool_use_id: block.toolUseId,
+            content:
+              typeof block.content === 'string'
+                ? block.content
+                : block.content.map((text) => ({ type: 'text' as const, text: text.text })),
+            is_error: block.isError,
           };
 
         default:

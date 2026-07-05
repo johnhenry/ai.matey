@@ -13,3 +13,5 @@ export * from './model-pricing.js';
 export * from './capability-matcher.js';
 export * from './capability-inference.js';
 export * from './model-translation.js';
+
+export { createRunTools, type RunToolsBridge } from './run-tools.js';

@@ -28,11 +28,14 @@ import {
 } from 'ai.matey.errors';
 import { normalizeSystemMessages } from 'ai.matey.utils';
 import { getEffectiveStreamMode, mergeStreamingConfig } from 'ai.matey.utils';
+import { getModelPricingInfo } from 'ai.matey.utils';
 import {
   estimateTokens,
   buildStaticResult,
   applyModelFilter,
+  buildStreamDoneMessage,
   type ModelCapabilityFilter,
+  type StreamedToolCall,
   DEFAULT_ANTHROPIC_MODELS,
 } from '../shared.js';
 
@@ -85,6 +88,16 @@ export interface AnthropicRequest {
   metadata?: {
     user_id?: string;
   };
+  tools?: Array<{
+    name: string;
+    description?: string;
+    input_schema: Record<string, unknown>;
+  }>;
+  tool_choice?:
+    | { type: 'auto' }
+    | { type: 'any' }
+    | { type: 'none' }
+    | { type: 'tool'; name: string };
 }
 
 /**
@@ -262,9 +275,13 @@ export class AnthropicBackendAdapter implements BackendAdapter<
       let contentBuffer = '';
       let messageId = '';
       let model = '';
+      let stopReason: string | null = null;
       let usage:
         | { promptTokens: number; completionTokens: number; totalTokens: number }
         | undefined;
+
+      // Tool calls accumulated by Anthropic content-block index
+      const toolCallsByBlockIndex = new Map<number, StreamedToolCall>();
 
       // Read stream
       const reader = response.body.getReader();
@@ -332,7 +349,25 @@ export class AnthropicBackendAdapter implements BackendAdapter<
                     break;
 
                   case 'content_block_start':
-                    // Content block started (we'll handle deltas)
+                    // Tool-use block: record it and announce the tool call
+                    if (event.content_block.type === 'tool_use') {
+                      const toolCall: StreamedToolCall = {
+                        id: event.content_block.id,
+                        name: event.content_block.name,
+                        args: '',
+                        index: toolCallsByBlockIndex.size,
+                      };
+                      toolCallsByBlockIndex.set(event.index, toolCall);
+
+                      yield {
+                        type: 'tool_use',
+                        sequence: sequence++,
+                        id: toolCall.id,
+                        name: toolCall.name,
+                        inputDelta: '',
+                        index: toolCall.index,
+                      } as IRStreamChunk;
+                    }
                     break;
 
                   case 'content_block_delta':
@@ -355,8 +390,20 @@ export class AnthropicBackendAdapter implements BackendAdapter<
 
                       yield contentChunk;
                     } else if (event.delta.type === 'input_json_delta') {
-                      // Tool use delta (not implemented yet)
-                      // TODO: Handle tool use deltas in Phase 5
+                      // Tool argument fragment
+                      const toolCall = toolCallsByBlockIndex.get(event.index);
+                      if (toolCall) {
+                        toolCall.args += event.delta.partial_json;
+
+                        yield {
+                          type: 'tool_use',
+                          sequence: sequence++,
+                          id: toolCall.id,
+                          name: toolCall.name,
+                          inputDelta: event.delta.partial_json,
+                          index: toolCall.index,
+                        } as IRStreamChunk;
+                      }
                     }
                     break;
 
@@ -366,21 +413,23 @@ export class AnthropicBackendAdapter implements BackendAdapter<
 
                   case 'message_delta':
                     // Message metadata delta (stop reason, usage)
-                    if (event.delta.stop_reason && usage) {
+                    if (event.delta.stop_reason) {
+                      stopReason = event.delta.stop_reason;
+                    }
+                    if (usage && typeof event.usage?.output_tokens === 'number') {
                       usage.completionTokens = event.usage.output_tokens;
                       usage.totalTokens = usage.promptTokens + event.usage.output_tokens;
                     }
                     break;
 
                   case 'message_stop': {
-                    // Stream complete
-                    const finishReason = this.mapStopReason(contentBuffer ? 'end_turn' : 'stop');
+                    // Stream complete — use the provider-reported stop reason
+                    const finishReason = this.mapStopReason(stopReason ?? 'end_turn');
 
-                    // Build final message
-                    const message: IRMessage = {
-                      role: 'assistant',
-                      content: contentBuffer,
-                    };
+                    // Build final message (structured content when tools were streamed)
+                    const message: IRMessage = buildStreamDoneMessage(contentBuffer, [
+                      ...toolCallsByBlockIndex.values(),
+                    ]);
 
                     yield {
                       type: 'done',
@@ -443,7 +492,7 @@ export class AnthropicBackendAdapter implements BackendAdapter<
         method: 'POST',
         headers: this.getHeaders(),
         body: JSON.stringify({
-          model: 'claude-3-haiku-20240307',
+          model: 'claude-haiku-4-5-20251001',
           max_tokens: 1,
           messages: [{ role: 'user', content: 'test' }],
         }),
@@ -461,8 +510,12 @@ export class AnthropicBackendAdapter implements BackendAdapter<
   estimateCost(request: IRChatRequest): Promise<number | null> {
     // Use shared token estimation utility
     const estimatedInputTokens = estimateTokens(request);
-    // Rough cost: $0.015 per 1000 tokens for Claude 3.5 Sonnet
-    return Promise.resolve((estimatedInputTokens / 1000) * 0.015);
+    // Price the requested model via the shared registry; fall back to a
+    // representative Sonnet-tier rate when the model is unknown
+    const model =
+      request.parameters?.model || this.config.defaultModel || 'claude-sonnet-4-5-20250929';
+    const inputPer1M = getModelPricingInfo(model)?.inputPer1M ?? 3.0;
+    return Promise.resolve((estimatedInputTokens / 1_000_000) * inputPer1M);
   }
 
   /**
@@ -518,7 +571,8 @@ export class AnthropicBackendAdapter implements BackendAdapter<
 
       // Build Anthropic request
       const anthropicRequest: AnthropicRequest = {
-        model: request.parameters?.model || this.config.defaultModel || 'claude-3-haiku-20240307',
+        model:
+          request.parameters?.model || this.config.defaultModel || 'claude-sonnet-4-5-20250929',
         messages: anthropicMessages,
         system: systemParameter || undefined,
         max_tokens: maxTokens,
@@ -535,6 +589,12 @@ export class AnthropicBackendAdapter implements BackendAdapter<
             typeof request.metadata.custom.userId === 'number')
             ? { user_id: String(request.metadata.custom.userId) }
             : undefined,
+        tools: request.tools?.map((tool) => ({
+          name: tool.name,
+          description: tool.description,
+          input_schema: tool.parameters as unknown as Record<string, unknown>,
+        })),
+        tool_choice: this.convertToolChoice(request.toolChoice),
       };
 
       return anthropicRequest;
@@ -547,6 +607,26 @@ export class AnthropicBackendAdapter implements BackendAdapter<
         },
         cause: error instanceof Error ? error : undefined,
       });
+    }
+  }
+
+  /**
+   * Convert IR toolChoice to Anthropic tool_choice.
+   */
+  private convertToolChoice(
+    toolChoice: IRChatRequest['toolChoice']
+  ): AnthropicRequest['tool_choice'] {
+    switch (toolChoice) {
+      case undefined:
+        return undefined;
+      case 'auto':
+        return { type: 'auto' };
+      case 'required':
+        return { type: 'any' };
+      case 'none':
+        return { type: 'none' };
+      default:
+        return { type: 'tool', name: toolChoice.name };
     }
   }
 

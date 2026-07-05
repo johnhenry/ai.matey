@@ -244,7 +244,7 @@ export function useAssistant(options: UseAssistantOptions = {}): UseAssistantRet
           throw new Error(`HTTP error! status: ${response.status}`);
         }
 
-        const data = (await response.json()) as any;
+        const data = await response.json();
 
         // Update thread ID if new
         if (data.threadId && !threadId) {
@@ -296,7 +296,7 @@ export function useAssistant(options: UseAssistantOptions = {}): UseAssistantRet
 
       const message = input;
       setInput('');
-      append(message);
+      void append(message);
     },
     [append, input, status]
   );

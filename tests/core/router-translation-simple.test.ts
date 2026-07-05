@@ -212,3 +212,81 @@ describe('Router Model Translation - Core Functionality', () => {
     ).rejects.toThrow('No translation found for model: unmapped-model');
   });
 });
+
+describe('Router Model Translation - Substitution Warnings', () => {
+  function makeRouterWithDefaultFallback(onWarning?: (w: unknown) => void, warnOnDefault?: boolean) {
+    let receivedRequest: IRChatRequest | undefined;
+
+    const backend = new MockBackendAdapter({
+      defaultModel: 'backend-default-model',
+      responseGenerator: (request) => {
+        receivedRequest = request;
+        return 'Success';
+      },
+      config: {
+        defaultModel: 'backend-default-model',
+      },
+    });
+
+    const router = new Router({
+      fallbackStrategy: 'sequential',
+      modelTranslation: {
+        strategy: 'hybrid',
+        ...(warnOnDefault === undefined ? {} : { warnOnDefault }),
+      },
+      ...(onWarning ? { onWarning } : {}),
+    });
+
+    router.register('only', backend).setModelTranslationMapping({});
+
+    return { router, getRequest: () => receivedRequest };
+  }
+
+  it('invokes onWarning and attaches metadata warning on default substitution', async () => {
+    const warnings: any[] = [];
+    const { router, getRequest } = makeRouterWithDefaultFallback((w) => warnings.push(w));
+
+    await router.execute({
+      messages: [{ role: 'user', content: 'Hello!' }],
+      parameters: { model: 'unmapped-model' },
+      metadata: { requestId: 'warn-1', timestamp: Date.now(), provenance: {} },
+    });
+
+    expect(warnings).toHaveLength(1);
+    expect(warnings[0].category).toBe('model-substituted');
+    expect(warnings[0].originalValue).toBe('unmapped-model');
+    expect(warnings[0].transformedValue).toBe('backend-default-model');
+
+    const metadataWarnings = getRequest()?.metadata?.warnings ?? [];
+    expect(metadataWarnings.some((w) => w.category === 'model-substituted')).toBe(true);
+  });
+
+  it('suppresses the warning when warnOnDefault is false', async () => {
+    const warnings: any[] = [];
+    const { router, getRequest } = makeRouterWithDefaultFallback((w) => warnings.push(w), false);
+
+    await router.execute({
+      messages: [{ role: 'user', content: 'Hello!' }],
+      parameters: { model: 'unmapped-model' },
+      metadata: { requestId: 'warn-2', timestamp: Date.now(), provenance: {} },
+    });
+
+    expect(warnings).toHaveLength(0);
+    expect(getRequest()?.metadata?.warnings ?? []).toHaveLength(0);
+  });
+
+  it('does not warn when an exact translation exists', async () => {
+    const warnings: any[] = [];
+    const { router } = makeRouterWithDefaultFallback((w) => warnings.push(w));
+
+    router.setModelTranslationMapping({ 'mapped-model': 'target-model' });
+
+    await router.execute({
+      messages: [{ role: 'user', content: 'Hello!' }],
+      parameters: { model: 'mapped-model' },
+      metadata: { requestId: 'warn-3', timestamp: Date.now(), provenance: {} },
+    });
+
+    expect(warnings).toHaveLength(0);
+  });
+});

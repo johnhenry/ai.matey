@@ -92,7 +92,7 @@ export async function showCommand(options: ShowCommandOptions): Promise<void> {
       }
 
       // Get config if available
-      const config = (runner as any).config;
+      const config = runner.config;
       if (config) {
         info.config = {
           contextSize: config.runtime?.contextSize,

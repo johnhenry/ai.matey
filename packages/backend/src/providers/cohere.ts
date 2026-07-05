@@ -8,6 +8,7 @@
  */
 
 import type { BackendAdapter, BackendAdapterConfig, AdapterMetadata } from 'ai.matey.types';
+import type { IREmbedRequest, IREmbedResponse } from 'ai.matey.types';
 import type {
   IRChatRequest,
   IRChatResponse,
@@ -132,6 +133,9 @@ export class CohereBackendAdapter implements BackendAdapter<CohereRequest, Coher
       version: '1.0.0',
       provider: 'Cohere',
       capabilities: {
+        embeddings: true,
+        embeddingModels: ['embed-v4.0', 'embed-english-v3.0', 'embed-multilingual-v3.0'],
+        maxEmbeddingBatchSize: 96,
         streaming: true,
         multiModal: false, // Text-only
         tools: false, // No function calling
@@ -288,6 +292,69 @@ export class CohereBackendAdapter implements BackendAdapter<CohereRequest, Coher
   /**
    * Execute non-streaming request.
    */
+  /**
+   * Generate embeddings via Cohere's v2 embed endpoint.
+   *
+   * Cohere requires an input_type; IR `inputType` maps directly, defaulting
+   * to 'search_document'.
+   */
+  async embed(request: IREmbedRequest, signal?: AbortSignal): Promise<IREmbedResponse> {
+    const model = request.parameters?.model || this.config.defaultModel || 'embed-v4.0';
+    const inputs = typeof request.input === 'string' ? [request.input] : [...request.input];
+    const inputTypeMap: Record<string, string> = {
+      query: 'search_query',
+      document: 'search_document',
+      classification: 'classification',
+      clustering: 'clustering',
+    };
+    const inputType = inputTypeMap[request.parameters?.inputType ?? 'document'];
+
+    // v2 embed lives under /v2 regardless of the chat base path
+    const embedURL = this.baseURL.replace(/\/v1$/, '/v2');
+    const response = await fetch(`${embedURL}/embed`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify({
+        model,
+        texts: inputs,
+        input_type: inputType,
+        embedding_types: ['float'],
+        ...(request.parameters?.truncate !== undefined && {
+          truncate: request.parameters.truncate ? 'END' : 'NONE',
+        }),
+      }),
+      signal,
+    });
+
+    if (!response.ok) {
+      const errorBody = await response.text();
+      throw createErrorFromHttpResponse(response.status, response.statusText, errorBody, {
+        backend: this.metadata.name,
+      });
+    }
+
+    const json = (await response.json()) as {
+      embeddings: { float?: number[][] };
+      meta?: { billed_units?: { input_tokens?: number } };
+    };
+
+    const vectors = json.embeddings.float ?? [];
+    const embeddings = vectors.map((vector, index) => ({ index, vector }));
+    const promptTokens = json.meta?.billed_units?.input_tokens;
+
+    return {
+      embeddings,
+      model,
+      dimensions: embeddings[0]?.vector.length ?? 0,
+      usage: promptTokens !== undefined ? { promptTokens, totalTokens: promptTokens } : undefined,
+      metadata: {
+        ...request.metadata,
+        provenance: { ...request.metadata.provenance, backend: this.metadata.name },
+      },
+      raw: json as unknown as Record<string, unknown>,
+    };
+  }
+
   async execute(request: IRChatRequest, signal?: AbortSignal): Promise<IRChatResponse> {
     try {
       const cohereRequest = this.fromIR(request);

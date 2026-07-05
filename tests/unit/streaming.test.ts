@@ -144,6 +144,49 @@ describe('accumulateChunk', () => {
     expect(acc.metadata).toEqual({ model: 'test-model', provider: 'test' });
   });
 
+  it('should accumulate tool_use chunks into assembled tool calls', () => {
+    let acc = createStreamAccumulator();
+    const chunks: IRStreamChunk[] = [
+      { type: 'content', delta: 'Checking.', sequence: 0 },
+      { type: 'tool_use', sequence: 1, id: 'call_1', name: 'get_weather', inputDelta: '', index: 0 },
+      { type: 'tool_use', sequence: 2, id: 'call_1', name: 'get_weather', inputDelta: '{"loc', index: 0 },
+      { type: 'tool_use', sequence: 3, id: 'call_1', name: 'get_weather', inputDelta: 'ation":"SF"}', index: 0 },
+    ];
+
+    for (const chunk of chunks) {
+      acc = accumulateChunk(acc, chunk);
+    }
+
+    const message = accumulatorToMessage(acc);
+    expect(message.content).toEqual([
+      { type: 'text', text: 'Checking.' },
+      { type: 'tool_use', id: 'call_1', name: 'get_weather', input: { location: 'SF' } },
+    ]);
+  });
+
+  it('should keep string content when no tool calls were streamed', () => {
+    let acc = createStreamAccumulator();
+    acc = accumulateChunk(acc, { type: 'content', delta: 'Hello', sequence: 0 });
+
+    expect(accumulatorToMessage(acc).content).toBe('Hello');
+  });
+
+  it('should degrade malformed accumulated tool args to empty object', () => {
+    let acc = createStreamAccumulator();
+    acc = accumulateChunk(acc, {
+      type: 'tool_use',
+      sequence: 0,
+      id: 'call_1',
+      name: 'get_weather',
+      inputDelta: '{"broken',
+      index: 0,
+    });
+
+    expect(accumulatorToMessage(acc).content).toEqual([
+      { type: 'tool_use', id: 'call_1', name: 'get_weather', input: {} },
+    ]);
+  });
+
   it('should merge multiple metadata chunks', () => {
     let acc = createStreamAccumulator();
     const metadata1: IRStreamChunk = {

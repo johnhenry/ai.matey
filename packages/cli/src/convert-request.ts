@@ -206,7 +206,7 @@ function toIRRequest(data: any, sourceFormat: string): IRChatRequest {
         },
       };
 
-    case 'gemini':
+    case 'gemini': {
       // Gemini has different structure - contents instead of messages
       const messages = (data.contents || []).map((content: any) => ({
         role: content.role === 'model' ? 'assistant' : content.role,
@@ -229,6 +229,7 @@ function toIRRequest(data: any, sourceFormat: string): IRChatRequest {
           provenance: { frontend: 'gemini' },
         },
       };
+    }
 
     case 'ollama':
       return {

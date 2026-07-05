@@ -33,6 +33,7 @@ function createMockFromChatFixture(fixture: ChatFixture): SimpleMockBackend {
   return {
     name: `mock-${fixture.metadata.provider}`,
 
+    // eslint-disable-next-line @typescript-eslint/require-await -- async required by the mock backend interface
     async chat(_request: IRChatRequest): Promise<IRChatResponse> {
       return fixture.response;
     },
@@ -46,12 +47,14 @@ function createMockFromStreamingFixture(fixture: StreamingFixture): SimpleMockBa
   return {
     name: `mock-${fixture.metadata.provider}`,
 
+    // eslint-disable-next-line @typescript-eslint/require-await -- async generator required by the mock backend interface
     async *chatStream(_request: IRChatRequest): AsyncIterable<IRStreamChunk> {
       for (const chunk of fixture.chunks) {
         yield chunk;
       }
     },
 
+    // eslint-disable-next-line @typescript-eslint/require-await -- async required by the mock backend interface
     async chat(_request: IRChatRequest): Promise<IRChatResponse> {
       if (!fixture.finalResponse) {
         throw new Error('Fixture does not have a final response');
@@ -260,6 +263,7 @@ export function createConfigurableMock(
   const mock = {
     name,
 
+    // eslint-disable-next-line @typescript-eslint/require-await -- async required by the mock backend interface
     async chat(_request: IRChatRequest): Promise<IRChatResponse> {
       if (error) {
         throw error;
@@ -270,6 +274,7 @@ export function createConfigurableMock(
       return response;
     },
 
+    // eslint-disable-next-line @typescript-eslint/require-await -- async generator required by the mock backend interface
     async *chatStream(_request: IRChatRequest): AsyncIterable<IRStreamChunk> {
       if (error) {
         throw error;

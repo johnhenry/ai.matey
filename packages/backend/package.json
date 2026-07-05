@@ -1,6 +1,6 @@
 {
   "name": "ai.matey.backend",
-  "version": "0.2.4",
+  "version": "0.5.0",
   "description": "Backend provider adapters for AI Matey - Universal AI Adapter System",
   "type": "module",
   "main": "./dist/cjs/index.js",
@@ -255,6 +255,36 @@
       "require": {
         "types": "./dist/types/providers/xai.d.ts",
         "default": "./dist/cjs/providers/xai.js"
+      }
+    },
+    "./inception": {
+      "import": {
+        "types": "./dist/types/providers/inception.d.ts",
+        "default": "./dist/esm/providers/inception.js"
+      },
+      "require": {
+        "types": "./dist/types/providers/inception.d.ts",
+        "default": "./dist/cjs/providers/inception.js"
+      }
+    },
+    "./moonshot": {
+      "import": {
+        "types": "./dist/types/providers/moonshot.d.ts",
+        "default": "./dist/esm/providers/moonshot.js"
+      },
+      "require": {
+        "types": "./dist/types/providers/moonshot.d.ts",
+        "default": "./dist/cjs/providers/moonshot.js"
+      }
+    },
+    "./sambanova": {
+      "import": {
+        "types": "./dist/types/providers/sambanova.d.ts",
+        "default": "./dist/esm/providers/sambanova.js"
+      },
+      "require": {
+        "types": "./dist/types/providers/sambanova.d.ts",
+        "default": "./dist/cjs/providers/sambanova.js"
       }
     },
     "./shared": {

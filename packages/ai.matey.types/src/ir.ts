@@ -554,6 +554,27 @@ export interface IRCapabilities {
   readonly tools?: boolean;
 
   /**
+   * Whether the backend can generate embeddings (implements `embed()`).
+   */
+  readonly embeddings?: boolean;
+
+  /**
+   * Embedding model ids offered by the backend.
+   */
+  readonly embeddingModels?: readonly string[];
+
+  /**
+   * Maximum number of inputs per embedding request (batch limit).
+   */
+  readonly maxEmbeddingBatchSize?: number;
+
+  /**
+   * Whether the provider accepts a native `dimensions` parameter
+   * (e.g. OpenAI text-embedding-3, Matryoshka-style models).
+   */
+  readonly supportsEmbeddingDimensions?: boolean;
+
+  /**
    * Maximum context window size (tokens).
    */
   readonly maxContextTokens?: number;
@@ -1050,12 +1071,48 @@ export interface StreamContentChunk extends BaseStreamChunk {
 
 /**
  * Tool use chunk.
+ *
+ * Emitted while a backend streams a tool/function call. Backends emit one
+ * chunk per provider delta:
+ *
+ * - `id` and `name` are ALWAYS present on every chunk. Providers that only
+ *   send them on the first delta (e.g. OpenAI's index-based `tool_calls`
+ *   deltas) must resolve them from accumulation state before yielding.
+ * - `inputDelta` is the raw partial-JSON fragment of the tool arguments for
+ *   this chunk. It is an empty string (or absent) on the initial
+ *   "announce" chunk that introduces a new tool call.
+ * - `index` is the zero-based position of the tool call within the message
+ *   (OpenAI `tool_calls[].index`, Anthropic content-block index order).
+ *   Frontend adapters use it to re-emit provider-faithful deltas; when
+ *   absent, consumers may assign indices in order of first appearance.
+ *
+ * Consumers that want assembled tool calls rather than deltas should read
+ * the final `done` chunk: its `message.content` contains one complete
+ * `ToolUseContent` block (with parsed `input`) per streamed tool call, and
+ * its `finishReason` is `'tool_calls'`.
+ *
+ * @example
+ * ```typescript
+ * // Announce chunk (new tool call started)
+ * { type: 'tool_use', sequence: 3, id: 'call_abc', name: 'get_weather', inputDelta: '', index: 0 }
+ *
+ * // Argument fragments (raw partial JSON)
+ * { type: 'tool_use', sequence: 4, id: 'call_abc', name: 'get_weather', inputDelta: '{"loc', index: 0 }
+ * { type: 'tool_use', sequence: 5, id: 'call_abc', name: 'get_weather', inputDelta: 'ation":"SF"}', index: 0 }
+ * ```
  */
 export interface StreamToolUseChunk extends BaseStreamChunk {
   readonly type: 'tool_use';
   readonly id: string;
   readonly name: string;
   readonly inputDelta?: string;
+
+  /**
+   * Zero-based position of this tool call within the assistant message.
+   * Optional for backward compatibility; assigned in order of first
+   * appearance when absent.
+   */
+  readonly index?: number;
 }
 
 /**

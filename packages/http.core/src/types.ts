@@ -74,6 +74,12 @@ export interface RouteConfig {
    * Optional bridge to use (overrides default)
    */
   bridge?: Bridge;
+
+  /**
+   * Per-route rate limit. Replaces the handler's global rate limit for
+   * requests matching this route.
+   */
+  rateLimit?: GenericRateLimitOptions;
 }
 
 /**
@@ -295,6 +301,42 @@ export interface CoreHandlerOptions {
    * Route configurations for multi-endpoint support
    */
   routes?: RouteConfig[];
+
+  /**
+   * Built-in health endpoints. When enabled, GET {path}, {path}/ready,
+   * and {path}/live are served before route matching.
+   * @default disabled
+   */
+  health?: {
+    enabled: boolean;
+    /** Base path. @default '/health' */
+    path?: string;
+  };
+
+  /**
+   * Built-in Prometheus metrics endpoint (GET, text exposition format).
+   * @default disabled
+   */
+  metrics?: {
+    enabled: boolean;
+    /** Endpoint path. @default '/metrics' */
+    path?: string;
+    /** Require validateAuth for scrapes. @default true when validateAuth is set */
+    auth?: boolean;
+    /** Metric name prefix. @default 'ai_matey' */
+    prefix?: string;
+  };
+
+  /**
+   * OpenAI-compatible embeddings endpoint (POST {path}), executed via the
+   * bridge's backend `embed()` capability.
+   * @default disabled
+   */
+  embeddings?: {
+    enabled: boolean;
+    /** Endpoint path. @default '/v1/embeddings' */
+    path?: string;
+  };
 
   /**
    * Enable request/response logging
