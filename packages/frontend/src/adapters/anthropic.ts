@@ -76,6 +76,11 @@ export type AnthropicContentBlock =
       type: 'image';
       source: { type: 'url'; url: string } | { type: 'base64'; media_type: string; data: string };
     }
+  | {
+      type: 'document';
+      source: { type: 'url'; url: string } | { type: 'base64'; media_type: string; data: string };
+      filename?: string;
+    }
   | { type: 'tool_use'; id: string; name: string; input: Record<string, unknown> }
   | {
       type: 'tool_result';
@@ -692,6 +697,28 @@ export class AnthropicFrontendAdapter implements FrontendAdapter<
           };
         }
 
+      case 'document':
+        if (block.source.type === 'url') {
+          return {
+            type: 'document',
+            source: {
+              type: 'url',
+              url: block.source.url,
+            },
+            filename: block.filename,
+          };
+        } else {
+          return {
+            type: 'document',
+            source: {
+              type: 'base64',
+              mediaType: block.source.media_type,
+              data: block.source.data,
+            },
+            filename: block.filename,
+          };
+        }
+
       case 'tool_use':
         return {
           type: 'tool_use',
@@ -751,6 +778,39 @@ export class AnthropicFrontendAdapter implements FrontendAdapter<
               },
             };
           }
+
+        case 'document':
+          if (block.source.type === 'url') {
+            return {
+              type: 'document',
+              source: { type: 'url', url: block.source.url },
+              filename: block.filename,
+            };
+          } else {
+            return {
+              type: 'document',
+              source: {
+                type: 'base64',
+                media_type: block.source.mediaType,
+                data: block.source.data,
+              },
+              filename: block.filename,
+            };
+          }
+
+        case 'audio':
+          // Anthropic doesn't natively support audio; fallback to text
+          if (block.transcript) {
+            return { type: 'text', text: `[Audio transcript: ${block.transcript}]` };
+          }
+          return { type: 'text', text: '[Audio attachment]' };
+
+        case 'video':
+          // Anthropic doesn't natively support video; fallback to text
+          if (block.source.type === 'url') {
+            return { type: 'text', text: `[Video: ${block.source.url}]` };
+          }
+          return { type: 'text', text: '[Video attachment]' };
 
         case 'tool_use':
           return {

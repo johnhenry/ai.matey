@@ -299,6 +299,11 @@ export class Chat {
       let sequence = 0;
 
       for await (const chunk of stream) {
+        // Check AbortSignal before processing each chunk
+        if (options?.signal?.aborted) {
+          break;
+        }
+
         if (chunk.type === 'content') {
           accumulated += chunk.delta;
           sequence = chunk.sequence;
@@ -461,6 +466,11 @@ export class Chat {
       const stream = this.backend.executeStream(request, options?.signal);
 
       for await (const chunk of stream) {
+        // Check AbortSignal before processing each chunk
+        if (options?.signal?.aborted) {
+          break;
+        }
+
         switch (chunk.type) {
           case 'content': {
             accumulated += chunk.delta;

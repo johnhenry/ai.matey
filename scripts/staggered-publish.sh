@@ -38,6 +38,7 @@ NC='\033[0m' # No Color
 # Counters
 TOTAL=0
 SUCCESS=0
+SKIPPED=0
 FAILED=0
 
 # Function to publish a single package
@@ -51,10 +52,17 @@ publish_package() {
     echo "  → Would run: npm publish --workspace=$pkg --access public"
     SUCCESS=$((SUCCESS + 1))
   else
-    if npm publish --workspace="$pkg" --access public 2>&1; then
+    local output
+    if output=$(npm publish --workspace="$pkg" --access public 2>&1); then
+      echo "$output"
       echo -e "  ${GREEN}✓ Published successfully${NC}"
       SUCCESS=$((SUCCESS + 1))
+    elif echo "$output" | grep -q "cannot publish over the previously published"; then
+      # Version already on the registry — package unchanged this release
+      echo -e "  ${YELLOW}↷ Skipped (version already published)${NC}"
+      SKIPPED=$((SKIPPED + 1))
     else
+      echo "$output"
       echo -e "  ${RED}✗ Failed to publish${NC}"
       FAILED=$((FAILED + 1))
       FAILED_PACKAGES+=("$pkg")
@@ -236,6 +244,7 @@ echo "╚═══════════════════════�
 echo ""
 echo -e "  Total packages: ${BLUE}$TOTAL${NC}"
 echo -e "  Successful:     ${GREEN}$SUCCESS${NC}"
+echo -e "  Skipped:        ${YELLOW}$SKIPPED${NC} (already published)"
 echo -e "  Failed:         ${RED}$FAILED${NC}"
 
 if [ ${#FAILED_PACKAGES[@]} -gt 0 ]; then
