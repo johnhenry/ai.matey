@@ -71,6 +71,8 @@ export class InceptionBackendAdapter
       version: '1.0.0',
       provider: 'Inception Labs',
       capabilities: {
+        // No verified embeddings endpoint; opt out of the inherited embed()
+        embeddings: false,
         streaming: true,
         multiModal: false,
         tools: false,
@@ -114,6 +116,7 @@ export class InceptionBackendAdapter
   /**
    * Estimate cost for Inception Labs.
    */
+  // eslint-disable-next-line @typescript-eslint/require-await -- BackendAdapter interface is async
   async estimateCost(request: IRChatRequest): Promise<number | null> {
     const pricing: Record<string, { input: number; output: number }> = {
       'mercury-coder-small': { input: 0.25, output: 1.0 },

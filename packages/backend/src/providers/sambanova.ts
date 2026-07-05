@@ -72,6 +72,8 @@ export class SambaNovaBackendAdapter
       version: '1.0.0',
       provider: 'SambaNova',
       capabilities: {
+        // No verified embeddings endpoint; opt out of the inherited embed()
+        embeddings: false,
         streaming: true,
         multiModal: false,
         tools: true,
@@ -115,6 +117,7 @@ export class SambaNovaBackendAdapter
   /**
    * Estimate cost for SambaNova Cloud.
    */
+  // eslint-disable-next-line @typescript-eslint/require-await -- BackendAdapter interface is async
   async estimateCost(request: IRChatRequest): Promise<number | null> {
     // SambaNova pricing per 1M tokens (USD)
     const pricing: Record<string, { input: number; output: number }> = {

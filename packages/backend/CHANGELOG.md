@@ -1,5 +1,15 @@
 # ai.matey.backend
 
+## 0.5.0
+
+### Minor Changes
+
+- Three new backend adapters: Inception Labs (`InceptionBackendAdapter`), Moonshot AI
+  (`MoonshotBackendAdapter`), and SambaNova (`SambaNovaBackendAdapter`), all OpenAI-compatible with
+  subpath exports (`ai.matey.backend/inception`, `/moonshot`, `/sambanova`). (#12) These adapters do
+  not advertise embeddings support (`capabilities.embeddings: false`) since their embeddings
+  endpoints are absent or unverified.
+
 ## 0.4.0
 
 ### Minor Changes

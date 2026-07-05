@@ -71,6 +71,8 @@ export class MoonshotBackendAdapter
       version: '1.0.0',
       provider: 'Moonshot AI',
       capabilities: {
+        // No verified embeddings endpoint; opt out of the inherited embed()
+        embeddings: false,
         streaming: true,
         multiModal: false,
         tools: true,
@@ -114,6 +116,7 @@ export class MoonshotBackendAdapter
   /**
    * Estimate cost for Moonshot AI.
    */
+  // eslint-disable-next-line @typescript-eslint/require-await -- BackendAdapter interface is async
   async estimateCost(request: IRChatRequest): Promise<number | null> {
     // Moonshot AI pricing per 1M tokens (USD)
     const pricing: Record<string, { input: number; output: number }> = {
