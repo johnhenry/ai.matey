@@ -1,14 +1,19 @@
 # Dependencies
 /node_modules
 
-# Production
-/build
+# Astro / Starlight build output
+/dist
+.astro
 
-# Generated files
+# starlight-typedoc-generated reference — regenerated at build time
+src/content/docs/reference/
+
+# Legacy Docusaurus output (docs/, scripts/generate-all-api-docs.ts are
+# superseded by the Starlight migration — kept for this PR's diff, slated
+# for removal in a follow-up cleanup)
+/build
 .docusaurus
 .cache-loader
-
-# Auto-generated API documentation
 docs/api/generated/
 docs/api/packages/
 
