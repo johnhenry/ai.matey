@@ -1,6 +1,6 @@
 {
   "name": "ai.matey.native.node-llamacpp",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "node-llamacpp native backend for AI Matey",
   "type": "module",
   "main": "./dist/cjs/index.js",
@@ -67,5 +67,13 @@
   },
   "engines": {
     "node": ">=18.0.0"
+  },
+  "peerDependencies": {
+    "node-llama-cpp": ">=3.0.0"
+  },
+  "peerDependenciesMeta": {
+    "node-llama-cpp": {
+      "optional": true
+    }
   }
 }

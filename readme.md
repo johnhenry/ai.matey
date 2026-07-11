@@ -424,6 +424,7 @@ import { OpenAIBackendAdapter } from 'ai.matey.backend/openai';
 
 Subset of adapters that work in browser environments:
 - Chrome AI
+- LiteRT-LM (on-device Gemma via WebGPU)
 - Mock (testing)
 - Function (testing)
 

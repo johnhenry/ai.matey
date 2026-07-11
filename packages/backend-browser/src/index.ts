@@ -15,6 +15,9 @@
 // Chrome AI adapter - uses Chrome's built-in AI
 export * from './chrome-ai.js';
 
+// LiteRT-LM adapter - Google on-device LLM (WebGPU)
+export * from './litert-lm.js';
+
 // Function adapter - custom function-based backends
 export * from './function.js';
 

@@ -76,3 +76,51 @@ See the TypeScript definitions for detailed API documentation.
 ## License
 
 MIT - see [LICENSE](./LICENSE) for details.
+
+## LiteRT-LM (on-device LLM, WebGPU)
+
+Run Google's Gemma models entirely in the browser via [LiteRT-LM](https://developers.google.com/edge/litert-lm/js) — no API key, no server, no cost.
+
+```bash
+npm install ai.matey.backend.browser @litert-lm/core
+```
+
+```typescript
+import { Bridge } from 'ai.matey.core';
+import { OpenAIFrontendAdapter } from 'ai.matey.frontend';
+import { LiteRtLmBackendAdapter } from 'ai.matey.backend.browser';
+
+const backend = new LiteRtLmBackendAdapter({
+  model:
+    'https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm/resolve/main/gemma-4-E2B-it-web.litertlm',
+  maxNumTokens: 8192,
+});
+
+const bridge = new Bridge(new OpenAIFrontendAdapter(), backend);
+
+for await (const chunk of bridge.chatStream({
+  model: 'gemma-4-E2B-it-litert-lm',
+  messages: [{ role: 'user', content: 'Write a haiku about tide pools.' }],
+  stream: true,
+})) {
+  render(chunk.choices?.[0]?.delta?.content ?? '');
+}
+
+// Free GPU/WASM memory when done with the model
+await backend.dispose();
+```
+
+### Requirements & notes
+
+- **WebGPU** (Chrome 113+, Safari 17.4+, Firefox 121+). Browser only — no Node.js.
+- **Cross-origin isolation** may be required for threaded WASM: serve your page with
+  `Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embedder-Policy: require-corp`.
+- **Model downloads are large** (hundreds of MB to GBs). Engines are cached per model URL across
+  adapter instances, so the download/compile happens once per page.
+- **Web SDK limits** (early preview): text-only, no tool calling, no sampler parameters
+  (`temperature`/`topK`/`seed` are dropped with an IR warning). Prior conversation turns are
+  flattened into a transcript prefix (each request opens a fresh conversation).
+- Models: [litert-community on Hugging Face](https://huggingface.co/litert-community) —
+  Gemma-4 E2B (faster) and E4B (better), under the Gemma license.
+- Naming note: `@litertjs/core` ("LiteRT.js") is Google's tensor-level runtime and cannot run chat
+  models — this adapter wraps **LiteRT-LM** (`@litert-lm/core`), the conversation runtime.

@@ -1,6 +1,6 @@
 {
   "name": "ai.matey.backend.browser",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Browser-compatible backend adapters for AI Matey - Chrome AI, Function, Mock",
   "type": "module",
   "main": "./dist/cjs/index.js",
@@ -101,5 +101,13 @@
   "engines": {
     "node": ">=18.0.0"
   },
-  "browser": "./dist/esm/index.js"
+  "browser": "./dist/esm/index.js",
+  "peerDependencies": {
+    "@litert-lm/core": "*"
+  },
+  "peerDependenciesMeta": {
+    "@litert-lm/core": {
+      "optional": true
+    }
+  }
 }

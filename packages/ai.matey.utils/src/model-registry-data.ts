@@ -651,6 +651,36 @@ export const MODEL_REGISTRY_SEED: readonly ModelRegistryEntry[] = [
   },
 
   // ==========================================================================
+  // LiteRT-LM (on-device, browser/WebGPU — $0)
+  // ==========================================================================
+  {
+    id: 'gemma-4-E2B-it-litert-lm',
+    provider: 'litert-lm',
+    family: 'gemma-4',
+    aliases: ['gemma-4-E2B-it-web'],
+    releaseDate: '2026-05-01',
+    contextWindow: 8192,
+    maxOutputTokens: 8192,
+    pricing: { inputPer1M: 0, outputPer1M: 0 },
+    capabilities: { streaming: true, vision: false, tools: false, json: false },
+    latency: { p50: 400, p95: 1500 },
+    qualityScore: 62,
+  },
+  {
+    id: 'gemma-4-E4B-it-litert-lm',
+    provider: 'litert-lm',
+    family: 'gemma-4',
+    aliases: ['gemma-4-E4B-it-web'],
+    releaseDate: '2026-05-01',
+    contextWindow: 8192,
+    maxOutputTokens: 8192,
+    pricing: { inputPer1M: 0, outputPer1M: 0 },
+    capabilities: { streaming: true, vision: false, tools: false, json: false },
+    latency: { p50: 700, p95: 2500 },
+    qualityScore: 70,
+  },
+
+  // ==========================================================================
   // xAI
   // ==========================================================================
   {

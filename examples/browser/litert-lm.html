@@ -1,0 +1,45 @@
+<!doctype html>
+<!--
+  LiteRT-LM on-device chat demo.
+
+  Serve with cross-origin isolation, e.g.:
+    npx serve --cors -l 8787 . # then add COOP/COEP via a real server if needed
+  Requires a WebGPU-capable browser (Chrome 113+). First load downloads the
+  model bundle (hundreds of MB) — subsequent loads reuse the compiled engine.
+-->
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>ai.matey × LiteRT-LM</title>
+  </head>
+  <body>
+    <h1>ai.matey × LiteRT-LM (on-device Gemma)</h1>
+    <input id="prompt" size="60" value="Write a haiku about tide pools." />
+    <button id="send">Send</button>
+    <pre id="out"></pre>
+
+    <script type="module">
+      import { Bridge } from 'https://esm.sh/ai.matey.core';
+      import { OpenAIFrontendAdapter } from 'https://esm.sh/ai.matey.frontend';
+      import { LiteRtLmBackendAdapter } from 'https://esm.sh/ai.matey.backend.browser';
+
+      const backend = new LiteRtLmBackendAdapter({
+        model:
+          'https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm/resolve/main/gemma-4-E2B-it-web.litertlm',
+      });
+      const bridge = new Bridge(new OpenAIFrontendAdapter(), backend);
+      const out = document.getElementById('out');
+
+      document.getElementById('send').addEventListener('click', async () => {
+        out.textContent = '(loading model on first run…)\n';
+        for await (const chunk of bridge.chatStream({
+          model: 'gemma-4-E2B-it-litert-lm',
+          messages: [{ role: 'user', content: document.getElementById('prompt').value }],
+          stream: true,
+        })) {
+          out.textContent += chunk.choices?.[0]?.delta?.content ?? '';
+        }
+      });
+    </script>
+  </body>
+</html>
