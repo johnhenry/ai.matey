@@ -413,284 +413,110 @@ Legend: ⭐⭐ = Excellent (best-in-class), ⭐ = Good (competitive), ⚠️ = L
 | Middleware pipeline | ⭐⭐⭐⭐⭐ | ⭐⭐ |
 | Self-hosted | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ |
 
-## Development Priorities
+## Development Priorities — The Wave Plan (updated 2026-07)
 
-### Production Validation ✅
+Grounded in a July-2026 competitive analysis (Vercel AI SDK 7, LangChain/LangGraph 1.0, Mastra
+1.0, OpenAI Agents SDK, VoltAgent, LiteLLM/Portkey/Helicone gateways). Positioning decision:
+**ai.matey remains a pure self-hosted library** — gateway-style capabilities ship as
+self-hostable primitives, never a managed service.
 
-**Status**: All core packages production-ready (December 2025)
+Ranked capability gaps this plan closes: (1) MCP client+server — the defining 2026 shift,
+table stakes; (2) reusable Agent abstraction; (3) durable execution/checkpointing; (4) agent
+memory; (5) evals; (6) human-in-the-loop tool approvals; (7) speech/realtime-voice/image-gen/
+reranking; (8) RAG + vector connectors; (9) content guardrails; (10) observability UI + live
+pricing sync.
 
-**Comprehensive Testing Complete**:
-- ✅ **14 integration test applications** created and validated
-- ✅ **50+ test scenarios** executed successfully
-- ✅ **100% pass rate** on all core packages
-- ✅ **95%+ overall success rate** across entire ecosystem
-- ✅ **8 integration patterns** discovered and documented
-- ✅ **Performance benchmarks** established for all critical paths
+### ✅ Wave 0 (shipped 2026-07): LiteRT-LM on-device backend
 
-**Key Achievements**:
-- ✅ Middleware overhead: 1-9ms (6-layer chain, <10ms target met)
-- ✅ WebSocket latency: 101ms (exceeded <150ms target)
-- ✅ Batch throughput: 14.87 req/s (met 15+ req/s target)
-- ✅ Cache speedup: 1000x+ (exceeded 100x target)
-- ✅ Cost savings: 84% (exceeded 80% target)
+`LiteRtLmBackendAdapter` in `ai.matey.backend.browser` — Gemma on WebGPU via `@litert-lm/core`
+(optional peer), engine caching per model URL, streaming, semantic-drift warnings for the Web
+SDK's dropped features. (`@litertjs/core` is tensor-only and deliberately out of scope; the
+MediaPipe genai API is maintenance-mode.)
 
-**Documentation Created**:
-- 📘 [Integration Patterns Guide](./PATTERNS.md) - 8 production-ready patterns with examples
-- 📊 [Performance Benchmarks](./BENCHMARKS.md) - Comprehensive performance data
-- 🧪 [Testing Guide](./TESTING.md) - Test coverage and methodology
+### Wave 1 (next): MCP + Agents
 
-**See Also**:
-- [Test Report](https://github.com/johnhenry/ai.matey.examples/blob/main/FINAL-COMPREHENSIVE-TEST-REPORT.md) - Full validation results
-- [Examples Repository](https://github.com/johnhenry/ai.matey.examples) - All test applications
+**MCP client + server — new package `ai.matey.mcp`** (`packages/mcp`; optional peer
+`@modelcontextprotocol/sdk`):
+- Client: `createMCPToolSet({ transport: stdio | streamableHttp, oauth?, namePrefix?, include? })`
+  → `{ tools: Record<string, ToolDefinition>, listResources/readResource, listPrompts/getPrompt
+  (→ IRMessage[]), refreshTools, close }`. MCP tool `inputSchema` passes straight through to
+  `IRTool.parameters` (both raw JSON Schema); `tools/call` isError results throw so the existing
+  runTools loop feeds them back as error tool results. Tools plug into `bridge.runTools`/Agent
+  with zero loop changes.
+- Server: `createMCPServer({ name, tools, bridge? })` on the SDK's **low-level Server**
+  (`setRequestHandler` with raw JSON Schema — avoids a zod dependency), reusing
+  `validateToolArgs`; `connectStdio()` plus Streamable HTTP `nodeHandler()`/`genericHandler()`
+  for the http adapters. v1 scope: tools only (server-side resources/prompts in v2).
+- Tests: SDK `InMemoryTransport.createLinkedPair()` roundtrips; peer-missing → friendly
+  `AdapterError(UNSUPPORTED_FEATURE)`.
 
----
+**Agent abstraction — new package `ai.matey.agent`** (`packages/agent`):
+- Small core prerequisite: `RunToolsOptions.stopWhen?: (step) => boolean | Promise<boolean>`
+  checked after each iteration in `run-tools.ts`.
+- `Agent` class over `createRunTools`: `{ bridge | backend+model, name, instructions
+  (string | (ctx) => string), tools, memory?, maxIterations, stopWhen, approvals?, parameters }`;
+  `run()`, `stream()` (v1: per-step events via onStepFinish queue), `asTool()` for multi-agent
+  handoffs (agent-as-tool with mapInput/mapResult).
+- Typed run context: tools are `AgentToolDefinition<TContext>` — wrapped at run time so
+  `execute(input, ctx)` receives `ctx.context`.
+- Human-in-the-loop: per-tool `needsApproval: boolean | (input, ctx) => boolean`; suspension is
+  simply an unresolved promise awaiting the `ApprovalHandler` (AbortSignal still cancels);
+  `createApprovalQueue()` gives UIs pending()/approve()/deny(); denial throws
+  `TOOL_APPROVAL_DENIED` → converted to an isError tool result so the model adapts.
+- v2 (types reserved now): `AgentCheckpoint` + `onSuspend`/`resume(checkpoint, decisions)` for
+  durable runs; pluggable checkpoint stores.
 
-### Code Quality Improvements
+### Wave 2: Memory + Guardrails
 
-#### Re-enable Suppressed TypeScript ESLint Rules
+**Memory — new package `ai.matey.memory`** (`packages/memory`; depends on types/errors/utils
+only via a structural `EmbeddingProvider = { embed() }`):
+- `createConversationMemory({ store?, maxMessages?, compressor? })` — session history with
+  windowing and optional LLM compression of old turns into a summary message.
+- `createSemanticMemory({ embedder /* the Bridge */, store?, recallLimit?, minScore?, extract?,
+  inject? })` — recall via existing `bridge.embed()` + `cosineSimilarity`; `VectorStore`
+  interface with in-memory brute-force v1, pgvector/qdrant optional-peer subpaths v2.
+- Both implement the `AgentMemory` beforeRun/afterRun contract consumed by Agent;
+  `composeMemory(...)` chains them. Embedding caching comes free by stacking the existing
+  `createEmbeddingCachingMiddleware`.
 
-**Context**: During the monorepo migration, several strict TypeScript ESLint rules were temporarily disabled to allow the migration to complete without blocking on type safety issues. These suppressions are documented in `eslint.config.js` (lines 65-75) with a TODO comment indicating they should be re-enabled in follow-up work.
+**Guardrails — extend `ai.matey.middleware`** (new ErrorCode `GUARDRAIL_VIOLATION`):
+- `createPIIRedactionMiddleware` — deterministic regex builtins (email/phone/ssn/creditCard/
+  ipAddress/iban/apiKey) + custom patterns; actions transform (default) / deny / log; input,
+  output, or both directions.
+- `createModerationMiddleware` — LLM judge via a designated cheap bridge using the forced-tool-
+  call trick (schema-only, no zod); category scores + threshold; failOpen default.
+- `createAuditLogMiddleware` — hash-only by default (privacy-safe), drains violations recorded
+  in middleware `context.state`, one record per request with usage/duration/error.
+- Because `runTools`/Agent call `executeIR` through the middleware stack every iteration, rails
+  automatically police each turn — including tool results — with zero extra wiring.
 
-**Goal**: Systematically re-enable each suppressed rule and fix all violations to improve type safety across the codebase.
+### Wave 3: Modalities, RAG, Evals
 
-**Suppressed Rules** (9 total):
-1. `@typescript-eslint/no-unsafe-assignment` - Prevents assignments from `any` typed values
-2. `@typescript-eslint/no-unsafe-member-access` - Prevents accessing properties on `any` typed values
-3. `@typescript-eslint/no-unsafe-call` - Prevents calling functions with `any` typed values
-4. `@typescript-eslint/no-unsafe-return` - Prevents returning `any` typed values
-5. `@typescript-eslint/no-unsafe-argument` - Prevents passing `any` typed values as arguments
-6. `@typescript-eslint/no-explicit-any` - Prevents explicit use of `any` type
-7. `@typescript-eslint/prefer-nullish-coalescing` - Enforces nullish coalescing (`??`) over logical OR (`||`)
-8. `@typescript-eslint/require-await` - Requires `async` functions to contain `await` expressions
-9. `@typescript-eslint/no-redundant-type-constituents` - Prevents redundant types in union/intersection types
+- **Speech**: `generateSpeech` (TTS) + `transcribe` (STT) IR surfaces with OpenAI/ElevenLabs/
+  Deepgram adapters; realtime voice exploration after.
+- **Image generation** (`generateImage`) and **reranking** IR surfaces.
+- **RAG**: chunking + retrieval pipeline over Wave-2 vector stores (pgvector/Qdrant/Pinecone/
+  Chroma connectors as optional peers).
+- **Evals**: datasets + LLM-as-judge + rule-based metrics (relevance/faithfulness/toxicity),
+  running on ai.matey's own provider layer — the industry's evals gap (observability ~89% vs
+  evals ~52% adoption) is ai.matey's opening.
 
-**Approach**:
-1. Re-enable one rule at a time
-2. Run `npx turbo run lint --force` to bypass cache and see all violations
-3. Fix all violations for that rule across the monorepo
-4. Verify tests still pass with `npm test`
-5. Commit the changes
-6. Move to next rule
+### Wave 4: Reach & polish
 
-**Priority Order** (suggested):
-- Start with simpler rules like `require-await` and `no-redundant-type-constituents`
-- Then tackle `prefer-nullish-coalescing`
-- Finally address the stricter `any`-related rules which may require more significant refactoring
+- Additional browser backends beside LiteRT-LM: **web-llm/MLC** (OpenAI-shaped, fastest tok/s)
+  and **transformers.js v4** (ONNX/WebGPU; also a path to on-device embeddings).
+- **Vue and Svelte hooks** mirroring `ai.matey.react.core`.
+- **Devtools/trace inspector** over the existing OpenTelemetry + stats surfaces.
+- **Registry pricing auto-sync**: optional fetch of a maintained pricing feed at runtime
+  (`registerModels()` already supports live updates).
 
-**Reference**: See `eslint.config.js` lines 65-75 for current suppressions.
+### Durable strengths to preserve
 
-**Related Work**:
-- Several type assertion issues were already fixed in commits 5b667eb and 226fcc2
-- The `@typescript-eslint/no-unnecessary-type-assertion` rule was successfully re-enabled
+Zero runtime dependencies; 28 backends with 7 routing strategies, circuit breaker, fallback and
+parallel dispatch; 6 HTTP framework adapters with health/metrics/embeddings endpoints; the
+format-conversion CLI and OpenAI/Anthropic SDK shims; multi-format frontend adapters (few
+competitors can speak Anthropic's or Gemini's wire format into the same core).
 
----
-
-### Next Phase: Enhanced Documentation & Features
-
-**1. ✅ Structured Output with Zod** (COMPLETED - closes gap with Instructor-JS & Vercel AI)
-- ✅ Zod schema integration
-- ✅ Schema → tool definitions converter
-- ✅ Runtime validation
-- ✅ Type inference from schemas
-- ✅ Streaming with partial objects (`streamObject()`)
-- ✅ `generateObject()` method
-- ✅ Security utilities (PII detection, prompt injection detection)
-- 📦 **Implementation**: `packages/ai.matey.utils/src/structured-output.ts`
-- 📦 **Bridge integration**: `bridge.generateObject()` and `bridge.streamObject()` methods
-- ✅ **Tests**: 12 passing tests in `tests/unit/structured-output.test.ts`
-- 🎯 **Zero-dependency**: Zod is an **optional peer dependency** - only required if you use structured output features
-- 💡 **Installation**: Users only install `zod` if they need `generateObject()` or `streamObject()`
-
-**2. ✅ Integration Patterns as Reusable Components** (COMPLETED 2026-07 — `ai.matey.patterns`)
-- **Status**: ✅ 8 patterns validated and documented in [PATTERNS.md](./PATTERNS.md)
-- **Goal**: Extract patterns into reusable, importable utilities
-- **Deliverables**:
-  - Create `ai.matey.patterns` package with utilities:
-    - `createComplexityRouter()` - Intelligent query routing
-    - `createParallelAggregator()` - Multi-provider execution
-    - `createFailoverMiddleware()` - Automatic resilience
-    - `createCostOptimizer()` - Dynamic cost optimization
-    - `createBatchProcessor()` - Rate-limited batch processing
-  - Add `ai.matey.http/websocket` subpath for WebSocket streaming
-  - Integrate health monitoring with OpenTelemetry
-
-**3. Enhanced Documentation**
-- ✅ Integration patterns guide ([PATTERNS.md](./PATTERNS.md))
-- ✅ Performance benchmarks ([BENCHMARKS.md](./BENCHMARKS.md))
-- ✅ Testing guide ([TESTING.md](./TESTING.md))
-- Interactive code playground (web-based)
-- Video tutorials and walkthroughs
-- Step-by-step guides for common patterns
-- More real-world examples
-- API reference improvements
-
-**4. Circuit Breaker Enhancement** (Q2 2026) (⭐ → ⭐⭐)
-- **OpenTelemetry integration**: Emit circuit state changes as spans/events
-  - `circuit.opened`, `circuit.half_open`, `circuit.closed` events
-  - Failure count, threshold, and timeout as span attributes
-  - Integrates with existing OpenTelemetry middleware
-- Configurable failure thresholds per provider
-- Half-open state with graduated recovery
-- Circuit breaker events and webhooks for custom monitoring
-- Per-model circuit breakers (not just per-provider)
-- Health check improvements with circuit status
-
-**5. ✅ HTTP Server Improvements** (LARGELY COMPLETED 2026-07 — WebSocket subpath, /metrics, /health endpoints, per-route rate limits; compression still open)
-- **WebSocket support** for real-time streaming ✅ **Validated** (15/15 tests passing, 101ms latency)
-- Server-Sent Events (SSE) improvements
-- Better error handling and status codes
-- Request/response compression
-- Rate limiting per route/user
-- **Metrics endpoints**:
-  - Prometheus format metrics (`/metrics`)
-  - OpenTelemetry metrics export (integrates with existing OTel middleware)
-  - Circuit breaker status included
-- Health check endpoints with detailed status (`/health`, `/health/ready`, `/health/live`)
-
-**6. ✅ Embeddings Support** (COMPLETED 2026-07)
-- Embedding generation across providers (24 backends)
-- Batch embedding support with automatic chunking
-- Vector dimension normalization across providers
-- **Cost tracking integration**: Uses existing cost-tracking middleware
-- **Caching integration**: Cache embeddings using existing caching middleware
-- **Router integration**: Route embedding requests like chat (cost/latency optimized)
-
-### Future Phase: Semantic Caching & Guardrails
-
-**Semantic Caching** (unique differentiator)
-- **Middleware architecture**: Implemented as middleware, works with existing pipeline
-- Cache by semantic meaning, not exact match
-- Cosine similarity matching with configurable threshold
-- **Embeddings integration**: Uses Embeddings Support for semantic comparison
-- Cache across different provider formats (provider-agnostic)
-- **OpenTelemetry metrics**: Cache hit/miss rates, similarity scores
-- Performance: 20x faster than API calls
-
-**Guardrails System** (inspired by Portkey)
-- **Middleware architecture**: Implemented as middleware, composable with others
-- **Pre-built deterministic checks**: PII detection, profanity filtering, code detection, URL detection, prompt injection
-- **LLM-based checks**: Toxicity, bias, factual consistency (uses existing providers)
-- **Configurable actions**:
-  - `deny` - Block request and return error
-  - `log` - Log violation, continue request (uses existing logging middleware)
-  - `fallback` - Use fallback provider (uses existing router)
-  - `retry` - Retry with modifications (uses existing retry middleware)
-- **OpenTelemetry integration**: Guardrail violations tracked as events
-- Custom guardrail support via plugin API
-
-**OpenTelemetry Enhancement**
-- Additional integration examples (Jaeger, Zipkin, Datadog, Honeycomb)
-- Performance optimization for trace spans
-
-## Long-Term Vision
-
-### Enhanced Multi-Modal
-- **Audio processing**: Speech-to-text, text-to-speech across providers
-  - Uses existing router for provider selection
-  - Cost tracking integration
-- **Image generation**: DALL-E, Stable Diffusion, Midjourney
-  - Provider abstraction for image models
-  - Caching integration for generated images
-- **Video understanding**: Video analysis across providers
-- **Advanced vision capabilities**: OCR, object detection, image classification
-
-### Enterprise Features
-- **Geographic routing**: Route to nearest provider for latency
-  - Router integration with geo-aware strategy
-  - OpenTelemetry metrics for latency by region
-- **Multi-tenancy support**: Tenant isolation and resource management
-  - Security middleware integration for tenant authentication
-  - Cost tracking middleware per tenant
-  - Separate circuit breakers per tenant
-- **Advanced rate limiting**: Per-tenant, per-model, per-endpoint
-  - Security middleware enhancement
-  - OpenTelemetry metrics for rate limit hits
-  - Integration with existing health checks
-- **Audit logging and compliance**: Request/response audit trail
-  - Logging middleware integration
-  - OpenTelemetry events for audit trail
-  - Conversation history middleware for full context preservation
-- **SSO integration**: Enterprise authentication support
-  - Security middleware enhancement
-  - OpenID Connect, SAML support
-
-### Performance Optimizations
-- **Request deduplication**: Collapse identical concurrent requests
-  - Middleware implementation
-  - Caching middleware integration for dedup detection
-  - OpenTelemetry metrics for dedup hit rate
-- **Batch request optimization**: Automatic batching for supported providers
-  - Router enhancement for batch dispatch
-  - Cost tracking middleware for batched requests
-- **Response compression**: Gzip/brotli for HTTP responses
-  - HTTP core utilities enhancement
-  - OpenTelemetry metrics for compression ratios
-- **Parallel dispatch improvements**: Enhanced parallel execution
-  - Router enhancement with improved concurrency control
-  - OpenTelemetry distributed tracing for parallel requests
-  - Circuit breaker integration (fail fast for unavailable backends)
-
-### Developer Experience
-- **VSCode extension**: Code snippets, autocomplete, inline docs
-  - TypeScript integration with type inference
-  - Quick provider switching
-  - OpenTelemetry trace viewer integration
-- **Browser debugging extension**: Chrome DevTools integration
-  - Request/response inspection
-  - Middleware pipeline visualization
-  - OpenTelemetry trace correlation
-  - Circuit breaker status display
-- **Interactive code playground**: Web-based REPL
-  - Powered by existing backend adapters
-  - Mock provider for demo without API keys
-  - React integration examples
-- **"Awesome ai.matey" community list**: Curated resources
-  - Community adapters, middleware, examples
-- **Community adapter marketplace**: Discoverability platform
-  - Testing utilities integration for adapter validation
-  - OpenTelemetry-instrumented examples
-
-### Advanced Features
-- **Machine learning optimization**: Learn optimal models from usage patterns
-  - Cost tracking middleware data for training
-  - OpenTelemetry metrics for model performance
-  - Router integration for automatic model selection
-- **Model recommendations**: Suggest cheaper/better alternatives
-  - Cost tracking middleware integration
-  - Capability matching based on actual usage
-  - OpenTelemetry metrics for recommendation acceptance
-- **Dynamic pricing**: Real-time pricing API integration
-  - Cost tracking middleware enhancement
-  - Router integration for cost-based routing
-  - OpenTelemetry metrics for pricing fluctuations
-- **Advanced capability matching**: Match requests to capable models
-  - Router enhancement with capability awareness
-  - Uses existing provider metadata
-- **Prompt template system**: Versioned prompt management
-  - Transform middleware integration
-  - Conversation history middleware for template context
-  - Validation middleware for template compliance
-
-### Ecosystem Expansion
-- **SvelteKit integration**: Server-side actions and stores
-  - Similar to existing Next.js integration
-  - React core hooks adapted for Svelte
-  - HTTP integration with SvelteKit endpoints
-- **Vue.js composables**: `useChat`, `useCompletion` for Vue 3
-  - Similar to React hooks architecture
-  - Composables package following existing pattern
-- **WebLLM browser integration**: Hybrid local+cloud models
-  - Browser backend adapter (similar to Chrome AI)
-  - Router integration for local-first strategy
-  - Fallback to cloud providers when local unavailable
-- **Plugin system**: Extensible middleware and adapter registry
-  - Middleware pipeline enhancement
-  - Testing utilities for plugin validation
-  - OpenTelemetry integration for plugin metrics
-- **Community adapter registry**: NPM-based adapter discovery
-  - Standard adapter interface compliance
-  - Testing utilities for community adapters
-  - OpenTelemetry metrics reporting standard
 
 ## CI/CD & Infrastructure
 
