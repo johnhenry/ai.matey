@@ -77,6 +77,7 @@ export class SambaNovaBackendAdapter
         streaming: true,
         multiModal: false,
         tools: true,
+        structuredOutput: 'native',
         maxContextTokens: 131072,
         systemMessageStrategy: 'in-messages',
         supportsMultipleSystemMessages: false,

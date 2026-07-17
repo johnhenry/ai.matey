@@ -33,6 +33,9 @@ import {
   buildStaticResult,
   applyModelFilter,
   DEFAULT_MISTRAL_MODELS,
+  buildStructuredOutputFallbackMessages,
+  extractStructuredOutputJSON,
+  buildResponseFormatFallbackWarning,
   type ModelCapabilityFilter,
 } from '../shared.js';
 import type { ListModelsOptions, ListModelsResult, AIModel } from 'ai.matey.types';
@@ -99,6 +102,7 @@ export class MistralBackendAdapter implements BackendAdapter<MistralRequest, Mis
         streaming: true,
         multiModal: false,
         tools: true,
+        structuredOutput: 'fallback',
         maxContextTokens: 32000,
         systemMessageStrategy: 'in-messages',
         supportsMultipleSystemMessages: false,
@@ -405,7 +409,7 @@ export class MistralBackendAdapter implements BackendAdapter<MistralRequest, Mis
    */
   public fromIR(request: IRChatRequest): MistralRequest {
     const { messages } = normalizeSystemMessages(
-      request.messages,
+      buildStructuredOutputFallbackMessages(request.messages, request.responseFormat),
       this.metadata.capabilities.systemMessageStrategy,
       this.metadata.capabilities.supportsMultipleSystemMessages
     );
@@ -448,7 +452,10 @@ export class MistralBackendAdapter implements BackendAdapter<MistralRequest, Mis
       });
     }
 
-    const message: IRMessage = { role: 'assistant', content: choice.message.content };
+    const content = originalRequest.responseFormat
+      ? extractStructuredOutputJSON(choice.message.content)
+      : choice.message.content;
+    const message: IRMessage = { role: 'assistant', content };
 
     return {
       message,
@@ -462,7 +469,18 @@ export class MistralBackendAdapter implements BackendAdapter<MistralRequest, Mis
         ...originalRequest.metadata,
         providerResponseId: response.id,
         provenance: { ...originalRequest.metadata.provenance, backend: this.metadata.name },
-        custom: { ...originalRequest.metadata.custom, mistralResponseId: response.id, latencyMs },
+        custom: {
+          ...originalRequest.metadata.custom,
+          mistralResponseId: response.id,
+          latencyMs,
+          ...(originalRequest.responseFormat ? { responseFormatEnforced: false } : {}),
+        },
+        warnings: originalRequest.responseFormat
+          ? [
+              ...(originalRequest.metadata.warnings ?? []),
+              buildResponseFormatFallbackWarning(this.metadata.name),
+            ]
+          : originalRequest.metadata.warnings,
       },
       raw: response as unknown as Record<string, unknown>,
     };

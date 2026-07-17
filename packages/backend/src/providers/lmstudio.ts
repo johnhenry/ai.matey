@@ -77,6 +77,7 @@ export class LMStudioBackendAdapter
         streaming: true,
         multiModal: false, // Depends on loaded model
         tools: true, // Depends on loaded model
+        structuredOutput: 'native',
         maxContextTokens: 32000, // Varies by loaded model
         systemMessageStrategy: 'in-messages',
         supportsMultipleSystemMessages: false,

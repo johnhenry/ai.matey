@@ -25,6 +25,11 @@ import {
 } from 'ai.matey.errors';
 import { normalizeSystemMessages } from 'ai.matey.utils';
 import { getEffectiveStreamMode, mergeStreamingConfig } from 'ai.matey.utils';
+import {
+  buildStructuredOutputFallbackMessages,
+  extractStructuredOutputJSON,
+  buildResponseFormatFallbackWarning,
+} from '../shared.js';
 
 // ============================================================================
 // xAI API Types (OpenAI-compatible)
@@ -123,6 +128,7 @@ export class XAIBackendAdapter implements BackendAdapter<XAIRequest, XAIResponse
         streaming: true,
         multiModal: true, // Grok-vision available
         tools: true, // Function calling
+        structuredOutput: 'fallback',
         maxContextTokens: 2_000_000, // 2M context window
         systemMessageStrategy: 'in-messages',
         supportsMultipleSystemMessages: true,
@@ -145,7 +151,7 @@ export class XAIBackendAdapter implements BackendAdapter<XAIRequest, XAIResponse
    */
   public fromIR(request: IRChatRequest): XAIRequest {
     const { messages } = normalizeSystemMessages(
-      request.messages,
+      buildStructuredOutputFallbackMessages(request.messages, request.responseFormat),
       this.metadata.capabilities.systemMessageStrategy,
       this.metadata.capabilities.supportsMultipleSystemMessages
     );
@@ -204,12 +210,17 @@ export class XAIBackendAdapter implements BackendAdapter<XAIRequest, XAIResponse
       });
     }
 
+    const rawContent =
+      typeof choice.message.content === 'string'
+        ? choice.message.content
+        : choice.message.content.map((c: any) => (c.type === 'text' ? c.text : '')).join('');
+    const content = originalRequest.responseFormat
+      ? extractStructuredOutputJSON(rawContent)
+      : rawContent;
+
     const message: IRMessage = {
       role: choice.message.role === 'assistant' ? 'assistant' : 'user',
-      content:
-        typeof choice.message.content === 'string'
-          ? choice.message.content
-          : choice.message.content.map((c: any) => (c.type === 'text' ? c.text : '')).join(''),
+      content,
     };
 
     const finishReasonMap: Record<string, FinishReason> = {
@@ -238,7 +249,14 @@ export class XAIBackendAdapter implements BackendAdapter<XAIRequest, XAIResponse
         custom: {
           ...originalRequest.metadata.custom,
           latencyMs,
+          ...(originalRequest.responseFormat ? { responseFormatEnforced: false } : {}),
         },
+        warnings: originalRequest.responseFormat
+          ? [
+              ...(originalRequest.metadata.warnings ?? []),
+              buildResponseFormatFallbackWarning(this.metadata.name),
+            ]
+          : originalRequest.metadata.warnings,
       },
       raw: response as unknown as Record<string, unknown>,
     };

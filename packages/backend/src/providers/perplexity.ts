@@ -25,6 +25,11 @@ import {
 } from 'ai.matey.errors';
 import { normalizeSystemMessages } from 'ai.matey.utils';
 import { getEffectiveStreamMode, mergeStreamingConfig } from 'ai.matey.utils';
+import {
+  buildStructuredOutputFallbackMessages,
+  extractStructuredOutputJSON,
+  buildResponseFormatFallbackWarning,
+} from '../shared.js';
 
 // ============================================================================
 // Perplexity AI API Types (OpenAI-compatible with search extensions)
@@ -123,6 +128,7 @@ export class PerplexityBackendAdapter implements BackendAdapter<
         streaming: true,
         multiModal: false, // Text-only
         tools: false, // No function calling
+        structuredOutput: 'fallback',
         maxContextTokens: 128000,
         systemMessageStrategy: 'in-messages',
         supportsMultipleSystemMessages: true,
@@ -145,7 +151,7 @@ export class PerplexityBackendAdapter implements BackendAdapter<
    */
   public fromIR(request: IRChatRequest): PerplexityRequest {
     const { messages } = normalizeSystemMessages(
-      request.messages,
+      buildStructuredOutputFallbackMessages(request.messages, request.responseFormat),
       this.metadata.capabilities.systemMessageStrategy,
       this.metadata.capabilities.supportsMultipleSystemMessages
     );
@@ -225,12 +231,17 @@ export class PerplexityBackendAdapter implements BackendAdapter<
       });
     }
 
+    const rawContent =
+      typeof choice.message.content === 'string'
+        ? choice.message.content
+        : choice.message.content.map((c: any) => (c.type === 'text' ? c.text : '')).join('');
+    const content = originalRequest.responseFormat
+      ? extractStructuredOutputJSON(rawContent)
+      : rawContent;
+
     const message: IRMessage = {
       role: choice.message.role === 'assistant' ? 'assistant' : 'user',
-      content:
-        typeof choice.message.content === 'string'
-          ? choice.message.content
-          : choice.message.content.map((c: any) => (c.type === 'text' ? c.text : '')).join(''),
+      content,
     };
 
     const finishReasonMap: Record<string, FinishReason> = {
@@ -261,7 +272,14 @@ export class PerplexityBackendAdapter implements BackendAdapter<
           ...(response.citations && response.citations.length > 0
             ? { citations: response.citations }
             : {}),
+          ...(originalRequest.responseFormat ? { responseFormatEnforced: false } : {}),
         },
+        warnings: originalRequest.responseFormat
+          ? [
+              ...(originalRequest.metadata.warnings ?? []),
+              buildResponseFormatFallbackWarning(this.metadata.name),
+            ]
+          : originalRequest.metadata.warnings,
       },
       raw: response as unknown as Record<string, unknown>,
     };

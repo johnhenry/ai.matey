@@ -76,6 +76,7 @@ export class InceptionBackendAdapter
         streaming: true,
         multiModal: false,
         tools: false,
+        structuredOutput: 'native',
         maxContextTokens: 32768,
         systemMessageStrategy: 'in-messages',
         supportsMultipleSystemMessages: false,

@@ -34,6 +34,9 @@ import {
   buildStaticResult,
   applyModelFilter,
   DEFAULT_COHERE_MODELS,
+  buildStructuredOutputFallbackMessages,
+  extractStructuredOutputJSON,
+  buildResponseFormatFallbackWarning,
   type ModelCapabilityFilter,
 } from '../shared.js';
 
@@ -139,6 +142,7 @@ export class CohereBackendAdapter implements BackendAdapter<CohereRequest, Coher
         streaming: true,
         multiModal: false, // Text-only
         tools: false, // No function calling
+        structuredOutput: 'fallback',
         maxContextTokens: 128000,
         systemMessageStrategy: 'separate-parameter', // Uses preamble field
         supportsMultipleSystemMessages: false, // Only one preamble
@@ -161,7 +165,7 @@ export class CohereBackendAdapter implements BackendAdapter<CohereRequest, Coher
    */
   public fromIR(request: IRChatRequest): CohereRequest {
     const { messages, systemParameter } = normalizeSystemMessages(
-      request.messages,
+      buildStructuredOutputFallbackMessages(request.messages, request.responseFormat),
       this.metadata.capabilities.systemMessageStrategy,
       this.metadata.capabilities.supportsMultipleSystemMessages
     );
@@ -247,9 +251,12 @@ export class CohereBackendAdapter implements BackendAdapter<CohereRequest, Coher
     originalRequest: IRChatRequest,
     latencyMs: number
   ): IRChatResponse {
+    const content = originalRequest.responseFormat
+      ? extractStructuredOutputJSON(response.text)
+      : response.text;
     const message: IRMessage = {
       role: 'assistant',
-      content: response.text,
+      content,
     };
 
     const finishReasonMap: Record<string, FinishReason> = {
@@ -283,7 +290,14 @@ export class CohereBackendAdapter implements BackendAdapter<CohereRequest, Coher
           ...(response.citations && response.citations.length > 0
             ? { citations: response.citations }
             : {}),
+          ...(originalRequest.responseFormat ? { responseFormatEnforced: false } : {}),
         },
+        warnings: originalRequest.responseFormat
+          ? [
+              ...(originalRequest.metadata.warnings ?? []),
+              buildResponseFormatFallbackWarning(this.metadata.name),
+            ]
+          : originalRequest.metadata.warnings,
       },
       raw: response as unknown as Record<string, unknown>,
     };

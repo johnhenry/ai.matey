@@ -397,6 +397,47 @@ export interface IRTool {
   readonly metadata?: Record<string, unknown>;
 }
 
+/**
+ * Structured/schema-constrained output request.
+ *
+ * Asks the backend to constrain its response to a caller-supplied JSON
+ * schema. Backends with a native mechanism (e.g. OpenAI, Anthropic, Gemini)
+ * map this directly; others emulate it via prompt injection and best-effort
+ * JSON extraction (see `IRCapabilities.structuredOutput` and
+ * `IRChatResponse.metadata.custom.responseFormatEnforced`).
+ *
+ * This is a best-effort request, not a guarantee - callers should still
+ * validate the parsed response against their schema (e.g. with Zod).
+ *
+ * @example
+ * ```typescript
+ * const responseFormat: IRResponseFormat = {
+ *   type: 'json_schema',
+ *   schema: {
+ *     type: 'object',
+ *     properties: { answer: { type: 'string' } },
+ *     required: ['answer']
+ *   }
+ * };
+ * ```
+ */
+export interface IRResponseFormat {
+  /**
+   * Format type. Currently only JSON Schema-constrained output is supported.
+   */
+  readonly type: 'json_schema';
+
+  /**
+   * JSON Schema the response must conform to.
+   */
+  readonly schema: JSONSchema;
+
+  /**
+   * Hint: reject/retry on schema violation where the backend supports it.
+   */
+  readonly strict?: boolean;
+}
+
 // ============================================================================
 // Request Parameters
 // ============================================================================
@@ -552,6 +593,13 @@ export interface IRCapabilities {
    * Supports tool/function calling.
    */
   readonly tools?: boolean;
+
+  /**
+   * Whether structured/schema-constrained output (`IRChatRequest.responseFormat`)
+   * is enforced natively by the provider's API, or emulated via a
+   * prompt-injection + best-effort JSON extraction fallback.
+   */
+  readonly structuredOutput?: 'native' | 'fallback';
 
   /**
    * Whether the backend can generate embeddings (implements `embed()`).
@@ -863,6 +911,12 @@ export interface IRChatRequest {
    * - { name: string }: Force specific tool
    */
   readonly toolChoice?: 'auto' | 'required' | 'none' | { readonly name: string };
+
+  /**
+   * Structured/schema-constrained output request.
+   * Optional, for JSON-schema-constrained responses.
+   */
+  readonly responseFormat?: IRResponseFormat;
 
   /**
    * Request parameters.

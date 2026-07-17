@@ -84,6 +84,7 @@ export class NVIDIABackendAdapter
         streaming: true,
         multiModal: false, // Most NIM models are text-only
         tools: true,
+        structuredOutput: 'native',
         maxContextTokens: 128000, // Varies by model
         systemMessageStrategy: 'in-messages',
         supportsMultipleSystemMessages: false,

@@ -74,6 +74,7 @@ export class DeepSeekBackendAdapter
         // the API with the V4 generation, 2026)
         multiModal: true,
         tools: true,
+        structuredOutput: 'native',
         maxContextTokens: 1_000_000, // V4 default context window
         systemMessageStrategy: 'in-messages',
         supportsMultipleSystemMessages: false,

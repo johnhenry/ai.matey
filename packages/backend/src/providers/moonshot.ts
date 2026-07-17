@@ -76,6 +76,7 @@ export class MoonshotBackendAdapter
         streaming: true,
         multiModal: false,
         tools: true,
+        structuredOutput: 'native',
         maxContextTokens: 128000,
         systemMessageStrategy: 'in-messages',
         supportsMultipleSystemMessages: false,

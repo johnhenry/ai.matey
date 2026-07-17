@@ -54,6 +54,8 @@ export interface GeminiRequest {
     topK?: number;
     maxOutputTokens?: number;
     stopSequences?: string[];
+    responseMimeType?: string;
+    responseSchema?: Record<string, unknown>;
   };
 }
 
@@ -99,6 +101,7 @@ export class GeminiBackendAdapter implements BackendAdapter<GeminiRequest, Gemin
         streaming: true,
         multiModal: true,
         tools: true,
+        structuredOutput: 'native',
         maxContextTokens: 2000000,
         systemMessageStrategy: 'separate-parameter',
         supportsMultipleSystemMessages: false,
@@ -544,6 +547,10 @@ export class GeminiBackendAdapter implements BackendAdapter<GeminiRequest, Gemin
         stopSequences: request.parameters?.stopSequences
           ? [...request.parameters.stopSequences]
           : undefined,
+        responseMimeType: request.responseFormat ? 'application/json' : undefined,
+        responseSchema: request.responseFormat
+          ? (request.responseFormat.schema as unknown as Record<string, unknown>)
+          : undefined,
       },
     };
   }
@@ -584,7 +591,11 @@ export class GeminiBackendAdapter implements BackendAdapter<GeminiRequest, Gemin
         ...originalRequest.metadata,
         providerResponseId: undefined, // Gemini does not provide a response ID
         provenance: { ...originalRequest.metadata.provenance, backend: this.metadata.name },
-        custom: { ...originalRequest.metadata.custom, latencyMs },
+        custom: {
+          ...originalRequest.metadata.custom,
+          latencyMs,
+          ...(originalRequest.responseFormat ? { responseFormatEnforced: true } : {}),
+        },
       },
       raw: response as unknown as Record<string, unknown>,
     };

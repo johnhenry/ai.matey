@@ -12,6 +12,8 @@ import type {
   IRMessage,
   IREmbedRequest,
   IREmbedResponse,
+  IRResponseFormat,
+  IRWarning,
   AIModel,
   ListModelsResult,
 } from 'ai.matey.types';
@@ -376,6 +378,113 @@ export function safeParseJSON(text: string | undefined | null): Record<string, u
   } catch {
     return {};
   }
+}
+
+// ============================================================================
+// Structured Output Fallback
+// ============================================================================
+//
+// For backends with no native schema-constrained output mechanism, we emulate
+// `IRChatRequest.responseFormat` by appending a schema instruction to the
+// prompt and doing a best-effort, local (no network retry) extraction/repair
+// of JSON from the plain-text reply. Callers should still validate the
+// parsed result against their schema - this is best-effort, not a guarantee.
+
+/**
+ * Append a schema-instruction message for backends with no native
+ * structured-output mechanism. Returns `messages` unchanged if no
+ * `responseFormat` was requested.
+ */
+export function buildStructuredOutputFallbackMessages(
+  messages: readonly IRMessage[],
+  responseFormat: IRResponseFormat | undefined
+): readonly IRMessage[] {
+  if (!responseFormat) {
+    return messages;
+  }
+
+  const instruction: IRMessage = {
+    role: 'system',
+    content:
+      'Respond with ONLY valid JSON matching this JSON Schema - no prose, no markdown code ' +
+      `fences, no explanation before or after the JSON:\n${JSON.stringify(responseFormat.schema)}`,
+  };
+
+  return [...messages, instruction];
+}
+
+/**
+ * Best-effort extraction of a JSON value from a (possibly prose-wrapped)
+ * model response, for backends emulating `responseFormat` via prompt
+ * injection. Strips markdown code fences, locates the outermost balanced
+ * `{...}`/`[...]` span, and tries one repair pass (removing trailing commas)
+ * if the initial parse fails.
+ *
+ * Returns the cleaned JSON text if it parses successfully, otherwise
+ * returns `text` unchanged - the caller is responsible for validating
+ * whatever comes back.
+ */
+export function extractStructuredOutputJSON(text: string): string {
+  const fenced = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+  const candidate = (fenced?.[1] ?? text).trim();
+
+  const span = extractBalancedJSONSpan(candidate);
+  if (!span) {
+    return text;
+  }
+
+  if (isValidJSON(span)) {
+    return span;
+  }
+
+  const repaired = span.replace(/,(\s*[}\]])/g, '$1');
+  return isValidJSON(repaired) ? repaired : text;
+}
+
+function extractBalancedJSONSpan(text: string): string | undefined {
+  const start = text.search(/[{[]/);
+  if (start === -1) {
+    return undefined;
+  }
+
+  const open = text[start];
+  const close = open === '{' ? '}' : ']';
+  let depth = 0;
+
+  for (let i = start; i < text.length; i++) {
+    if (text[i] === open) {
+      depth++;
+    } else if (text[i] === close) {
+      depth--;
+      if (depth === 0) {
+        return text.slice(start, i + 1);
+      }
+    }
+  }
+
+  return undefined;
+}
+
+function isValidJSON(text: string): boolean {
+  try {
+    JSON.parse(text);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Build the semantic-drift warning for a fallback (non-native)
+ * structured-output response, per the IR's warning-tracking convention.
+ */
+export function buildResponseFormatFallbackWarning(backendName: string): IRWarning {
+  return {
+    category: 'capability-unsupported',
+    severity: 'info',
+    message: `${backendName} has no native structured-output mechanism; responseFormat was emulated via prompt injection and best-effort JSON extraction.`,
+    field: 'responseFormat',
+  };
 }
 
 // ============================================================================
