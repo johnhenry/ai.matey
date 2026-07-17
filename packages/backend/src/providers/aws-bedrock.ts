@@ -25,6 +25,11 @@ import {
 } from 'ai.matey.errors';
 import { normalizeSystemMessages } from 'ai.matey.utils';
 import { getEffectiveStreamMode, mergeStreamingConfig } from 'ai.matey.utils';
+import {
+  buildStructuredOutputFallbackMessages,
+  extractStructuredOutputJSON,
+  buildResponseFormatFallbackWarning,
+} from '../shared.js';
 
 // ============================================================================
 // AWS Bedrock API Types (Converse API)
@@ -142,6 +147,7 @@ export class AWSBedrockBackendAdapter implements BackendAdapter<BedrockRequest, 
         streaming: true, // Note: Not supported in all regions/models
         multiModal: true, // Vision supported in some models
         tools: false, // Converse API doesn't support function calling
+        structuredOutput: 'fallback',
         maxContextTokens: 200000, // Claude 3 models support 200K
         systemMessageStrategy: 'separate-parameter', // Uses system field
         supportsMultipleSystemMessages: true,
@@ -165,7 +171,7 @@ export class AWSBedrockBackendAdapter implements BackendAdapter<BedrockRequest, 
    */
   public fromIR(request: IRChatRequest): BedrockRequest {
     const { messages, systemParameter } = normalizeSystemMessages(
-      request.messages,
+      buildStructuredOutputFallbackMessages(request.messages, request.responseFormat),
       this.metadata.capabilities.systemMessageStrategy,
       this.metadata.capabilities.supportsMultipleSystemMessages
     );
@@ -232,9 +238,13 @@ export class AWSBedrockBackendAdapter implements BackendAdapter<BedrockRequest, 
     originalRequest: IRChatRequest,
     latencyMs: number
   ): IRChatResponse {
+    const rawContent = response.output.message.content.map((c) => c.text).join('');
+
     const message: IRMessage = {
       role: 'assistant',
-      content: response.output.message.content.map((c) => c.text).join(''),
+      content: originalRequest.responseFormat
+        ? extractStructuredOutputJSON(rawContent)
+        : rawContent,
     };
 
     const finishReasonMap: Record<string, FinishReason> = {
@@ -262,7 +272,14 @@ export class AWSBedrockBackendAdapter implements BackendAdapter<BedrockRequest, 
         custom: {
           ...originalRequest.metadata.custom,
           latencyMs: response.metrics?.latencyMs || latencyMs,
+          ...(originalRequest.responseFormat ? { responseFormatEnforced: false } : {}),
         },
+        warnings: originalRequest.responseFormat
+          ? [
+              ...(originalRequest.metadata.warnings ?? []),
+              buildResponseFormatFallbackWarning(this.metadata.name),
+            ]
+          : originalRequest.metadata.warnings,
       },
       raw: response as unknown as Record<string, unknown>,
     };

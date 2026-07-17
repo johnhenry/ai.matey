@@ -12,6 +12,7 @@
 - [Streaming Format](#streaming-format)
 - [Metadata & Provenance](#metadata--provenance)
 - [Tools & Function Calling](#tools--function-calling)
+- [Structured Output](#structured-output)
 - [Parameters](#parameters)
 - [Capabilities](#capabilities)
 - [Examples](#examples)
@@ -243,6 +244,7 @@ interface IRChatRequest {
   readonly messages: readonly IRMessage[];
   readonly tools?: readonly IRTool[];
   readonly toolChoice?: 'auto' | 'required' | 'none' | { readonly name: string };
+  readonly responseFormat?: IRResponseFormat;
   readonly parameters?: IRParameters;
   readonly metadata: IRMetadata;
   readonly stream?: boolean;
@@ -257,6 +259,7 @@ interface IRChatRequest {
 | `messages` | `IRMessage[]` | ✅ | Conversation messages (minimum 1) |
 | `tools` | `IRTool[]` | ❌ | Available tools/functions |
 | `toolChoice` | `string \| object` | ❌ | Tool selection strategy |
+| `responseFormat` | `IRResponseFormat` | ❌ | JSON-schema-constrained output request (see [Structured Output](#structured-output)) |
 | `parameters` | `IRParameters` | ❌ | Generation parameters (temperature, etc.) |
 | `metadata` | `IRMetadata` | ✅ | Request tracking metadata |
 | `stream` | `boolean` | ❌ | Enable streaming (default: false) |
@@ -757,6 +760,62 @@ const weatherTool: IRTool = {
 
 ---
 
+## Structured Output
+
+### IRResponseFormat
+
+Requests that the backend constrain its response to a caller-supplied JSON schema. Reuses the `JSONSchema` type from [Tools & Function Calling](#tools--function-calling) - one schema type for both tool parameters and structured output.
+
+```typescript
+interface IRResponseFormat {
+  readonly type: 'json_schema';
+  readonly schema: JSONSchema;
+  readonly strict?: boolean;
+}
+```
+
+This is a **best-effort request, not a guarantee**. Callers should still validate the parsed response against their schema (e.g. with Zod) - `responseFormat` narrows the odds of malformed output, it doesn't replace consumer-side validation.
+
+### Native vs. Fallback
+
+Backends handle `responseFormat` one of two ways, reported via `IRCapabilities.structuredOutput: 'native' | 'fallback'` and, per-response, via `IRChatResponse.metadata.custom.responseFormatEnforced: boolean`:
+
+- **Native** - the backend adapter maps `responseFormat` directly onto the provider's own schema-constrained output mechanism (e.g. OpenAI's `response_format`, Anthropic's `output_config.format`, Gemini's `generationConfig.responseSchema`). The provider enforces the shape server-side.
+- **Fallback** - for backends with no native mechanism, the adapter appends a schema-instruction message to the prompt and best-effort-extracts/repairs JSON from the plain-text reply (stripping markdown code fences, locating the outermost balanced JSON span, and removing trailing commas on a single repair pass). A `capability-unsupported` `IRWarning` is added to `metadata.warnings` when this path is used.
+
+| Backend | Support |
+|---|---|
+| OpenAI | Native (`response_format: { type: 'json_schema', json_schema: { schema } }`) |
+| Anthropic | Native (`output_config: { format: { type: 'json_schema', schema } }`) |
+| Gemini | Native (`generationConfig.responseSchema` + `responseMimeType: 'application/json'`) |
+| Groq, DeepSeek, Inception, Moonshot, NVIDIA, LM Studio, SambaNova | Native (OpenAI-compatible - inherit OpenAI's mapping unchanged) |
+| All other backends (AI21, Anyscale, AWS Bedrock, Azure OpenAI, Cerebras, Cloudflare, Cohere, DeepInfra, Fireworks, Hugging Face, Mistral, Ollama, OpenRouter, Perplexity, Replicate, Together AI, xAI) | Fallback (prompt injection + best-effort JSON extraction) |
+
+### Example
+
+```typescript
+const request: IRChatRequest = {
+  messages: [{ role: 'user', content: 'Extract the name and age from: John is 30.' }],
+  responseFormat: {
+    type: 'json_schema',
+    schema: {
+      type: 'object',
+      properties: {
+        name: { type: 'string' },
+        age: { type: 'number' }
+      },
+      required: ['name', 'age']
+    }
+  },
+  metadata: { requestId: 'req_1', timestamp: Date.now(), provenance: { frontend: 'openai' } }
+};
+
+// response.message.content -> '{"name":"John","age":30}'
+// response.metadata.custom.responseFormatEnforced -> true (native) or false (fallback)
+```
+
+---
+
 ## Parameters
 
 ### IRParameters
@@ -819,6 +878,7 @@ interface IRCapabilities {
   readonly streaming: boolean;
   readonly multiModal: boolean;
   readonly tools?: boolean;
+  readonly structuredOutput?: 'native' | 'fallback';
   readonly maxContextTokens?: number;
   readonly supportedModels?: readonly string[];
   readonly systemMessageStrategy: SystemMessageStrategy;

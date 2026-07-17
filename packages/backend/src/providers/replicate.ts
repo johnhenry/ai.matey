@@ -25,6 +25,11 @@ import {
 } from 'ai.matey.errors';
 import { normalizeSystemMessages } from 'ai.matey.utils';
 import { getEffectiveStreamMode, mergeStreamingConfig } from 'ai.matey.utils';
+import {
+  buildStructuredOutputFallbackMessages,
+  extractStructuredOutputJSON,
+  buildResponseFormatFallbackWarning,
+} from '../shared.js';
 
 // ============================================================================
 // Replicate API Types (Predictions API)
@@ -100,6 +105,7 @@ export class ReplicateBackendAdapter implements BackendAdapter<
         streaming: true, // Limited streaming support
         multiModal: false, // Varies by model
         tools: false, // No function calling
+        structuredOutput: 'fallback',
         maxContextTokens: 4096, // Varies by model
         systemMessageStrategy: 'separate-parameter', // Uses system_prompt
         supportsMultipleSystemMessages: false,
@@ -122,7 +128,7 @@ export class ReplicateBackendAdapter implements BackendAdapter<
    */
   public fromIR(request: IRChatRequest): ReplicateRequest {
     const { messages, systemParameter } = normalizeSystemMessages(
-      request.messages,
+      buildStructuredOutputFallbackMessages(request.messages, request.responseFormat),
       this.metadata.capabilities.systemMessageStrategy,
       this.metadata.capabilities.supportsMultipleSystemMessages
     );
@@ -180,6 +186,10 @@ export class ReplicateBackendAdapter implements BackendAdapter<
       content = prediction.output.join('');
     }
 
+    if (originalRequest.responseFormat) {
+      content = extractStructuredOutputJSON(content);
+    }
+
     const message: IRMessage = {
       role: 'assistant',
       content,
@@ -207,7 +217,14 @@ export class ReplicateBackendAdapter implements BackendAdapter<
           latencyMs: prediction.metrics?.predict_time
             ? prediction.metrics.predict_time * 1000
             : latencyMs,
+          ...(originalRequest.responseFormat ? { responseFormatEnforced: false } : {}),
         },
+        warnings: originalRequest.responseFormat
+          ? [
+              ...(originalRequest.metadata.warnings ?? []),
+              buildResponseFormatFallbackWarning(this.metadata.name),
+            ]
+          : originalRequest.metadata.warnings,
       },
       raw: prediction as unknown as Record<string, unknown>,
     };

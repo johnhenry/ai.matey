@@ -101,6 +101,10 @@ export interface OpenAIRequest {
     };
   }>;
   tool_choice?: 'auto' | 'none' | 'required' | { type: 'function'; function: { name: string } };
+  response_format?: {
+    type: 'json_schema';
+    json_schema: { name: string; schema: Record<string, unknown>; strict?: boolean };
+  };
 }
 
 /**
@@ -207,6 +211,7 @@ export class OpenAIBackendAdapter implements BackendAdapter<OpenAIRequest, OpenA
         streaming: true,
         multiModal: true,
         tools: true,
+        structuredOutput: 'native',
         embeddings: true,
         embeddingModels: ['text-embedding-3-small', 'text-embedding-3-large'],
         maxEmbeddingBatchSize: 2048,
@@ -725,6 +730,16 @@ export class OpenAIBackendAdapter implements BackendAdapter<OpenAIRequest, OpenA
           },
         })),
         tool_choice: this.convertToolChoice(request.toolChoice),
+        response_format: request.responseFormat
+          ? {
+              type: 'json_schema',
+              json_schema: {
+                name: 'response',
+                schema: request.responseFormat.schema as unknown as Record<string, unknown>,
+                strict: request.responseFormat.strict,
+              },
+            }
+          : undefined,
       };
 
       return openaiRequest;
@@ -804,6 +819,7 @@ export class OpenAIBackendAdapter implements BackendAdapter<OpenAIRequest, OpenA
             ...originalRequest.metadata.custom,
             openaiResponseId: response.id,
             latencyMs,
+            ...(originalRequest.responseFormat ? { responseFormatEnforced: true } : {}),
           },
         },
         raw: response as unknown as Record<string, unknown>,

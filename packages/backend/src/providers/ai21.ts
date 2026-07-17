@@ -29,6 +29,9 @@ import {
   buildStaticResult,
   applyModelFilter,
   DEFAULT_AI21_MODELS,
+  buildStructuredOutputFallbackMessages,
+  extractStructuredOutputJSON,
+  buildResponseFormatFallbackWarning,
   type ModelCapabilityFilter,
 } from '../shared.js';
 import type { ListModelsOptions, ListModelsResult } from 'ai.matey.types';
@@ -124,6 +127,7 @@ export class AI21BackendAdapter implements BackendAdapter<AI21Request, AI21Respo
         streaming: true,
         multiModal: false, // Text-only
         tools: false, // No function calling
+        structuredOutput: 'fallback',
         maxContextTokens: 256000, // Jamba 1.5 has 256K context
         systemMessageStrategy: 'in-messages',
         supportsMultipleSystemMessages: true,
@@ -146,7 +150,7 @@ export class AI21BackendAdapter implements BackendAdapter<AI21Request, AI21Respo
    */
   public fromIR(request: IRChatRequest): AI21Request {
     const { messages } = normalizeSystemMessages(
-      request.messages,
+      buildStructuredOutputFallbackMessages(request.messages, request.responseFormat),
       this.metadata.capabilities.systemMessageStrategy,
       this.metadata.capabilities.supportsMultipleSystemMessages
     );
@@ -206,7 +210,9 @@ export class AI21BackendAdapter implements BackendAdapter<AI21Request, AI21Respo
 
     const message: IRMessage = {
       role: choice.message.role === 'assistant' ? 'assistant' : 'user',
-      content: choice.message.content,
+      content: originalRequest.responseFormat
+        ? extractStructuredOutputJSON(choice.message.content)
+        : choice.message.content,
     };
 
     const finishReasonMap: Record<string, FinishReason> = {
@@ -234,7 +240,14 @@ export class AI21BackendAdapter implements BackendAdapter<AI21Request, AI21Respo
         custom: {
           ...originalRequest.metadata.custom,
           latencyMs,
+          ...(originalRequest.responseFormat ? { responseFormatEnforced: false } : {}),
         },
+        warnings: originalRequest.responseFormat
+          ? [
+              ...(originalRequest.metadata.warnings ?? []),
+              buildResponseFormatFallbackWarning(this.metadata.name),
+            ]
+          : originalRequest.metadata.warnings,
       },
       raw: response as unknown as Record<string, unknown>,
     };

@@ -77,6 +77,7 @@ export class GroqBackendAdapter
         streaming: true,
         multiModal: false, // Groq currently focuses on text
         tools: true,
+        structuredOutput: 'native',
         maxContextTokens: 128000, // Varies by model, some support 128K
         systemMessageStrategy: 'in-messages',
         supportsMultipleSystemMessages: false,

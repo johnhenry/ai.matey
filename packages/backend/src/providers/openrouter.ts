@@ -25,6 +25,11 @@ import {
 } from 'ai.matey.errors';
 import { normalizeSystemMessages } from 'ai.matey.utils';
 import { getEffectiveStreamMode, mergeStreamingConfig } from 'ai.matey.utils';
+import {
+  buildStructuredOutputFallbackMessages,
+  extractStructuredOutputJSON,
+  buildResponseFormatFallbackWarning,
+} from '../shared.js';
 
 // ============================================================================
 // OpenRouter API Types (OpenAI-compatible with extensions)
@@ -146,6 +151,7 @@ export class OpenRouterBackendAdapter implements BackendAdapter<
         streaming: true,
         multiModal: true, // Vision models available
         tools: true, // Function calling
+        structuredOutput: 'fallback',
         maxContextTokens: 128000,
         systemMessageStrategy: 'in-messages',
         supportsMultipleSystemMessages: true,
@@ -170,7 +176,7 @@ export class OpenRouterBackendAdapter implements BackendAdapter<
    */
   public fromIR(request: IRChatRequest): OpenRouterRequest {
     const { messages } = normalizeSystemMessages(
-      request.messages,
+      buildStructuredOutputFallbackMessages(request.messages, request.responseFormat),
       this.metadata.capabilities.systemMessageStrategy,
       this.metadata.capabilities.supportsMultipleSystemMessages
     );
@@ -248,12 +254,16 @@ export class OpenRouterBackendAdapter implements BackendAdapter<
       });
     }
 
+    const rawContent =
+      typeof choice.message.content === 'string'
+        ? choice.message.content
+        : choice.message.content.map((c: any) => (c.type === 'text' ? c.text : '')).join('');
+
     const message: IRMessage = {
       role: choice.message.role === 'assistant' ? 'assistant' : 'user',
-      content:
-        typeof choice.message.content === 'string'
-          ? choice.message.content
-          : choice.message.content.map((c: any) => (c.type === 'text' ? c.text : '')).join(''),
+      content: originalRequest.responseFormat
+        ? extractStructuredOutputJSON(rawContent)
+        : rawContent,
     };
 
     const finishReasonMap: Record<string, FinishReason> = {
@@ -284,7 +294,14 @@ export class OpenRouterBackendAdapter implements BackendAdapter<
           ...originalRequest.metadata.custom,
           latencyMs,
           actualModel: response.model, // OpenRouter may route to different model
+          ...(originalRequest.responseFormat ? { responseFormatEnforced: false } : {}),
         },
+        warnings: originalRequest.responseFormat
+          ? [
+              ...(originalRequest.metadata.warnings ?? []),
+              buildResponseFormatFallbackWarning(this.metadata.name),
+            ]
+          : originalRequest.metadata.warnings,
       },
       raw: response as unknown as Record<string, unknown>,
     };

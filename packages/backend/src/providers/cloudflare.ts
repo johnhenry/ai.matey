@@ -26,6 +26,11 @@ import {
 } from 'ai.matey.errors';
 import { normalizeSystemMessages } from 'ai.matey.utils';
 import { getEffectiveStreamMode, mergeStreamingConfig } from 'ai.matey.utils';
+import {
+  buildStructuredOutputFallbackMessages,
+  extractStructuredOutputJSON,
+  buildResponseFormatFallbackWarning,
+} from '../shared.js';
 
 // ============================================================================
 // Cloudflare Workers AI API Types (OpenAI-compatible)
@@ -148,6 +153,7 @@ export class CloudflareBackendAdapter implements BackendAdapter<
         streaming: true,
         multiModal: true, // Vision models available
         tools: true, // Function calling
+        structuredOutput: 'fallback',
         maxContextTokens: 128000,
         systemMessageStrategy: 'in-messages',
         supportsMultipleSystemMessages: true,
@@ -171,7 +177,7 @@ export class CloudflareBackendAdapter implements BackendAdapter<
    */
   public fromIR(request: IRChatRequest): CloudflareRequest {
     const { messages } = normalizeSystemMessages(
-      request.messages,
+      buildStructuredOutputFallbackMessages(request.messages, request.responseFormat),
       this.metadata.capabilities.systemMessageStrategy,
       this.metadata.capabilities.supportsMultipleSystemMessages
     );
@@ -231,12 +237,16 @@ export class CloudflareBackendAdapter implements BackendAdapter<
       });
     }
 
+    const rawContent =
+      typeof choice.message.content === 'string'
+        ? choice.message.content
+        : choice.message.content.map((c: any) => (c.type === 'text' ? c.text : '')).join('');
+    const content = originalRequest.responseFormat
+      ? extractStructuredOutputJSON(rawContent)
+      : rawContent;
     const message: IRMessage = {
       role: choice.message.role === 'assistant' ? 'assistant' : 'user',
-      content:
-        typeof choice.message.content === 'string'
-          ? choice.message.content
-          : choice.message.content.map((c: any) => (c.type === 'text' ? c.text : '')).join(''),
+      content,
     };
 
     const finishReasonMap: Record<string, FinishReason> = {
@@ -265,7 +275,14 @@ export class CloudflareBackendAdapter implements BackendAdapter<
         custom: {
           ...originalRequest.metadata.custom,
           latencyMs,
+          ...(originalRequest.responseFormat ? { responseFormatEnforced: false } : {}),
         },
+        warnings: originalRequest.responseFormat
+          ? [
+              ...(originalRequest.metadata.warnings ?? []),
+              buildResponseFormatFallbackWarning(this.metadata.name),
+            ]
+          : originalRequest.metadata.warnings,
       },
       raw: response as unknown as Record<string, unknown>,
     };

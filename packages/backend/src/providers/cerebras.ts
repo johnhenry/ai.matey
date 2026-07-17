@@ -25,6 +25,11 @@ import {
 } from 'ai.matey.errors';
 import { normalizeSystemMessages } from 'ai.matey.utils';
 import { getEffectiveStreamMode, mergeStreamingConfig } from 'ai.matey.utils';
+import {
+  buildStructuredOutputFallbackMessages,
+  extractStructuredOutputJSON,
+  buildResponseFormatFallbackWarning,
+} from '../shared.js';
 
 // ============================================================================
 // Cerebras API Types (OpenAI-compatible)
@@ -135,6 +140,7 @@ export class CerebrasBackendAdapter implements BackendAdapter<CerebrasRequest, C
         streaming: true,
         multiModal: false, // Text-only models
         tools: true, // Function calling
+        structuredOutput: 'fallback',
         maxContextTokens: 128000,
         systemMessageStrategy: 'in-messages',
         supportsMultipleSystemMessages: true,
@@ -157,7 +163,7 @@ export class CerebrasBackendAdapter implements BackendAdapter<CerebrasRequest, C
    */
   public fromIR(request: IRChatRequest): CerebrasRequest {
     const { messages } = normalizeSystemMessages(
-      request.messages,
+      buildStructuredOutputFallbackMessages(request.messages, request.responseFormat),
       this.metadata.capabilities.systemMessageStrategy,
       this.metadata.capabilities.supportsMultipleSystemMessages
     );
@@ -223,12 +229,16 @@ export class CerebrasBackendAdapter implements BackendAdapter<CerebrasRequest, C
       });
     }
 
+    const rawContent =
+      typeof choice.message.content === 'string'
+        ? choice.message.content
+        : choice.message.content.map((c: any) => (c.type === 'text' ? c.text : '')).join('');
+
     const message: IRMessage = {
       role: choice.message.role === 'assistant' ? 'assistant' : 'user',
-      content:
-        typeof choice.message.content === 'string'
-          ? choice.message.content
-          : choice.message.content.map((c: any) => (c.type === 'text' ? c.text : '')).join(''),
+      content: originalRequest.responseFormat
+        ? extractStructuredOutputJSON(rawContent)
+        : rawContent,
     };
 
     const finishReasonMap: Record<string, FinishReason> = {
@@ -258,7 +268,14 @@ export class CerebrasBackendAdapter implements BackendAdapter<CerebrasRequest, C
           ...originalRequest.metadata.custom,
           latencyMs,
           ...(response.time_info ? { cerebras_timing: response.time_info } : {}),
+          ...(originalRequest.responseFormat ? { responseFormatEnforced: false } : {}),
         },
+        warnings: originalRequest.responseFormat
+          ? [
+              ...(originalRequest.metadata.warnings ?? []),
+              buildResponseFormatFallbackWarning(this.metadata.name),
+            ]
+          : originalRequest.metadata.warnings,
       },
       raw: response as unknown as Record<string, unknown>,
     };

@@ -22,6 +22,11 @@ import {
   ErrorCode,
   createErrorFromHttpResponse,
 } from 'ai.matey.errors';
+import {
+  buildStructuredOutputFallbackMessages,
+  extractStructuredOutputJSON,
+  buildResponseFormatFallbackWarning,
+} from '../shared.js';
 
 /**
  * Hugging Face API message format.
@@ -125,6 +130,7 @@ export class HuggingFaceBackendAdapter implements BackendAdapter<
         streaming: false, // Hugging Face Inference API doesn't support streaming in the same way
         multiModal: false, // Text-only for standard inference
         tools: false,
+        structuredOutput: 'fallback',
         maxContextTokens: 4096, // Varies by model
         systemMessageStrategy: 'in-messages',
         supportsMultipleSystemMessages: false,
@@ -279,7 +285,9 @@ export class HuggingFaceBackendAdapter implements BackendAdapter<
   public fromIR(request: IRChatRequest): HuggingFaceRequest {
     try {
       // Convert messages to prompt text
-      const prompt = this.messagesToPrompt(request.messages);
+      const prompt = this.messagesToPrompt(
+        buildStructuredOutputFallbackMessages(request.messages, request.responseFormat)
+      );
 
       return {
         inputs: prompt,
@@ -334,7 +342,7 @@ export class HuggingFaceBackendAdapter implements BackendAdapter<
 
       const message: IRMessage = {
         role: 'assistant',
-        content: text,
+        content: originalRequest.responseFormat ? extractStructuredOutputJSON(text) : text,
       };
 
       return {
@@ -354,7 +362,14 @@ export class HuggingFaceBackendAdapter implements BackendAdapter<
           custom: {
             ...originalRequest.metadata.custom,
             latencyMs,
+            ...(originalRequest.responseFormat ? { responseFormatEnforced: false } : {}),
           },
+          warnings: originalRequest.responseFormat
+            ? [
+                ...(originalRequest.metadata.warnings ?? []),
+                buildResponseFormatFallbackWarning(this.metadata.name),
+              ]
+            : originalRequest.metadata.warnings,
         },
       };
     } catch (error) {

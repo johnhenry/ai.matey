@@ -98,6 +98,9 @@ export interface AnthropicRequest {
     | { type: 'any' }
     | { type: 'none' }
     | { type: 'tool'; name: string };
+  output_config?: {
+    format: { type: 'json_schema'; schema: Record<string, unknown> };
+  };
 }
 
 /**
@@ -175,6 +178,7 @@ export class AnthropicBackendAdapter implements BackendAdapter<
         streaming: true,
         multiModal: true,
         tools: true,
+        structuredOutput: 'native',
         maxContextTokens: 200000,
         systemMessageStrategy: 'separate-parameter',
         supportsMultipleSystemMessages: false, // Anthropic merges multiple system messages
@@ -595,6 +599,14 @@ export class AnthropicBackendAdapter implements BackendAdapter<
           input_schema: tool.parameters as unknown as Record<string, unknown>,
         })),
         tool_choice: this.convertToolChoice(request.toolChoice),
+        output_config: request.responseFormat
+          ? {
+              format: {
+                type: 'json_schema',
+                schema: request.responseFormat.schema as unknown as Record<string, unknown>,
+              },
+            }
+          : undefined,
       };
 
       return anthropicRequest;
@@ -690,6 +702,7 @@ export class AnthropicBackendAdapter implements BackendAdapter<
             ...originalRequest.metadata.custom,
             anthropicMessageId: response.id,
             latencyMs,
+            ...(originalRequest.responseFormat ? { responseFormatEnforced: true } : {}),
           },
         },
         raw: response as unknown as Record<string, unknown>,

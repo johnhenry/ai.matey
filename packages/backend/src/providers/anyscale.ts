@@ -25,6 +25,11 @@ import {
 } from 'ai.matey.errors';
 import { normalizeSystemMessages } from 'ai.matey.utils';
 import { getEffectiveStreamMode, mergeStreamingConfig } from 'ai.matey.utils';
+import {
+  buildStructuredOutputFallbackMessages,
+  extractStructuredOutputJSON,
+  buildResponseFormatFallbackWarning,
+} from '../shared.js';
 
 // ============================================================================
 // Anyscale API Types (OpenAI-compatible)
@@ -113,6 +118,7 @@ export class AnyscaleBackendAdapter implements BackendAdapter<AnyscaleRequest, A
         streaming: true,
         multiModal: false, // Text-only
         tools: false, // No function calling
+        structuredOutput: 'fallback',
         maxContextTokens: 4096, // Llama-2 default
         systemMessageStrategy: 'in-messages',
         supportsMultipleSystemMessages: true,
@@ -135,7 +141,7 @@ export class AnyscaleBackendAdapter implements BackendAdapter<AnyscaleRequest, A
    */
   public fromIR(request: IRChatRequest): AnyscaleRequest {
     const { messages } = normalizeSystemMessages(
-      request.messages,
+      buildStructuredOutputFallbackMessages(request.messages, request.responseFormat),
       this.metadata.capabilities.systemMessageStrategy,
       this.metadata.capabilities.supportsMultipleSystemMessages
     );
@@ -195,12 +201,16 @@ export class AnyscaleBackendAdapter implements BackendAdapter<AnyscaleRequest, A
       });
     }
 
+    const rawContent =
+      typeof choice.message.content === 'string'
+        ? choice.message.content
+        : choice.message.content.map((c: any) => (c.type === 'text' ? c.text : '')).join('');
+
     const message: IRMessage = {
       role: choice.message.role === 'assistant' ? 'assistant' : 'user',
-      content:
-        typeof choice.message.content === 'string'
-          ? choice.message.content
-          : choice.message.content.map((c: any) => (c.type === 'text' ? c.text : '')).join(''),
+      content: originalRequest.responseFormat
+        ? extractStructuredOutputJSON(rawContent)
+        : rawContent,
     };
 
     const finishReasonMap: Record<string, FinishReason> = {
@@ -228,7 +238,14 @@ export class AnyscaleBackendAdapter implements BackendAdapter<AnyscaleRequest, A
         custom: {
           ...originalRequest.metadata.custom,
           latencyMs,
+          ...(originalRequest.responseFormat ? { responseFormatEnforced: false } : {}),
         },
+        warnings: originalRequest.responseFormat
+          ? [
+              ...(originalRequest.metadata.warnings ?? []),
+              buildResponseFormatFallbackWarning(this.metadata.name),
+            ]
+          : originalRequest.metadata.warnings,
       },
       raw: response as unknown as Record<string, unknown>,
     };

@@ -9,7 +9,12 @@
 
 import type { BackendAdapter, BackendAdapterConfig, AdapterMetadata } from 'ai.matey.types';
 import type { IREmbedRequest, IREmbedResponse } from 'ai.matey.types';
-import { executeOpenAICompatibleEmbed } from '../shared.js';
+import {
+  executeOpenAICompatibleEmbed,
+  buildStructuredOutputFallbackMessages,
+  extractStructuredOutputJSON,
+  buildResponseFormatFallbackWarning,
+} from '../shared.js';
 import type {
   IRChatRequest,
   IRChatResponse,
@@ -140,6 +145,7 @@ export class FireworksAIBackendAdapter implements BackendAdapter<
         streaming: true,
         multiModal: true, // Vision models available
         tools: true, // Function calling
+        structuredOutput: 'fallback',
         maxContextTokens: 128000,
         systemMessageStrategy: 'in-messages',
         supportsMultipleSystemMessages: true,
@@ -162,7 +168,7 @@ export class FireworksAIBackendAdapter implements BackendAdapter<
    */
   public fromIR(request: IRChatRequest): FireworksAIRequest {
     const { messages } = normalizeSystemMessages(
-      request.messages,
+      buildStructuredOutputFallbackMessages(request.messages, request.responseFormat),
       this.metadata.capabilities.systemMessageStrategy,
       this.metadata.capabilities.supportsMultipleSystemMessages
     );
@@ -235,12 +241,16 @@ export class FireworksAIBackendAdapter implements BackendAdapter<
       });
     }
 
+    const rawContent =
+      typeof choice.message.content === 'string'
+        ? choice.message.content
+        : choice.message.content.map((c: any) => (c.type === 'text' ? c.text : '')).join('');
+    const content = originalRequest.responseFormat
+      ? extractStructuredOutputJSON(rawContent)
+      : rawContent;
     const message: IRMessage = {
       role: choice.message.role === 'assistant' ? 'assistant' : 'user',
-      content:
-        typeof choice.message.content === 'string'
-          ? choice.message.content
-          : choice.message.content.map((c: any) => (c.type === 'text' ? c.text : '')).join(''),
+      content,
     };
 
     const finishReasonMap: Record<string, FinishReason> = {
@@ -268,7 +278,14 @@ export class FireworksAIBackendAdapter implements BackendAdapter<
         custom: {
           ...originalRequest.metadata.custom,
           latencyMs,
+          ...(originalRequest.responseFormat ? { responseFormatEnforced: false } : {}),
         },
+        warnings: originalRequest.responseFormat
+          ? [
+              ...(originalRequest.metadata.warnings ?? []),
+              buildResponseFormatFallbackWarning(this.metadata.name),
+            ]
+          : originalRequest.metadata.warnings,
       },
       raw: response as unknown as Record<string, unknown>,
     };

@@ -28,7 +28,14 @@ import {
 } from 'ai.matey.errors';
 import { normalizeSystemMessages } from 'ai.matey.utils';
 import { getEffectiveStreamMode, mergeStreamingConfig } from 'ai.matey.utils';
-import { buildStaticResult, applyModelFilter, type ModelCapabilityFilter } from '../shared.js';
+import {
+  buildStaticResult,
+  applyModelFilter,
+  buildStructuredOutputFallbackMessages,
+  extractStructuredOutputJSON,
+  buildResponseFormatFallbackWarning,
+  type ModelCapabilityFilter,
+} from '../shared.js';
 
 // ============================================================================
 // Ollama API Types
@@ -83,6 +90,7 @@ export class OllamaBackendAdapter implements BackendAdapter<OllamaRequest, Ollam
         streaming: true,
         multiModal: false,
         tools: false,
+        structuredOutput: 'fallback',
         embeddings: true,
         maxContextTokens: 4096, // Varies by model
         systemMessageStrategy: 'in-messages',
@@ -325,7 +333,7 @@ export class OllamaBackendAdapter implements BackendAdapter<OllamaRequest, Ollam
    */
   public fromIR(request: IRChatRequest): OllamaRequest {
     const { messages } = normalizeSystemMessages(
-      request.messages,
+      buildStructuredOutputFallbackMessages(request.messages, request.responseFormat),
       this.metadata.capabilities.systemMessageStrategy,
       this.metadata.capabilities.supportsMultipleSystemMessages
     );
@@ -362,7 +370,10 @@ export class OllamaBackendAdapter implements BackendAdapter<OllamaRequest, Ollam
     originalRequest: IRChatRequest,
     latencyMs: number
   ): IRChatResponse {
-    const message: IRMessage = { role: 'assistant', content: response.message.content };
+    const content = originalRequest.responseFormat
+      ? extractStructuredOutputJSON(response.message.content)
+      : response.message.content;
+    const message: IRMessage = { role: 'assistant', content };
 
     return {
       message,
@@ -379,7 +390,17 @@ export class OllamaBackendAdapter implements BackendAdapter<OllamaRequest, Ollam
         ...originalRequest.metadata,
         providerResponseId: undefined, // Ollama does not provide a response ID
         provenance: { ...originalRequest.metadata.provenance, backend: this.metadata.name },
-        custom: { ...originalRequest.metadata.custom, latencyMs },
+        custom: {
+          ...originalRequest.metadata.custom,
+          latencyMs,
+          ...(originalRequest.responseFormat ? { responseFormatEnforced: false } : {}),
+        },
+        warnings: originalRequest.responseFormat
+          ? [
+              ...(originalRequest.metadata.warnings ?? []),
+              buildResponseFormatFallbackWarning(this.metadata.name),
+            ]
+          : originalRequest.metadata.warnings,
       },
       raw: response as unknown as Record<string, unknown>,
     };
