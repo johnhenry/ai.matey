@@ -1,5 +1,23 @@
 # ai.matey.backend
 
+## 0.7.0
+
+### Minor Changes
+
+- b69566f: Add `responseFormat` to the IR request for per-provider structured/schema-constrained
+  output. `IRChatRequest.responseFormat` (`{ type: 'json_schema', schema, strict? }`) reuses
+  the existing `JSONSchema` type. OpenAI, Anthropic, Gemini, and their OpenAI-compatible
+  inheritors (Groq, DeepSeek, Inception, Moonshot, NVIDIA, LM Studio, SambaNova) map it to
+  their native structured-output mechanism; all other backends emulate it via prompt
+  injection and best-effort JSON extraction. `IRCapabilities.structuredOutput` and
+  `response.metadata.custom.responseFormatEnforced` let callers tell which path was used.
+  (#16)
+
+### Patch Changes
+
+- Updated dependencies [b69566f]
+  - ai.matey.types@0.5.0
+
 ## 0.6.0
 
 ### Minor Changes
