@@ -14,6 +14,7 @@ import {
   buildStructuredOutputFallbackMessages,
   extractStructuredOutputJSON,
   buildResponseFormatFallbackWarning,
+  buildToolsUnsupportedWarning,
 } from '../shared.js';
 import type {
   IRChatRequest,
@@ -144,7 +145,7 @@ export class FireworksAIBackendAdapter implements BackendAdapter<
         maxEmbeddingBatchSize: 100,
         streaming: true,
         multiModal: true, // Vision models available
-        tools: true, // Function calling
+        tools: false, // Function calling
         structuredOutput: 'fallback',
         maxContextTokens: 128000,
         systemMessageStrategy: 'in-messages',
@@ -259,6 +260,13 @@ export class FireworksAIBackendAdapter implements BackendAdapter<
       tool_calls: 'tool_calls',
     };
 
+    const extraWarnings = [
+      ...(originalRequest.responseFormat
+        ? [buildResponseFormatFallbackWarning(this.metadata.name)]
+        : []),
+      ...(originalRequest.tools?.length ? [buildToolsUnsupportedWarning(this.metadata.name)] : []),
+    ];
+
     return {
       message,
       finishReason: finishReasonMap[choice.finish_reason || 'stop'] || 'stop',
@@ -280,11 +288,8 @@ export class FireworksAIBackendAdapter implements BackendAdapter<
           latencyMs,
           ...(originalRequest.responseFormat ? { responseFormatEnforced: false } : {}),
         },
-        warnings: originalRequest.responseFormat
-          ? [
-              ...(originalRequest.metadata.warnings ?? []),
-              buildResponseFormatFallbackWarning(this.metadata.name),
-            ]
+        warnings: extraWarnings.length
+          ? [...(originalRequest.metadata.warnings ?? []), ...extraWarnings]
           : originalRequest.metadata.warnings,
       },
       raw: response as unknown as Record<string, unknown>,

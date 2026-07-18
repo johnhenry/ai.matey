@@ -30,6 +30,7 @@ import {
   buildStructuredOutputFallbackMessages,
   extractStructuredOutputJSON,
   buildResponseFormatFallbackWarning,
+  buildToolsUnsupportedWarning,
 } from '../shared.js';
 
 // ============================================================================
@@ -165,7 +166,7 @@ export class AzureOpenAIBackendAdapter implements BackendAdapter<
       capabilities: {
         streaming: true,
         multiModal: true, // Vision models available
-        tools: true, // Function calling
+        tools: false, // Function calling
         structuredOutput: 'fallback',
         maxContextTokens: 128000,
         systemMessageStrategy: 'in-messages',
@@ -291,6 +292,13 @@ export class AzureOpenAIBackendAdapter implements BackendAdapter<
       content_filter: 'stop', // Map content_filter to stop
     };
 
+    const extraWarnings = [
+      ...(originalRequest.responseFormat
+        ? [buildResponseFormatFallbackWarning(this.metadata.name)]
+        : []),
+      ...(originalRequest.tools?.length ? [buildToolsUnsupportedWarning(this.metadata.name)] : []),
+    ];
+
     return {
       message,
       finishReason: finishReasonMap[choice.finish_reason || 'stop'] || 'stop',
@@ -316,11 +324,8 @@ export class AzureOpenAIBackendAdapter implements BackendAdapter<
             : {}),
           ...(originalRequest.responseFormat ? { responseFormatEnforced: false } : {}),
         },
-        warnings: originalRequest.responseFormat
-          ? [
-              ...(originalRequest.metadata.warnings ?? []),
-              buildResponseFormatFallbackWarning(this.metadata.name),
-            ]
+        warnings: extraWarnings.length
+          ? [...(originalRequest.metadata.warnings ?? []), ...extraWarnings]
           : originalRequest.metadata.warnings,
       },
       raw: response as unknown as Record<string, unknown>,

@@ -487,6 +487,20 @@ export function buildResponseFormatFallbackWarning(backendName: string): IRWarni
   };
 }
 
+/**
+ * Build the semantic-drift warning for a request that included `tools`
+ * against a backend with no tool/function-calling mapping. The tools were
+ * silently dropped from the outgoing request - this surfaces that instead.
+ */
+export function buildToolsUnsupportedWarning(backendName: string): IRWarning {
+  return {
+    category: 'tool-unsupported',
+    severity: 'warning',
+    message: `${backendName} does not support tool/function calling; the requested tools were dropped from the outgoing request.`,
+    field: 'tools',
+  };
+}
+
 // ============================================================================
 // Default Model Lists
 // ============================================================================

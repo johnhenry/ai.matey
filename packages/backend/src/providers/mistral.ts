@@ -36,6 +36,7 @@ import {
   buildStructuredOutputFallbackMessages,
   extractStructuredOutputJSON,
   buildResponseFormatFallbackWarning,
+  buildToolsUnsupportedWarning,
   type ModelCapabilityFilter,
 } from '../shared.js';
 import type { ListModelsOptions, ListModelsResult, AIModel } from 'ai.matey.types';
@@ -101,7 +102,7 @@ export class MistralBackendAdapter implements BackendAdapter<MistralRequest, Mis
         maxEmbeddingBatchSize: 512,
         streaming: true,
         multiModal: false,
-        tools: true,
+        tools: false,
         structuredOutput: 'fallback',
         maxContextTokens: 32000,
         systemMessageStrategy: 'in-messages',
@@ -457,6 +458,13 @@ export class MistralBackendAdapter implements BackendAdapter<MistralRequest, Mis
       : choice.message.content;
     const message: IRMessage = { role: 'assistant', content };
 
+    const extraWarnings = [
+      ...(originalRequest.responseFormat
+        ? [buildResponseFormatFallbackWarning(this.metadata.name)]
+        : []),
+      ...(originalRequest.tools?.length ? [buildToolsUnsupportedWarning(this.metadata.name)] : []),
+    ];
+
     return {
       message,
       finishReason: this.mapFinishReason(choice.finish_reason || 'stop'),
@@ -475,11 +483,8 @@ export class MistralBackendAdapter implements BackendAdapter<MistralRequest, Mis
           latencyMs,
           ...(originalRequest.responseFormat ? { responseFormatEnforced: false } : {}),
         },
-        warnings: originalRequest.responseFormat
-          ? [
-              ...(originalRequest.metadata.warnings ?? []),
-              buildResponseFormatFallbackWarning(this.metadata.name),
-            ]
+        warnings: extraWarnings.length
+          ? [...(originalRequest.metadata.warnings ?? []), ...extraWarnings]
           : originalRequest.metadata.warnings,
       },
       raw: response as unknown as Record<string, unknown>,

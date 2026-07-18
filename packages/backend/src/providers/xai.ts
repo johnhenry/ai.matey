@@ -29,6 +29,7 @@ import {
   buildStructuredOutputFallbackMessages,
   extractStructuredOutputJSON,
   buildResponseFormatFallbackWarning,
+  buildToolsUnsupportedWarning,
 } from '../shared.js';
 
 // ============================================================================
@@ -127,7 +128,7 @@ export class XAIBackendAdapter implements BackendAdapter<XAIRequest, XAIResponse
       capabilities: {
         streaming: true,
         multiModal: true, // Grok-vision available
-        tools: true, // Function calling
+        tools: false, // Function calling
         structuredOutput: 'fallback',
         maxContextTokens: 2_000_000, // 2M context window
         systemMessageStrategy: 'in-messages',
@@ -229,6 +230,13 @@ export class XAIBackendAdapter implements BackendAdapter<XAIRequest, XAIResponse
       tool_calls: 'tool_calls',
     };
 
+    const extraWarnings = [
+      ...(originalRequest.responseFormat
+        ? [buildResponseFormatFallbackWarning(this.metadata.name)]
+        : []),
+      ...(originalRequest.tools?.length ? [buildToolsUnsupportedWarning(this.metadata.name)] : []),
+    ];
+
     return {
       message,
       finishReason: finishReasonMap[choice.finish_reason || 'stop'] || 'stop',
@@ -251,11 +259,8 @@ export class XAIBackendAdapter implements BackendAdapter<XAIRequest, XAIResponse
           latencyMs,
           ...(originalRequest.responseFormat ? { responseFormatEnforced: false } : {}),
         },
-        warnings: originalRequest.responseFormat
-          ? [
-              ...(originalRequest.metadata.warnings ?? []),
-              buildResponseFormatFallbackWarning(this.metadata.name),
-            ]
+        warnings: extraWarnings.length
+          ? [...(originalRequest.metadata.warnings ?? []), ...extraWarnings]
           : originalRequest.metadata.warnings,
       },
       raw: response as unknown as Record<string, unknown>,
