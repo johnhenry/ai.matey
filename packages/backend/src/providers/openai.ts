@@ -82,6 +82,11 @@ export interface OpenAIRequest {
   messages: OpenAIMessage[];
   temperature?: number;
   max_tokens?: number;
+  /**
+   * Replaces `max_tokens` for gpt-5.x and o1/o3/o4 reasoning-model families,
+   * which reject `max_tokens` outright. See `requiresMaxCompletionTokens`.
+   */
+  max_completion_tokens?: number;
   top_p?: number;
   frequency_penalty?: number;
   presence_penalty?: number;
@@ -176,6 +181,16 @@ export interface OpenAIModel {
 export interface OpenAIModelsResponse {
   object: 'list';
   data: OpenAIModel[];
+}
+
+/**
+ * Whether a model requires `max_completion_tokens` instead of the legacy
+ * `max_tokens` parameter. Covers the gpt-5.x family and o1/o3/o4 reasoning
+ * models, which reject `max_tokens` with a 400 error.
+ */
+export function requiresMaxCompletionTokens(model: string): boolean {
+  const normalized = model.toLowerCase();
+  return normalized.includes('gpt-5') || /^o[134](-|$)/.test(normalized);
 }
 
 // ============================================================================
@@ -708,11 +723,14 @@ export class OpenAIBackendAdapter implements BackendAdapter<OpenAIRequest, OpenA
       );
 
       // Build OpenAI request
+      const model = request.parameters?.model || this.config.defaultModel || 'gpt-5-mini';
       const openaiRequest: OpenAIRequest = {
-        model: request.parameters?.model || this.config.defaultModel || 'gpt-5-mini',
+        model,
         messages: openaiMessages,
         temperature: request.parameters?.temperature,
-        max_tokens: request.parameters?.maxTokens,
+        ...(requiresMaxCompletionTokens(model)
+          ? { max_completion_tokens: request.parameters?.maxTokens }
+          : { max_tokens: request.parameters?.maxTokens }),
         top_p: request.parameters?.topP,
         frequency_penalty: request.parameters?.frequencyPenalty,
         presence_penalty: request.parameters?.presencePenalty,

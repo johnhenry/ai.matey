@@ -32,6 +32,7 @@ import {
   buildStaticResult,
   applyModelFilter,
   DEFAULT_GEMINI_MODELS,
+  buildToolsUnsupportedWarning,
   type ModelCapabilityFilter,
 } from '../shared.js';
 import type { ListModelsOptions, ListModelsResult, AIModel } from 'ai.matey.types';
@@ -100,7 +101,7 @@ export class GeminiBackendAdapter implements BackendAdapter<GeminiRequest, Gemin
         supportsEmbeddingDimensions: true,
         streaming: true,
         multiModal: true,
-        tools: true,
+        tools: false,
         structuredOutput: 'native',
         maxContextTokens: 2000000,
         systemMessageStrategy: 'separate-parameter',
@@ -596,6 +597,12 @@ export class GeminiBackendAdapter implements BackendAdapter<GeminiRequest, Gemin
           latencyMs,
           ...(originalRequest.responseFormat ? { responseFormatEnforced: true } : {}),
         },
+        warnings: originalRequest.tools?.length
+          ? [
+              ...(originalRequest.metadata.warnings ?? []),
+              buildToolsUnsupportedWarning(this.metadata.name),
+            ]
+          : originalRequest.metadata.warnings,
       },
       raw: response as unknown as Record<string, unknown>,
     };
