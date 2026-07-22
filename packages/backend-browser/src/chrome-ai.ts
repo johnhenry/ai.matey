@@ -1,101 +1,174 @@
 /**
  * Chrome AI Backend Adapter
  *
- * Adapts Universal IR to Chrome's built-in AI (window.ai).
- * Chrome AI is browser-only and always streams responses.
+ * Adapts Universal IR to Chrome's built-in on-device model via the Prompt
+ * API (`LanguageModel.create()` / `session.prompt()` / `session.promptStreaming()`,
+ * Chrome 138+). Runs entirely client-side: no API key, no network calls
+ * after the model is downloaded, no cost.
+ *
+ * This replaces an earlier version of this adapter that targeted Chrome's
+ * pre-138 origin-trial API (`window.ai.languageModel`, tri-state
+ * `readily`/`after-download`/`no` availability) - that surface no longer
+ * exists in shipping Chrome.
  *
  * @module
  */
 
-import type { BackendAdapter, BackendAdapterConfig, AdapterMetadata } from 'ai.matey.types';
 import type {
+  BackendAdapter,
+  AdapterMetadata,
   IRChatRequest,
   IRChatResponse,
   IRChatStream,
   IRMessage,
   IRStreamChunk,
+  IRWarning,
 } from 'ai.matey.types';
 import { ProviderError, ErrorCode } from 'ai.matey.errors';
-import { getEffectiveStreamMode, mergeStreamingConfig } from 'ai.matey.utils';
+import { extractSystemMessages, combineSystemMessages, createWarning } from 'ai.matey.utils';
 
 // ============================================================================
-// Chrome AI Types
+// Chrome Prompt API types (kept local: a bleeding-edge browser global not
+// consistently declared across TypeScript DOM lib versions)
 // ============================================================================
 
-export interface ChromeAISession {
-  prompt(input: string, options?: { signal?: AbortSignal }): Promise<string>;
-  promptStreaming(input: string): ReadableStream;
-  destroy(): void;
-  clone?(): ChromeAISession;
+export type LanguageModelAvailability =
+  | 'unavailable'
+  | 'downloadable'
+  | 'downloading'
+  | 'available';
+
+export interface LanguageModelMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
 }
 
-export interface ChromeAI {
-  // New API (Chrome 138+)
-  create?(options?: {
-    temperature?: number;
-    topK?: number;
-    systemPrompt?: string;
-  }): Promise<ChromeAISession>;
-  availability?(): Promise<{ available: 'readily' | 'after-download' | 'no' }>;
-  params?(): Promise<{
-    defaultTopK: number;
-    maxTopK: number;
-    defaultTemperature: number;
-    maxTemperature: number;
-  }>;
+export interface LanguageModelDownloadProgressEvent {
+  loaded: number;
+}
 
-  // Legacy API (Chrome 129-137) - for backward compatibility
-  createTextSession?(options?: { temperature?: number; topK?: number }): Promise<ChromeAISession>;
-  capabilities?(): Promise<{ available: 'readily' | 'after-download' | 'no' }>;
+export interface LanguageModelMonitor {
+  addEventListener(
+    type: 'downloadprogress',
+    listener: (event: LanguageModelDownloadProgressEvent) => void
+  ): void;
+}
+
+export interface LanguageModelCreateOptions {
+  initialPrompts?: LanguageModelMessage[];
+  temperature?: number;
+  topK?: number;
+  signal?: AbortSignal;
+  monitor?: (monitor: LanguageModelMonitor) => void;
+}
+
+export interface LanguageModelPromptOptions {
+  /** JSON Schema constraining the response - maps from IR's `responseFormat.schema`. */
+  responseConstraint?: Record<string, unknown>;
+  signal?: AbortSignal;
+}
+
+export interface LanguageModelSession {
+  prompt(input: string, options?: LanguageModelPromptOptions): Promise<string>;
+  promptStreaming(input: string, options?: LanguageModelPromptOptions): ReadableStream<string>;
+  destroy(): void;
+  /** Cumulative tokens consumed so far in this session's context window. */
+  readonly inputUsage?: number;
+  /** Total context-window token budget for this session. */
+  readonly inputQuota?: number;
+}
+
+/** The subset of the global `LanguageModel` Prompt API surface this adapter uses. */
+export interface LanguageModelAPI {
+  availability(): Promise<LanguageModelAvailability>;
+  create(options?: LanguageModelCreateOptions): Promise<LanguageModelSession>;
 }
 
 declare global {
-  interface Window {
-    ai?: { languageModel: ChromeAI };
-  }
-  var ai: { languageModel: ChromeAI } | undefined;
+  var LanguageModel: LanguageModelAPI | undefined;
 }
 
 // ============================================================================
-// Browser Environment Helper
+// Configuration
 // ============================================================================
 
-/**
- * Get the global window object if running in a browser environment.
- *
- * This helper function safely checks for the existence of the window object
- * to determine if code is running in a browser context. Returns undefined
- * in Node.js or other non-browser environments.
- *
- * @returns Window object if in browser, undefined otherwise
- */
-function getWindow(): (Window & typeof globalThis) | undefined {
-  return typeof globalThis !== 'undefined' && 'window' in globalThis
-    ? (globalThis as typeof globalThis & { window: Window & typeof globalThis }).window
+export interface ChromeAIConfig {
+  temperature?: number;
+  topK?: number;
+
+  /** Called with download progress when availability is 'downloadable'/'downloading'. */
+  onDownloadProgress?: (event: LanguageModelDownloadProgressEvent) => void;
+
+  /**
+   * Test/DI seam: a preloaded object implementing the `LanguageModel`
+   * surface. When omitted, the adapter reads `globalThis.LanguageModel`.
+   */
+  languageModel?: LanguageModelAPI;
+}
+
+function getLanguageModel(config: ChromeAIConfig): LanguageModelAPI | undefined {
+  if (config.languageModel) {
+    return config.languageModel;
+  }
+  return typeof globalThis !== 'undefined'
+    ? (globalThis as typeof globalThis & { LanguageModel?: LanguageModelAPI }).LanguageModel
     : undefined;
+}
+
+/** Extract plain text from an IR message (text blocks only). */
+function extractText(message: IRMessage): string {
+  if (typeof message.content === 'string') {
+    return message.content;
+  }
+  return message.content
+    .filter((block): block is { type: 'text'; text: string } => block.type === 'text')
+    .map((block) => block.text)
+    .join('');
 }
 
 // ============================================================================
 // Chrome AI Backend Adapter
 // ============================================================================
 
+/**
+ * Backend adapter for Chrome's built-in on-device model (Prompt API).
+ *
+ * @example
+ * ```typescript
+ * import { Bridge } from 'ai.matey.core';
+ * import { OpenAIFrontendAdapter } from 'ai.matey.frontend';
+ * import { ChromeAIBackendAdapter } from 'ai.matey.backend.browser';
+ *
+ * const backend = new ChromeAIBackendAdapter();
+ * if ((await backend.checkAvailability()) === 'unavailable') {
+ *   // fall back to a hosted backend
+ * }
+ *
+ * const bridge = new Bridge(new OpenAIFrontendAdapter(), backend);
+ * const response = await bridge.chat({
+ *   messages: [{ role: 'user', content: 'Hello!' }],
+ * });
+ * ```
+ */
 export class ChromeAIBackendAdapter implements BackendAdapter {
   readonly metadata: AdapterMetadata;
-  private readonly config: BackendAdapterConfig;
+  private readonly config: ChromeAIConfig;
 
-  constructor(config?: Partial<BackendAdapterConfig>) {
-    this.config = config as BackendAdapterConfig;
+  constructor(config: ChromeAIConfig = {}) {
+    this.config = config;
     this.metadata = {
       name: 'chrome-ai-backend',
-      version: '1.0.0',
+      version: '2.0.0',
       provider: 'Chrome AI',
       capabilities: {
         streaming: true,
-        multiModal: false,
+        multiModal: false, // text-only for now; Prompt API image/audio input is a future follow-up
         tools: false,
-        maxContextTokens: 4096,
-        systemMessageStrategy: 'prepend-user',
-        supportsMultipleSystemMessages: false,
+        embeddings: false,
+        structuredOutput: 'native', // via responseConstraint
+        maxContextTokens: 4096, // varies by device/model; Prompt API exposes no fixed constant
+        systemMessageStrategy: 'in-messages', // folded into initialPrompts
+        supportsMultipleSystemMessages: false, // combined into one leading initialPrompts entry
         supportsTemperature: true,
         supportsTopP: false,
         supportsTopK: true,
@@ -127,68 +200,60 @@ export class ChromeAIBackendAdapter implements BackendAdapter {
   }
 
   /**
-   * Execute a chat request using Chrome's built-in AI.
-   *
-   * This method processes an IR chat request through Chrome AI's streaming API,
-   * collecting all chunks into a complete response. Chrome AI always streams
-   * internally, so this method consumes the stream and returns the final result.
-   * Requires Chrome 129+ with AI features enabled.
-   *
-   * @param request - Universal IR chat request
-   * @param signal - Optional AbortSignal for cancellation
-   * @returns Promise resolving to IR chat response
-   * @throws {ProviderError} If Chrome AI is unavailable or request fails
-   *
-   * @example
-   * ```typescript
-   * const adapter = new ChromeAIBackendAdapter();
-   * const response = await adapter.execute({
-   *   messages: [{ role: 'user', content: 'Hello!' }],
-   *   parameters: { temperature: 0.7, topK: 40 },
-   *   metadata: { requestId: 'req_123', timestamp: Date.now(), provenance: {} }
-   * });
-   * console.log(response.message.content);
-   * ```
+   * Check Chrome AI's on-device model availability directly, exposing the
+   * Prompt API's own tri-state (plus `unavailable` for "no LanguageModel
+   * global at all") so callers can gate UI - e.g. show a download prompt
+   * for `'downloadable'` rather than just failing.
+   */
+  async checkAvailability(): Promise<LanguageModelAvailability> {
+    const languageModel = getLanguageModel(this.config);
+    if (!languageModel) {
+      return 'unavailable';
+    }
+    try {
+      return await languageModel.availability();
+    } catch {
+      return 'unavailable';
+    }
+  }
+
+  /**
+   * Boolean convenience wrapper over {@link checkAvailability} (required by
+   * `BackendAdapter`). True unless the model is fully `'unavailable'`.
+   */
+  async healthCheck(): Promise<boolean> {
+    return (await this.checkAvailability()) !== 'unavailable';
+  }
+
+  /**
+   * Chrome AI is free - it runs entirely on-device.
+   */
+  estimateCost(_request: IRChatRequest): Promise<number | null> {
+    return Promise.resolve(0);
+  }
+
+  /**
+   * Execute a non-streaming chat request using Chrome's Prompt API.
    */
   async execute(request: IRChatRequest, signal?: AbortSignal): Promise<IRChatResponse> {
-    try {
-      // Chrome AI always streams, so we collect the stream
-      const chunks: string[] = [];
-      for await (const chunk of this.executeStream(request, signal)) {
-        if (chunk.type === 'content') {
-          chunks.push(chunk.delta);
-        } else if (chunk.type === 'done') {
-          return {
-            message: chunk.message || { role: 'assistant', content: chunks.join('') },
-            finishReason: chunk.finishReason,
-            usage: chunk.usage,
-            metadata: {
-              ...request.metadata,
-              providerResponseId: undefined, // Chrome AI does not provide a response ID
-              provenance: { ...request.metadata.provenance, backend: this.metadata.name },
-            },
-          };
-        } else if (chunk.type === 'error') {
-          throw new ProviderError({
-            code: ErrorCode.PROVIDER_ERROR,
-            message: chunk.error.message,
-            provenance: { backend: this.metadata.name },
-          });
-        }
-      }
+    const startTime = Date.now();
+    let session: LanguageModelSession | undefined;
 
-      // Fallback
-      const message: IRMessage = { role: 'assistant', content: chunks.join('') };
+    try {
+      const built = await this.createSession(request, signal);
+      session = built.session;
+
+      const text = await session.prompt(built.promptText, this.buildPromptOptions(request, signal));
+
       return {
-        message,
+        message: { role: 'assistant', content: text },
         finishReason: 'stop',
-        metadata: {
-          ...request.metadata,
-          providerResponseId: undefined, // Chrome AI does not provide a response ID
-          provenance: { ...request.metadata.provenance, backend: this.metadata.name },
-        },
+        metadata: this.buildMetadata(request, built.warnings, session, startTime),
       };
     } catch (error) {
+      if (error instanceof ProviderError) {
+        throw error;
+      }
       throw new ProviderError({
         code: ErrorCode.PROVIDER_ERROR,
         message: `Chrome AI request failed: ${error instanceof Error ? error.message : String(error)}`,
@@ -196,103 +261,20 @@ export class ChromeAIBackendAdapter implements BackendAdapter {
         provenance: { backend: this.metadata.name },
         cause: error instanceof Error ? error : undefined,
       });
+    } finally {
+      session?.destroy();
     }
   }
 
   /**
-   * Execute a streaming chat request using Chrome's built-in AI.
-   *
-   * This async generator method processes an IR chat request through Chrome AI's
-   * streaming interface, yielding IR stream chunks as they arrive. It checks for
-   * Chrome AI availability, creates a session with the specified parameters,
-   * combines all messages into a single prompt, and streams the response.
-   * Supports abort signals for cancellation.
-   *
-   * @param request - Universal IR chat request
-   * @param signal - Optional AbortSignal for cancellation
-   * @yields IR stream chunks including start, content, done, and error events
-   * @throws Yields error chunk if Chrome AI unavailable or stream fails
-   *
-   * @example
-   * ```typescript
-   * const adapter = new ChromeAIBackendAdapter();
-   * for await (const chunk of adapter.executeStream(request)) {
-   *   if (chunk.type === 'content') {
-   *     console.log('Delta:', chunk.delta);
-   *   } else if (chunk.type === 'done') {
-   *     console.log('Complete:', chunk.message.content);
-   *   }
-   * }
-   * ```
+   * Execute a streaming chat request using Chrome's Prompt API.
    */
   async *executeStream(request: IRChatRequest, signal?: AbortSignal): IRChatStream {
+    let session: LanguageModelSession | undefined;
+
     try {
-      // Check if Chrome AI is available (try both global scopes)
-      const win = getWindow();
-      const chromeAI =
-        win?.ai?.languageModel ||
-        (typeof globalThis !== 'undefined' && (globalThis as any).ai?.languageModel);
-
-      if (!chromeAI) {
-        throw new ProviderError({
-          code: ErrorCode.PROVIDER_UNAVAILABLE,
-          message: 'Chrome AI is not available (requires Chrome 129+ with AI features enabled)',
-          provenance: { backend: this.metadata.name },
-        });
-      }
-
-      // Check availability using new or legacy API
-      const checkAvailability = chromeAI.availability || chromeAI.capabilities;
-      if (checkAvailability) {
-        const capabilities = await checkAvailability.call(chromeAI);
-        if (capabilities.available === 'no') {
-          throw new ProviderError({
-            code: ErrorCode.PROVIDER_UNAVAILABLE,
-            message: 'Chrome AI is not available on this device',
-            provenance: { backend: this.metadata.name },
-          });
-        }
-      }
-
-      // Extract system prompt from messages if present
-      const systemMessage = request.messages.find((msg) => msg.role === 'system');
-      const systemPrompt = systemMessage
-        ? typeof systemMessage.content === 'string'
-          ? systemMessage.content
-          : ''
-        : undefined;
-
-      // Create session using new or legacy API
-      const createSession = chromeAI.create || chromeAI.createTextSession;
-      if (!createSession) {
-        throw new ProviderError({
-          code: ErrorCode.PROVIDER_UNAVAILABLE,
-          message: 'Chrome AI session creation is not available',
-          provenance: { backend: this.metadata.name },
-        });
-      }
-
-      const session = await createSession.call(chromeAI, {
-        temperature: request.parameters?.temperature,
-        topK: request.parameters?.topK,
-        ...(systemPrompt && { systemPrompt }),
-      });
-
-      // Combine messages into single prompt
-      const prompt = request.messages
-        .map((msg) => {
-          const content =
-            typeof msg.content === 'string'
-              ? msg.content
-              : msg.content.map((c) => (c.type === 'text' ? c.text : '')).join('');
-          return `${msg.role === 'user' ? 'User' : 'Assistant'}: ${content}`;
-        })
-        .join('\n\n');
-
-      // Get effective streaming configuration
-      const streamingConfig = mergeStreamingConfig(this.config.streaming);
-      const effectiveMode = getEffectiveStreamMode(request.streamMode, undefined, streamingConfig);
-      const includeBoth = streamingConfig.includeBoth || effectiveMode === 'accumulated';
+      const built = await this.createSession(request, signal);
+      session = built.session;
 
       let sequence = 0;
       yield {
@@ -300,20 +282,24 @@ export class ChromeAIBackendAdapter implements BackendAdapter {
         sequence: sequence++,
         metadata: {
           ...request.metadata,
+          warnings: built.warnings.length
+            ? [...(request.metadata.warnings ?? []), ...built.warnings]
+            : request.metadata.warnings,
           provenance: { ...request.metadata.provenance, backend: this.metadata.name },
         },
       } as IRStreamChunk;
 
-      const stream = session.promptStreaming(prompt);
+      const stream = session.promptStreaming(
+        built.promptText,
+        this.buildPromptOptions(request, signal)
+      );
       const reader = stream.getReader();
-      const decoder = new TextDecoder();
-      let contentBuffer = '';
+      let buffer = '';
 
       try {
         while (true) {
           if (signal?.aborted) {
-            session.destroy();
-            throw new Error('Request aborted');
+            throw new Error('Chrome AI generation aborted');
           }
 
           const { done, value } = await reader.read();
@@ -321,35 +307,23 @@ export class ChromeAIBackendAdapter implements BackendAdapter {
             break;
           }
 
-          const delta = decoder.decode(value, { stream: true });
-          contentBuffer += delta;
-
-          // Build content chunk with optional accumulated field
-          const contentChunk: IRStreamChunk = {
+          buffer += value;
+          yield {
             type: 'content',
             sequence: sequence++,
-            delta,
+            delta: value,
             role: 'assistant',
-          };
-
-          // Add accumulated field if configured
-          if (includeBoth) {
-            (contentChunk as any).accumulated = contentBuffer;
-          }
-
-          yield contentChunk;
+          } as IRStreamChunk;
         }
 
-        const message: IRMessage = { role: 'assistant', content: contentBuffer };
         yield {
           type: 'done',
           sequence: sequence++,
           finishReason: 'stop',
-          message,
+          message: { role: 'assistant', content: buffer },
         } as IRStreamChunk;
       } finally {
         reader.releaseLock();
-        session.destroy();
       }
     } catch (error) {
       yield {
@@ -360,69 +334,147 @@ export class ChromeAIBackendAdapter implements BackendAdapter {
           message: error instanceof Error ? error.message : String(error),
         },
       } as IRStreamChunk;
+    } finally {
+      session?.destroy();
     }
   }
 
+  // ==========================================================================
+  // Private helpers
+  // ==========================================================================
+
   /**
-   * Check if Chrome AI is available and healthy.
-   *
-   * This method verifies that Chrome AI is present in the browser environment
-   * and reports being available. Returns false if Chrome AI is not supported,
-   * not enabled, or if the device doesn't support on-device AI.
-   *
-   * @returns Promise resolving to true if Chrome AI is available, false otherwise
-   *
-   * @example
-   * ```typescript
-   * const adapter = new ChromeAIBackendAdapter();
-   * if (await adapter.healthCheck()) {
-   *   console.log('Chrome AI is ready!');
-   * } else {
-   *   console.log('Chrome AI not available - use a different backend');
-   * }
-   * ```
+   * Create a Prompt API session for one request: checks availability, maps
+   * IR messages onto `initialPrompts` (all but the last message) plus a
+   * final prompt string (the last message), and collects any semantic-drift
+   * warnings along the way.
    */
-  async healthCheck(): Promise<boolean> {
-    try {
-      const win = getWindow();
-      const chromeAI =
-        win?.ai?.languageModel ||
-        (typeof globalThis !== 'undefined' && (globalThis as any).ai?.languageModel);
-
-      if (!chromeAI) {
-        return false;
-      }
-
-      // Check availability using new or legacy API
-      const checkAvailability = chromeAI.availability || chromeAI.capabilities;
-      if (!checkAvailability) {
-        return false;
-      }
-
-      const capabilities = await checkAvailability.call(chromeAI);
-      return capabilities.available !== 'no';
-    } catch {
-      return false;
+  private async createSession(
+    request: IRChatRequest,
+    signal?: AbortSignal
+  ): Promise<{ session: LanguageModelSession; promptText: string; warnings: IRWarning[] }> {
+    const languageModel = getLanguageModel(this.config);
+    if (!languageModel) {
+      throw new ProviderError({
+        code: ErrorCode.PROVIDER_UNAVAILABLE,
+        message:
+          'Chrome AI (Prompt API) is not available - requires Chrome 138+ with the ' +
+          '`LanguageModel` global (chrome://flags/#prompt-api-for-gemini-nano may be required)',
+        provenance: { backend: this.metadata.name },
+      });
     }
+
+    const availability = await languageModel.availability();
+    if (availability === 'unavailable') {
+      throw new ProviderError({
+        code: ErrorCode.PROVIDER_UNAVAILABLE,
+        message: 'Chrome AI is unavailable on this device',
+        provenance: { backend: this.metadata.name },
+      });
+    }
+
+    const warnings: IRWarning[] = [];
+
+    if (request.tools && request.tools.length > 0) {
+      warnings.push(
+        createWarning('tool-unsupported', 'Chrome AI (Prompt API) does not support tool calling', {
+          source: this.metadata.name,
+        })
+      );
+    }
+
+    const hasNonText = request.messages.some(
+      (message) =>
+        typeof message.content !== 'string' &&
+        message.content.some((block) => block.type !== 'text')
+    );
+    if (hasNonText) {
+      warnings.push(
+        createWarning(
+          'content-type-unsupported',
+          'Chrome AI (Prompt API) backend adapter is text-only; non-text content blocks were dropped',
+          { source: this.metadata.name }
+        )
+      );
+    }
+
+    const { systemMessages, otherMessages } = extractSystemMessages(request.messages);
+    const systemText = combineSystemMessages(systemMessages);
+
+    const lastMessage = otherMessages[otherMessages.length - 1];
+    if (lastMessage && lastMessage.role !== 'user') {
+      warnings.push(
+        createWarning(
+          'system-message-transformed',
+          "Chrome AI expects the final turn to be role:'user'; the last message was not - " +
+            'behavior may be unreliable',
+          { source: this.metadata.name }
+        )
+      );
+    }
+
+    const history = otherMessages.slice(0, -1);
+    const initialPrompts: LanguageModelMessage[] = [
+      ...(systemText ? [{ role: 'system' as const, content: systemText }] : []),
+      ...history.map((message) => ({
+        role: message.role as 'user' | 'assistant',
+        content: extractText(message),
+      })),
+    ];
+
+    const promptText = lastMessage ? extractText(lastMessage) : '';
+
+    const session = await languageModel.create({
+      initialPrompts: initialPrompts.length > 0 ? initialPrompts : undefined,
+      temperature: request.parameters?.temperature ?? this.config.temperature,
+      topK: request.parameters?.topK ?? this.config.topK,
+      signal,
+      monitor: this.config.onDownloadProgress
+        ? (monitor) => {
+            monitor.addEventListener('downloadprogress', (event) => {
+              this.config.onDownloadProgress?.(event);
+            });
+          }
+        : undefined,
+    });
+
+    return { session, promptText, warnings };
   }
 
-  /**
-   * Estimate the cost of a Chrome AI request.
-   *
-   * Chrome AI is completely free as it runs locally on-device, so this always
-   * returns 0. No API keys or payment required.
-   *
-   * @param _request - IR chat request (unused)
-   * @returns Promise resolving to 0 (Chrome AI is free)
-   *
-   * @example
-   * ```typescript
-   * const adapter = new ChromeAIBackendAdapter();
-   * const cost = await adapter.estimateCost(request);
-   * console.log(cost); // Always 0
-   * ```
-   */
-  estimateCost(_request: IRChatRequest): Promise<number | null> {
-    return Promise.resolve(0); // Chrome AI is free
+  private buildPromptOptions(
+    request: IRChatRequest,
+    signal?: AbortSignal
+  ): LanguageModelPromptOptions {
+    return {
+      signal,
+      ...(request.responseFormat
+        ? {
+            responseConstraint: request.responseFormat.schema as unknown as Record<string, unknown>,
+          }
+        : {}),
+    };
+  }
+
+  private buildMetadata(
+    request: IRChatRequest,
+    warnings: IRWarning[],
+    session: LanguageModelSession,
+    startTime: number
+  ): IRChatResponse['metadata'] {
+    return {
+      ...request.metadata,
+      provenance: { ...request.metadata.provenance, backend: this.metadata.name },
+      warnings: warnings.length
+        ? [...(request.metadata.warnings ?? []), ...warnings]
+        : request.metadata.warnings,
+      custom: {
+        ...request.metadata.custom,
+        latencyMs: Date.now() - startTime,
+        ...(request.responseFormat ? { responseFormatEnforced: true } : {}),
+        ...(session.inputUsage !== undefined
+          ? { inputUsage: session.inputUsage, inputQuota: session.inputQuota }
+          : {}),
+      },
+    };
   }
 }

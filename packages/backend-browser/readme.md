@@ -14,7 +14,7 @@ npm install ai.matey.backend.browser
 
 This package contains backend adapters that can run natively in browser environments without Node.js dependencies:
 
-- **Chrome AI** - Chrome's built-in AI APIs (`window.ai`)
+- **Chrome AI** - Chrome's built-in on-device model via the Prompt API (`LanguageModel`)
 - **Function** - Custom function-based backends for testing and integration
 - **Mock** - Mock responses for testing and development
 
@@ -24,15 +24,50 @@ For server-side provider adapters (OpenAI, Anthropic, etc.), see [`ai.matey.back
 
 ### Chrome AI Adapter
 
+Runs entirely on-device via Chrome's built-in model — no API key, no network calls, no cost.
+Requires Chrome 138+ (the `LanguageModel` global; `chrome://flags/#prompt-api-for-gemini-nano`
+may be needed on some channels).
+
 ```typescript
 import { ChromeAIBackendAdapter } from 'ai.matey.backend.browser';
 
-// Chrome AI is available in Chrome 129+ with AI features enabled
-const chromeAI = new ChromeAIBackendAdapter();
+const chromeAI = new ChromeAIBackendAdapter({ temperature: 0.7, topK: 40 });
 
-// Check availability
-const isAvailable = await chromeAI.healthCheck();
+// Tri-state availability - gate UI on 'downloadable' to show a download prompt
+const availability = await chromeAI.checkAvailability(); // 'unavailable' | 'downloadable' | 'downloading' | 'available'
+
+const response = await chromeAI.execute({
+  messages: [{ role: 'user', content: 'Hello!' }],
+  metadata: { requestId: 'req_1', timestamp: Date.now(), provenance: {} },
+});
 ```
+
+Structured output maps directly onto the Prompt API's `responseConstraint`:
+
+```typescript
+const response = await chromeAI.execute({
+  messages: [{ role: 'user', content: 'Extract the name and age from: John is 30.' }],
+  responseFormat: {
+    type: 'json_schema',
+    schema: {
+      type: 'object',
+      properties: { name: { type: 'string' }, age: { type: 'number' } },
+      required: ['name', 'age'],
+    },
+  },
+  metadata: { requestId: 'req_2', timestamp: Date.now(), provenance: {} },
+});
+// response.metadata.custom.responseFormatEnforced === true
+```
+
+Notes:
+- Text-only for now (no image/audio input) - `tools` is not supported (surfaced as an IR warning
+  if requested).
+- `session.inputUsage`/`inputQuota` (cumulative context-window tokens) are surfaced under
+  `response.metadata.custom`, not `response.usage` - the Prompt API doesn't report a
+  prompt/completion token split.
+- Pass `onDownloadProgress` in the config to receive download progress events while
+  availability is `'downloadable'`/`'downloading'`.
 
 ### Function Backend
 
