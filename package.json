@@ -8,9 +8,9 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "turbo run build",
+    "build": "turbo run build && node scripts/fix-cjs-package-json.js",
     "build:esm": "turbo run build:esm",
-    "build:cjs": "turbo run build:cjs",
+    "build:cjs": "turbo run build:cjs && node scripts/fix-cjs-package-json.js",
     "build:types": "turbo run build:types",
     "clean": "turbo run clean && rm -rf node_modules/.cache",
     "typecheck": "turbo run typecheck",
