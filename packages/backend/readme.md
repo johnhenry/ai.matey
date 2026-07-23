@@ -12,7 +12,7 @@ npm install ai.matey.backend
 
 ## Included Providers
 
-This package includes adapters for **27 AI providers**:
+This package includes adapters for **29 AI providers**:
 
 ### Commercial APIs
 - **OpenAI** - GPT-4, GPT-4 Turbo, GPT-3.5
@@ -24,6 +24,7 @@ This package includes adapters for **27 AI providers**:
 - **AI21 Labs** - Jurassic models
 - **Moonshot AI** - Kimi models with long-context support (up to 128K)
 - **Inception Labs** - Mercury diffusion language models
+- **Alibaba Cloud Model Studio (DashScope)** - Qwen model family, OpenAI-compatible mode
 
 ### Cloud Providers
 - **AWS Bedrock** - Amazon's managed AI service
@@ -42,6 +43,7 @@ This package includes adapters for **27 AI providers**:
 ### Aggregators
 - **OpenRouter** - Multi-provider routing and fallback
 - **Perplexity** - Search-augmented models
+- **GitHub Models** - Free access to OpenAI, Meta, DeepSeek, Mistral & Microsoft models via any GitHub account
 
 ### Specialized
 - **Replicate** - ML model deployment

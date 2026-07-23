@@ -42,6 +42,8 @@ export * from './providers/xai.js';
 export * from './providers/inception.js';
 export * from './providers/moonshot.js';
 export * from './providers/sambanova.js';
+export * from './providers/github-models.js';
+export * from './providers/dashscope.js';
 
 // Note: The following adapters have been moved to ai.matey.backend.browser:
 // - chrome-ai (Chrome's built-in AI)

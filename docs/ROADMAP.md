@@ -23,8 +23,8 @@ Development roadmap and strategic direction for the Universal AI Adapter System.
 - ✅ Provider-agnostic request/response handling
 
 ### Providers
-- ✅ **24 Backend Providers** in `ai.matey.backend`:
-  OpenAI, Anthropic, Gemini, Mistral, Cohere, Groq, Ollama, AI21, Anyscale, AWS Bedrock, Azure OpenAI, Cerebras, Cloudflare, DeepInfra, DeepSeek, Fireworks, HuggingFace, LMStudio, NVIDIA, OpenRouter, Perplexity, Replicate, Together AI, XAI
+- ✅ **26 Backend Providers** in `ai.matey.backend`:
+  OpenAI, Anthropic, Gemini, Mistral, Cohere, Groq, Ollama, AI21, Anyscale, AWS Bedrock, Azure OpenAI, Cerebras, Cloudflare, DeepInfra, DeepSeek, Fireworks, HuggingFace, LMStudio, NVIDIA, OpenRouter, Perplexity, Replicate, Together AI, XAI, GitHub Models, DashScope (Alibaba Cloud Model Studio)
 - ✅ **7 Frontend Adapters** in `ai.matey.frontend`:
   OpenAI, Anthropic, Gemini, Mistral, Ollama, Chrome AI, Generic
 - ✅ **3 Browser Backends** in `ai.matey.backend.browser`:
