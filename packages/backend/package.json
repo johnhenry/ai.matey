@@ -287,6 +287,26 @@
         "default": "./dist/cjs/providers/sambanova.js"
       }
     },
+    "./github-models": {
+      "import": {
+        "types": "./dist/types/providers/github-models.d.ts",
+        "default": "./dist/esm/providers/github-models.js"
+      },
+      "require": {
+        "types": "./dist/types/providers/github-models.d.ts",
+        "default": "./dist/cjs/providers/github-models.js"
+      }
+    },
+    "./dashscope": {
+      "import": {
+        "types": "./dist/types/providers/dashscope.d.ts",
+        "default": "./dist/esm/providers/dashscope.js"
+      },
+      "require": {
+        "types": "./dist/types/providers/dashscope.d.ts",
+        "default": "./dist/cjs/providers/dashscope.js"
+      }
+    },
     "./shared": {
       "import": {
         "types": "./dist/types/shared.d.ts",

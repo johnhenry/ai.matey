@@ -7,6 +7,8 @@ import {
   InceptionBackendAdapter,
   MoonshotBackendAdapter,
   SambaNovaBackendAdapter,
+  GitHubModelsBackendAdapter,
+  DashScopeBackendAdapter,
 } from 'ai.matey.backend';
 import {
   MockBackendAdapter,
@@ -232,6 +234,94 @@ describe('Backend Adapters', () => {
       });
 
       expect(adapter).toBeDefined();
+    });
+  });
+
+  describe('GitHubModelsBackendAdapter', () => {
+    it('should create adapter with config', () => {
+      const adapter = new GitHubModelsBackendAdapter({
+        apiKey: 'test-key',
+      });
+
+      expect(adapter).toBeDefined();
+      expect(adapter.metadata.name).toBe('github-models-backend');
+    });
+
+    it('should provide metadata', () => {
+      const adapter = new GitHubModelsBackendAdapter({ apiKey: 'test-key' });
+      const metadata = adapter.metadata;
+
+      expect(metadata.name).toBe('github-models-backend');
+      expect(metadata.provider).toBe('GitHub Models');
+      expect(metadata.capabilities.streaming).toBe(true);
+      expect(metadata.capabilities.tools).toBe(false);
+      expect(metadata.capabilities.multiModal).toBe(true);
+    });
+
+    it('should use default base URL', () => {
+      const adapter = new GitHubModelsBackendAdapter({ apiKey: 'test-key' });
+
+      expect(adapter.metadata.config?.baseURL).toBe('https://models.github.ai/inference');
+    });
+
+    it('should accept custom base URL', () => {
+      const adapter = new GitHubModelsBackendAdapter({
+        apiKey: 'test-key',
+        baseURL: 'https://custom.github-models.api/inference',
+      });
+
+      expect(adapter).toBeDefined();
+    });
+
+    it('estimateCost returns null (free via Copilot subscription tier)', async () => {
+      const adapter = new GitHubModelsBackendAdapter({ apiKey: 'test-key' });
+
+      await expect(adapter.estimateCost(mockRequest)).resolves.toBeNull();
+    });
+  });
+
+  describe('DashScopeBackendAdapter', () => {
+    it('should create adapter with config', () => {
+      const adapter = new DashScopeBackendAdapter({
+        apiKey: 'test-key',
+      });
+
+      expect(adapter).toBeDefined();
+      expect(adapter.metadata.name).toBe('dashscope-backend');
+    });
+
+    it('should provide metadata', () => {
+      const adapter = new DashScopeBackendAdapter({ apiKey: 'test-key' });
+      const metadata = adapter.metadata;
+
+      expect(metadata.name).toBe('dashscope-backend');
+      expect(metadata.provider).toBe('Alibaba Cloud Model Studio (DashScope)');
+      expect(metadata.capabilities.streaming).toBe(true);
+      expect(metadata.capabilities.tools).toBe(false);
+      expect(metadata.capabilities.multiModal).toBe(true);
+    });
+
+    it('should use default (international) base URL', () => {
+      const adapter = new DashScopeBackendAdapter({ apiKey: 'test-key' });
+
+      expect(adapter.metadata.config?.baseURL).toBe(
+        'https://dashscope-intl.aliyuncs.com/compatible-mode/v1'
+      );
+    });
+
+    it('should accept custom base URL (e.g. mainland China region)', () => {
+      const adapter = new DashScopeBackendAdapter({
+        apiKey: 'test-key',
+        baseURL: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+      });
+
+      expect(adapter).toBeDefined();
+    });
+
+    it('estimateCost returns null (pricing not consistently published)', async () => {
+      const adapter = new DashScopeBackendAdapter({ apiKey: 'test-key' });
+
+      await expect(adapter.estimateCost(mockRequest)).resolves.toBeNull();
     });
   });
 
