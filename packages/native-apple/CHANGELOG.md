@@ -1,6 +1,6 @@
-# ai.matey.cli
+# ai.matey.native.apple
 
-## 0.2.3
+## 0.2.1
 
 ### Patch Changes
 
@@ -18,31 +18,6 @@
   (#23)
 
 - Updated dependencies [73aa9f1]
-  - ai.matey.backend@0.7.2
-  - ai.matey.core@0.3.3
   - ai.matey.errors@0.2.1
-  - ai.matey.frontend@0.4.1
   - ai.matey.types@0.5.1
   - ai.matey.utils@0.4.2
-
-## 0.2.2
-
-### Patch Changes
-
-- f227db2: Lint hardening: previously-unlinted packages (cli, react-\*) now pass the strict ESLint config;
-  fixed floating/misused promises in React hooks and CLI, case-block declarations, and unused
-  variables. require-await and no-redundant-type-constituents re-enabled repo-wide.
-- Updated dependencies [dae4d01]
-- Updated dependencies [e7df1d0]
-- Updated dependencies [f227db2]
-- Updated dependencies [2912b7d]
-- Updated dependencies [aef9f4a]
-- Updated dependencies [78731bb]
-- Updated dependencies [b7e2312]
-- Updated dependencies [58ebc03]
-- Updated dependencies [c7693ac]
-  - ai.matey.types@0.3.0
-  - ai.matey.utils@0.3.0
-  - ai.matey.core@0.3.0
-  - ai.matey.backend@0.3.0
-  - ai.matey.frontend@0.3.0
