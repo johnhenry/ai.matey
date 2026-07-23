@@ -2,7 +2,7 @@
 #
 # Staggered Publish Script for ai.matey Monorepo
 #
-# Publishes all 21 packages to npm in dependency order with delays
+# Publishes all 23 packages to npm in dependency order with delays
 # to avoid rate limiting.
 #
 # Usage:
@@ -46,7 +46,7 @@ publish_package() {
   local pkg=$1
   TOTAL=$((TOTAL + 1))
 
-  echo -e "${BLUE}[$TOTAL/21]${NC} Publishing ${YELLOW}$pkg${NC}..."
+  echo -e "${BLUE}[$TOTAL/23]${NC} Publishing ${YELLOW}$pkg${NC}..."
 
   if $DRY_RUN; then
     echo "  → Would run: npm publish --workspace=$pkg --access public"
@@ -104,7 +104,7 @@ echo ""
 echo "╔══════════════════════════════════════════════════════════════╗"
 echo "║       ai.matey Staggered Publish Script                      ║"
 echo "║                                                              ║"
-echo "║  Publishing 21 packages in dependency order                  ║"
+echo "║  Publishing 23 packages in dependency order                  ║"
 echo "║  Delay between packages: ${DELAY_BETWEEN_PACKAGES}s                              ║"
 echo "║  Delay between batches: ${DELAY_BETWEEN_BATCHES}s                               ║"
 echo "╚══════════════════════════════════════════════════════════════╝"
@@ -179,6 +179,14 @@ wait_between "$DELAY_BETWEEN_BATCHES"
 # ============================================================================
 publish_batch "Patterns" \
   "ai.matey.patterns"
+
+wait_between "$DELAY_BETWEEN_BATCHES"
+
+# ============================================================================
+# BATCH 6c: MCP (depends only on types)
+# ============================================================================
+publish_batch "MCP" \
+  "ai.matey.mcp"
 
 wait_between "$DELAY_BETWEEN_BATCHES"
 
