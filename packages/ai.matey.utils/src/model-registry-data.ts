@@ -14,7 +14,8 @@
  * - Users can add or correct models at runtime with `registerModels()`,
  *   so an out-of-date seed never blocks anyone.
  *
- * Data last refreshed: 2026-07-04 (verified against provider pricing pages).
+ * Data last refreshed: 2026-07-23 (verified against provider pricing pages
+ * and blog posts; see .changeset for the specific sources checked).
  *
  * @module
  */
@@ -25,6 +26,42 @@ export const MODEL_REGISTRY_SEED: readonly ModelRegistryEntry[] = [
   // ==========================================================================
   // OpenAI
   // ==========================================================================
+  {
+    id: 'gpt-5.6-sol',
+    provider: 'openai',
+    family: 'gpt-5',
+    releaseDate: '2026-07-09',
+    contextWindow: 1000000,
+    maxOutputTokens: 128000,
+    pricing: { inputPer1M: 5.0, outputPer1M: 30.0 },
+    capabilities: { streaming: true, vision: true, tools: true, json: true },
+    latency: { p50: 1400, p95: 3200 },
+    qualityScore: 98,
+  },
+  {
+    id: 'gpt-5.6-terra',
+    provider: 'openai',
+    family: 'gpt-5',
+    releaseDate: '2026-07-09',
+    contextWindow: 1000000,
+    maxOutputTokens: 128000,
+    pricing: { inputPer1M: 2.5, outputPer1M: 15.0 },
+    capabilities: { streaming: true, vision: true, tools: true, json: true },
+    latency: { p50: 750, p95: 1700 },
+    qualityScore: 90,
+  },
+  {
+    id: 'gpt-5.6-luna',
+    provider: 'openai',
+    family: 'gpt-5',
+    releaseDate: '2026-07-09',
+    contextWindow: 1000000,
+    maxOutputTokens: 128000,
+    pricing: { inputPer1M: 1.0, outputPer1M: 6.0 },
+    capabilities: { streaming: true, vision: true, tools: true, json: true },
+    latency: { p50: 450, p95: 1000 },
+    qualityScore: 80,
+  },
   {
     id: 'gpt-5.1',
     provider: 'openai',
@@ -42,6 +79,9 @@ export const MODEL_REGISTRY_SEED: readonly ModelRegistryEntry[] = [
     provider: 'openai',
     family: 'gpt-5',
     releaseDate: '2025-08-07',
+    // Deprecated by OpenAI 2026-06-11; removal from the API 2026-12-11.
+    // Replacement per OpenAI's own migration mapping: gpt-5.6-sol.
+    deprecated: true,
     contextWindow: 400000,
     maxOutputTokens: 128000,
     pricing: { inputPer1M: 1.25, outputPer1M: 10.0, cachedInputPer1M: 0.125 },
@@ -54,6 +94,9 @@ export const MODEL_REGISTRY_SEED: readonly ModelRegistryEntry[] = [
     provider: 'openai',
     family: 'gpt-5',
     releaseDate: '2025-08-07',
+    // Deprecated by OpenAI 2026-06-11; removal from the API 2026-12-11.
+    // Replacement per OpenAI's own migration mapping: gpt-5.6-terra.
+    deprecated: true,
     contextWindow: 400000,
     maxOutputTokens: 128000,
     pricing: { inputPer1M: 0.25, outputPer1M: 2.0, cachedInputPer1M: 0.025 },
@@ -66,6 +109,9 @@ export const MODEL_REGISTRY_SEED: readonly ModelRegistryEntry[] = [
     provider: 'openai',
     family: 'gpt-5',
     releaseDate: '2025-08-07',
+    // Deprecated by OpenAI 2026-06-11; removal from the API 2026-12-11.
+    // Replacement per OpenAI's own migration mapping: gpt-5.6-luna.
+    deprecated: true,
     contextWindow: 400000,
     maxOutputTokens: 128000,
     pricing: { inputPer1M: 0.05, outputPer1M: 0.4, cachedInputPer1M: 0.005 },
@@ -102,6 +148,9 @@ export const MODEL_REGISTRY_SEED: readonly ModelRegistryEntry[] = [
     provider: 'openai',
     family: 'o-series',
     releaseDate: '2025-04-16',
+    // Deprecated by OpenAI 2026-06-11; removal from the API 2026-12-11.
+    // Replacement per OpenAI's own migration mapping: gpt-5.6-sol.
+    deprecated: true,
     contextWindow: 200000,
     maxOutputTokens: 100000,
     pricing: { inputPer1M: 2.0, outputPer1M: 8.0, cachedInputPer1M: 0.5 },
@@ -224,13 +273,46 @@ export const MODEL_REGISTRY_SEED: readonly ModelRegistryEntry[] = [
   // Anthropic
   // ==========================================================================
   {
+    id: 'claude-fable-5',
+    provider: 'anthropic',
+    family: 'claude-5',
+    // Pricing corroborated via secondary sources during 2026-07-23 research
+    // pass (medium confidence); releaseDate not independently confirmed.
+    contextWindow: 1000000,
+    maxOutputTokens: 128000,
+    pricing: { inputPer1M: 10.0, outputPer1M: 50.0 },
+    capabilities: { streaming: true, vision: true, tools: true, json: true },
+    latency: { p50: 1600, p95: 3400 },
+    qualityScore: 99,
+  },
+  {
+    id: 'claude-opus-4-8',
+    provider: 'anthropic',
+    family: 'claude-4',
+    aliases: ['claude-opus-4.8'],
+    // Pricing corroborated via secondary sources during 2026-07-23 research
+    // pass (medium confidence); releaseDate not independently confirmed.
+    // Temperature/top_p/top_k are deprecated for this model (HTTP 400 if
+    // set to a non-default value) - see AnthropicBackendAdapter's
+    // supportsSamplingParams().
+    contextWindow: 200000,
+    maxOutputTokens: 64000,
+    pricing: { inputPer1M: 5.0, outputPer1M: 25.0 },
+    capabilities: { streaming: true, vision: true, tools: true, json: true },
+    latency: { p50: 2000, p95: 4300 },
+    qualityScore: 99,
+  },
+  {
     id: 'claude-sonnet-5',
     provider: 'anthropic',
     family: 'claude-5',
     releaseDate: '2026-06-30',
     contextWindow: 1000000,
     maxOutputTokens: 128000,
-    // Standard pricing; introductory $2/$10 applies through 2026-08-31
+    // Standard pricing; introductory $2/$10 applies through 2026-08-31.
+    // Temperature/top_p/top_k are deprecated for this model (HTTP 400 if
+    // set to a non-default value) - see AnthropicBackendAdapter's
+    // supportsSamplingParams().
     pricing: { inputPer1M: 3.0, outputPer1M: 15.0, cachedInputPer1M: 0.3 },
     capabilities: { streaming: true, vision: true, tools: true, json: true },
     latency: { p50: 1400, p95: 2900 },
@@ -377,6 +459,36 @@ export const MODEL_REGISTRY_SEED: readonly ModelRegistryEntry[] = [
   // ==========================================================================
   // Google Gemini
   // ==========================================================================
+  {
+    id: 'gemini-3.6-flash',
+    provider: 'gemini',
+    family: 'gemini-3',
+    releaseDate: '2026-07-21',
+    // Priced lower than gemini-3.5-flash per Google's announcement; exact
+    // figures not independently confirmed during the 2026-07-23 research
+    // pass - treat as an estimate.
+    contextWindow: 1048576,
+    maxOutputTokens: 65536,
+    pricing: { inputPer1M: 1.2, outputPer1M: 7.5, cachedInputPer1M: 0.12 },
+    capabilities: { streaming: true, vision: true, tools: true, json: true },
+    latency: { p50: 850, p95: 1900 },
+    qualityScore: 94,
+  },
+  {
+    id: 'gemini-3.5-flash-lite',
+    provider: 'gemini',
+    family: 'gemini-3',
+    releaseDate: '2026-07-21',
+    // Estimated pricing (Flash-Lite tier historically ~4-8x cheaper than the
+    // Flash tier); not independently confirmed during the 2026-07-23
+    // research pass - treat as an estimate.
+    contextWindow: 1048576,
+    maxOutputTokens: 65536,
+    pricing: { inputPer1M: 0.3, outputPer1M: 1.5 },
+    capabilities: { streaming: true, vision: true, tools: true, json: true },
+    latency: { p50: 450, p95: 1000 },
+    qualityScore: 82,
+  },
   {
     id: 'gemini-3.5-flash',
     provider: 'gemini',
@@ -684,6 +796,22 @@ export const MODEL_REGISTRY_SEED: readonly ModelRegistryEntry[] = [
   // xAI
   // ==========================================================================
   {
+    id: 'grok-4.5',
+    provider: 'xai',
+    family: 'grok',
+    releaseDate: '2026-07-08',
+    // 1.5T-param "V9" foundation; xAI describes it as "Opus-class but
+    // faster/cheaper" than Grok 4.3. Pricing not independently confirmed
+    // during the 2026-07-23 research pass - carried over from grok-4.3 as
+    // a placeholder estimate.
+    contextWindow: 1000000,
+    maxOutputTokens: 32768,
+    pricing: { inputPer1M: 1.25, outputPer1M: 2.5 },
+    capabilities: { streaming: true, vision: true, tools: true, json: true },
+    latency: { p50: 1300, p95: 3000 },
+    qualityScore: 97,
+  },
+  {
     id: 'grok-4.3',
     provider: 'xai',
     family: 'grok',
@@ -755,5 +883,26 @@ export const MODEL_REGISTRY_SEED: readonly ModelRegistryEntry[] = [
     capabilities: { streaming: true, vision: false, tools: true, json: true },
     latency: { p50: 900, p95: 2000 },
     qualityScore: 84,
+  },
+
+  // ==========================================================================
+  // Moonshot AI
+  // ==========================================================================
+  {
+    id: 'kimi-k3',
+    provider: 'moonshot',
+    family: 'moonshot',
+    aliases: ['moonshotai/kimi-k3'],
+    releaseDate: '2026-07-16',
+    // 2.8T-param open-weight flagship, native multimodal input, always-on
+    // thinking mode. Pricing confirmed live via OpenRouter's public model
+    // catalog (moonshotai/kimi-k3) on 2026-07-23; not Moonshot's own
+    // first-party pricing page.
+    contextWindow: 1048576,
+    maxOutputTokens: 65536,
+    pricing: { inputPer1M: 3.0, outputPer1M: 15.0, cachedInputPer1M: 0.3 },
+    capabilities: { streaming: true, vision: true, tools: true, json: true },
+    latency: { p50: 1600, p95: 3600 },
+    qualityScore: 93,
   },
 ];

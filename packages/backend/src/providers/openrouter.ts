@@ -206,7 +206,11 @@ export class OpenRouterBackendAdapter implements BackendAdapter<
     }));
 
     const openrouterRequest: OpenRouterRequest = {
-      model: request.parameters?.model || this.config.defaultModel || 'anthropic/claude-3-haiku',
+      // claude-3-haiku is retired on Anthropic's own API (Apr 2026) and EOL
+      // on Bedrock Sept 2026; anthropic/claude-haiku-4.5 is the current
+      // fast/cheap Claude tier (exact OpenRouter slug not independently
+      // verified against their live catalog - confirm before relying on it).
+      model: request.parameters?.model || this.config.defaultModel || 'anthropic/claude-haiku-4.5',
       messages: openrouterMessages,
       temperature: request.parameters?.temperature,
       max_tokens: request.parameters?.maxTokens,

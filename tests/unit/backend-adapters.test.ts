@@ -180,7 +180,7 @@ describe('Backend Adapters', () => {
       expect(metadata.provider).toBe('Moonshot AI');
       expect(metadata.capabilities.streaming).toBe(true);
       expect(metadata.capabilities.tools).toBe(true);
-      expect(metadata.capabilities.maxContextTokens).toBe(128000);
+      expect(metadata.capabilities.maxContextTokens).toBe(1048576);
     });
 
     it('should use default base URL', () => {

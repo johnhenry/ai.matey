@@ -147,7 +147,7 @@ export class FireworksAIBackendAdapter implements BackendAdapter<
         multiModal: true, // Vision models available
         tools: false, // Function calling
         structuredOutput: 'fallback',
-        maxContextTokens: 128000,
+        maxContextTokens: 1000000, // DeepSeek V4 and other current models support up to 1M
         systemMessageStrategy: 'in-messages',
         supportsMultipleSystemMessages: true,
         supportsTemperature: true,
@@ -201,7 +201,7 @@ export class FireworksAIBackendAdapter implements BackendAdapter<
       model:
         request.parameters?.model ||
         this.config.defaultModel ||
-        'accounts/fireworks/models/llama-v3p1-8b-instruct',
+        'accounts/fireworks/models/deepseek-v4-flash',
       messages: fireworksMessages,
       temperature: request.parameters?.temperature,
       max_tokens: request.parameters?.maxTokens,
@@ -534,7 +534,7 @@ export class FireworksAIBackendAdapter implements BackendAdapter<
    */
   estimateCost(request: IRChatRequest): Promise<number | null> {
     const pricing: Record<string, { input: number; output: number }> = {
-      'accounts/fireworks/models/llama-v3p1-8b-instruct': { input: 0.2, output: 0.2 },
+      'accounts/fireworks/models/deepseek-v4-flash': { input: 0.2, output: 0.2 },
       'accounts/fireworks/models/llama-v3p1-70b-instruct': { input: 0.9, output: 0.9 },
       'accounts/fireworks/models/qwen2p5-72b-instruct': { input: 0.9, output: 0.9 },
       'accounts/fireworks/models/deepseek-v3': { input: 0.9, output: 2.0 },

@@ -136,7 +136,7 @@ export class TogetherAIBackendAdapter implements BackendAdapter<
         multiModal: true, // Vision models available
         tools: false, // Function calling
         structuredOutput: 'fallback',
-        maxContextTokens: 128000,
+        maxContextTokens: 1000000, // DeepSeek V4 and other current models support up to 1M
         systemMessageStrategy: 'in-messages',
         supportsMultipleSystemMessages: true,
         supportsTemperature: true,
@@ -187,10 +187,7 @@ export class TogetherAIBackendAdapter implements BackendAdapter<
     }));
 
     return {
-      model:
-        request.parameters?.model ||
-        this.config.defaultModel ||
-        'meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo',
+      model: request.parameters?.model || this.config.defaultModel || 'deepseek-ai/DeepSeek-V4-Pro',
       messages: togetherMessages,
       temperature: request.parameters?.temperature,
       max_tokens: request.parameters?.maxTokens,
@@ -494,7 +491,7 @@ export class TogetherAIBackendAdapter implements BackendAdapter<
    */
   estimateCost(request: IRChatRequest): Promise<number | null> {
     const pricing: Record<string, { input: number; output: number }> = {
-      'meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo': { input: 0.1, output: 0.1 },
+      'deepseek-ai/DeepSeek-V4-Pro': { input: 0.1, output: 0.1 },
       'meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo': { input: 0.88, output: 0.88 },
       'meta-llama/Llama-4-Scout-17B-16E-Instruct': { input: 0.2, output: 0.2 },
     };
