@@ -1,6 +1,6 @@
 {
   "name": "ai.matey.mcp",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "MCP (Model Context Protocol) tool-calling for AI Matey - translate MCP tools into the IR tool-execution loop via an injectable client",
   "type": "module",
   "main": "./dist/cjs/index.js",
