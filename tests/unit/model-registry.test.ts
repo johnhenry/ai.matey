@@ -132,6 +132,46 @@ describe('2026-07 provider refresh', () => {
   });
 });
 
+describe('2026-07-23 provider refresh', () => {
+  it('resolves the GPT-5.6 family with 1M context', () => {
+    expect(getModelEntry('gpt-5.6-sol')?.pricing).toEqual({ inputPer1M: 5.0, outputPer1M: 30.0 });
+    expect(getModelEntry('gpt-5.6-terra')?.contextWindow).toBe(1000000);
+    expect(getModelEntry('gpt-5.6-luna')?.pricing?.inputPer1M).toBe(1.0);
+    expect(getModelContextWindow('gpt-5.6-terra')).toBe(1000000);
+  });
+
+  it('marks the deprecated dated GPT-5/o3 snapshot family deprecated but priced', () => {
+    expect(getModelEntry('gpt-5')?.deprecated).toBe(true);
+    expect(getModelEntry('gpt-5-mini')?.deprecated).toBe(true);
+    expect(getModelEntry('gpt-5-nano')?.deprecated).toBe(true);
+    expect(getModelEntry('o3')?.deprecated).toBe(true);
+    // o4-mini was not confirmed deprecated - must not be flipped
+    expect(getModelEntry('o4-mini')?.deprecated).toBeFalsy();
+    expect(getModelEntry('gpt-5')?.pricing?.inputPer1M).toBe(1.25);
+  });
+
+  it('resolves Claude Opus 4.8 and Fable 5', () => {
+    expect(getModelEntry('claude-opus-4-8')?.family).toBe('claude-4');
+    expect(getModelEntry('claude-opus-4.8')?.id).toBe('claude-opus-4-8');
+    expect(getModelEntry('claude-fable-5')?.family).toBe('claude-5');
+  });
+
+  it('resolves Grok 4.5 and Gemini 3.6 Flash / 3.5 Flash-Lite', () => {
+    expect(getModelEntry('grok-4.5')?.family).toBe('grok');
+    expect(getModelEntry('gemini-3.6-flash')?.family).toBe('gemini-3');
+    expect(getModelEntry('gemini-3.5-flash-lite')?.family).toBe('gemini-3');
+  });
+
+  it('resolves Moonshot Kimi K3 as a new provider section', () => {
+    const kimi = getModelEntry('kimi-k3');
+    expect(kimi?.provider).toBe('moonshot');
+    expect(kimi?.family).toBe('moonshot');
+    expect(kimi?.contextWindow).toBe(1048576);
+    // OpenRouter-listed alias resolves to the same entry
+    expect(getModelEntry('moonshotai/kimi-k3')?.id).toBe('kimi-k3');
+  });
+});
+
 describe('queries', () => {
   it('lists models by provider and family', () => {
     const anthropic = getModelsByProvider('anthropic');

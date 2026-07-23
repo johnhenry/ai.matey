@@ -507,8 +507,51 @@ export function buildToolsUnsupportedWarning(backendName: string): IRWarning {
 
 /**
  * Default OpenAI models with capabilities.
+ * Updated: 2026-07-23
  */
 export const DEFAULT_OPENAI_MODELS: readonly AIModel[] = [
+  {
+    id: 'gpt-5.6-sol',
+    name: 'GPT-5.6 Sol',
+    description: 'Flagship reasoning tier of the GPT-5.6 family',
+    ownedBy: 'openai',
+    capabilities: {
+      maxTokens: 128000,
+      contextWindow: 1000000,
+      supportsStreaming: true,
+      supportsVision: true,
+      supportsTools: true,
+      supportsJSON: true,
+    },
+  },
+  {
+    id: 'gpt-5.6-terra',
+    name: 'GPT-5.6 Terra',
+    description: 'Balanced default tier of the GPT-5.6 family',
+    ownedBy: 'openai',
+    capabilities: {
+      maxTokens: 128000,
+      contextWindow: 1000000,
+      supportsStreaming: true,
+      supportsVision: true,
+      supportsTools: true,
+      supportsJSON: true,
+    },
+  },
+  {
+    id: 'gpt-5.6-luna',
+    name: 'GPT-5.6 Luna',
+    description: 'Fast, low-cost tier of the GPT-5.6 family',
+    ownedBy: 'openai',
+    capabilities: {
+      maxTokens: 128000,
+      contextWindow: 1000000,
+      supportsStreaming: true,
+      supportsVision: true,
+      supportsTools: true,
+      supportsJSON: true,
+    },
+  },
   {
     id: 'gpt-4o',
     name: 'GPT-4o',
@@ -572,6 +615,34 @@ export const DEFAULT_OPENAI_MODELS: readonly AIModel[] = [
  * Updated: 2025-11-30
  */
 export const DEFAULT_ANTHROPIC_MODELS: readonly AIModel[] = [
+  {
+    id: 'claude-fable-5',
+    name: 'Claude Fable 5',
+    description: "Anthropic's highest tier as of the 2026-07 refresh",
+    ownedBy: 'anthropic',
+    capabilities: {
+      maxTokens: 128000,
+      contextWindow: 1000000,
+      supportsStreaming: true,
+      supportsVision: true,
+      supportsTools: true,
+      supportsJSON: true,
+    },
+  },
+  {
+    id: 'claude-opus-4-8',
+    name: 'Claude Opus 4.8',
+    description: 'Most capable Opus tier as of the 2026-07 refresh',
+    ownedBy: 'anthropic',
+    capabilities: {
+      maxTokens: 64000,
+      contextWindow: 200000,
+      supportsStreaming: true,
+      supportsVision: true,
+      supportsTools: true,
+      supportsJSON: true,
+    },
+  },
   {
     id: 'claude-sonnet-5',
     name: 'Claude Sonnet 5',
@@ -713,6 +784,34 @@ export const DEFAULT_AI21_MODELS: readonly AIModel[] = [
  * Updated: 2025-11-30
  */
 export const DEFAULT_GEMINI_MODELS: readonly AIModel[] = [
+  {
+    id: 'gemini-3.6-flash',
+    name: 'Gemini 3.6 Flash',
+    description: 'Fast multimodal model, successor to 3.5 Flash (priced lower)',
+    ownedBy: 'google',
+    capabilities: {
+      maxTokens: 65536,
+      contextWindow: 1048576,
+      supportsStreaming: true,
+      supportsVision: true,
+      supportsTools: true,
+      supportsJSON: true,
+    },
+  },
+  {
+    id: 'gemini-3.5-flash-lite',
+    name: 'Gemini 3.5 Flash-Lite',
+    description: 'Optimized for speed and cost in the 3.5 generation',
+    ownedBy: 'google',
+    capabilities: {
+      maxTokens: 65536,
+      contextWindow: 1048576,
+      supportsStreaming: true,
+      supportsVision: true,
+      supportsTools: true,
+      supportsJSON: true,
+    },
+  },
   {
     id: 'gemini-3.5-flash',
     name: 'Gemini 3.5 Flash',

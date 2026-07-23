@@ -61,14 +61,14 @@ describe('OpenAI backend max_tokens vs max_completion_tokens mapping', () => {
   });
 
   it('sends max_tokens for the fallback default model', () => {
-    // Default model is 'gpt-5-mini' when neither the request nor config
+    // Default model is 'gpt-5.6-terra' when neither the request nor config
     // specify one - it must also take the max_completion_tokens path.
     const req = adapter.fromIR({
       messages: [{ role: 'user', content: 'hi' }],
       parameters: { maxTokens: 100 },
       metadata: { requestId: 'req-1', timestamp: Date.now(), provenance: {} },
     });
-    expect(req.model).toBe('gpt-5-mini');
+    expect(req.model).toBe('gpt-5.6-terra');
     expect(req.max_completion_tokens).toBe(100);
     expect(req.max_tokens).toBeUndefined();
   });

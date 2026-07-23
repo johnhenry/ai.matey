@@ -562,7 +562,7 @@ export class OpenAIBackendAdapter implements BackendAdapter<OpenAIRequest, OpenA
     const estimatedInputTokens = estimateTokens(request);
     // Price the requested model via the shared registry; fall back to the
     // flagship gpt-5.x input rate when the model is unknown
-    const model = request.parameters?.model || this.config.defaultModel || 'gpt-5-mini';
+    const model = request.parameters?.model || this.config.defaultModel || 'gpt-5.6-terra';
     const inputPer1M = getModelPricingInfo(model)?.inputPer1M ?? 1.25;
     return Promise.resolve((estimatedInputTokens / 1_000_000) * inputPer1M);
   }
@@ -723,7 +723,7 @@ export class OpenAIBackendAdapter implements BackendAdapter<OpenAIRequest, OpenA
       );
 
       // Build OpenAI request
-      const model = request.parameters?.model || this.config.defaultModel || 'gpt-5-mini';
+      const model = request.parameters?.model || this.config.defaultModel || 'gpt-5.6-terra';
       const openaiRequest: OpenAIRequest = {
         model,
         messages: openaiMessages,

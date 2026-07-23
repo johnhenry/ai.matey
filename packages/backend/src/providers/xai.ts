@@ -181,7 +181,7 @@ export class XAIBackendAdapter implements BackendAdapter<XAIRequest, XAIResponse
     }));
 
     return {
-      model: request.parameters?.model || this.config.defaultModel || 'grok-4.3',
+      model: request.parameters?.model || this.config.defaultModel || 'grok-4.5',
       messages: xaiMessages,
       temperature: request.parameters?.temperature,
       max_tokens: request.parameters?.maxTokens,

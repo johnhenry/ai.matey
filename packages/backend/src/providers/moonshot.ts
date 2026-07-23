@@ -63,7 +63,7 @@ export class MoonshotBackendAdapter
     const moonshotConfig: BackendAdapterConfig = {
       ...config,
       baseURL: config.baseURL || 'https://api.moonshot.cn/v1',
-      defaultModel: config.defaultModel || 'moonshot-v1-8k',
+      defaultModel: config.defaultModel || 'kimi-k3',
     };
 
     super(moonshotConfig, {
@@ -74,10 +74,10 @@ export class MoonshotBackendAdapter
         // No verified embeddings endpoint; opt out of the inherited embed()
         embeddings: false,
         streaming: true,
-        multiModal: false,
+        multiModal: true, // Kimi K3 supports native multimodal input
         tools: true,
         structuredOutput: 'native',
-        maxContextTokens: 128000,
+        maxContextTokens: 1048576, // Kimi K3's 1,048,576-token context window
         systemMessageStrategy: 'in-messages',
         supportsMultipleSystemMessages: false,
         supportsTemperature: true,

@@ -131,6 +131,11 @@ function detectModelFamily(normalizedName: string): string | undefined {
     return 'grok';
   }
 
+  // Moonshot AI / Kimi family
+  if (normalizedName.includes('kimi') || normalizedName.includes('moonshot')) {
+    return 'moonshot';
+  }
+
   // Mistral family
   if (normalizedName.includes('mistral')) {
     return 'mistral';
@@ -324,6 +329,15 @@ function getDefaultCapabilitiesByFamily(family: string): Partial<ModelCapabiliti
       supportsTools: true,
       supportsJSON: true,
       qualityScore: 82,
+    },
+    moonshot: {
+      contextWindow: 1048576,
+      maxTokens: 65536,
+      supportsStreaming: true,
+      supportsVision: true,
+      supportsTools: true,
+      supportsJSON: true,
+      qualityScore: 93,
     },
   };
 

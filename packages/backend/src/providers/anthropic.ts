@@ -26,7 +26,7 @@ import {
   ErrorCode,
   createErrorFromHttpResponse,
 } from 'ai.matey.errors';
-import { normalizeSystemMessages } from 'ai.matey.utils';
+import { normalizeSystemMessages, createWarning } from 'ai.matey.utils';
 import { getEffectiveStreamMode, mergeStreamingConfig } from 'ai.matey.utils';
 import { getModelPricingInfo } from 'ai.matey.utils';
 import {
@@ -38,6 +38,24 @@ import {
   type StreamedToolCall,
   DEFAULT_ANTHROPIC_MODELS,
 } from '../shared.js';
+
+/**
+ * Whether `temperature`/`top_p`/`top_k` are supported by this model. Claude
+ * Opus 4.7 and later (including Opus 4.8) and Claude Sonnet 5 return an
+ * HTTP 400 if these are set to a non-default value - Anthropic's guidance
+ * is to omit them and rely on prompting instead.
+ */
+export function supportsSamplingParams(model: string): boolean {
+  const normalized = model.toLowerCase();
+  const opusMatch = normalized.match(/claude-opus-4[.-](\d+)/);
+  if (opusMatch && Number(opusMatch[1]) >= 7) {
+    return false;
+  }
+  if (/claude-sonnet-5(\D|$)/.test(normalized)) {
+    return false;
+  }
+  return true;
+}
 
 // ============================================================================
 // Anthropic API Types
@@ -516,8 +534,7 @@ export class AnthropicBackendAdapter implements BackendAdapter<
     const estimatedInputTokens = estimateTokens(request);
     // Price the requested model via the shared registry; fall back to a
     // representative Sonnet-tier rate when the model is unknown
-    const model =
-      request.parameters?.model || this.config.defaultModel || 'claude-sonnet-4-5-20250929';
+    const model = request.parameters?.model || this.config.defaultModel || 'claude-sonnet-5';
     const inputPer1M = getModelPricingInfo(model)?.inputPer1M ?? 3.0;
     return Promise.resolve((estimatedInputTokens / 1_000_000) * inputPer1M);
   }
@@ -573,16 +590,20 @@ export class AnthropicBackendAdapter implements BackendAdapter<
       // Validate max_tokens is present (required by Anthropic)
       const maxTokens = request.parameters?.maxTokens || 4096;
 
+      // Claude Opus 4.7+ (incl. 4.8) and Sonnet 5 return HTTP 400 if sampling
+      // params are set to a non-default value - omit them for those models.
+      const model = request.parameters?.model || this.config.defaultModel || 'claude-sonnet-5';
+      const allowSamplingParams = supportsSamplingParams(model);
+
       // Build Anthropic request
       const anthropicRequest: AnthropicRequest = {
-        model:
-          request.parameters?.model || this.config.defaultModel || 'claude-sonnet-4-5-20250929',
+        model,
         messages: anthropicMessages,
         system: systemParameter || undefined,
         max_tokens: maxTokens,
-        temperature: request.parameters?.temperature,
-        top_p: request.parameters?.topP,
-        top_k: request.parameters?.topK,
+        temperature: allowSamplingParams ? request.parameters?.temperature : undefined,
+        top_p: allowSamplingParams ? request.parameters?.topP : undefined,
+        top_k: allowSamplingParams ? request.parameters?.topK : undefined,
         stop_sequences: request.parameters?.stopSequences
           ? [...request.parameters.stopSequences].slice(0, 4) // Anthropic max is 4
           : undefined,
@@ -682,6 +703,17 @@ export class AnthropicBackendAdapter implements BackendAdapter<
       // Map stop reason
       const finishReason = this.mapStopReason(response.stop_reason || 'end_turn');
 
+      // Warn when sampling params were requested but stripped (see
+      // supportsSamplingParams - Opus 4.7+/4.8 and Sonnet 5 return HTTP 400
+      // if these are set to a non-default value).
+      const model =
+        originalRequest.parameters?.model || this.config.defaultModel || 'claude-sonnet-5';
+      const droppedSamplingParams =
+        !supportsSamplingParams(model) &&
+        (originalRequest.parameters?.temperature !== undefined ||
+          originalRequest.parameters?.topP !== undefined ||
+          originalRequest.parameters?.topK !== undefined);
+
       // Build IR response
       const irResponse: IRChatResponse = {
         message,
@@ -704,6 +736,16 @@ export class AnthropicBackendAdapter implements BackendAdapter<
             latencyMs,
             ...(originalRequest.responseFormat ? { responseFormatEnforced: true } : {}),
           },
+          warnings: droppedSamplingParams
+            ? [
+                ...(originalRequest.metadata.warnings ?? []),
+                createWarning(
+                  'parameter-unsupported',
+                  `${model} does not support temperature/top_p/top_k (returns HTTP 400 for non-default values on Opus 4.7+/4.8 and Sonnet 5); the requested sampling parameters were omitted.`,
+                  { field: 'parameters', source: this.metadata.name }
+                ),
+              ]
+            : originalRequest.metadata.warnings,
         },
         raw: response as unknown as Record<string, unknown>,
       };
