@@ -37,4 +37,9 @@ describe('package layering', () => {
     const deps = dependenciesOf('ai.matey.types');
     expect(Object.keys(deps).filter((d) => d.startsWith('ai.matey'))).toEqual([]);
   });
+
+  it('ai.matey.mcp depends only on ai.matey.types (no core, no MCP SDK)', () => {
+    const deps = dependenciesOf('mcp');
+    expect(Object.keys(deps)).toEqual(['ai.matey.types']);
+  });
 });
