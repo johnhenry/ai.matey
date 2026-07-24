@@ -290,9 +290,50 @@ npx tsx examples/basic/dashscope.ts
 
 ---
 
+### 6. OmniRoute (`basic/omniroute.ts`)
+
+A self-hosted gateway fronting 290+ providers (90+ free) behind one OpenAI-compatible
+endpoint - no API key required for keyless/local usage.
+
+**What it demonstrates:**
+- Using a local (not hosted-cloud) aggregator, unlike OpenRouter/Fireworks
+- The `auto` model - let OmniRoute pick a healthy provider from your pool
+
+**Code:**
+
+```typescript
+import { Bridge } from 'ai.matey.core';
+import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
+import { OmniRouteBackendAdapter } from 'ai.matey.backend/omniroute';
+
+async function main() {
+  const bridge = new Bridge(
+    new OpenAIFrontendAdapter(),
+    new OmniRouteBackendAdapter({
+      baseURL: 'http://localhost:20128/v1', // default OmniRoute port
+      apiKey: 'not-needed', // ignored for keyless local/free-provider usage
+    })
+  );
+
+  const response = await bridge.chat({
+    model: 'auto', // let OmniRoute pick a healthy provider from your configured pool
+    messages: [{ role: 'user', content: 'What is the capital of France?' }],
+  });
+
+  console.log('Response:', response);
+}
+```
+
+**Run:**
+```bash
+npx tsx examples/basic/omniroute.ts
+```
+
+---
+
 ## Structured Output
 
-### 6. Schema-Constrained JSON Output (`basic/structured-output.ts`)
+### 7. Schema-Constrained JSON Output (`basic/structured-output.ts`)
 
 Request JSON output that conforms to a schema, via `responseFormat` on `IRChatRequest`.
 
@@ -347,7 +388,7 @@ support matrix.
 
 ## Middleware
 
-### 7. Logging Middleware (`middleware/logging.ts`)
+### 8. Logging Middleware (`middleware/logging.ts`)
 
 Add logging to track requests and responses for debugging and monitoring.
 
@@ -406,7 +447,7 @@ npx tsx examples/middleware/logging.ts
 
 ---
 
-### 8. Retry Middleware (`middleware/retry.ts`)
+### 9. Retry Middleware (`middleware/retry.ts`)
 
 Automatic retry logic for failed requests with exponential backoff.
 
@@ -477,7 +518,7 @@ npx tsx examples/middleware/retry.ts
 
 ---
 
-### 9. Caching Middleware (`middleware/caching.ts`)
+### 10. Caching Middleware (`middleware/caching.ts`)
 
 Cache responses to reduce API calls and costs.
 
@@ -553,7 +594,7 @@ npx tsx examples/middleware/caching.ts
 
 ---
 
-### 10. Transform Middleware (`middleware/transform.ts`)
+### 11. Transform Middleware (`middleware/transform.ts`)
 
 Transform requests and responses (e.g., inject system messages).
 
@@ -611,7 +652,7 @@ npx tsx examples/middleware/transform.ts
 
 ---
 
-### 11. Middleware Chaining (`middleware-demo.ts`)
+### 12. Middleware Chaining (`middleware-demo.ts`)
 
 Demonstrates chaining multiple middleware together for powerful request/response processing.
 
@@ -630,7 +671,7 @@ npx tsx examples/middleware-demo.ts
 
 ## Routing
 
-### 12. Round-Robin Router (`routing/round-robin.ts`)
+### 13. Round-Robin Router (`routing/round-robin.ts`)
 
 Distribute requests across multiple backends for load balancing.
 
@@ -697,7 +738,7 @@ npx tsx examples/routing/round-robin.ts
 
 ---
 
-### 13. Fallback Router (`routing/fallback.ts`)
+### 14. Fallback Router (`routing/fallback.ts`)
 
 Automatic failover to backup backends when primary fails.
 
@@ -767,7 +808,7 @@ npx tsx examples/routing/fallback.ts
 
 ---
 
-### 14. Router with Model Translation (`routing/model-translation.ts`)
+### 15. Router with Model Translation (`routing/model-translation.ts`)
 
 Automatic model name translation during fallback for cross-provider compatibility.
 
@@ -888,7 +929,7 @@ npx tsx examples/routing/model-translation.ts
 
 ---
 
-### 15. Router with Per-Backend Translation (`routing/per-backend-translation.ts`)
+### 16. Router with Per-Backend Translation (`routing/per-backend-translation.ts`)
 
 Backend-specific model translation mappings that override global translations.
 
@@ -999,7 +1040,7 @@ npx tsx examples/routing/per-backend-translation.ts
 
 ---
 
-### 16. Capability-Based Routing (`routing/capability-based.ts`)
+### 17. Capability-Based Routing (`routing/capability-based.ts`)
 
 Automatically select backends based on model capabilities and requirements.
 
@@ -1092,7 +1133,7 @@ npx tsx examples/routing/capability-based.ts
 
 ---
 
-### 17. Cost-Optimized Routing (`routing/cost-optimized.ts`)
+### 18. Cost-Optimized Routing (`routing/cost-optimized.ts`)
 
 Automatically route to the cheapest backend that meets requirements.
 
@@ -1195,7 +1236,7 @@ npx tsx examples/routing/cost-optimized.ts
 
 ---
 
-### 18. Speed-Optimized Routing (`routing/speed-optimized.ts`)
+### 19. Speed-Optimized Routing (`routing/speed-optimized.ts`)
 
 Route to the fastest backend for low-latency applications.
 
@@ -1306,7 +1347,7 @@ npx tsx examples/routing/speed-optimized.ts
 
 ---
 
-### 19. Quality-Optimized Routing (`routing/quality-optimized.ts`)
+### 20. Quality-Optimized Routing (`routing/quality-optimized.ts`)
 
 Route to the highest quality models for critical tasks.
 
@@ -1419,7 +1460,7 @@ npx tsx examples/routing/quality-optimized.ts
 
 ## HTTP Servers
 
-### 20. Node.js HTTP Server (`http/node-server.ts`)
+### 21. Node.js HTTP Server (`http/node-server.ts`)
 
 Create a basic HTTP server using Node.js http module.
 
@@ -1498,7 +1539,7 @@ npx tsx examples/http/node-server.ts
 
 ---
 
-### 21. Express Server (`http/express-server.ts`)
+### 22. Express Server (`http/express-server.ts`)
 
 HTTP server using Express framework.
 
@@ -1559,7 +1600,7 @@ npx tsx examples/http/express-server.ts
 
 ---
 
-### 22. Hono Server (`http/hono-server.ts`)
+### 23. Hono Server (`http/hono-server.ts`)
 
 Lightweight HTTP server using Hono framework.
 
@@ -1577,7 +1618,7 @@ npx tsx examples/http/hono-server.ts
 
 ## SDK Wrappers
 
-### 23. OpenAI SDK Wrapper (`wrappers/openai-sdk.ts`)
+### 24. OpenAI SDK Wrapper (`wrappers/openai-sdk.ts`)
 
 Drop-in replacement for OpenAI SDK - use any backend!
 
@@ -1662,7 +1703,7 @@ npx tsx examples/wrappers/openai-sdk.ts
 
 ---
 
-### 24. Anthropic SDK Wrapper (`wrappers/anthropic-sdk.ts`)
+### 25. Anthropic SDK Wrapper (`wrappers/anthropic-sdk.ts`)
 
 Drop-in replacement for Anthropic SDK - use any backend!
 
@@ -1680,7 +1721,7 @@ npx tsx examples/wrappers/anthropic-sdk.ts
 
 ## Tool Calling
 
-### 25. Agentic Tool-Call Loop (`tools/run-tools.ts`)
+### 26. Agentic Tool-Call Loop (`tools/run-tools.ts`)
 
 `Bridge.runTools()` - execute → extract tool calls → run them → append results →
 re-execute, looping until the model answers or `maxIterations` is hit.
@@ -1711,7 +1752,7 @@ const result = await runMcpTools(bridge.runTools, {
 
 ## Browser APIs
 
-### 26. Chrome AI Language Model (`chrome-ai-wrapper.js`)
+### 27. Chrome AI Language Model (`chrome-ai-wrapper.js`)
 
 Mimic the Chrome AI API with any backend adapter.
 
@@ -1737,7 +1778,7 @@ node examples/chrome-ai-wrapper.js
 
 ---
 
-### 27. Legacy Chrome AI Wrapper (`chrome-ai-legacy-wrapper.js`)
+### 28. Legacy Chrome AI Wrapper (`chrome-ai-legacy-wrapper.js`)
 
 Support for the legacy Chrome AI API (pre-recent changes).
 
@@ -1764,7 +1805,7 @@ node examples/chrome-ai-legacy-wrapper.js
 
 ## Model Runners
 
-### 28. LlamaCpp Backend (`model-runner-llamacpp.ts`)
+### 29. LlamaCpp Backend (`model-runner-llamacpp.ts`)
 
 Run local GGUF models via llama.cpp binaries.
 

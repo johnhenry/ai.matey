@@ -12,7 +12,7 @@ npm install ai.matey.backend
 
 ## Included Providers
 
-This package includes adapters for **29 AI providers**:
+This package includes adapters for **30 AI providers**:
 
 ### Commercial APIs
 - **OpenAI** - GPT-5.6 family
@@ -54,6 +54,7 @@ This package includes adapters for **29 AI providers**:
 ### Local/Development
 - **Ollama** - Local model hosting
 - **LM Studio** - Local desktop inference
+- **OmniRoute** - Self-hosted gateway fronting 290+ providers (90+ free), no API key required by default
 
 For browser-compatible adapters (Chrome AI, Function, Mock), see [`ai.matey.backend.browser`](../backend-browser).
 

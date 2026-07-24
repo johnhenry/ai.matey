@@ -8,7 +8,7 @@ Provider-agnostic interface for AI APIs. Write once, run anywhere.
 
 ## Why ai.matey?
 
-**Same code, any provider.** Switch between OpenAI, Anthropic, Gemini, Ollama, and 25 other providers (29 total) without changing your application code.
+**Same code, any provider.** Switch between OpenAI, Anthropic, Gemini, Ollama, and 26 other providers (30 total) without changing your application code.
 
 ```typescript
 // Your code stays the same...
@@ -424,6 +424,7 @@ import { OpenAIBackendAdapter } from 'ai.matey.backend/openai';
 - SambaNova
 - GitHub Models (free via any GitHub account)
 - Alibaba Cloud Model Studio / DashScope (Qwen)
+- OmniRoute (self-hosted gateway, 290+ providers, no API key required by default)
 
 **Browser-Compatible Package:** [`ai.matey.backend.browser`](./packages/backend-browser)
 
