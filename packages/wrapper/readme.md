@@ -36,7 +36,7 @@ import { OpenAI } from 'ai.matey.wrapper';
 const client = new OpenAI({ backend: yourBackend });
 
 const response = await client.chat.completions.create({
-  model: 'gpt-4',
+  model: 'gpt-5.6-terra',
   messages: [{ role: 'user', content: 'Hello!' }],
 });
 ```
@@ -49,7 +49,7 @@ import { Anthropic } from 'ai.matey.wrapper';
 const client = new Anthropic({ backend: yourBackend });
 
 const response = await client.messages.create({
-  model: 'claude-3-opus',
+  model: 'claude-sonnet-5',
   messages: [{ role: 'user', content: 'Hello!' }],
   max_tokens: 1024,
 });

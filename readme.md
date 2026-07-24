@@ -8,7 +8,7 @@ Provider-agnostic interface for AI APIs. Write once, run anywhere.
 
 ## Why ai.matey?
 
-**Same code, any provider.** Switch between OpenAI, Anthropic, Gemini, Ollama, and 20 other providers (24 total) without changing your application code.
+**Same code, any provider.** Switch between OpenAI, Anthropic, Gemini, Ollama, and 25 other providers (29 total) without changing your application code.
 
 ```typescript
 // Your code stays the same...

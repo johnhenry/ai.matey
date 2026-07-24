@@ -21,6 +21,8 @@ npm install ai.matey.types
 - `IRMetadata` - Request/response metadata and provenance
 - `IRTool` - Tool/function definition
 - `IRUsage` - Token usage statistics
+- `IRResponseFormat` - Schema-constrained (structured) output request
+- `ToolDefinition`, `RunToolsOptions`, `RunToolsResult` - agentic tool-calling loop types
 
 ### Adapter Interfaces
 - `FrontendAdapter` - Interface for frontend adapters
@@ -70,13 +72,26 @@ const request: IRChatRequest = {
     provenance: { frontend: 'openai' }
   }
 };
+
+// Request schema-constrained (structured) output
+const structuredRequest: IRChatRequest = {
+  ...request,
+  responseFormat: {
+    type: 'json_schema',
+    schema: {
+      type: 'object',
+      properties: { answer: { type: 'string' } },
+      required: ['answer'],
+    },
+  },
+};
 ```
 
 ## Documentation
 
 For comprehensive documentation of the IR format, see:
 - [IR Format Guide](../../docs/IR-FORMAT.md) - Complete specification with examples
-- [API Reference](../../docs/API.md) - Full API documentation
+- [API Reference](../../docs/api.md) - Full API documentation
 - [Type Definitions](./src/ir.ts) - Authoritative TypeScript source
 
 ## License

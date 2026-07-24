@@ -5,9 +5,9 @@ Development roadmap and strategic direction for the Universal AI Adapter System.
 ## Architecture Overview
 
 **Monorepo Structure:**
-- 21 consolidated packages
-- 165 TypeScript source files
-- 32,019 lines of TypeScript code
+- 24 consolidated packages
+- 194 TypeScript source files
+- ~60,500 lines of TypeScript code
 - Turbo-based build system with caching
 - Dual-format distribution: ESM and CommonJS
 - Full TypeScript declarations
@@ -23,8 +23,8 @@ Development roadmap and strategic direction for the Universal AI Adapter System.
 - ✅ Provider-agnostic request/response handling
 
 ### Providers
-- ✅ **26 Backend Providers** in `ai.matey.backend`:
-  OpenAI, Anthropic, Gemini, Mistral, Cohere, Groq, Ollama, AI21, Anyscale, AWS Bedrock, Azure OpenAI, Cerebras, Cloudflare, DeepInfra, DeepSeek, Fireworks, HuggingFace, LMStudio, NVIDIA, OpenRouter, Perplexity, Replicate, Together AI, XAI, GitHub Models, DashScope (Alibaba Cloud Model Studio)
+- ✅ **29 Backend Providers** in `ai.matey.backend`:
+  OpenAI, Anthropic, Gemini, Mistral, Cohere, Groq, Ollama, AI21, Anyscale, AWS Bedrock, Azure OpenAI, Cerebras, Cloudflare, DeepInfra, DeepSeek, Fireworks, HuggingFace, LMStudio, NVIDIA, OpenRouter, Perplexity, Replicate, Together AI, XAI, Inception Labs, Moonshot AI, SambaNova, GitHub Models, DashScope (Alibaba Cloud Model Studio)
 - ✅ **7 Frontend Adapters** in `ai.matey.frontend`:
   OpenAI, Anthropic, Gemini, Mistral, Ollama, Chrome AI, Generic
 - ✅ **3 Browser Backends** in `ai.matey.backend.browser`:
@@ -105,7 +105,7 @@ All 10 middleware types in `ai.matey.middleware`:
 - `ai.matey.core` - Bridge, Router, Middleware core
 
 ### Providers (3 packages)
-- `ai.matey.backend` - All 24 backend provider adapters
+- `ai.matey.backend` - All 29 backend provider adapters
 - `ai.matey.backend.browser` - Browser-only backends
 - `ai.matey.frontend` - All 7 frontend adapters
 
@@ -435,14 +435,24 @@ MediaPipe genai API is maintenance-mode.)
 
 ### Wave 1 (next): MCP + Agents
 
-**MCP client + server — new package `ai.matey.mcp`** (`packages/mcp`; optional peer
-`@modelcontextprotocol/sdk`):
-- Client: `createMCPToolSet({ transport: stdio | streamableHttp, oauth?, namePrefix?, include? })`
-  → `{ tools: Record<string, ToolDefinition>, listResources/readResource, listPrompts/getPrompt
-  (→ IRMessage[]), refreshTools, close }`. MCP tool `inputSchema` passes straight through to
-  `IRTool.parameters` (both raw JSON Schema); `tools/call` isError results throw so the existing
-  runTools loop feeds them back as error tool results. Tools plug into `bridge.runTools`/Agent
-  with zero loop changes.
+**MCP client — shipped as `ai.matey.mcp`** (`packages/mcp`, 2026-07-23; depends only on
+`ai.matey.types`, no MCP SDK dependency at all — the final design diverged from the original
+optional-peer-SDK plan below in favor of a purely structural `McpClientLike` interface, so any
+client implementation (the official SDK wrapped by hand, [`mcp-query`](https://github.com/johnhenry/mcp-query),
+or a test fake) works with zero adapter code):
+- `mcpToolsToDefinitions(client, opts?)` → `Record<string, ToolDefinition>`. MCP tool
+  `inputSchema` passes straight through to `IRTool.parameters` (both raw JSON Schema);
+  `isError` results throw so the existing `runTools` loop feeds them back as error tool results.
+- `runMcpTools(runTools, { client, ...RunToolsOptions })` composes the above with an
+  already-bound `runTools` function (e.g. `bridge.runTools`) — zero loop changes needed.
+- Protocol-version-agnostic by design: `ai.matey.mcp` never touches the wire protocol, so
+  whichever MCP revision(s) the injected client negotiates are supported transparently. See
+  `packages/mcp/readme.md`'s "Protocol Versions" section.
+
+**MCP server — not yet built.** The original plan below (`createMCPServer` on the SDK's
+low-level `Server`, v1 tools-only / v2 resources+prompts) is still the intended shape for
+exposing an ai.matey `Bridge` as an MCP server; tracked separately, not part of the client work
+above.
 - Server: `createMCPServer({ name, tools, bridge? })` on the SDK's **low-level Server**
   (`setRequestHandler` with raw JSON Schema — avoids a zod dependency), reusing
   `validateToolArgs`; `connectStdio()` plus Streamable HTTP `nodeHandler()`/`genericHandler()`
@@ -512,7 +522,7 @@ only via a structural `EmbeddingProvider = { embed() }`):
 
 ### Durable strengths to preserve
 
-Zero runtime dependencies; 28 backends with 7 routing strategies, circuit breaker, fallback and
+Zero runtime dependencies; 29 backends with 7 routing strategies, circuit breaker, fallback and
 parallel dispatch; 6 HTTP framework adapters with health/metrics/embeddings endpoints; the
 format-conversion CLI and OpenAI/Anthropic SDK shims; multi-format frontend adapters (few
 competitors can speak Anthropic's or Gemini's wire format into the same core).
