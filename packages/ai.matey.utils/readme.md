@@ -212,6 +212,35 @@ const readable = asyncGeneratorToReadableStream(stream);
 const generator = readableStreamToAsyncGenerator(readable);
 ```
 
+## Model Registry
+
+Single source of truth for model metadata (pricing, context windows, capabilities,
+quality/latency heuristics), seeded from a built-in `MODEL_REGISTRY_SEED` and extensible at
+runtime so consumers aren't blocked by stale built-in data:
+
+```typescript
+import { registerModels, getModelEntry, getModelPricingInfo } from 'ai.matey.utils';
+
+registerModels([
+  { id: 'gpt-6-preview', provider: 'openai', family: 'gpt-6', pricing: { inputPer1M: 2.0, outputPer1M: 16.0 } },
+]);
+
+getModelEntry('gpt-6-preview');
+getModelPricingInfo('claude-sonnet-5');
+```
+
+Lookup resolves exact ids first, then aliases, then the longest matching id/alias prefix - so
+an unrecognized dated snapshot still resolves to its family entry instead of returning nothing.
+
+## Schema & Validation Utilities
+
+`schemaToToolDefinition`, `validateWithSchema`, and PII/prompt-injection detection helpers
+(`DEFAULT_PII_PATTERNS`, `DEFAULT_INJECTION_PATTERNS`) for building and validating tool schemas.
+Note: this is separate from `IRResponseFormat`/`responseFormat` (schema-constrained *model
+output*, defined in `ai.matey.types` and mapped per-backend in `ai.matey.backend` - see
+[`docs/IR-FORMAT.md`](../../docs/IR-FORMAT.md#structured-output)); these utilities are about
+tool/function schemas and input validation instead.
+
 ## Types
 
 ```typescript

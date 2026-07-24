@@ -7,6 +7,7 @@ Complete working examples demonstrating all features of ai.matey, the Universal 
 - [Running Examples](#running-examples)
 - [Environment Setup](#environment-setup)
 - [Basic Usage](#basic-usage)
+- [Structured Output](#structured-output)
 - [Middleware](#middleware)
 - [Routing](#routing)
 - [HTTP Servers](#http-servers)
@@ -286,6 +287,61 @@ async function main() {
 ```bash
 npx tsx examples/basic/dashscope.ts
 ```
+
+---
+
+## Structured Output
+
+### Schema-Constrained JSON Output (`basic/structured-output.ts`)
+
+Request JSON output that conforms to a schema, via `responseFormat` on `IRChatRequest`.
+
+**What it demonstrates:**
+- Native mapping for OpenAI/Anthropic/Gemini, prompt-injection fallback for everyone else
+- `bridge.executeIR()` — passing an `IRChatRequest` directly, since `responseFormat` is an
+  IR-level field none of the client-facing frontend formats currently translate
+
+**Code:**
+
+```typescript
+import { Bridge } from 'ai.matey.core';
+import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
+import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
+
+async function main() {
+  const bridge = new Bridge(
+    new OpenAIFrontendAdapter(),
+    new AnthropicBackendAdapter({
+      apiKey: process.env.ANTHROPIC_API_KEY || 'sk-ant-...',
+    })
+  );
+
+  const response = await bridge.executeIR({
+    messages: [{ role: 'user', content: 'Extract the name and age from: John is 30.' }],
+    responseFormat: {
+      type: 'json_schema',
+      schema: {
+        type: 'object',
+        properties: { name: { type: 'string' }, age: { type: 'number' } },
+        required: ['name', 'age'],
+      },
+    },
+    parameters: { model: 'claude-sonnet-5' },
+    metadata: { requestId: 'req_1', timestamp: Date.now(), provenance: { frontend: 'openai' } },
+  });
+
+  console.log('Response:', response);
+  // response.message.content -> '{"name":"John","age":30}'
+}
+```
+
+**Run:**
+```bash
+npx tsx examples/basic/structured-output.ts
+```
+
+See [`docs/IR-FORMAT.md`](./docs/IR-FORMAT.md#structured-output) for the full per-backend
+support matrix.
 
 ---
 

@@ -84,6 +84,41 @@ a browser-side agent) without any changes here - `mcp-query` ships `webMcpToolSe
 in-memory MCP-server shim you can plug into `new MCPClient({ servers: { page: webMcpToolServer() } })`.
 Any `MCPClient` built that way already satisfies `McpClientLike`.
 
+## Protocol versions
+
+`ai.matey.mcp` is protocol-version-agnostic by design: it never speaks MCP's wire protocol
+(JSON-RPC, transports, capability negotiation) itself — it only calls `client.listTools()` and
+`client.callTool()` through the `McpClientLike` structural interface. Whichever MCP protocol
+revision(s) the *injected client* negotiates are supported transparently, with zero code in this
+package caring about the difference.
+
+Concretely, for the reference client [`mcp-query`](https://github.com/johnhenry/mcp-query)
+(`@johnhenry/mcpq`), `ConnectionConfig` supports:
+
+| Revision | Era | Notes |
+|---|---|---|
+| `2025-11-25` | legacy (v1) | Classic `initialize` handshake, unsolicited notifications, `resources/subscribe`, optional session resumption. **Default** when neither `versions` nor `versionNegotiation` is set. |
+| `2026-07-28` | modern | `server/discover`-based negotiation, change notifications over a client-opened `subscriptions/listen` stream, no sessions/ping/`logging/setLevel`. |
+
+```typescript
+new MCPClient({
+  servers: {
+    // Default: legacy-only, no probe.
+    a: { transport },
+    // Additive: probe for modern, fall back losslessly to legacy.
+    b: { transport, versions: ['2026-07-28', '2025-11-25'] },
+    // Exclusive: pin to modern only - connect fails against a legacy-only server.
+    c: { transport, versions: ['2026-07-28'] },
+  },
+});
+```
+
+Unknown revision strings are passed through to the SDK verbatim, so a future MCP revision needs
+no change in `mcp-query` (or `ai.matey.mcp`) to support — only a new `versions` entry at the call
+site. If you inject a different `McpClientLike` implementation (the official SDK wrapped by hand,
+or your own), consult its docs for which revisions it negotiates; `ai.matey.mcp`'s behavior is
+identical either way.
+
 ## License
 
 MIT

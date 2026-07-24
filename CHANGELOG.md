@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Structured/schema-constrained output: `responseFormat` on `IRChatRequest`, with native
+  mapping for OpenAI/Anthropic/Gemini and best-effort prompt-injection fallback for every
+  other backend
+- New package `ai.matey.mcp`: MCP (Model Context Protocol) tool-calling via an injectable
+  `McpClientLike` client (no hard dependency on any MCP SDK) - see `packages/mcp/readme.md`
+- Five new backend provider adapters: Inception Labs (Mercury), Moonshot AI (Kimi), SambaNova,
+  GitHub Models (free via any GitHub account), and DashScope / Alibaba Cloud Model Studio (Qwen)
+- Default model bumps across several adapters (OpenAI, Anthropic, Gemini, xAI, Moonshot,
+  OpenRouter) to their current-generation flagships
+
+### Fixed
+- CJS packaging: every package now writes a `dist/cjs/package.json` marker
+  (`{"type":"commonjs"}`) after build, fixing `require()` resolution that broke under
+  each package's root `"type":"module"`
+- Anthropic: omit `temperature`/`top_p`/`top_k` for Claude Opus 4.7+/Sonnet 5, which return
+  HTTP 400 if these sampling params are set to non-default values
+
 ### Changed
 - **BREAKING**: Renamed package `ai.matey.http-core` to `ai.matey.http.core` for naming consistency with other multi-word packages
 - Removed deprecated root-level `src/` directory (all code now in `packages/`)

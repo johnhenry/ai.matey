@@ -15,9 +15,9 @@ npm install ai.matey.backend
 This package includes adapters for **29 AI providers**:
 
 ### Commercial APIs
-- **OpenAI** - GPT-4, GPT-4 Turbo, GPT-3.5
-- **Anthropic** - Claude 3 Opus, Claude 3 Sonnet, Claude 3 Haiku
-- **Google Gemini** - Gemini Pro, Gemini Ultra
+- **OpenAI** - GPT-5.6 family
+- **Anthropic** - Claude Sonnet 5, Claude Opus 4.7+
+- **Google Gemini** - Gemini 3.6 Flash and other current-generation Gemini models
 - **Mistral AI** - Mistral Large, Medium, Small
 - **Cohere** - Command, Command-Light, Command-R
 - **xAI** - Grok models
@@ -81,6 +81,22 @@ You can also import specific providers directly:
 import { OpenAIBackendAdapter } from 'ai.matey.backend/openai';
 import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
 ```
+
+## Structured Output
+
+Set `responseFormat` on an `IRChatRequest` to get schema-constrained JSON output. OpenAI,
+Anthropic, and Gemini map it to their native structured-output mechanisms
+(`response_format`/`output_config`/`responseSchema`); every other backend falls back to prompt
+injection + best-effort JSON extraction. See
+[`docs/IR-FORMAT.md`](../../docs/IR-FORMAT.md#structured-output) for the full support matrix and
+a request/response example.
+
+## Anthropic Sampling Parameters
+
+Claude Opus 4.7+ and Sonnet 5 return an HTTP 400 if `temperature`/`top_p`/`top_k` are set to
+non-default values. `AnthropicBackendAdapter` detects these model families and omits the
+params automatically - no config needed, but don't rely on sampling-param overrides taking
+effect against these specific models.
 
 ## API Reference
 
