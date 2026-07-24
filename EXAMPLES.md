@@ -292,7 +292,7 @@ npx tsx examples/basic/dashscope.ts
 
 ## Structured Output
 
-### Schema-Constrained JSON Output (`basic/structured-output.ts`)
+### 6. Schema-Constrained JSON Output (`basic/structured-output.ts`)
 
 Request JSON output that conforms to a schema, via `responseFormat` on `IRChatRequest`.
 
@@ -347,7 +347,7 @@ support matrix.
 
 ## Middleware
 
-### 4. Logging Middleware (`middleware/logging.ts`)
+### 7. Logging Middleware (`middleware/logging.ts`)
 
 Add logging to track requests and responses for debugging and monitoring.
 
@@ -406,7 +406,7 @@ npx tsx examples/middleware/logging.ts
 
 ---
 
-### 5. Retry Middleware (`middleware/retry.ts`)
+### 8. Retry Middleware (`middleware/retry.ts`)
 
 Automatic retry logic for failed requests with exponential backoff.
 
@@ -477,7 +477,7 @@ npx tsx examples/middleware/retry.ts
 
 ---
 
-### 6. Caching Middleware (`middleware/caching.ts`)
+### 9. Caching Middleware (`middleware/caching.ts`)
 
 Cache responses to reduce API calls and costs.
 
@@ -553,7 +553,7 @@ npx tsx examples/middleware/caching.ts
 
 ---
 
-### 7. Transform Middleware (`middleware/transform.ts`)
+### 10. Transform Middleware (`middleware/transform.ts`)
 
 Transform requests and responses (e.g., inject system messages).
 
@@ -611,7 +611,7 @@ npx tsx examples/middleware/transform.ts
 
 ---
 
-### 8. Middleware Chaining (`middleware-demo.ts`)
+### 11. Middleware Chaining (`middleware-demo.ts`)
 
 Demonstrates chaining multiple middleware together for powerful request/response processing.
 
@@ -630,7 +630,7 @@ npx tsx examples/middleware-demo.ts
 
 ## Routing
 
-### 9. Round-Robin Router (`routing/round-robin.ts`)
+### 12. Round-Robin Router (`routing/round-robin.ts`)
 
 Distribute requests across multiple backends for load balancing.
 
@@ -697,7 +697,7 @@ npx tsx examples/routing/round-robin.ts
 
 ---
 
-### 10. Fallback Router (`routing/fallback.ts`)
+### 13. Fallback Router (`routing/fallback.ts`)
 
 Automatic failover to backup backends when primary fails.
 
@@ -767,7 +767,7 @@ npx tsx examples/routing/fallback.ts
 
 ---
 
-### 11. Router with Model Translation (`routing/model-translation.ts`)
+### 14. Router with Model Translation (`routing/model-translation.ts`)
 
 Automatic model name translation during fallback for cross-provider compatibility.
 
@@ -888,7 +888,7 @@ npx tsx examples/routing/model-translation.ts
 
 ---
 
-### 12. Router with Per-Backend Translation (`routing/per-backend-translation.ts`)
+### 15. Router with Per-Backend Translation (`routing/per-backend-translation.ts`)
 
 Backend-specific model translation mappings that override global translations.
 
@@ -999,7 +999,7 @@ npx tsx examples/routing/per-backend-translation.ts
 
 ---
 
-### 13. Capability-Based Routing (`routing/capability-based.ts`)
+### 16. Capability-Based Routing (`routing/capability-based.ts`)
 
 Automatically select backends based on model capabilities and requirements.
 
@@ -1092,7 +1092,7 @@ npx tsx examples/routing/capability-based.ts
 
 ---
 
-### 14. Cost-Optimized Routing (`routing/cost-optimized.ts`)
+### 17. Cost-Optimized Routing (`routing/cost-optimized.ts`)
 
 Automatically route to the cheapest backend that meets requirements.
 
@@ -1195,7 +1195,7 @@ npx tsx examples/routing/cost-optimized.ts
 
 ---
 
-### 15. Speed-Optimized Routing (`routing/speed-optimized.ts`)
+### 18. Speed-Optimized Routing (`routing/speed-optimized.ts`)
 
 Route to the fastest backend for low-latency applications.
 
@@ -1306,7 +1306,7 @@ npx tsx examples/routing/speed-optimized.ts
 
 ---
 
-### 16. Quality-Optimized Routing (`routing/quality-optimized.ts`)
+### 19. Quality-Optimized Routing (`routing/quality-optimized.ts`)
 
 Route to the highest quality models for critical tasks.
 
@@ -1419,7 +1419,7 @@ npx tsx examples/routing/quality-optimized.ts
 
 ## HTTP Servers
 
-### 13. Node.js HTTP Server (`http/node-server.ts`)
+### 20. Node.js HTTP Server (`http/node-server.ts`)
 
 Create a basic HTTP server using Node.js http module.
 
@@ -1498,7 +1498,7 @@ npx tsx examples/http/node-server.ts
 
 ---
 
-### 12. Express Server (`http/express-server.ts`)
+### 21. Express Server (`http/express-server.ts`)
 
 HTTP server using Express framework.
 
@@ -1559,7 +1559,7 @@ npx tsx examples/http/express-server.ts
 
 ---
 
-### 13. Hono Server (`http/hono-server.ts`)
+### 22. Hono Server (`http/hono-server.ts`)
 
 Lightweight HTTP server using Hono framework.
 
@@ -1577,7 +1577,7 @@ npx tsx examples/http/hono-server.ts
 
 ## SDK Wrappers
 
-### 14. OpenAI SDK Wrapper (`wrappers/openai-sdk.ts`)
+### 23. OpenAI SDK Wrapper (`wrappers/openai-sdk.ts`)
 
 Drop-in replacement for OpenAI SDK - use any backend!
 
@@ -1662,7 +1662,7 @@ npx tsx examples/wrappers/openai-sdk.ts
 
 ---
 
-### 15. Anthropic SDK Wrapper (`wrappers/anthropic-sdk.ts`)
+### 24. Anthropic SDK Wrapper (`wrappers/anthropic-sdk.ts`)
 
 Drop-in replacement for Anthropic SDK - use any backend!
 
@@ -1680,7 +1680,7 @@ npx tsx examples/wrappers/anthropic-sdk.ts
 
 ## Tool Calling
 
-### Agentic Tool-Call Loop (`tools/run-tools.ts`)
+### 25. Agentic Tool-Call Loop (`tools/run-tools.ts`)
 
 `Bridge.runTools()` - execute → extract tool calls → run them → append results →
 re-execute, looping until the model answers or `maxIterations` is hit.
@@ -1711,7 +1711,7 @@ const result = await runMcpTools(bridge.runTools, {
 
 ## Browser APIs
 
-### 16. Chrome AI Language Model (`chrome-ai-wrapper.js`)
+### 26. Chrome AI Language Model (`chrome-ai-wrapper.js`)
 
 Mimic the Chrome AI API with any backend adapter.
 
@@ -1737,7 +1737,7 @@ node examples/chrome-ai-wrapper.js
 
 ---
 
-### 17. Legacy Chrome AI Wrapper (`chrome-ai-legacy-wrapper.js`)
+### 27. Legacy Chrome AI Wrapper (`chrome-ai-legacy-wrapper.js`)
 
 Support for the legacy Chrome AI API (pre-recent changes).
 
@@ -1764,7 +1764,7 @@ node examples/chrome-ai-legacy-wrapper.js
 
 ## Model Runners
 
-### 18. LlamaCpp Backend (`model-runner-llamacpp.ts`)
+### 28. LlamaCpp Backend (`model-runner-llamacpp.ts`)
 
 Run local GGUF models via llama.cpp binaries.
 
