@@ -419,6 +419,11 @@ import { OpenAIBackendAdapter } from 'ai.matey.backend/openai';
 - Hugging Face
 - Cloudflare Workers AI
 - Replicate
+- Inception Labs (Mercury)
+- Moonshot AI (Kimi)
+- SambaNova
+- GitHub Models (free via any GitHub account)
+- Alibaba Cloud Model Studio / DashScope (Qwen)
 
 **Browser-Compatible Package:** [`ai.matey.backend.browser`](./packages/backend-browser)
 
@@ -512,6 +517,24 @@ import { OpenAI } from 'ai.matey.wrapper';  // OpenAI SDK-compatible
 - Chrome AI API
 - IR-native chat client
 - Dynamic wrapper (anymethod)
+
+### Tool Calling (MCP)
+
+**Package:** [`ai.matey.mcp`](./packages/mcp) | [📚 Documentation](./packages/mcp/readme.md)
+
+Translates MCP (Model Context Protocol) tools into the `ToolDefinition` shape consumed by
+`ai.matey.core`'s `Bridge.runTools()` agentic loop, via an injectable client - no hard
+dependency on any MCP SDK. Works with the official `@modelcontextprotocol/sdk`,
+[`mcp-query`](https://github.com/johnhenry/mcp-query), or a test fake.
+
+```typescript
+import { runMcpTools } from 'ai.matey.mcp';
+
+const result = await runMcpTools(bridge.runTools, {
+  client: mcpClient, // any object satisfying McpClientLike
+  prompt: 'What files changed in the last commit?',
+});
+```
 
 ### Native Backends
 
