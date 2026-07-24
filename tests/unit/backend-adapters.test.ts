@@ -9,6 +9,7 @@ import {
   SambaNovaBackendAdapter,
   GitHubModelsBackendAdapter,
   DashScopeBackendAdapter,
+  OmniRouteBackendAdapter,
 } from 'ai.matey.backend';
 import {
   MockBackendAdapter,
@@ -320,6 +321,51 @@ describe('Backend Adapters', () => {
 
     it('estimateCost returns null (pricing not consistently published)', async () => {
       const adapter = new DashScopeBackendAdapter({ apiKey: 'test-key' });
+
+      await expect(adapter.estimateCost(mockRequest)).resolves.toBeNull();
+    });
+  });
+
+  describe('OmniRouteBackendAdapter', () => {
+    const noKeyConfig = {} as ConstructorParameters<typeof OmniRouteBackendAdapter>[0];
+
+    it('should create adapter without an API key (local/keyless usage)', () => {
+      const adapter = new OmniRouteBackendAdapter(noKeyConfig);
+
+      expect(adapter).toBeDefined();
+      expect(adapter.metadata.name).toBe('omniroute-backend');
+    });
+
+    it('should provide metadata', () => {
+      const adapter = new OmniRouteBackendAdapter(noKeyConfig);
+      const metadata = adapter.metadata;
+
+      expect(metadata.name).toBe('omniroute-backend');
+      expect(metadata.provider).toBe('OmniRoute');
+      expect(metadata.capabilities.streaming).toBe(true);
+      expect(metadata.capabilities.tools).toBe(true);
+      expect(metadata.capabilities.embeddings).toBe(true);
+    });
+
+    it('should use the default local base URL and "auto" model', () => {
+      const adapter = new OmniRouteBackendAdapter(noKeyConfig);
+
+      expect(adapter.metadata.config?.baseURL).toBe('http://localhost:20128/v1');
+      const req = adapter.fromIR({ ...mockRequest, parameters: undefined });
+      expect(req.model).toBe('auto');
+    });
+
+    it('should accept a custom base URL and API key', () => {
+      const adapter = new OmniRouteBackendAdapter({
+        apiKey: 'test-key',
+        baseURL: 'http://localhost:8080/v1',
+      });
+
+      expect(adapter.metadata.config?.baseURL).toBe('http://localhost:8080/v1');
+    });
+
+    it('estimateCost returns null (actual routed provider/cost is unknowable from the request)', async () => {
+      const adapter = new OmniRouteBackendAdapter(noKeyConfig);
 
       await expect(adapter.estimateCost(mockRequest)).resolves.toBeNull();
     });

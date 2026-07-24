@@ -23,8 +23,8 @@ Development roadmap and strategic direction for the Universal AI Adapter System.
 - ✅ Provider-agnostic request/response handling
 
 ### Providers
-- ✅ **29 Backend Providers** in `ai.matey.backend`:
-  OpenAI, Anthropic, Gemini, Mistral, Cohere, Groq, Ollama, AI21, Anyscale, AWS Bedrock, Azure OpenAI, Cerebras, Cloudflare, DeepInfra, DeepSeek, Fireworks, HuggingFace, LMStudio, NVIDIA, OpenRouter, Perplexity, Replicate, Together AI, XAI, Inception Labs, Moonshot AI, SambaNova, GitHub Models, DashScope (Alibaba Cloud Model Studio)
+- ✅ **30 Backend Providers** in `ai.matey.backend`:
+  OpenAI, Anthropic, Gemini, Mistral, Cohere, Groq, Ollama, AI21, Anyscale, AWS Bedrock, Azure OpenAI, Cerebras, Cloudflare, DeepInfra, DeepSeek, Fireworks, HuggingFace, LMStudio, NVIDIA, OpenRouter, Perplexity, Replicate, Together AI, XAI, Inception Labs, Moonshot AI, SambaNova, GitHub Models, DashScope (Alibaba Cloud Model Studio), OmniRoute
 - ✅ **7 Frontend Adapters** in `ai.matey.frontend`:
   OpenAI, Anthropic, Gemini, Mistral, Ollama, Chrome AI, Generic
 - ✅ **3 Browser Backends** in `ai.matey.backend.browser`:
@@ -105,7 +105,7 @@ All 10 middleware types in `ai.matey.middleware`:
 - `ai.matey.core` - Bridge, Router, Middleware core
 
 ### Providers (3 packages)
-- `ai.matey.backend` - All 29 backend provider adapters
+- `ai.matey.backend` - All 30 backend provider adapters
 - `ai.matey.backend.browser` - Browser-only backends
 - `ai.matey.frontend` - All 7 frontend adapters
 
@@ -522,7 +522,7 @@ only via a structural `EmbeddingProvider = { embed() }`):
 
 ### Durable strengths to preserve
 
-Zero runtime dependencies; 29 backends with 7 routing strategies, circuit breaker, fallback and
+Zero runtime dependencies; 30 backends with 7 routing strategies, circuit breaker, fallback and
 parallel dispatch; 6 HTTP framework adapters with health/metrics/embeddings endpoints; the
 format-conversion CLI and OpenAI/Anthropic SDK shims; multi-format frontend adapters (few
 competitors can speak Anthropic's or Gemini's wire format into the same core).
