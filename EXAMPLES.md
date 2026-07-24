@@ -11,6 +11,7 @@ Complete working examples demonstrating all features of ai.matey, the Universal 
 - [Routing](#routing)
 - [HTTP Servers](#http-servers)
 - [SDK Wrappers](#sdk-wrappers)
+- [Tool Calling](#tool-calling)
 - [Browser APIs](#browser-apis)
 - [Model Runners](#model-runners)
 - [Advanced Patterns](#advanced-patterns)
@@ -205,6 +206,85 @@ async function main() {
 **Run:**
 ```bash
 npx tsx examples/basic/reverse-bridge.ts
+```
+
+---
+
+### 4. GitHub Models (`basic/github-models.ts`)
+
+Free access to OpenAI, Meta, DeepSeek, Mistral, and Microsoft models via any GitHub account.
+
+**What it demonstrates:**
+- Using a free, OpenAI-compatible gateway (no billing account needed)
+- `publisher/model-name` model IDs (e.g. `openai/gpt-4o-mini`)
+
+**Code:**
+
+```typescript
+import { Bridge } from 'ai.matey.core';
+import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
+import { GitHubModelsBackendAdapter } from 'ai.matey.backend/github-models';
+
+async function main() {
+  const bridge = new Bridge(
+    new OpenAIFrontendAdapter(),
+    new GitHubModelsBackendAdapter({
+      apiKey: process.env.GITHUB_TOKEN || 'ghp_...',
+    })
+  );
+
+  const response = await bridge.chat({
+    model: 'openai/gpt-4o-mini', // see https://models.github.ai/catalog/models
+    messages: [{ role: 'user', content: 'What is the capital of France?' }],
+  });
+
+  console.log('Response:', response);
+}
+```
+
+**Run:**
+```bash
+npx tsx examples/basic/github-models.ts
+```
+
+---
+
+### 5. DashScope / Alibaba Cloud Model Studio (`basic/dashscope.ts`)
+
+The Qwen model family via DashScope's OpenAI-compatible mode.
+
+**What it demonstrates:**
+- Using a non-Western cloud provider's OpenAI-compatible endpoint
+- Overriding `baseURL` for a regional deployment (mainland China vs. international)
+
+**Code:**
+
+```typescript
+import { Bridge } from 'ai.matey.core';
+import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
+import { DashScopeBackendAdapter } from 'ai.matey.backend/dashscope';
+
+async function main() {
+  const bridge = new Bridge(
+    new OpenAIFrontendAdapter(),
+    new DashScopeBackendAdapter({
+      apiKey: process.env.DASHSCOPE_API_KEY || 'sk-...',
+      // baseURL: 'https://dashscope.aliyuncs.com/compatible-mode/v1', // mainland China
+    })
+  );
+
+  const response = await bridge.chat({
+    model: 'qwen3.7-plus',
+    messages: [{ role: 'user', content: 'What is the capital of France?' }],
+  });
+
+  console.log('Response:', response);
+}
+```
+
+**Run:**
+```bash
+npx tsx examples/basic/dashscope.ts
 ```
 
 ---
@@ -1538,6 +1618,37 @@ Drop-in replacement for Anthropic SDK - use any backend!
 **Run:**
 ```bash
 npx tsx examples/wrappers/anthropic-sdk.ts
+```
+
+---
+
+## Tool Calling
+
+### Agentic Tool-Call Loop (`tools/run-tools.ts`)
+
+`Bridge.runTools()` - execute → extract tool calls → run them → append results →
+re-execute, looping until the model answers or `maxIterations` is hit.
+
+**Run:**
+```bash
+npx tsx examples/tools/run-tools.ts
+```
+
+### MCP (Model Context Protocol) (`ai.matey.mcp`)
+
+The [`ai.matey.mcp`](./packages/mcp/readme.md) package translates MCP tools into the
+`ToolDefinition` shape `runTools()` already consumes, via an injectable `McpClientLike`
+client - no hard dependency on any MCP SDK. Works with the official
+`@modelcontextprotocol/sdk`, [`mcp-query`](https://github.com/johnhenry/mcp-query), or a
+test fake; see the package readme for `mcpToolsToDefinitions()` and `runMcpTools()` examples.
+
+```typescript
+import { runMcpTools } from 'ai.matey.mcp';
+
+const result = await runMcpTools(bridge.runTools, {
+  client: mcpClient, // any McpClientLike - e.g. an mcp-query MCPClient
+  prompt: 'What files changed in the last commit?',
+});
 ```
 
 ---
