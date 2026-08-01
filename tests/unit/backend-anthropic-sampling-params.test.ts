@@ -63,10 +63,10 @@ describe('Anthropic backend sampling param mapping', () => {
     expect(req.top_k).toBe(40);
   });
 
-  it('uses the new claude-sonnet-5 default, so sampling params are omitted with no explicit model', () => {
+  it('uses the claude-haiku-4-5 default, which still supports sampling params, with no explicit model', () => {
     const req = adapter.fromIR(makeRequest({ parameters: { temperature: 0.7, topP: 0.9, topK: 40 } }));
-    expect(req.model).toBe('claude-sonnet-5');
-    expect(req.temperature).toBeUndefined();
+    expect(req.model).toBe('claude-haiku-4-5-20251001');
+    expect(req.temperature).toBe(0.7);
   });
 
   it('adds a parameter-unsupported warning when sampling params are dropped', () => {

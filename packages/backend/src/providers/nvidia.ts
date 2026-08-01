@@ -73,6 +73,9 @@ export class NVIDIABackendAdapter
     const nvidiaConfig: BackendAdapterConfig = {
       ...config,
       baseURL: config.baseURL || 'https://integrate.api.nvidia.com/v1',
+      // Without this, the adapter silently inherits OpenAIBackendAdapter's
+      // 'gpt-5.6-terra' fallback, which NVIDIA NIM does not serve.
+      defaultModel: config.defaultModel || 'meta/llama-3.1-8b-instruct',
     };
 
     // Pass NVIDIA-specific metadata to parent constructor

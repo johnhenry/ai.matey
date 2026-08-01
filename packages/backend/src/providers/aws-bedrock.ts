@@ -202,9 +202,13 @@ export class AWSBedrockBackendAdapter implements BackendAdapter<BedrockRequest, 
 
     const bedrockRequest: BedrockRequest = {
       modelId:
+        // Claude Haiku 4.5 has no on-demand throughput on Bedrock - the bare
+        // 'anthropic.claude-haiku-4-5-...' model ID 400s with "on-demand
+        // throughput isn't supported for this model". It must be invoked
+        // through the 'global.' cross-region inference profile instead.
         request.parameters?.model ||
         this.config.defaultModel ||
-        'anthropic.claude-3-haiku-20240307-v1:0',
+        'global.anthropic.claude-haiku-4-5-20251001-v1:0',
       messages: bedrockMessages,
       inferenceConfig: {
         temperature: request.parameters?.temperature,

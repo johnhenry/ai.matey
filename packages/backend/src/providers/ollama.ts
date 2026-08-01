@@ -347,7 +347,7 @@ export class OllamaBackendAdapter implements BackendAdapter<OllamaRequest, Ollam
     }));
 
     return {
-      model: request.parameters?.model || 'llama2',
+      model: request.parameters?.model || this.config.defaultModel || 'llama3.2',
       messages: ollamaMessages,
       options: {
         temperature: request.parameters?.temperature,
