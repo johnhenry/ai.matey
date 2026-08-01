@@ -533,9 +533,10 @@ export class AnthropicBackendAdapter implements BackendAdapter<
     // Use shared token estimation utility
     const estimatedInputTokens = estimateTokens(request);
     // Price the requested model via the shared registry; fall back to a
-    // representative Sonnet-tier rate when the model is unknown
-    const model = request.parameters?.model || this.config.defaultModel || 'claude-sonnet-5';
-    const inputPer1M = getModelPricingInfo(model)?.inputPer1M ?? 3.0;
+    // representative Haiku-tier rate when the model is unknown
+    const model =
+      request.parameters?.model || this.config.defaultModel || 'claude-haiku-4-5-20251001';
+    const inputPer1M = getModelPricingInfo(model)?.inputPer1M ?? 1.0;
     return Promise.resolve((estimatedInputTokens / 1_000_000) * inputPer1M);
   }
 
@@ -592,7 +593,8 @@ export class AnthropicBackendAdapter implements BackendAdapter<
 
       // Claude Opus 4.7+ (incl. 4.8) and Sonnet 5 return HTTP 400 if sampling
       // params are set to a non-default value - omit them for those models.
-      const model = request.parameters?.model || this.config.defaultModel || 'claude-sonnet-5';
+      const model =
+        request.parameters?.model || this.config.defaultModel || 'claude-haiku-4-5-20251001';
       const allowSamplingParams = supportsSamplingParams(model);
 
       // Build Anthropic request
@@ -707,7 +709,9 @@ export class AnthropicBackendAdapter implements BackendAdapter<
       // supportsSamplingParams - Opus 4.7+/4.8 and Sonnet 5 return HTTP 400
       // if these are set to a non-default value).
       const model =
-        originalRequest.parameters?.model || this.config.defaultModel || 'claude-sonnet-5';
+        originalRequest.parameters?.model ||
+        this.config.defaultModel ||
+        'claude-haiku-4-5-20251001';
       const droppedSamplingParams =
         !supportsSamplingParams(model) &&
         (originalRequest.parameters?.temperature !== undefined ||

@@ -171,7 +171,9 @@ export class AnyscaleBackendAdapter implements BackendAdapter<AnyscaleRequest, A
 
     return {
       model:
-        request.parameters?.model || this.config.defaultModel || 'meta-llama/Llama-2-70b-chat-hf',
+        request.parameters?.model ||
+        this.config.defaultModel ||
+        'meta-llama/Meta-Llama-3.1-8B-Instruct',
       messages: anyscaleMessages,
       temperature: request.parameters?.temperature,
       max_tokens: request.parameters?.maxTokens,

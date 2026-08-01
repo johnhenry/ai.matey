@@ -66,6 +66,12 @@ export class LMStudioBackendAdapter
       baseURL: config.baseURL || 'http://localhost:1234/v1',
       // LM Studio doesn't require API key for local usage
       apiKey: config.apiKey || 'not-needed',
+      // Without this, the adapter silently inherits OpenAIBackendAdapter's
+      // 'gpt-5.6-terra' fallback, which no local LM Studio server serves.
+      // There's no cloud "flagship" here - LM Studio ignores this value for
+      // single-model setups and otherwise expects the id of whatever model
+      // the user has loaded locally.
+      defaultModel: config.defaultModel || 'local-model',
     };
 
     // Pass LM Studio-specific metadata to parent constructor

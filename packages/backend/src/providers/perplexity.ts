@@ -181,9 +181,9 @@ export class PerplexityBackendAdapter implements BackendAdapter<
 
     const perplexityRequest: PerplexityRequest = {
       model:
-        request.parameters?.model ||
-        this.config.defaultModel ||
-        'llama-3.1-sonar-small-128k-online',
+        // 'llama-3.1-sonar-*-online' models were retired when Perplexity
+        // renamed its lineup to the plain 'sonar' family.
+        request.parameters?.model || this.config.defaultModel || 'sonar',
       messages: perplexityMessages,
       temperature: request.parameters?.temperature,
       max_tokens: request.parameters?.maxTokens,

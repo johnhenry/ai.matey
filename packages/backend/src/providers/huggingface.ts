@@ -158,7 +158,15 @@ export class HuggingFaceBackendAdapter implements BackendAdapter<
 
       // Make HTTP request
       const startTime = Date.now();
-      const response = await this.makeRequest(request.parameters?.model || '', hfRequest, signal);
+      const response = await this.makeRequest(
+        // Meta's Llama repos require accepting a gated license on HF, which
+        // breaks a default that's supposed to "just work". Qwen3.5-9B is
+        // ungated (Apache 2.0) and matches the ~8B-class lite tier other
+        // aggregator adapters in this file default to.
+        request.parameters?.model || this.config.defaultModel || 'Qwen/Qwen3.5-9B',
+        hfRequest,
+        signal
+      );
 
       // Convert response to IR
       const irResponse = this.toIR(response, request, Date.now() - startTime);

@@ -188,7 +188,7 @@ export class DashScopeBackendAdapter implements BackendAdapter<
     }));
 
     return {
-      model: request.parameters?.model || this.config.defaultModel || 'qwen3.7-plus',
+      model: request.parameters?.model || this.config.defaultModel || 'qwen3.7-flash',
       messages: dashScopeMessages,
       temperature: request.parameters?.temperature,
       max_tokens: request.parameters?.maxTokens,

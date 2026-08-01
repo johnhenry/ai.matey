@@ -164,7 +164,7 @@ export class ReplicateBackendAdapter implements BackendAdapter<
 
     return {
       version:
-        request.parameters?.model || this.config.defaultModel || 'meta/llama-2-70b-chat:latest',
+        request.parameters?.model || this.config.defaultModel || 'meta/meta-llama-3-8b-instruct',
       input,
       stream: request.stream || false,
     };
