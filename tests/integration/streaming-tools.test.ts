@@ -9,10 +9,10 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { Bridge } from 'ai.matey.core';
-import { AnthropicFrontendAdapter, OpenAIFrontendAdapter } from 'ai.matey.frontend';
-import { AnthropicBackendAdapter, OpenAIBackendAdapter } from 'ai.matey.backend';
-import type { IRChatRequest, IRStreamChunk, StreamToolUseChunk } from 'ai.matey.types';
+import { Bridge } from '@johnhenry/aimatey-core';
+import { AnthropicFrontendAdapter, OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend';
+import { AnthropicBackendAdapter, OpenAIBackendAdapter } from '@johnhenry/aimatey-backend';
+import type { IRChatRequest, IRStreamChunk, StreamToolUseChunk } from '@johnhenry/aimatey-types';
 
 // ============================================================================
 // Test Utilities

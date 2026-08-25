@@ -14,8 +14,8 @@
  */
 
 import { createServer, IncomingMessage, ServerResponse } from 'node:http';
-import type { BackendAdapter } from 'ai.matey.types';
-import type { IRChatRequest } from 'ai.matey.types';
+import type { BackendAdapter } from '@johnhenry/aimatey-types';
+import type { IRChatRequest } from '@johnhenry/aimatey-types';
 import { loadBackend } from './utils/backend-loader.js';
 import { success, error as errorLog, info } from './utils/output-formatter.js';
 import {

@@ -6,7 +6,12 @@
  * @module
  */
 
-import type { BackendAdapter, IRChatRequest, IRMessage, StreamMode } from 'ai.matey.types';
+import type {
+  BackendAdapter,
+  IRChatRequest,
+  IRMessage,
+  StreamMode,
+} from '@johnhenry/aimatey-types';
 
 // ============================================================================
 // Types

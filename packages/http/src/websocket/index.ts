@@ -15,7 +15,7 @@
  * @module
  */
 
-import type { Bridge } from 'ai.matey.core';
+import type { Bridge } from '@johnhenry/aimatey-core';
 
 /**
  * Structural WebSocket interface (satisfied by ws, Deno, Bun, browsers).
@@ -67,7 +67,7 @@ export interface WebSocketHandlerOptions {
  * @example
  * ```typescript
  * import { WebSocketServer } from 'ws';
- * import { createWebSocketHandler } from 'ai.matey.http/websocket';
+ * import { createWebSocketHandler } from '@johnhenry/aimatey-http/websocket';
  *
  * const handleSocket = createWebSocketHandler(bridge);
  * new WebSocketServer({ port: 8080 }).on('connection', handleSocket);

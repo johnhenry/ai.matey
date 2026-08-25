@@ -1,4 +1,6 @@
-# ai.matey.testing
+# @johnhenry/aimatey-testing
+
+> **Note:** Previously published as `ai.matey.testing@0.2.2`.
 
 Testing utilities, mocks, and fixtures for ai.matey
 
@@ -7,7 +9,7 @@ Part of the [ai.matey](https://github.com/johnhenry/ai.matey) monorepo.
 ## Installation
 
 ```bash
-npm install ai.matey.testing
+npm install @johnhenry/aimatey-testing
 ```
 
 ## Exports
@@ -19,7 +21,7 @@ npm install ai.matey.testing
 ## Usage
 
 ```typescript
-import { MockBackendAdapter, createMockResponse, assertChatRequest } from 'ai.matey.testing';
+import { MockBackendAdapter, createMockResponse, assertChatRequest } from '@johnhenry/aimatey-testing';
 ```
 
 ## API Reference

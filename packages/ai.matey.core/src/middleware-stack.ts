@@ -15,9 +15,9 @@ import type {
   StreamingMiddleware,
   StreamingMiddlewareContext,
   StreamingMiddlewareNext,
-} from 'ai.matey.types';
-import type { IRChatRequest, IRChatResponse, IRChatStream } from 'ai.matey.types';
-import { MiddlewareError } from 'ai.matey.errors';
+} from '@johnhenry/aimatey-types';
+import type { IRChatRequest, IRChatResponse, IRChatStream } from '@johnhenry/aimatey-types';
+import { MiddlewareError } from '@johnhenry/aimatey-errors';
 
 // ============================================================================
 // Middleware Stack

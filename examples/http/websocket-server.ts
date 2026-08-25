@@ -11,10 +11,10 @@
  */
 
 import { WebSocketServer } from 'ws';
-import { createWebSocketHandler } from 'ai.matey.http/websocket';
-import { Bridge } from 'ai.matey.core';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend';
-import { OpenAIBackendAdapter } from 'ai.matey.backend';
+import { createWebSocketHandler } from '@johnhenry/aimatey-http/websocket';
+import { Bridge } from '@johnhenry/aimatey-core';
+import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend';
+import { OpenAIBackendAdapter } from '@johnhenry/aimatey-backend';
 
 const bridge = new Bridge(
   new OpenAIFrontendAdapter(),

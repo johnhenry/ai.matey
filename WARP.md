@@ -95,11 +95,11 @@ npm run release:staggered:dry-run
 This is a **monorepo** managed with npm workspaces and Turborepo. All packages live under `packages/`:
 
 **Core Infrastructure:**
-- `ai.matey.types` - TypeScript type definitions (all other packages depend on this)
-- `ai.matey.errors` - Error classes and utilities
-- `ai.matey.utils` - Shared utility functions
-- `ai.matey.core` - Bridge, Router, MiddlewareStack
-- `ai.matey.testing` - Testing utilities and mocks
+- `@johnhenry/aimatey-types` - TypeScript type definitions (all other packages depend on this)
+- `@johnhenry/aimatey-errors` - Error classes and utilities
+- `@johnhenry/aimatey-utils` - Shared utility functions
+- `@johnhenry/aimatey-core` - Bridge, Router, MiddlewareStack
+- `@johnhenry/aimatey-testing` - Testing utilities and mocks
 
 **Consolidated Provider Packages:**
 - `backend` - All server-side backend adapters (OpenAI, Anthropic, Gemini, etc.)
@@ -119,7 +119,7 @@ This is a **monorepo** managed with npm workspaces and Turborepo. All packages l
 - `native-apple` - Apple MLX backend (macOS 15+)
 - `native-node-llamacpp` - llama.cpp via Node
 - `cli` - CLI tools and utilities
-- `ai.matey` - Main umbrella package
+- `@johnhenry/aimatey` - Main umbrella package
 
 ### Key Concepts
 
@@ -170,7 +170,7 @@ Middleware wraps the execution flow for cross-cutting concerns:
 
 #### 5. IR Format (Intermediate Representation)
 
-The IR is the universal format defined in `ai.matey.types/src/ir.ts`. Key types:
+The IR is the universal format defined in `packages/ai.matey.types/src/ir.ts`. Key types:
 - `IRChatRequest` - Normalized request with messages, parameters, metadata, tools
 - `IRChatResponse` - Normalized response with message, usage, metadata
 - `IRStreamChunk` - Normalized streaming chunk
@@ -199,7 +199,7 @@ wrapper + react-* + native-* (higher-level integrations)
 ai.matey (umbrella package)
 ```
 
-**Important:** Changes to `ai.matey.types` may affect all packages. Always rebuild after modifying types.
+**Important:** Changes to `@johnhenry/aimatey-types` may affect all packages. Always rebuild after modifying types.
 
 ### Model Translation
 
@@ -260,7 +260,7 @@ The system supports:
 - Tests are **centralized** in `/tests` directory (not per-package)
 - Organized by type: `unit/`, `integration/`, `core/`, `http/`
 - Use vitest workspaces to run test subsets
-- Mock backends available in `ai.matey.testing` package
+- Mock backends available in `@johnhenry/aimatey-testing` package
 - **Build before testing** - tests import from built dist files
 - Coverage thresholds: 30% lines, 50% functions, 60% branches
 
@@ -295,8 +295,8 @@ turbo run build --force
 
 ### Browser vs Node Packages
 
-- **server-only** backends are in `ai.matey.backend`
-- **browser-compatible** backends are in `ai.matey.backend.browser`
+- **server-only** backends are in `@johnhenry/aimatey-backend`
+- **browser-compatible** backends are in `@johnhenry/aimatey-backend-browser`
 - Keep browser-specific code (Chrome AI, etc.) separate to avoid Node.js dependency issues in browser builds
 
 ### IR Validation
@@ -314,7 +314,7 @@ This catches common issues:
 
 ### Error Handling
 
-Use `AdapterError` from `ai.matey.errors`:
+Use `AdapterError` from `@johnhenry/aimatey-errors`:
 ```typescript
 throw new AdapterError({
   code: ErrorCode.PROVIDER_ERROR,
@@ -325,7 +325,7 @@ throw new AdapterError({
 });
 ```
 
-Error codes are defined in `ai.matey.errors` package.
+Error codes are defined in `@johnhenry/aimatey-errors` package.
 
 ### Provenance Tracking
 

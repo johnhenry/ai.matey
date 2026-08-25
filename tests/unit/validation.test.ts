@@ -15,9 +15,9 @@ import {
   validateTopP,
   validateParameters,
   validateIRChatRequest,
-} from 'ai.matey.utils';
-import { ValidationError } from 'ai.matey.errors';
-import type { IRChatRequest, IRMessage } from 'ai.matey.types';
+} from '@johnhenry/aimatey-utils';
+import { ValidationError } from '@johnhenry/aimatey-errors';
+import type { IRChatRequest, IRMessage } from '@johnhenry/aimatey-types';
 
 // ============================================================================
 // isValidMessageRole Tests

@@ -11,15 +11,15 @@
 import express from 'express';
 
 // Core imports
-import { Bridge } from 'ai.matey.core';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
-import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
+import { Bridge } from '@johnhenry/aimatey-core';
+import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend/openai';
+import { AnthropicBackendAdapter } from '@johnhenry/aimatey-backend/anthropic';
 
 // HTTP framework integration - only install what you need
-import { ExpressMiddleware } from 'ai.matey.http/express';
+import { ExpressMiddleware } from '@johnhenry/aimatey-http/express';
 
 // Middleware
-import { createLoggingMiddleware } from 'ai.matey.middleware';
+import { createLoggingMiddleware } from '@johnhenry/aimatey-middleware';
 
 async function main() {
   const app = express();
@@ -57,14 +57,14 @@ async function main() {
   app.get('/health', (_req, res) => {
     res.json({
       status: 'ok',
-      service: 'ai.matey',
+      service: '@johnhenry/aimatey',
       packages: [
-        'ai.matey.core',
-        'ai.matey.frontend/openai',
-        'ai.matey.backend/anthropic',
-        'ai.matey.http/express',
-        'ai.matey.http.core',
-        'ai.matey.middleware',
+        '@johnhenry/aimatey-core',
+        '@johnhenry/aimatey-frontend/openai',
+        '@johnhenry/aimatey-backend/anthropic',
+        '@johnhenry/aimatey-http/express',
+        '@johnhenry/aimatey-http-core',
+        '@johnhenry/aimatey-middleware',
       ],
     });
   });

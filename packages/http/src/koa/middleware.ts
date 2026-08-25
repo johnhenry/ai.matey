@@ -7,9 +7,9 @@
  */
 
 import type { Context, Next } from 'koa';
-import type { Bridge } from 'ai.matey.core';
-import type { HTTPListenerOptions } from 'ai.matey.http.core';
-import { CoreHTTPHandler } from 'ai.matey.http.core';
+import type { Bridge } from '@johnhenry/aimatey-core';
+import type { HTTPListenerOptions } from '@johnhenry/aimatey-http-core';
+import { CoreHTTPHandler } from '@johnhenry/aimatey-http-core';
 import { KoaRequestAdapter, KoaResponseAdapter } from './adapter.js';
 
 /**
@@ -23,7 +23,7 @@ import { KoaRequestAdapter, KoaResponseAdapter } from './adapter.js';
  * ```typescript
  * import Koa from 'koa';
  * import bodyParser from 'koa-bodyparser';
- * import { KoaMiddleware } from 'ai.matey.http/koa';
+ * import { KoaMiddleware } from '@johnhenry/aimatey-http/koa';
  *
  * const app = new Koa();
  * const bridge = new Bridge(frontend, backend);

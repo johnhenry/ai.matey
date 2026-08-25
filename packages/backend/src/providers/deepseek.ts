@@ -8,7 +8,7 @@
  */
 
 import { OpenAIBackendAdapter, type OpenAIRequest, type OpenAIResponse } from './openai.js';
-import type { BackendAdapter, BackendAdapterConfig } from 'ai.matey.types';
+import type { BackendAdapter, BackendAdapterConfig } from '@johnhenry/aimatey-types';
 
 /**
  * Backend adapter for DeepSeek API.
@@ -18,7 +18,7 @@ import type { BackendAdapter, BackendAdapterConfig } from 'ai.matey.types';
  *
  * @example Basic Usage
  * ```typescript
- * import { DeepSeekBackendAdapter } from 'ai.matey';
+ * import { DeepSeekBackendAdapter } from '@johnhenry/aimatey';
  *
  * const adapter = new DeepSeekBackendAdapter({
  *   apiKey: process.env.DEEPSEEK_API_KEY,
@@ -39,7 +39,7 @@ import type { BackendAdapter, BackendAdapterConfig } from 'ai.matey.types';
  *
  * @example With Bridge
  * ```typescript
- * import { createBridge } from 'ai.matey';
+ * import { createBridge } from '@johnhenry/aimatey';
  *
  * const bridge = createBridge({
  *   backend: new DeepSeekBackendAdapter({
@@ -101,7 +101,7 @@ export class DeepSeekBackendAdapter
  *
  * @example
  * ```typescript
- * import { createDeepSeekAdapter } from 'ai.matey';
+ * import { createDeepSeekAdapter } from '@johnhenry/aimatey';
  *
  * const adapter = createDeepSeekAdapter({
  *   apiKey: process.env.DEEPSEEK_API_KEY,

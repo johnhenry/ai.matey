@@ -7,7 +7,7 @@
  */
 
 import { useState, useCallback, useRef } from 'react';
-import type { Message } from 'ai.matey.react.core';
+import type { Message } from '@johnhenry/aimatey-react-core';
 
 /**
  * Assistant message with additional metadata.
@@ -113,7 +113,7 @@ export interface UseAssistantReturn {
  *
  * @example
  * ```tsx
- * import { useAssistant } from 'ai.matey.react.hooks';
+ * import { useAssistant } from '@johnhenry/aimatey-react-hooks';
  *
  * function AssistantChat() {
  *   const { messages, input, handleInputChange, handleSubmit, status } = useAssistant({

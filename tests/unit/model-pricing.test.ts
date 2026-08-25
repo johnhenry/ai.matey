@@ -14,7 +14,7 @@ import {
   clearPricingOverride,
   clearAllPricingOverrides,
   getPricingWithOverrides,
-} from 'ai.matey.core';
+} from '@johnhenry/aimatey-core';
 
 // ============================================================================
 // Setup

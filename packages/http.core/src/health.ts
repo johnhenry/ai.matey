@@ -7,7 +7,7 @@
  */
 
 import type { GenericRequest, GenericResponse } from './types.js';
-import type { Bridge, Router } from 'ai.matey.core';
+import type { Bridge, Router } from '@johnhenry/aimatey-core';
 
 /**
  * Health status levels
@@ -66,7 +66,7 @@ export interface ComponentHealth {
 export interface HealthCheckConfig {
   /**
    * Service name
-   * @default 'ai.matey'
+   * @default '@johnhenry/aimatey'
    */
   serviceName?: string;
 
@@ -117,7 +117,7 @@ export class HealthCheck {
 
   constructor(bridgeOrRouter: Bridge | Router, config: HealthCheckConfig = {}) {
     this.config = {
-      serviceName: 'ai.matey',
+      serviceName: '@johnhenry/aimatey',
       version: '1.0.0',
       includeUptime: true,
       includeChecks: true,
@@ -237,7 +237,7 @@ export class HealthCheck {
  *
  * @example
  * ```typescript
- * import { createHealthCheck } from 'ai.matey.http';
+ * import { createHealthCheck } from '@johnhenry/aimatey-http';
  *
  * const healthCheck = createHealthCheck(bridge, {
  *   serviceName: 'my-ai-service',
@@ -267,7 +267,7 @@ export function createHealthCheck(
  *
  * @example
  * ```typescript
- * import { createHealthCheckMiddleware } from 'ai.matey.http';
+ * import { createHealthCheckMiddleware } from '@johnhenry/aimatey-http';
  *
  * const healthMiddleware = createHealthCheckMiddleware(bridge);
  *

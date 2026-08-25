@@ -14,7 +14,7 @@
 
 import { readFile } from 'node:fs/promises';
 import { stdin } from 'node:process';
-import type { IRChatResponse } from 'ai.matey.types';
+import type { IRChatResponse } from '@johnhenry/aimatey-types';
 import {
   toOpenAI,
   toAnthropic,

@@ -13,7 +13,7 @@
 
 import { readFile } from 'node:fs/promises';
 import { stdin } from 'node:process';
-import type { IRChatRequest } from 'ai.matey.types';
+import type { IRChatRequest } from '@johnhenry/aimatey-types';
 import {
   toOpenAIRequest,
   toAnthropicRequest,

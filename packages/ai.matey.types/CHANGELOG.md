@@ -1,4 +1,6 @@
-# ai.matey.types
+# @johnhenry/aimatey-types
+
+> Previously published as `ai.matey.types`, last unscoped version `0.5.1`.
 
 ## 0.5.1
 

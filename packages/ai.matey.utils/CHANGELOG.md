@@ -1,4 +1,6 @@
-# ai.matey.utils
+# @johnhenry/aimatey-utils
+
+> Previously published as `ai.matey.utils`, last unscoped version `0.5.0`.
 
 ## 0.5.0
 

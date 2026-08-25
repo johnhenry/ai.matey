@@ -1,4 +1,6 @@
-# ai.matey.patterns
+# @johnhenry/aimatey-patterns
+
+> Previously published as `ai.matey.patterns`, last unscoped version `0.2.1`.
 
 ## 0.2.1
 

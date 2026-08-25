@@ -35,7 +35,7 @@ export interface StreamTextProps {
  *
  * @example
  * ```tsx
- * import { StreamText } from 'ai.matey.react.stream';
+ * import { StreamText } from '@johnhenry/aimatey-react-stream';
  *
  * function ChatMessage({ text, isStreaming }) {
  *   return (
@@ -124,7 +124,7 @@ export interface TypeWriterProps {
  *
  * @example
  * ```tsx
- * import { TypeWriter } from 'ai.matey.react.stream';
+ * import { TypeWriter } from '@johnhenry/aimatey-react-stream';
  *
  * function WelcomeMessage() {
  *   return (

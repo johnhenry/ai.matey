@@ -8,7 +8,7 @@
  *
  * @example Accumulating stream content
  * ```typescript
- * import { createStreamAccumulator, accumulateChunk } from 'ai.matey.utils';
+ * import { createStreamAccumulator, accumulateChunk } from '@johnhenry/aimatey-utils';
  *
  * const accumulator = createStreamAccumulator();
  * for await (const chunk of stream) {
@@ -31,7 +31,7 @@ import type {
   IRMetadata,
   IRUsage,
   FinishReason,
-} from 'ai.matey.types';
+} from '@johnhenry/aimatey-types';
 
 // ============================================================================
 // Stream Accumulation

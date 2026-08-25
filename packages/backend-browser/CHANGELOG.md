@@ -1,4 +1,6 @@
-# ai.matey.backend.browser
+# @johnhenry/aimatey-backend-browser
+
+> Previously published as `ai.matey.backend.browser`, last unscoped version `0.5.1`.
 
 ## 0.5.1
 

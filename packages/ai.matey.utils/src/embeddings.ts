@@ -8,7 +8,12 @@
  * @module
  */
 
-import type { BackendAdapter, IREmbedRequest, IREmbedResponse, IRMetadata } from 'ai.matey.types';
+import type {
+  BackendAdapter,
+  IREmbedRequest,
+  IREmbedResponse,
+  IRMetadata,
+} from '@johnhenry/aimatey-types';
 
 // ============================================================================
 // Capability Detection

@@ -23,9 +23,13 @@ import type {
   IRMessage,
   IRStreamChunk,
   IRWarning,
-} from 'ai.matey.types';
-import { ProviderError, ErrorCode } from 'ai.matey.errors';
-import { extractSystemMessages, combineSystemMessages, createWarning } from 'ai.matey.utils';
+} from '@johnhenry/aimatey-types';
+import { ProviderError, ErrorCode } from '@johnhenry/aimatey-errors';
+import {
+  extractSystemMessages,
+  combineSystemMessages,
+  createWarning,
+} from '@johnhenry/aimatey-utils';
 
 // ============================================================================
 // Chrome Prompt API types (kept local: a bleeding-edge browser global not
@@ -135,9 +139,9 @@ function extractText(message: IRMessage): string {
  *
  * @example
  * ```typescript
- * import { Bridge } from 'ai.matey.core';
- * import { OpenAIFrontendAdapter } from 'ai.matey.frontend';
- * import { ChromeAIBackendAdapter } from 'ai.matey.backend.browser';
+ * import { Bridge } from '@johnhenry/aimatey-core';
+ * import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend';
+ * import { ChromeAIBackendAdapter } from '@johnhenry/aimatey-backend-browser';
  *
  * const backend = new ChromeAIBackendAdapter();
  * if ((await backend.checkAvailability()) === 'unavailable') {

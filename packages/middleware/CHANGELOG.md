@@ -1,4 +1,6 @@
-# ai.matey.middleware
+# @johnhenry/aimatey-middleware
+
+> Previously published as `ai.matey.middleware`, last unscoped version `0.3.1`.
 
 ## 0.3.1
 

@@ -8,8 +8,13 @@
  * @module
  */
 
-import type { Middleware, MiddlewareContext, MiddlewareNext, TelemetrySink } from 'ai.matey.types';
-import type { IRChatResponse } from 'ai.matey.types';
+import type {
+  Middleware,
+  MiddlewareContext,
+  MiddlewareNext,
+  TelemetrySink,
+} from '@johnhenry/aimatey-types';
+import type { IRChatResponse } from '@johnhenry/aimatey-types';
 
 // Type imports for OpenTelemetry (won't fail if packages aren't installed)
 type Tracer = any;
@@ -337,7 +342,7 @@ function shouldSample(samplingRate: number): boolean {
  *
  * @example
  * ```typescript
- * import { createOpenTelemetryMiddleware } from 'ai.matey.middleware';
+ * import { createOpenTelemetryMiddleware } from '@johnhenry/aimatey-middleware';
  *
  * const otel = await createOpenTelemetryMiddleware({
  *   serviceName: 'my-ai-service',
@@ -589,7 +594,7 @@ export class OpenTelemetryTelemetrySink implements TelemetrySink {
  *
  * @example
  * ```typescript
- * import { isOpenTelemetryAvailable } from 'ai.matey.middleware';
+ * import { isOpenTelemetryAvailable } from '@johnhenry/aimatey-middleware';
  *
  * if (await isOpenTelemetryAvailable()) {
  *   console.log('OpenTelemetry is available!');
@@ -610,7 +615,7 @@ export async function isOpenTelemetryAvailable(): Promise<boolean> {
  *
  * @example
  * ```typescript
- * import { isOpenTelemetryLoaded } from 'ai.matey.middleware';
+ * import { isOpenTelemetryLoaded } from '@johnhenry/aimatey-middleware';
  *
  * if (isOpenTelemetryLoaded()) {
  *   console.log('OpenTelemetry is already loaded!');
@@ -629,7 +634,7 @@ export function isOpenTelemetryLoaded(): boolean {
  *
  * @example
  * ```typescript
- * import { shutdownOpenTelemetry } from 'ai.matey.middleware';
+ * import { shutdownOpenTelemetry } from '@johnhenry/aimatey-middleware';
  *
  * process.on('SIGTERM', async () => {
  *   await shutdownOpenTelemetry();

@@ -127,8 +127,8 @@ echo -e "${GREEN}Build complete!${NC}"
 # BATCH 1: Core Types and Errors (no dependencies)
 # ============================================================================
 publish_batch "Core Types & Errors" \
-  "ai.matey.types" \
-  "ai.matey.errors"
+  "@johnhenry/aimatey-types" \
+  "@johnhenry/aimatey-errors"
 
 wait_between "$DELAY_BETWEEN_BATCHES"
 
@@ -136,8 +136,8 @@ wait_between "$DELAY_BETWEEN_BATCHES"
 # BATCH 2: Core Utilities (depends on types, errors)
 # ============================================================================
 publish_batch "Core Utilities" \
-  "ai.matey.utils" \
-  "ai.matey.testing"
+  "@johnhenry/aimatey-utils" \
+  "@johnhenry/aimatey-testing"
 
 wait_between "$DELAY_BETWEEN_BATCHES"
 
@@ -145,7 +145,7 @@ wait_between "$DELAY_BETWEEN_BATCHES"
 # BATCH 3: Core Package (depends on utils)
 # ============================================================================
 publish_batch "Core" \
-  "ai.matey.core"
+  "@johnhenry/aimatey-core"
 
 wait_between "$DELAY_BETWEEN_BATCHES"
 
@@ -153,8 +153,8 @@ wait_between "$DELAY_BETWEEN_BATCHES"
 # BATCH 4: Backend Adapters (depends on core)
 # ============================================================================
 publish_batch "Backend Adapters" \
-  "ai.matey.backend" \
-  "ai.matey.backend.browser"
+  "@johnhenry/aimatey-backend" \
+  "@johnhenry/aimatey-backend-browser"
 
 wait_between "$DELAY_BETWEEN_BATCHES"
 
@@ -162,7 +162,7 @@ wait_between "$DELAY_BETWEEN_BATCHES"
 # BATCH 5: Frontend Adapters (depends on backend for some imports)
 # ============================================================================
 publish_batch "Frontend Adapters" \
-  "ai.matey.frontend"
+  "@johnhenry/aimatey-frontend"
 
 wait_between "$DELAY_BETWEEN_BATCHES"
 
@@ -170,7 +170,7 @@ wait_between "$DELAY_BETWEEN_BATCHES"
 # BATCH 6: Middleware (depends on core)
 # ============================================================================
 publish_batch "Middleware" \
-  "ai.matey.middleware"
+  "@johnhenry/aimatey-middleware"
 
 wait_between "$DELAY_BETWEEN_BATCHES"
 
@@ -178,7 +178,7 @@ wait_between "$DELAY_BETWEEN_BATCHES"
 # BATCH 6b: Patterns (depends on core)
 # ============================================================================
 publish_batch "Patterns" \
-  "ai.matey.patterns"
+  "@johnhenry/aimatey-patterns"
 
 wait_between "$DELAY_BETWEEN_BATCHES"
 
@@ -186,7 +186,7 @@ wait_between "$DELAY_BETWEEN_BATCHES"
 # BATCH 6c: MCP (depends only on types)
 # ============================================================================
 publish_batch "MCP" \
-  "ai.matey.mcp"
+  "@johnhenry/aimatey-mcp"
 
 wait_between "$DELAY_BETWEEN_BATCHES"
 
@@ -194,8 +194,8 @@ wait_between "$DELAY_BETWEEN_BATCHES"
 # BATCH 7: HTTP (depends on core, middleware)
 # ============================================================================
 publish_batch "HTTP Adapters" \
-  "ai.matey.http.core" \
-  "ai.matey.http"
+  "@johnhenry/aimatey-http-core" \
+  "@johnhenry/aimatey-http"
 
 wait_between "$DELAY_BETWEEN_BATCHES"
 
@@ -203,7 +203,7 @@ wait_between "$DELAY_BETWEEN_BATCHES"
 # BATCH 8: Wrappers (depends on core)
 # ============================================================================
 publish_batch "Wrappers" \
-  "ai.matey.wrapper"
+  "@johnhenry/aimatey-wrapper"
 
 wait_between "$DELAY_BETWEEN_BATCHES"
 
@@ -211,10 +211,10 @@ wait_between "$DELAY_BETWEEN_BATCHES"
 # BATCH 9: React (depends on core)
 # ============================================================================
 publish_batch "React" \
-  "ai.matey.react.core" \
-  "ai.matey.react.hooks" \
-  "ai.matey.react.nextjs" \
-  "ai.matey.react.stream"
+  "@johnhenry/aimatey-react-core" \
+  "@johnhenry/aimatey-react-hooks" \
+  "@johnhenry/aimatey-react-nextjs" \
+  "@johnhenry/aimatey-react-stream"
 
 wait_between "$DELAY_BETWEEN_BATCHES"
 
@@ -222,9 +222,9 @@ wait_between "$DELAY_BETWEEN_BATCHES"
 # BATCH 10: Native (depends on core)
 # ============================================================================
 publish_batch "Native" \
-  "ai.matey.native.apple" \
-  "ai.matey.native.model-runner" \
-  "ai.matey.native.node-llamacpp"
+  "@johnhenry/aimatey-native-apple" \
+  "@johnhenry/aimatey-native-model-runner" \
+  "@johnhenry/aimatey-native-node-llamacpp"
 
 wait_between "$DELAY_BETWEEN_BATCHES"
 
@@ -232,7 +232,7 @@ wait_between "$DELAY_BETWEEN_BATCHES"
 # BATCH 11: CLI (depends on many packages)
 # ============================================================================
 publish_batch "CLI" \
-  "ai.matey.cli"
+  "@johnhenry/aimatey-cli"
 
 wait_between "$DELAY_BETWEEN_BATCHES"
 
@@ -240,7 +240,7 @@ wait_between "$DELAY_BETWEEN_BATCHES"
 # BATCH 12: Main Package (umbrella, depends on everything)
 # ============================================================================
 publish_batch "Main Package" \
-  "ai.matey"
+  "@johnhenry/aimatey"
 
 # ============================================================================
 # Summary

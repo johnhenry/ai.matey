@@ -10,8 +10,8 @@ import {
   LiteRtLmBackendAdapter,
   clearLiteRtLmEngineCache,
   type LiteRtLmModule,
-} from 'ai.matey.backend.browser';
-import type { IRChatRequest, StreamContentChunk } from 'ai.matey.types';
+} from '@johnhenry/aimatey-backend-browser';
+import type { IRChatRequest, StreamContentChunk } from '@johnhenry/aimatey-types';
 
 // ============================================================================
 // Fake engine

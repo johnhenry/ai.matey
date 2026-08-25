@@ -26,7 +26,7 @@ The Router's `dispatchParallel()` method allows you to query multiple AI backend
 ### Quick Start
 
 ```typescript
-import { createRouter } from 'ai.matey.core';
+import { createRouter } from '@johnhenry/aimatey-core';
 
 const router = createRouter()
   .register('openai', openaiBackend)
@@ -304,14 +304,14 @@ const openaiFormat = await toOpenAI(irResponse);
 #### Quick Start
 
 ```typescript
-import { toOpenAI, toAnthropic, toGemini, toOllama, toMistral } from 'ai.matey.utils/conversion';
+import { toOpenAI, toAnthropic, toGemini, toOllama, toMistral } from '@johnhenry/aimatey-utils/conversion';
 
 // Convert to specific format
 const openaiResponse = await toOpenAI(irResponse);
 const anthropicResponse = await toAnthropic(irResponse);
 
 // Convert to multiple formats for comparison
-import { toMultipleFormats } from 'ai.matey.utils/conversion';
+import { toMultipleFormats } from '@johnhenry/aimatey-utils/conversion';
 const allFormats = await toMultipleFormats(irResponse, ['openai', 'anthropic', 'gemini']);
 ```
 
@@ -369,7 +369,7 @@ Command-line tool for file-based conversion and automation.
 ```bash
 # Had to write a Node.js script
 cat > convert.mjs << 'EOF'
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
+import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend/openai';
 import { readFile, writeFile } from 'fs/promises';
 
 const input = JSON.parse(await readFile('response.json', 'utf-8'));
@@ -450,7 +450,7 @@ curl https://api.example.com/ir-response | \
 #### Compare Request Formats
 
 ```typescript
-import { toMultipleRequestFormats } from 'ai.matey.utils/conversion';
+import { toMultipleRequestFormats } from '@johnhenry/aimatey-utils/conversion';
 
 const allReqFormats = toMultipleRequestFormats(irRequest, [
   'openai',
@@ -466,7 +466,7 @@ console.log('Gemini:', allReqFormats.gemini);
 #### Compare Response Formats
 
 ```typescript
-import { toMultipleFormats } from 'ai.matey.utils/conversion';
+import { toMultipleFormats } from '@johnhenry/aimatey-utils/conversion';
 
 const allFormats = await toMultipleFormats(irResponse, [
   'openai',
@@ -525,7 +525,7 @@ Create a backend module for use with the CLI:
 
 ```javascript
 // backend.mjs
-import { OpenAIBackend } from 'ai.matey.backend/openai';
+import { OpenAIBackend } from '@johnhenry/aimatey-backend/openai';
 
 const backend = new OpenAIBackend({
   apiKey: process.env.OPENAI_API_KEY,
@@ -539,7 +539,7 @@ Or with model runner:
 
 ```javascript
 // llamacpp-backend.mjs
-import { LlamaCppBackend } from 'ai.matey.native.node-llamacpp';
+import { LlamaCppBackend } from '@johnhenry/aimatey-native-node-llamacpp';
 
 const backend = new LlamaCppBackend({
   model: './models/llama-3.1-8b.gguf',
@@ -626,7 +626,7 @@ When using non-Ollama backends, model names are translated:
 
 ```javascript
 // backend-with-mapping.mjs
-import { OpenAIBackend } from 'ai.matey.backend';
+import { OpenAIBackend } from '@johnhenry/aimatey-backend';
 
 const backend = new OpenAIBackend({
   apiKey: process.env.OPENAI_API_KEY,
@@ -649,7 +649,7 @@ export default backend;
 ```bash
 # Use local model for development
 cat > local-backend.mjs << 'EOF'
-import { LlamaCppBackend } from 'ai.matey.native.node-llamacpp';
+import { LlamaCppBackend } from '@johnhenry/aimatey-native-node-llamacpp';
 const backend = new LlamaCppBackend({
   model: './models/llama-3.1-8b.gguf',
   process: { command: 'llama-server' },
@@ -667,7 +667,7 @@ ollama run llama3.1 "Test prompt"
 ```bash
 # Use OpenAI in production
 cat > prod-backend.mjs << 'EOF'
-import { OpenAIBackend } from 'ai.matey.backend/openai';
+import { OpenAIBackend } from '@johnhenry/aimatey-backend/openai';
 export default new OpenAIBackend({
   apiKey: process.env.OPENAI_API_KEY,
   defaultModel: 'gpt-4o',

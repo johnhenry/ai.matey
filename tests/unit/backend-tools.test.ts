@@ -8,9 +8,9 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { OpenAIBackendAdapter, AnthropicBackendAdapter } from 'ai.matey.backend';
-import { OpenAIFrontendAdapter, AnthropicFrontendAdapter } from 'ai.matey.frontend';
-import type { IRChatRequest, IRChatResponse, IRTool } from 'ai.matey.types';
+import { OpenAIBackendAdapter, AnthropicBackendAdapter } from '@johnhenry/aimatey-backend';
+import { OpenAIFrontendAdapter, AnthropicFrontendAdapter } from '@johnhenry/aimatey-frontend';
+import type { IRChatRequest, IRChatResponse, IRTool } from '@johnhenry/aimatey-types';
 
 const WEATHER_TOOL: IRTool = {
   name: 'get_weather',

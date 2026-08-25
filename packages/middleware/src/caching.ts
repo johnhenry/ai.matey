@@ -6,8 +6,13 @@
  * @module
  */
 
-import type { Middleware, MiddlewareContext, MiddlewareNext, CacheStorage } from 'ai.matey.types';
-import type { IRChatRequest, IRChatResponse } from 'ai.matey.types';
+import type {
+  Middleware,
+  MiddlewareContext,
+  MiddlewareNext,
+  CacheStorage,
+} from '@johnhenry/aimatey-types';
+import type { IRChatRequest, IRChatResponse } from '@johnhenry/aimatey-types';
 import { createHash } from 'crypto';
 
 // ============================================================================

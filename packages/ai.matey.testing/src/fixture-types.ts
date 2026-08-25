@@ -2,7 +2,7 @@
  * Type definitions for test fixtures
  */
 
-import type { IRChatRequest, IRChatResponse, IRStreamChunk } from 'ai.matey.types';
+import type { IRChatRequest, IRChatResponse, IRStreamChunk } from '@johnhenry/aimatey-types';
 
 /**
  * Fixture metadata

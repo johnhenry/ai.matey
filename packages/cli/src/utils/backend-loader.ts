@@ -8,7 +8,7 @@
  */
 
 import { resolve } from 'node:path';
-import type { BackendAdapter } from 'ai.matey.types';
+import type { BackendAdapter } from '@johnhenry/aimatey-types';
 
 export interface BackendModule {
   default: BackendAdapter;

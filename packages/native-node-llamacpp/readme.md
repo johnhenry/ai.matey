@@ -1,4 +1,6 @@
-# ai.matey.native.node-llamacpp
+# @johnhenry/aimatey-native-node-llamacpp
+
+> **Note:** Previously published as `ai.matey.native.node-llamacpp@0.2.2`.
 
 Run AI Matey against local GGUF models via [node-llama-cpp](https://github.com/withcatai/node-llama-cpp) —
 fully offline, GPU-accelerated where available. Part of the
@@ -14,15 +16,15 @@ fully offline, GPU-accelerated where available. Part of the
 ## Installation
 
 ```bash
-npm install ai.matey.native.node-llamacpp node-llama-cpp
+npm install @johnhenry/aimatey-native-node-llamacpp node-llama-cpp
 ```
 
 ## Quick Start
 
 ```typescript
-import { Bridge } from 'ai.matey.core';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend';
-import { NodeLlamaCppBackend } from 'ai.matey.native.node-llamacpp';
+import { Bridge } from '@johnhenry/aimatey-core';
+import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend';
+import { NodeLlamaCppBackend } from '@johnhenry/aimatey-native-node-llamacpp';
 
 const backend = new NodeLlamaCppBackend({
   modelPath: '/models/llama-3.1-8b-instruct.Q4_K_M.gguf',

@@ -8,9 +8,9 @@
  */
 
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { Bridge, Router } from 'ai.matey.core';
-import { OpenAIBackendAdapter, GroqBackendAdapter } from 'ai.matey.backend';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend';
+import { Bridge, Router } from '@johnhenry/aimatey-core';
+import { OpenAIBackendAdapter, GroqBackendAdapter } from '@johnhenry/aimatey-backend';
+import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend';
 import {
   chunkEmbedInputs,
   normalizeDimensions,
@@ -18,17 +18,17 @@ import {
   supportsEmbeddings,
   openaiEmbedRequestToIR,
   irToOpenAIEmbedResponse,
-} from 'ai.matey.utils';
+} from '@johnhenry/aimatey-utils';
 import {
   createEmbeddingCachingMiddleware,
   createEmbeddingCostTrackingMiddleware,
-} from 'ai.matey.middleware';
+} from '@johnhenry/aimatey-middleware';
 import type {
   BackendAdapter,
   IREmbedRequest,
   IREmbedResponse,
   AdapterMetadata,
-} from 'ai.matey.types';
+} from '@johnhenry/aimatey-types';
 
 // ============================================================================
 // Test helpers

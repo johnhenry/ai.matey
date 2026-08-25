@@ -6,8 +6,8 @@
  * @module
  */
 
-import type { Middleware, MiddlewareContext, MiddlewareNext } from 'ai.matey.types';
-import type { IRChatRequest, IRChatResponse } from 'ai.matey.types';
+import type { Middleware, MiddlewareContext, MiddlewareNext } from '@johnhenry/aimatey-types';
+import type { IRChatRequest, IRChatResponse } from '@johnhenry/aimatey-types';
 
 // ============================================================================
 // Types

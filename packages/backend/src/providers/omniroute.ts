@@ -11,7 +11,7 @@
  */
 
 import { OpenAIBackendAdapter, type OpenAIRequest, type OpenAIResponse } from './openai.js';
-import type { BackendAdapter, BackendAdapterConfig, IRChatRequest } from 'ai.matey.types';
+import type { BackendAdapter, BackendAdapterConfig, IRChatRequest } from '@johnhenry/aimatey-types';
 
 /**
  * Backend adapter for a self-hosted OmniRoute gateway.
@@ -23,7 +23,7 @@ import type { BackendAdapter, BackendAdapterConfig, IRChatRequest } from 'ai.mat
  *
  * @example Basic Usage
  * ```typescript
- * import { OmniRouteBackendAdapter } from 'ai.matey.backend/omniroute';
+ * import { OmniRouteBackendAdapter } from '@johnhenry/aimatey-backend/omniroute';
  *
  * const adapter = new OmniRouteBackendAdapter({
  *   baseURL: 'http://localhost:20128/v1', // Default OmniRoute port
@@ -112,7 +112,7 @@ export class OmniRouteBackendAdapter
  *
  * @example Default Configuration
  * ```typescript
- * import { createOmniRouteAdapter } from 'ai.matey.backend/omniroute';
+ * import { createOmniRouteAdapter } from '@johnhenry/aimatey-backend/omniroute';
  *
  * const adapter = createOmniRouteAdapter({});
  * ```

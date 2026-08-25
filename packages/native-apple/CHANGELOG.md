@@ -1,4 +1,6 @@
-# ai.matey.native.apple
+# @johnhenry/aimatey-native-apple
+
+> Previously published as `ai.matey.native.apple`, last unscoped version `0.2.1`.
 
 ## 0.2.1
 

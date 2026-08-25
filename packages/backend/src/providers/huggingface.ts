@@ -7,21 +7,25 @@
  * @module
  */
 
-import type { BackendAdapter, BackendAdapterConfig, AdapterMetadata } from 'ai.matey.types';
+import type {
+  BackendAdapter,
+  BackendAdapterConfig,
+  AdapterMetadata,
+} from '@johnhenry/aimatey-types';
 import type {
   IRChatRequest,
   IRChatResponse,
   IRChatStream,
   IRMessage,
   IRStreamChunk,
-} from 'ai.matey.types';
+} from '@johnhenry/aimatey-types';
 import {
   AdapterConversionError,
   NetworkError,
   ProviderError,
   ErrorCode,
   createErrorFromHttpResponse,
-} from 'ai.matey.errors';
+} from '@johnhenry/aimatey-errors';
 import {
   buildStructuredOutputFallbackMessages,
   extractStructuredOutputJSON,
@@ -81,7 +85,7 @@ export interface HuggingFaceResponse {
  *
  * @example Basic Usage
  * ```typescript
- * import { HuggingFaceBackendAdapter } from 'ai.matey';
+ * import { HuggingFaceBackendAdapter } from '@johnhenry/aimatey';
  *
  * const adapter = new HuggingFaceBackendAdapter({
  *   apiKey: process.env.HUGGINGFACE_API_KEY,
@@ -505,7 +509,7 @@ export class HuggingFaceBackendAdapter implements BackendAdapter<
  *
  * @example
  * ```typescript
- * import { createHuggingFaceAdapter } from 'ai.matey';
+ * import { createHuggingFaceAdapter } from '@johnhenry/aimatey';
  *
  * const adapter = createHuggingFaceAdapter({
  *   apiKey: process.env.HUGGINGFACE_API_KEY,

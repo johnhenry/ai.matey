@@ -1,4 +1,6 @@
-# ai.matey.react.nextjs
+# @johnhenry/aimatey-react-nextjs
+
+> **Note:** Previously published as `ai.matey.react.nextjs@0.2.2`.
 
 Next.js App Router integration for AI chat.
 
@@ -7,7 +9,7 @@ Part of the [ai.matey](https://github.com/johnhenry/ai.matey) monorepo.
 ## Installation
 
 ```bash
-npm install ai.matey.react.nextjs
+npm install @johnhenry/aimatey-react-nextjs
 ```
 
 ## Quick Start
@@ -17,7 +19,7 @@ npm install ai.matey.react.nextjs
 ```tsx
 'use client';
 
-import { useChat } from 'ai.matey.react.nextjs';
+import { useChat } from '@johnhenry/aimatey-react-nextjs';
 
 export function ChatComponent() {
   const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat();
@@ -42,9 +44,9 @@ export function ChatComponent() {
 
 ```typescript
 // app/api/chat/route.ts
-import { Bridge } from 'ai.matey.core';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
-import { OpenAIBackendAdapter } from 'ai.matey.backend/openai';
+import { Bridge } from '@johnhenry/aimatey-core';
+import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend/openai';
+import { OpenAIBackendAdapter } from '@johnhenry/aimatey-backend/openai';
 
 const bridge = new Bridge(
   new OpenAIFrontendAdapter(),
@@ -140,7 +142,7 @@ Generate Next.js Metadata from AI-generated content (useful for SEO).
 
 ```typescript
 // app/blog/[slug]/page.tsx
-import { generateAIMetadata } from 'ai.matey.react.nextjs';
+import { generateAIMetadata } from '@johnhenry/aimatey-react-nextjs';
 
 export async function generateMetadata({ params }) {
   const article = await getAIArticle(params.slug);

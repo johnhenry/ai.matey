@@ -1,4 +1,6 @@
-# ai.matey.react.core
+# @johnhenry/aimatey-react-core
+
+> **Note:** Previously published as `ai.matey.react.core@0.2.2`.
 
 Core React hooks for AI chat interactions.
 
@@ -7,7 +9,7 @@ Part of the [ai.matey](https://github.com/johnhenry/ai.matey) monorepo.
 ## Installation
 
 ```bash
-npm install ai.matey.react.core
+npm install @johnhenry/aimatey-react-core
 ```
 
 ## Quick Start
@@ -15,7 +17,7 @@ npm install ai.matey.react.core
 ### HTTP Mode (Default)
 
 ```tsx
-import { useChat } from 'ai.matey.react.core';
+import { useChat } from '@johnhenry/aimatey-react-core';
 
 function ChatComponent() {
   const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat({
@@ -43,8 +45,8 @@ function ChatComponent() {
 Use any backend adapter directly without HTTP - great for Electron apps, browser extensions, or when you want to skip the server:
 
 ```tsx
-import { useChat } from 'ai.matey.react.core';
-import { OpenAIBackend } from 'ai.matey.backend/openai';
+import { useChat } from '@johnhenry/aimatey-react-core';
+import { OpenAIBackend } from '@johnhenry/aimatey-backend/openai';
 
 // Create backend (could also be Anthropic, Gemini, Ollama, etc.)
 const backend = new OpenAIBackend({

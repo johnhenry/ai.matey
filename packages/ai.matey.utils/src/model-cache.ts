@@ -7,7 +7,7 @@
  * @module
  */
 
-import type { ListModelsResult } from 'ai.matey.types';
+import type { ListModelsResult } from '@johnhenry/aimatey-types';
 
 // ============================================================================
 // Cache Entry

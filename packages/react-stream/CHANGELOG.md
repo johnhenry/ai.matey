@@ -1,4 +1,6 @@
-# ai.matey.react.stream
+# @johnhenry/aimatey-react-stream
+
+> Previously published as `ai.matey.react.stream`, last unscoped version `0.2.2`.
 
 ## 0.2.2
 

@@ -7,8 +7,8 @@
  */
 
 import * as readline from 'node:readline';
-import type { BackendAdapter } from 'ai.matey.types';
-import type { IRMessage } from 'ai.matey.types';
+import type { BackendAdapter } from '@johnhenry/aimatey-types';
+import type { IRMessage } from '@johnhenry/aimatey-types';
 import { translateModel, type ModelMapping } from '../../utils/model-translation.js';
 import { colorize, style } from '../../utils/output-formatter.js';
 import { stateManager } from '../../utils/state-manager.js';

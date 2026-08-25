@@ -2,7 +2,7 @@
  * Fixture helpers - utilities for using fixtures in tests
  */
 
-import type { IRChatRequest, IRChatResponse, IRStreamChunk } from 'ai.matey.types';
+import type { IRChatRequest, IRChatResponse, IRStreamChunk } from '@johnhenry/aimatey-types';
 import type { Fixture, ChatFixture, StreamingFixture } from './fixture-types.js';
 import { isChatFixture, isStreamingFixture } from './fixture-types.js';
 

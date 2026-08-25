@@ -70,7 +70,7 @@ export interface StreamProviderProps {
  *
  * @example
  * ```tsx
- * import { StreamProvider, useStreamContext } from 'ai.matey.react.stream';
+ * import { StreamProvider, useStreamContext } from '@johnhenry/aimatey-react-stream';
  *
  * function App() {
  *   return (

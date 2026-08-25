@@ -70,9 +70,9 @@ The most basic example - connect OpenAI format to Anthropic backend.
 **Code:**
 
 ```typescript
-import { Bridge } from 'ai.matey.core';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
-import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
+import { Bridge } from '@johnhenry/aimatey-core';
+import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend/openai';
+import { AnthropicBackendAdapter } from '@johnhenry/aimatey-backend/anthropic';
 
 async function main() {
   // Create bridge: OpenAI format -> Anthropic execution
@@ -117,9 +117,9 @@ Shows how to use streaming responses with real-time output.
 **Code:**
 
 ```typescript
-import { Bridge } from 'ai.matey.core';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
-import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
+import { Bridge } from '@johnhenry/aimatey-core';
+import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend/openai';
+import { AnthropicBackendAdapter } from '@johnhenry/aimatey-backend/anthropic';
 
 async function main() {
   const bridge = new Bridge(
@@ -175,9 +175,9 @@ Use Anthropic format with OpenAI backend - swap the frontend/backend!
 **Code:**
 
 ```typescript
-import { Bridge } from 'ai.matey.core';
-import { AnthropicFrontendAdapter } from 'ai.matey.frontend/anthropic';
-import { OpenAIBackendAdapter } from 'ai.matey.backend/openai';
+import { Bridge } from '@johnhenry/aimatey-core';
+import { AnthropicFrontendAdapter } from '@johnhenry/aimatey-frontend/anthropic';
+import { OpenAIBackendAdapter } from '@johnhenry/aimatey-backend/openai';
 
 async function main() {
   // Create bridge: Anthropic format -> OpenAI execution
@@ -222,9 +222,9 @@ Free access to OpenAI, Meta, DeepSeek, Mistral, and Microsoft models via any Git
 **Code:**
 
 ```typescript
-import { Bridge } from 'ai.matey.core';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
-import { GitHubModelsBackendAdapter } from 'ai.matey.backend/github-models';
+import { Bridge } from '@johnhenry/aimatey-core';
+import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend/openai';
+import { GitHubModelsBackendAdapter } from '@johnhenry/aimatey-backend/github-models';
 
 async function main() {
   const bridge = new Bridge(
@@ -261,9 +261,9 @@ The Qwen model family via DashScope's OpenAI-compatible mode.
 **Code:**
 
 ```typescript
-import { Bridge } from 'ai.matey.core';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
-import { DashScopeBackendAdapter } from 'ai.matey.backend/dashscope';
+import { Bridge } from '@johnhenry/aimatey-core';
+import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend/openai';
+import { DashScopeBackendAdapter } from '@johnhenry/aimatey-backend/dashscope';
 
 async function main() {
   const bridge = new Bridge(
@@ -302,9 +302,9 @@ endpoint - no API key required for keyless/local usage.
 **Code:**
 
 ```typescript
-import { Bridge } from 'ai.matey.core';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
-import { OmniRouteBackendAdapter } from 'ai.matey.backend/omniroute';
+import { Bridge } from '@johnhenry/aimatey-core';
+import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend/openai';
+import { OmniRouteBackendAdapter } from '@johnhenry/aimatey-backend/omniroute';
 
 async function main() {
   const bridge = new Bridge(
@@ -345,9 +345,9 @@ Request JSON output that conforms to a schema, via `responseFormat` on `IRChatRe
 **Code:**
 
 ```typescript
-import { Bridge } from 'ai.matey.core';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
-import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
+import { Bridge } from '@johnhenry/aimatey-core';
+import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend/openai';
+import { AnthropicBackendAdapter } from '@johnhenry/aimatey-backend/anthropic';
 
 async function main() {
   const bridge = new Bridge(
@@ -400,10 +400,10 @@ Add logging to track requests and responses for debugging and monitoring.
 **Code:**
 
 ```typescript
-import { Bridge } from 'ai.matey.core';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
-import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
-import { createLoggingMiddleware } from 'ai.matey.middleware/logging';
+import { Bridge } from '@johnhenry/aimatey-core';
+import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend/openai';
+import { AnthropicBackendAdapter } from '@johnhenry/aimatey-backend/anthropic';
+import { createLoggingMiddleware } from '@johnhenry/aimatey-middleware/logging';
 
 async function main() {
   const bridge = new Bridge(
@@ -460,10 +460,10 @@ Automatic retry logic for failed requests with exponential backoff.
 **Code:**
 
 ```typescript
-import { Bridge } from 'ai.matey.core';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
-import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
-import { createRetryMiddleware, isRateLimitError, isNetworkError } from 'ai.matey.middleware/retry';
+import { Bridge } from '@johnhenry/aimatey-core';
+import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend/openai';
+import { AnthropicBackendAdapter } from '@johnhenry/aimatey-backend/anthropic';
+import { createRetryMiddleware, isRateLimitError, isNetworkError } from '@johnhenry/aimatey-middleware/retry';
 
 async function main() {
   const bridge = new Bridge(
@@ -531,10 +531,10 @@ Cache responses to reduce API calls and costs.
 **Code:**
 
 ```typescript
-import { Bridge } from 'ai.matey.core';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
-import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
-import { createCachingMiddleware, InMemoryCacheStorage } from 'ai.matey.middleware/caching';
+import { Bridge } from '@johnhenry/aimatey-core';
+import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend/openai';
+import { AnthropicBackendAdapter } from '@johnhenry/aimatey-backend/anthropic';
+import { createCachingMiddleware, InMemoryCacheStorage } from '@johnhenry/aimatey-middleware/caching';
 
 async function main() {
   const bridge = new Bridge(
@@ -606,10 +606,10 @@ Transform requests and responses (e.g., inject system messages).
 **Code:**
 
 ```typescript
-import { Bridge } from 'ai.matey.core';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
-import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
-import { createTransformMiddleware, createSystemMessageInjector } from 'ai.matey.middleware/transform';
+import { Bridge } from '@johnhenry/aimatey-core';
+import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend/openai';
+import { AnthropicBackendAdapter } from '@johnhenry/aimatey-backend/anthropic';
+import { createTransformMiddleware, createSystemMessageInjector } from '@johnhenry/aimatey-middleware/transform';
 
 async function main() {
   const bridge = new Bridge(
@@ -684,11 +684,11 @@ Distribute requests across multiple backends for load balancing.
 **Code:**
 
 ```typescript
-import { Router } from 'ai.matey.core';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
-import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
-import { OpenAIBackendAdapter } from 'ai.matey.backend/openai';
-import { GeminiBackendAdapter } from 'ai.matey.backend/gemini';
+import { Router } from '@johnhenry/aimatey-core';
+import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend/openai';
+import { AnthropicBackendAdapter } from '@johnhenry/aimatey-backend/anthropic';
+import { OpenAIBackendAdapter } from '@johnhenry/aimatey-backend/openai';
+import { GeminiBackendAdapter } from '@johnhenry/aimatey-backend/gemini';
 
 async function main() {
   // Create router with multiple backends
@@ -751,10 +751,10 @@ Automatic failover to backup backends when primary fails.
 **Code:**
 
 ```typescript
-import { Router } from 'ai.matey.core';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
-import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
-import { OpenAIBackendAdapter } from 'ai.matey.backend/openai';
+import { Router } from '@johnhenry/aimatey-core';
+import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend/openai';
+import { AnthropicBackendAdapter } from '@johnhenry/aimatey-backend/anthropic';
+import { OpenAIBackendAdapter } from '@johnhenry/aimatey-backend/openai';
 
 async function main() {
   const router = new Router(new OpenAIFrontendAdapter(), {
@@ -822,10 +822,10 @@ Automatic model name translation during fallback for cross-provider compatibilit
 **Code:**
 
 ```typescript
-import { createRouter } from 'ai.matey.core';
-import { OpenAIBackendAdapter } from 'ai.matey.backend/openai';
-import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
-import { GeminiBackendAdapter } from 'ai.matey.backend/gemini';
+import { createRouter } from '@johnhenry/aimatey-core';
+import { OpenAIBackendAdapter } from '@johnhenry/aimatey-backend/openai';
+import { AnthropicBackendAdapter } from '@johnhenry/aimatey-backend/anthropic';
+import { GeminiBackendAdapter } from '@johnhenry/aimatey-backend/gemini';
 
 async function main() {
   // Create router with multiple backends
@@ -942,10 +942,10 @@ Backend-specific model translation mappings that override global translations.
 **Code:**
 
 ```typescript
-import { createRouter } from 'ai.matey.core';
-import { OpenAIBackendAdapter } from 'ai.matey.backend/openai';
-import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
-import { MistralBackendAdapter } from 'ai.matey.backend/mistral';
+import { createRouter } from '@johnhenry/aimatey-core';
+import { OpenAIBackendAdapter } from '@johnhenry/aimatey-backend/openai';
+import { AnthropicBackendAdapter } from '@johnhenry/aimatey-backend/anthropic';
+import { MistralBackendAdapter } from '@johnhenry/aimatey-backend/mistral';
 
 async function main() {
   // Create router with multiple backends
@@ -1053,10 +1053,10 @@ Automatically select backends based on model capabilities and requirements.
 **Code:**
 
 ```typescript
-import { Router } from 'ai.matey.core';
-import { OpenAIBackendAdapter } from 'ai.matey.backend/openai';
-import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
-import { GeminiBackendAdapter } from 'ai.matey.backend/gemini';
+import { Router } from '@johnhenry/aimatey-core';
+import { OpenAIBackendAdapter } from '@johnhenry/aimatey-backend/openai';
+import { AnthropicBackendAdapter } from '@johnhenry/aimatey-backend/anthropic';
+import { GeminiBackendAdapter } from '@johnhenry/aimatey-backend/gemini';
 
 async function main() {
   // Create router with capability-based routing enabled
@@ -1146,11 +1146,11 @@ Automatically route to the cheapest backend that meets requirements.
 **Code:**
 
 ```typescript
-import { Router } from 'ai.matey.core';
-import { OpenAIBackendAdapter } from 'ai.matey.backend/openai';
-import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
-import { GeminiBackendAdapter } from 'ai.matey.backend/gemini';
-import { createCostTrackingMiddleware } from 'ai.matey.middleware/cost-tracking';
+import { Router } from '@johnhenry/aimatey-core';
+import { OpenAIBackendAdapter } from '@johnhenry/aimatey-backend/openai';
+import { AnthropicBackendAdapter } from '@johnhenry/aimatey-backend/anthropic';
+import { GeminiBackendAdapter } from '@johnhenry/aimatey-backend/gemini';
+import { createCostTrackingMiddleware } from '@johnhenry/aimatey-middleware/cost-tracking';
 
 async function main() {
   // Create router optimized for cost
@@ -1249,10 +1249,10 @@ Route to the fastest backend for low-latency applications.
 **Code:**
 
 ```typescript
-import { Router } from 'ai.matey.core';
-import { OpenAIBackendAdapter } from 'ai.matey.backend/openai';
-import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
-import { GeminiBackendAdapter } from 'ai.matey.backend/gemini';
+import { Router } from '@johnhenry/aimatey-core';
+import { OpenAIBackendAdapter } from '@johnhenry/aimatey-backend/openai';
+import { AnthropicBackendAdapter } from '@johnhenry/aimatey-backend/anthropic';
+import { GeminiBackendAdapter } from '@johnhenry/aimatey-backend/gemini';
 
 async function main() {
   // Create router optimized for speed
@@ -1360,10 +1360,10 @@ Route to the highest quality models for critical tasks.
 **Code:**
 
 ```typescript
-import { Router } from 'ai.matey.core';
-import { OpenAIBackendAdapter } from 'ai.matey.backend/openai';
-import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
-import { GeminiBackendAdapter } from 'ai.matey.backend/gemini';
+import { Router } from '@johnhenry/aimatey-core';
+import { OpenAIBackendAdapter } from '@johnhenry/aimatey-backend/openai';
+import { AnthropicBackendAdapter } from '@johnhenry/aimatey-backend/anthropic';
+import { GeminiBackendAdapter } from '@johnhenry/aimatey-backend/gemini';
 
 async function main() {
   // Create router optimized for quality
@@ -1474,10 +1474,10 @@ Create a basic HTTP server using Node.js http module.
 
 ```typescript
 import http from 'http';
-import { NodeHTTPListener } from 'ai.matey.http/node';
-import { Bridge } from 'ai.matey.core';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
-import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
+import { NodeHTTPListener } from '@johnhenry/aimatey-http/node';
+import { Bridge } from '@johnhenry/aimatey-core';
+import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend/openai';
+import { AnthropicBackendAdapter } from '@johnhenry/aimatey-backend/anthropic';
 
 async function main() {
   // Create bridge
@@ -1552,10 +1552,10 @@ HTTP server using Express framework.
 
 ```typescript
 import express from 'express';
-import { ExpressMiddleware } from 'ai.matey.http/express';
-import { Bridge } from 'ai.matey.core';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
-import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
+import { ExpressMiddleware } from '@johnhenry/aimatey-http/express';
+import { Bridge } from '@johnhenry/aimatey-core';
+import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend/openai';
+import { AnthropicBackendAdapter } from '@johnhenry/aimatey-backend/anthropic';
 
 async function main() {
   const app = express();
@@ -1582,7 +1582,7 @@ async function main() {
 
   // Health check endpoint
   app.get('/health', (_req, res) => {
-    res.json({ status: 'ok', service: 'ai.matey' });
+    res.json({ status: 'ok', service: '@johnhenry/aimatey' });
   });
 
   const PORT = process.env.PORT || 3000;
@@ -1630,10 +1630,10 @@ Drop-in replacement for OpenAI SDK - use any backend!
 **Code:**
 
 ```typescript
-import { OpenAI } from 'ai.matey.wrapper/openai';
-import { Bridge } from 'ai.matey.core';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
-import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
+import { OpenAI } from '@johnhenry/aimatey-wrapper/openai';
+import { Bridge } from '@johnhenry/aimatey-core';
+import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend/openai';
+import { AnthropicBackendAdapter } from '@johnhenry/aimatey-backend/anthropic';
 
 async function main() {
   // Create bridge with Anthropic backend
@@ -1731,16 +1731,16 @@ re-execute, looping until the model answers or `maxIterations` is hit.
 npx tsx examples/tools/run-tools.ts
 ```
 
-### MCP (Model Context Protocol) (`ai.matey.mcp`)
+### MCP (Model Context Protocol) (`@johnhenry/aimatey-mcp`)
 
-The [`ai.matey.mcp`](./packages/mcp/readme.md) package translates MCP tools into the
+The [`@johnhenry/aimatey-mcp`](./packages/mcp/readme.md) package translates MCP tools into the
 `ToolDefinition` shape `runTools()` already consumes, via an injectable `McpClientLike`
 client - no hard dependency on any MCP SDK. Works with the official
 `@modelcontextprotocol/sdk`, [`mcp-query`](https://github.com/johnhenry/mcp-query), or a
 test fake; see the package readme for `mcpToolsToDefinitions()` and `runMcpTools()` examples.
 
 ```typescript
-import { runMcpTools } from 'ai.matey.mcp';
+import { runMcpTools } from '@johnhenry/aimatey-mcp';
 
 const result = await runMcpTools(bridge.runTools, {
   client: mcpClient, // any McpClientLike - e.g. an mcp-query MCPClient
@@ -1902,7 +1902,7 @@ import {
   GeminiBackend,
   OllamaBackend,
   // ... all HTTP-based backends
-} from 'ai.matey.backend';
+} from '@johnhenry/aimatey-backend';
 ```
 
 ### Node.js-Only Imports
@@ -1913,7 +1913,7 @@ import {
   LlamaCppBackend,
   GenericModelRunnerBackend,
   // ... other model runners
-} from 'ai.matey.native.node-llamacpp';
+} from '@johnhenry/aimatey-native-node-llamacpp';
 ```
 
 ### Why This Separation?
@@ -1935,7 +1935,7 @@ import {
 ### Architecture Benefits
 
 1. **Browser Compatibility Preserved**
-   - Main `ai.matey.backend` works in browsers
+   - Main `@johnhenry/aimatey-backend` works in browsers
    - No Node.js modules in browser bundles
    - Smaller bundle sizes for browser use
 
@@ -1954,10 +1954,10 @@ import {
 **Solution:**
 ```typescript
 // ❌ Don't do this in browser
-import { LlamaCppBackend } from 'ai.matey.native.node-llamacpp';
+import { LlamaCppBackend } from '@johnhenry/aimatey-native-node-llamacpp';
 
 // ✅ Use HTTP backends instead
-import { OllamaBackend } from 'ai.matey.backend/ollama';
+import { OllamaBackend } from '@johnhenry/aimatey-backend/ollama';
 ```
 
 ---

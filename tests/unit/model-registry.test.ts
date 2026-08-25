@@ -17,7 +17,7 @@ import {
   registerModels,
   overrideModelPricing,
   resetModelRegistry,
-} from 'ai.matey.utils';
+} from '@johnhenry/aimatey-utils';
 
 afterEach(() => {
   resetModelRegistry();

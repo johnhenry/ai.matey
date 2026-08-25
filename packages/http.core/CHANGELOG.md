@@ -1,4 +1,6 @@
-# ai.matey.http.core
+# @johnhenry/aimatey-http-core
+
+> Previously published as `ai.matey.http.core`, last unscoped version `0.3.1`.
 
 ## 0.3.1
 

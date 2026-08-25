@@ -1,4 +1,6 @@
-# ai.matey.native.model-runner
+# @johnhenry/aimatey-native-model-runner
+
+> Previously published as `ai.matey.native.model-runner`, last unscoped version `0.2.1`.
 
 ## 0.2.1
 

@@ -7,9 +7,9 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import { randomUUID } from 'node:crypto';
-import { Router } from 'ai.matey.core';
-import type { BackendAdapter, AdapterMetadata } from 'ai.matey.types';
-import type { IRChatRequest, IRChatResponse, IRStreamChunk, IRCapabilities } from 'ai.matey.types';
+import { Router } from '@johnhenry/aimatey-core';
+import type { BackendAdapter, AdapterMetadata } from '@johnhenry/aimatey-types';
+import type { IRChatRequest, IRChatResponse, IRStreamChunk, IRCapabilities } from '@johnhenry/aimatey-types';
 
 // ============================================================================
 // Mock Backend Adapters

@@ -1,4 +1,6 @@
-# ai.matey.wrapper
+# @johnhenry/aimatey-wrapper
+
+> Previously published as `ai.matey.wrapper`, last unscoped version `0.2.4`.
 
 ## 0.2.4
 

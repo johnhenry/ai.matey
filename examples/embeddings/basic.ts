@@ -4,11 +4,11 @@
  * Run: npx tsx examples/embeddings/basic.ts (requires OPENAI_API_KEY)
  */
 
-import { Bridge } from 'ai.matey.core';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend';
-import { OpenAIBackendAdapter } from 'ai.matey.backend';
-import { cosineSimilarity } from 'ai.matey.utils';
-import { createEmbeddingCachingMiddleware } from 'ai.matey.middleware';
+import { Bridge } from '@johnhenry/aimatey-core';
+import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend';
+import { OpenAIBackendAdapter } from '@johnhenry/aimatey-backend';
+import { cosineSimilarity } from '@johnhenry/aimatey-utils';
+import { createEmbeddingCachingMiddleware } from '@johnhenry/aimatey-middleware';
 
 const bridge = new Bridge(
   new OpenAIFrontendAdapter(),

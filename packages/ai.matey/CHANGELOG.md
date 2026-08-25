@@ -1,4 +1,6 @@
-# ai.matey
+# @johnhenry/aimatey
+
+> Previously published as `ai.matey`, last unscoped version `0.2.1`.
 
 ## 0.2.1
 

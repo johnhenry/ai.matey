@@ -7,9 +7,9 @@
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
-import type { Bridge } from 'ai.matey.core';
-import type { HTTPListenerOptions, HTTPRequestHandler } from 'ai.matey.http.core';
-import { CoreHTTPHandler } from 'ai.matey.http.core';
+import type { Bridge } from '@johnhenry/aimatey-core';
+import type { HTTPListenerOptions, HTTPRequestHandler } from '@johnhenry/aimatey-http-core';
+import { CoreHTTPHandler } from '@johnhenry/aimatey-http-core';
 import { NodeRequestAdapter, NodeResponseAdapter } from './adapter.js';
 
 /**
@@ -22,7 +22,7 @@ import { NodeRequestAdapter, NodeResponseAdapter } from './adapter.js';
  * @example
  * ```typescript
  * import { createServer } from 'http';
- * import { NodeHTTPListener } from 'ai.matey.http/node';
+ * import { NodeHTTPListener } from '@johnhenry/aimatey-http/node';
  *
  * const bridge = new Bridge(frontend, backend);
  *

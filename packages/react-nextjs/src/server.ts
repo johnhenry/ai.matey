@@ -6,7 +6,7 @@
  * @module
  */
 
-import type { Bridge } from 'ai.matey.core';
+import type { Bridge } from '@johnhenry/aimatey-core';
 
 /**
  * Streaming response options.
@@ -28,8 +28,8 @@ export interface StreamingResponseOptions {
  * @example
  * ```typescript
  * // app/api/chat/route.ts
- * import { createStreamingResponse } from 'ai.matey.react.nextjs/server';
- * import { Bridge } from 'ai.matey.core';
+ * import { createStreamingResponse } from '@johnhenry/aimatey-react-nextjs/server';
+ * import { Bridge } from '@johnhenry/aimatey-core';
  *
  * export async function POST(request: Request) {
  *   const { messages } = await request.json();
@@ -88,7 +88,7 @@ export function createStreamingResponse(
  * @example
  * ```typescript
  * // app/api/chat/route.ts
- * import { createSSEResponse } from 'ai.matey.react.nextjs/server';
+ * import { createSSEResponse } from '@johnhenry/aimatey-react-nextjs/server';
  *
  * export async function POST(request: Request) {
  *   const stream = generateChatStream();
@@ -177,9 +177,9 @@ export interface ChatRequestBody {
  * @example
  * ```typescript
  * // app/api/chat/route.ts
- * import { createChatHandler } from 'ai.matey.react.nextjs/server';
- * import { Bridge } from 'ai.matey.core';
- * import { OpenAIBackend } from 'ai.matey.backend/openai';
+ * import { createChatHandler } from '@johnhenry/aimatey-react-nextjs/server';
+ * import { Bridge } from '@johnhenry/aimatey-core';
+ * import { OpenAIBackend } from '@johnhenry/aimatey-backend/openai';
  *
  * const bridge = new Bridge({
  *   backend: new OpenAIBackend({ apiKey: process.env.OPENAI_API_KEY }),
@@ -318,7 +318,7 @@ async function* transformStreamChunks(
  * // app/actions.ts
  * 'use server';
  *
- * import { createChatAction } from 'ai.matey.react.nextjs/server';
+ * import { createChatAction } from '@johnhenry/aimatey-react-nextjs/server';
  * import { bridge } from './bridge';
  *
  * export const chatAction = createChatAction({ bridge });

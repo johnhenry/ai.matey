@@ -6,7 +6,7 @@
  *
  * @example Basic Usage
  * ```typescript
- * import { NodeLlamaCppBackend } from 'ai.matey.native.node-llamacpp';
+ * import { NodeLlamaCppBackend } from '@johnhenry/aimatey-native-node-llamacpp';
  *
  * const backend = new NodeLlamaCppBackend({
  *   modelPath: './models/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf',
@@ -21,15 +21,19 @@
  * @module
  */
 
-import type { BackendAdapter, BackendAdapterConfig, AdapterMetadata } from 'ai.matey.types';
+import type {
+  BackendAdapter,
+  BackendAdapterConfig,
+  AdapterMetadata,
+} from '@johnhenry/aimatey-types';
 import type {
   IRChatRequest,
   IRChatResponse,
   IRChatStream,
   IRStreamChunk,
   MessageContent,
-} from 'ai.matey.types';
-import { AdapterError, ErrorCode, ProviderError } from 'ai.matey.errors';
+} from '@johnhenry/aimatey-types';
+import { AdapterError, ErrorCode, ProviderError } from '@johnhenry/aimatey-errors';
 
 // Dynamic import to handle node-llama-cpp
 let getLlama: any;

@@ -1,4 +1,6 @@
-# ai.matey.react.hooks
+# @johnhenry/aimatey-react-hooks
+
+> Previously published as `ai.matey.react.hooks`, last unscoped version `0.2.2`.
 
 ## 0.2.2
 

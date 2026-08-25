@@ -8,7 +8,7 @@
  */
 
 import { OpenAIBackendAdapter, type OpenAIRequest, type OpenAIResponse } from './openai.js';
-import type { BackendAdapter, BackendAdapterConfig, IRChatRequest } from 'ai.matey.types';
+import type { BackendAdapter, BackendAdapterConfig, IRChatRequest } from '@johnhenry/aimatey-types';
 
 /**
  * Backend adapter for SambaNova Cloud API.
@@ -19,7 +19,7 @@ import type { BackendAdapter, BackendAdapterConfig, IRChatRequest } from 'ai.mat
  *
  * @example Basic Usage
  * ```typescript
- * import { SambaNovaBackendAdapter } from 'ai.matey';
+ * import { SambaNovaBackendAdapter } from '@johnhenry/aimatey';
  *
  * const adapter = new SambaNovaBackendAdapter({
  *   apiKey: process.env.SAMBANOVA_API_KEY,
@@ -159,7 +159,7 @@ export class SambaNovaBackendAdapter
  *
  * @example
  * ```typescript
- * import { createSambaNovaAdapter } from 'ai.matey';
+ * import { createSambaNovaAdapter } from '@johnhenry/aimatey';
  *
  * const adapter = createSambaNovaAdapter({
  *   apiKey: process.env.SAMBANOVA_API_KEY,

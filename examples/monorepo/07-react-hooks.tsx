@@ -10,16 +10,16 @@
 import React from 'react';
 
 // Core React hooks
-import { useChat, useCompletion, useObject } from 'ai.matey.react.core';
+import { useChat, useCompletion, useObject } from '@johnhenry/aimatey-react-core';
 
 // Additional hooks
-import { useTokenCount } from 'ai.matey.react.hooks';
+import { useTokenCount } from '@johnhenry/aimatey-react-hooks';
 
 // Stream components
-import { StreamProvider, StreamText, TypeWriter } from 'ai.matey.react.stream';
+import { StreamProvider, StreamText, TypeWriter } from '@johnhenry/aimatey-react-stream';
 
 // Types
-import type { IRMessage } from 'ai.matey.types';
+import type { IRMessage } from '@johnhenry/aimatey-types';
 
 /**
  * Basic Chat Component using useChat hook

@@ -11,8 +11,8 @@ import {
   type ExecuteFunction,
   type ExecuteStreamFunction,
   type FunctionBackendConfig,
-} from 'ai.matey.backend.browser';
-import type { IRChatRequest, IRChatResponse, IRStreamChunk } from 'ai.matey.types';
+} from '@johnhenry/aimatey-backend-browser';
+import type { IRChatRequest, IRChatResponse, IRStreamChunk } from '@johnhenry/aimatey-types';
 
 // ============================================================================
 // Test Helpers

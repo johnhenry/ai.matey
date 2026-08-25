@@ -13,17 +13,17 @@ import {
   collectBridgeMetrics,
   type GenericRequest,
   type GenericResponse,
-} from 'ai.matey.http.core';
-import { createWebSocketHandler, type WebSocketLike } from 'ai.matey.http/websocket';
-import { Bridge } from 'ai.matey.core';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend';
-import { MockBackendAdapter } from 'ai.matey.backend.browser';
+} from '@johnhenry/aimatey-http-core';
+import { createWebSocketHandler, type WebSocketLike } from '@johnhenry/aimatey-http/websocket';
+import { Bridge } from '@johnhenry/aimatey-core';
+import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend';
+import { MockBackendAdapter } from '@johnhenry/aimatey-backend-browser';
 import type {
   AdapterMetadata,
   BackendAdapter,
   IREmbedRequest,
   IREmbedResponse,
-} from 'ai.matey.types';
+} from '@johnhenry/aimatey-types';
 
 // ============================================================================
 // Helpers

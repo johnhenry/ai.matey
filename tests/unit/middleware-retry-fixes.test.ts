@@ -9,9 +9,9 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
   createRetryMiddleware,
   createRetryPredicate,
-} from 'ai.matey.middleware';
-import { RateLimitError, NetworkError, ProviderError, ErrorCode } from 'ai.matey.errors';
-import type { MiddlewareContext, IRChatRequest, IRChatResponse } from 'ai.matey.types';
+} from '@johnhenry/aimatey-middleware';
+import { RateLimitError, NetworkError, ProviderError, ErrorCode } from '@johnhenry/aimatey-errors';
+import type { MiddlewareContext, IRChatRequest, IRChatResponse } from '@johnhenry/aimatey-types';
 
 // ============================================================================
 // Test Helpers

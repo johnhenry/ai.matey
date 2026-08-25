@@ -4,7 +4,7 @@
 
 import { writeFile, mkdir } from 'fs/promises';
 import { join } from 'path';
-import type { IRChatRequest, IRChatResponse, IRStreamChunk } from 'ai.matey.types';
+import type { IRChatRequest, IRChatResponse, IRStreamChunk } from '@johnhenry/aimatey-types';
 import type { ChatFixture, StreamingFixture, FixtureMetadata } from './fixture-types.js';
 import { FIXTURES_DIR } from './fixture-loader.js';
 

@@ -21,7 +21,7 @@ import type {
  *
  * @example
  * ```tsx
- * import { useCompletion } from 'ai.matey.react.core';
+ * import { useCompletion } from '@johnhenry/aimatey-react-core';
  *
  * function CompletionComponent() {
  *   const { completion, input, handleInputChange, handleSubmit, isLoading } = useCompletion({

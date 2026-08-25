@@ -13,8 +13,8 @@ import type {
   InferFrontendRequest,
   InferFrontendResponse,
   InferFrontendStreamChunk,
-} from 'ai.matey.types';
-import type { IRChatRequest, IRChatResponse } from 'ai.matey.types';
+} from '@johnhenry/aimatey-types';
+import type { IRChatRequest, IRChatResponse } from '@johnhenry/aimatey-types';
 import type {
   BridgeConfig,
   RequestOptions,
@@ -24,30 +24,34 @@ import type {
   BridgeEventData,
   RequestEvent,
   StreamEvent,
-} from 'ai.matey.types';
-import { BridgeEventType } from 'ai.matey.types';
-import type { Middleware } from 'ai.matey.types';
-import type { ListModelsOptions, ListModelsResult } from 'ai.matey.types';
+} from '@johnhenry/aimatey-types';
+import { BridgeEventType } from '@johnhenry/aimatey-types';
+import type { Middleware } from '@johnhenry/aimatey-types';
+import type { ListModelsOptions, ListModelsResult } from '@johnhenry/aimatey-types';
 import {
   MiddlewareStack,
   createMiddlewareContext,
   createStreamingMiddlewareContext,
 } from './middleware-stack.js';
-import { AdapterError, ErrorCode, ValidationError } from 'ai.matey.errors';
-import { validateIRChatRequest, createGenerateObject, createStreamObject } from 'ai.matey.utils';
+import { AdapterError, ErrorCode, ValidationError } from '@johnhenry/aimatey-errors';
+import {
+  validateIRChatRequest,
+  createGenerateObject,
+  createStreamObject,
+} from '@johnhenry/aimatey-utils';
 import { createRunTools } from './run-tools.js';
 import {
   supportsEmbeddings,
   chunkEmbedInputs,
   normalizeDimensions,
   createWarning,
-} from 'ai.matey.utils';
+} from '@johnhenry/aimatey-utils';
 import type {
   EmbedMiddleware,
   EmbedOptions,
   IREmbedRequest,
   IREmbedResponse,
-} from 'ai.matey.types';
+} from '@johnhenry/aimatey-types';
 
 // ============================================================================
 // Bridge Implementation

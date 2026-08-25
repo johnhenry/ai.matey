@@ -1,4 +1,6 @@
-# ai.matey.cli
+# @johnhenry/aimatey-cli
+
+> Previously published as `ai.matey.cli`, last unscoped version `0.2.3`.
 
 ## 0.2.3
 

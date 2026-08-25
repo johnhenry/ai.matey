@@ -6,10 +6,10 @@
  * @module
  */
 
-import type { FrontendAdapter, AdapterMetadata } from 'ai.matey.types';
-import type { IRChatRequest, IRChatResponse, IRStreamChunk } from 'ai.matey.types';
-import type { StreamConversionOptions } from 'ai.matey.types';
-import { convertStreamMode } from 'ai.matey.utils';
+import type { FrontendAdapter, AdapterMetadata } from '@johnhenry/aimatey-types';
+import type { IRChatRequest, IRChatResponse, IRStreamChunk } from '@johnhenry/aimatey-types';
+import type { StreamConversionOptions } from '@johnhenry/aimatey-types';
+import { convertStreamMode } from '@johnhenry/aimatey-utils';
 
 /**
  * Chrome AI request structure for browser-based AI.

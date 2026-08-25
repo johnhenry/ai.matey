@@ -7,21 +7,21 @@
  * @module
  */
 
-import type { IRChatResponse, IRChatStream } from 'ai.matey.types';
-import type { StreamConversionOptions } from 'ai.matey.types';
+import type { IRChatResponse, IRChatStream } from '@johnhenry/aimatey-types';
+import type { StreamConversionOptions } from '@johnhenry/aimatey-types';
 import {
   OpenAIFrontendAdapter,
   type OpenAIResponse,
   type OpenAIStreamChunk,
-} from 'ai.matey.frontend';
+} from '@johnhenry/aimatey-frontend';
 import {
   AnthropicFrontendAdapter,
   type AnthropicResponse,
   type AnthropicStreamEvent,
-} from 'ai.matey.frontend';
-import { GeminiFrontendAdapter } from 'ai.matey.frontend';
-import { OllamaFrontendAdapter } from 'ai.matey.frontend';
-import { MistralFrontendAdapter } from 'ai.matey.frontend';
+} from '@johnhenry/aimatey-frontend';
+import { GeminiFrontendAdapter } from '@johnhenry/aimatey-frontend';
+import { OllamaFrontendAdapter } from '@johnhenry/aimatey-frontend';
+import { MistralFrontendAdapter } from '@johnhenry/aimatey-frontend';
 
 // ============================================================================
 // Non-Streaming Converters
@@ -35,7 +35,7 @@ import { MistralFrontendAdapter } from 'ai.matey.frontend';
  *
  * @example
  * ```typescript
- * import { toOpenAI } from 'ai.matey.utils';
+ * import { toOpenAI } from '@johnhenry/aimatey-utils';
  *
  * const irResponse = await backend.execute(request);
  * const openaiFormat = await toOpenAI(irResponse);
@@ -55,7 +55,7 @@ export async function toOpenAI(response: IRChatResponse): Promise<OpenAIResponse
  *
  * @example
  * ```typescript
- * import { toAnthropic } from 'ai.matey.utils';
+ * import { toAnthropic } from '@johnhenry/aimatey-utils';
  *
  * const irResponse = await backend.execute(request);
  * const anthropicFormat = await toAnthropic(irResponse);
@@ -112,7 +112,7 @@ export async function toMistral(response: IRChatResponse): Promise<unknown> {
  *
  * @example
  * ```typescript
- * import { toOpenAIStream } from 'ai.matey.utils';
+ * import { toOpenAIStream } from '@johnhenry/aimatey-utils';
  *
  * const irStream = backend.executeStream(request);
  * for await (const chunk of toOpenAIStream(irStream)) {
@@ -187,7 +187,7 @@ export async function* toMistralStream(
  *
  * @example
  * ```typescript
- * import { toMultipleFormats } from 'ai.matey.utils';
+ * import { toMultipleFormats } from '@johnhenry/aimatey-utils';
  *
  * const irResponse = await backend.execute(request);
  * const allFormats = await toMultipleFormats(irResponse, ['openai', 'anthropic', 'gemini']);

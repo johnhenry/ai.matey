@@ -6,8 +6,8 @@
  * @module
  */
 
-import type { BackendAdapter, IRChatRequest, IRMessage } from 'ai.matey.types';
-import { trimHistory } from 'ai.matey.utils';
+import type { BackendAdapter, IRChatRequest, IRMessage } from '@johnhenry/aimatey-types';
+import { trimHistory } from '@johnhenry/aimatey-utils';
 
 // ============================================================================
 // Types

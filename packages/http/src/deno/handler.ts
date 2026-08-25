@@ -6,9 +6,9 @@
  * @module
  */
 
-import type { Bridge } from 'ai.matey.core';
-import type { HTTPListenerOptions } from 'ai.matey.http.core';
-import { CoreHTTPHandler } from 'ai.matey.http.core';
+import type { Bridge } from '@johnhenry/aimatey-core';
+import type { HTTPListenerOptions } from '@johnhenry/aimatey-http-core';
+import { CoreHTTPHandler } from '@johnhenry/aimatey-http-core';
 import { DenoRequestAdapter, DenoResponseAdapter } from './adapter.js';
 
 /**
@@ -20,7 +20,7 @@ import { DenoRequestAdapter, DenoResponseAdapter } from './adapter.js';
  *
  * @example
  * ```typescript
- * import { DenoHandler } from 'ai.matey.http/deno';
+ * import { DenoHandler } from '@johnhenry/aimatey-http/deno';
  *
  * const bridge = new Bridge(frontend, backend);
  *

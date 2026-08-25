@@ -21,10 +21,10 @@
  *    npx tsx examples/opentelemetry/honeycomb.ts
  */
 
-import { Bridge } from 'ai.matey.core';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
-import { OpenAIBackendAdapter } from 'ai.matey.backend/openai';
-import { createOpenTelemetryMiddleware, shutdownOpenTelemetry } from 'ai.matey.middleware/opentelemetry';
+import { Bridge } from '@johnhenry/aimatey-core';
+import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend/openai';
+import { OpenAIBackendAdapter } from '@johnhenry/aimatey-backend/openai';
+import { createOpenTelemetryMiddleware, shutdownOpenTelemetry } from '@johnhenry/aimatey-middleware/opentelemetry';
 
 async function main() {
   console.log('🍯 OpenTelemetry + Honeycomb Example\n');

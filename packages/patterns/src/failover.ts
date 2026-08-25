@@ -9,8 +9,8 @@
  * @module
  */
 
-import { AdapterError } from 'ai.matey.errors';
-import type { BackendAdapter, Middleware } from 'ai.matey.types';
+import { AdapterError } from '@johnhenry/aimatey-errors';
+import type { BackendAdapter, Middleware } from '@johnhenry/aimatey-types';
 
 /**
  * Configuration for the failover middleware.

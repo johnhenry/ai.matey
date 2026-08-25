@@ -8,7 +8,7 @@
  */
 
 import { OpenAIBackendAdapter, type OpenAIRequest, type OpenAIResponse } from './openai.js';
-import type { BackendAdapter, BackendAdapterConfig, IRChatRequest } from 'ai.matey.types';
+import type { BackendAdapter, BackendAdapterConfig, IRChatRequest } from '@johnhenry/aimatey-types';
 
 /**
  * Backend adapter for Inception Labs (Mercury) API.
@@ -18,7 +18,7 @@ import type { BackendAdapter, BackendAdapterConfig, IRChatRequest } from 'ai.mat
  *
  * @example Basic Usage
  * ```typescript
- * import { InceptionBackendAdapter } from 'ai.matey';
+ * import { InceptionBackendAdapter } from '@johnhenry/aimatey';
  *
  * const adapter = new InceptionBackendAdapter({
  *   apiKey: process.env.INCEPTION_API_KEY,
@@ -153,7 +153,7 @@ export class InceptionBackendAdapter
  *
  * @example
  * ```typescript
- * import { createInceptionAdapter } from 'ai.matey';
+ * import { createInceptionAdapter } from '@johnhenry/aimatey';
  *
  * const adapter = createInceptionAdapter({
  *   apiKey: process.env.INCEPTION_API_KEY,

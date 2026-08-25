@@ -22,43 +22,43 @@ const packageInfo = {
   // Core packages
   'ai.matey': {
     category: 'core',
-    title: 'ai.matey',
+    title: '@johnhenry/aimatey',
     description: 'Main umbrella package for the ai.matey monorepo',
     exports: ['VERSION'],
   },
   'ai.matey.core': {
     category: 'core',
-    title: 'ai.matey.core',
+    title: '@johnhenry/aimatey-core',
     description: 'Core Bridge, Router, and MiddlewareStack implementations',
     exports: ['Bridge', 'createBridge', 'Router', 'createRouter', 'MiddlewareStack', 'createMiddlewareContext'],
   },
   'ai.matey.types': {
     category: 'core',
-    title: 'ai.matey.types',
+    title: '@johnhenry/aimatey-types',
     description: 'TypeScript type definitions for the ai.matey ecosystem',
     exports: ['IRChatRequest', 'IRChatResponse', 'IRMessage', 'IRStreamChunk', 'FrontendAdapter', 'BackendAdapter', 'Middleware'],
   },
   'ai.matey.errors': {
     category: 'core',
-    title: 'ai.matey.errors',
+    title: '@johnhenry/aimatey-errors',
     description: 'Error classes and error handling utilities',
     exports: ['AdapterError', 'AuthenticationError', 'RateLimitError', 'ValidationError', 'ProviderError', 'NetworkError', 'ErrorCode'],
   },
   'ai.matey.utils': {
     category: 'core',
-    title: 'ai.matey.utils',
+    title: '@johnhenry/aimatey-utils',
     description: 'Shared utility functions for streaming, validation, and more',
     exports: ['asyncGeneratorToReadableStream', 'readableStreamToAsyncGenerator', 'collectStreamChunks'],
   },
   'ai.matey.testing': {
     category: 'core',
-    title: 'ai.matey.testing',
+    title: '@johnhenry/aimatey-testing',
     description: 'Testing utilities, mocks, and fixtures for ai.matey',
     exports: ['MockBackendAdapter', 'createMockResponse', 'assertChatRequest'],
   },
   'ai.matey.cli': {
     category: 'core',
-    title: 'ai.matey.cli',
+    title: '@johnhenry/aimatey-cli',
     description: 'Command-line interface and conversion utilities',
     exports: ['toOpenAIRequest', 'toAnthropicRequest', 'toOpenAI', 'toAnthropic'],
   },
@@ -66,7 +66,7 @@ const packageInfo = {
   // Backend adapters
   'backend-openai': {
     category: 'backend',
-    title: 'ai.matey.backend/openai',
+    title: '@johnhenry/aimatey-backend/openai',
     provider: 'OpenAI',
     description: 'Backend adapter for OpenAI API (GPT-4, GPT-3.5, etc.)',
     exports: ['OpenAIBackendAdapter'],
@@ -75,7 +75,7 @@ const packageInfo = {
   },
   'backend-anthropic': {
     category: 'backend',
-    title: 'ai.matey.backend/anthropic',
+    title: '@johnhenry/aimatey-backend/anthropic',
     provider: 'Anthropic',
     description: 'Backend adapter for Anthropic API (Claude models)',
     exports: ['AnthropicBackendAdapter'],
@@ -84,7 +84,7 @@ const packageInfo = {
   },
   'backend-gemini': {
     category: 'backend',
-    title: 'ai.matey.backend/gemini',
+    title: '@johnhenry/aimatey-backend/gemini',
     provider: 'Google',
     description: 'Backend adapter for Google Gemini API',
     exports: ['GeminiBackendAdapter'],
@@ -93,7 +93,7 @@ const packageInfo = {
   },
   'backend-groq': {
     category: 'backend',
-    title: 'ai.matey.backend/groq',
+    title: '@johnhenry/aimatey-backend/groq',
     provider: 'Groq',
     description: 'Backend adapter for Groq API (fast inference)',
     exports: ['GroqBackendAdapter'],
@@ -102,7 +102,7 @@ const packageInfo = {
   },
   'backend-mistral': {
     category: 'backend',
-    title: 'ai.matey.backend/mistral',
+    title: '@johnhenry/aimatey-backend/mistral',
     provider: 'Mistral',
     description: 'Backend adapter for Mistral AI API',
     exports: ['MistralBackendAdapter'],
@@ -111,7 +111,7 @@ const packageInfo = {
   },
   'backend-ollama': {
     category: 'backend',
-    title: 'ai.matey.backend/ollama',
+    title: '@johnhenry/aimatey-backend/ollama',
     provider: 'Ollama',
     description: 'Backend adapter for Ollama (local LLM inference)',
     exports: ['OllamaBackendAdapter'],
@@ -120,7 +120,7 @@ const packageInfo = {
   },
   'backend-deepseek': {
     category: 'backend',
-    title: 'ai.matey.backend/deepseek',
+    title: '@johnhenry/aimatey-backend/deepseek',
     provider: 'DeepSeek',
     description: 'Backend adapter for DeepSeek API',
     exports: ['DeepSeekBackendAdapter'],
@@ -129,7 +129,7 @@ const packageInfo = {
   },
   'backend-cohere': {
     category: 'backend',
-    title: 'ai.matey.backend/cohere',
+    title: '@johnhenry/aimatey-backend/cohere',
     provider: 'Cohere',
     description: 'Backend adapter for Cohere API',
     exports: ['CohereBackendAdapter'],
@@ -138,7 +138,7 @@ const packageInfo = {
   },
   'backend-huggingface': {
     category: 'backend',
-    title: 'ai.matey.backend/huggingface',
+    title: '@johnhenry/aimatey-backend/huggingface',
     provider: 'Hugging Face',
     description: 'Backend adapter for Hugging Face Inference API',
     exports: ['HuggingFaceBackendAdapter'],
@@ -147,7 +147,7 @@ const packageInfo = {
   },
   'backend-nvidia': {
     category: 'backend',
-    title: 'ai.matey.backend/nvidia',
+    title: '@johnhenry/aimatey-backend/nvidia',
     provider: 'NVIDIA',
     description: 'Backend adapter for NVIDIA NIM endpoints',
     exports: ['NVIDIABackendAdapter'],
@@ -156,7 +156,7 @@ const packageInfo = {
   },
   'backend-lmstudio': {
     category: 'backend',
-    title: 'ai.matey.backend/lmstudio',
+    title: '@johnhenry/aimatey-backend/lmstudio',
     provider: 'LM Studio',
     description: 'Backend adapter for LM Studio local server',
     exports: ['LMStudioBackendAdapter'],
@@ -165,7 +165,7 @@ const packageInfo = {
   },
   'backend-mock': {
     category: 'backend',
-    title: 'ai.matey.backend/mock',
+    title: '@johnhenry/aimatey-backend/mock',
     provider: 'Mock',
     description: 'Mock backend adapter for testing',
     exports: ['MockBackendAdapter', 'createEchoBackend', 'createErrorBackend', 'createDelayedBackend'],
@@ -174,7 +174,7 @@ const packageInfo = {
   },
   'backend-azure-openai': {
     category: 'backend',
-    title: 'ai.matey.backend/azure-openai',
+    title: '@johnhenry/aimatey-backend/azure-openai',
     provider: 'Azure OpenAI',
     description: 'Backend adapter for Azure OpenAI Service',
     exports: ['AzureOpenAIBackendAdapter'],
@@ -183,7 +183,7 @@ const packageInfo = {
   },
   'backend-aws-bedrock': {
     category: 'backend',
-    title: 'ai.matey.backend/aws-bedrock',
+    title: '@johnhenry/aimatey-backend/aws-bedrock',
     provider: 'AWS Bedrock',
     description: 'Backend adapter for AWS Bedrock',
     exports: ['AWSBedrockBackendAdapter'],
@@ -192,7 +192,7 @@ const packageInfo = {
   },
   'backend-cloudflare': {
     category: 'backend',
-    title: 'ai.matey.backend/cloudflare',
+    title: '@johnhenry/aimatey-backend/cloudflare',
     provider: 'Cloudflare',
     description: 'Backend adapter for Cloudflare Workers AI',
     exports: ['CloudflareBackendAdapter'],
@@ -201,7 +201,7 @@ const packageInfo = {
   },
   'backend-replicate': {
     category: 'backend',
-    title: 'ai.matey.backend/replicate',
+    title: '@johnhenry/aimatey-backend/replicate',
     provider: 'Replicate',
     description: 'Backend adapter for Replicate API',
     exports: ['ReplicateBackendAdapter'],
@@ -210,7 +210,7 @@ const packageInfo = {
   },
   'backend-together-ai': {
     category: 'backend',
-    title: 'ai.matey.backend/together-ai',
+    title: '@johnhenry/aimatey-backend/together-ai',
     provider: 'Together AI',
     description: 'Backend adapter for Together AI API',
     exports: ['TogetherAIBackendAdapter'],
@@ -219,7 +219,7 @@ const packageInfo = {
   },
   'backend-fireworks': {
     category: 'backend',
-    title: 'ai.matey.backend/fireworks',
+    title: '@johnhenry/aimatey-backend/fireworks',
     provider: 'Fireworks',
     description: 'Backend adapter for Fireworks AI API',
     exports: ['FireworksBackendAdapter'],
@@ -228,7 +228,7 @@ const packageInfo = {
   },
   'backend-perplexity': {
     category: 'backend',
-    title: 'ai.matey.backend/perplexity',
+    title: '@johnhenry/aimatey-backend/perplexity',
     provider: 'Perplexity',
     description: 'Backend adapter for Perplexity API',
     exports: ['PerplexityBackendAdapter'],
@@ -237,7 +237,7 @@ const packageInfo = {
   },
   'backend-openrouter': {
     category: 'backend',
-    title: 'ai.matey.backend/openrouter',
+    title: '@johnhenry/aimatey-backend/openrouter',
     provider: 'OpenRouter',
     description: 'Backend adapter for OpenRouter (multi-provider routing)',
     exports: ['OpenRouterBackendAdapter'],
@@ -246,7 +246,7 @@ const packageInfo = {
   },
   'backend-anyscale': {
     category: 'backend',
-    title: 'ai.matey.backend/anyscale',
+    title: '@johnhenry/aimatey-backend/anyscale',
     provider: 'Anyscale',
     description: 'Backend adapter for Anyscale Endpoints',
     exports: ['AnyscaleBackendAdapter'],
@@ -255,7 +255,7 @@ const packageInfo = {
   },
   'backend-deepinfra': {
     category: 'backend',
-    title: 'ai.matey.backend/deepinfra',
+    title: '@johnhenry/aimatey-backend/deepinfra',
     provider: 'DeepInfra',
     description: 'Backend adapter for DeepInfra API',
     exports: ['DeepInfraBackendAdapter'],
@@ -264,7 +264,7 @@ const packageInfo = {
   },
   'backend-cerebras': {
     category: 'backend',
-    title: 'ai.matey.backend/cerebras',
+    title: '@johnhenry/aimatey-backend/cerebras',
     provider: 'Cerebras',
     description: 'Backend adapter for Cerebras Inference',
     exports: ['CerebrasBackendAdapter'],
@@ -273,7 +273,7 @@ const packageInfo = {
   },
   'backend-ai21': {
     category: 'backend',
-    title: 'ai.matey.backend/ai21',
+    title: '@johnhenry/aimatey-backend/ai21',
     provider: 'AI21',
     description: 'Backend adapter for AI21 Labs API',
     exports: ['AI21BackendAdapter'],
@@ -282,7 +282,7 @@ const packageInfo = {
   },
   'backend-xai': {
     category: 'backend',
-    title: 'ai.matey.backend/xai',
+    title: '@johnhenry/aimatey-backend/xai',
     provider: 'xAI',
     description: 'Backend adapter for xAI (Grok)',
     exports: ['XAIBackendAdapter'],
@@ -302,37 +302,37 @@ const packageInfo = {
   // Frontend adapters
   'frontend-openai': {
     category: 'frontend',
-    title: 'ai.matey.frontend/openai',
+    title: '@johnhenry/aimatey-frontend/openai',
     description: 'Frontend adapter for OpenAI-compatible request format',
     exports: ['OpenAIFrontendAdapter'],
   },
   'frontend-anthropic': {
     category: 'frontend',
-    title: 'ai.matey.frontend/anthropic',
+    title: '@johnhenry/aimatey-frontend/anthropic',
     description: 'Frontend adapter for Anthropic-compatible request format',
     exports: ['AnthropicFrontendAdapter'],
   },
   'frontend-gemini': {
     category: 'frontend',
-    title: 'ai.matey.frontend/gemini',
+    title: '@johnhenry/aimatey-frontend/gemini',
     description: 'Frontend adapter for Gemini-compatible request format',
     exports: ['GeminiFrontendAdapter'],
   },
   'frontend-ollama': {
     category: 'frontend',
-    title: 'ai.matey.frontend/ollama',
+    title: '@johnhenry/aimatey-frontend/ollama',
     description: 'Frontend adapter for Ollama-compatible request format',
     exports: ['OllamaFrontendAdapter'],
   },
   'frontend-mistral': {
     category: 'frontend',
-    title: 'ai.matey.frontend/mistral',
+    title: '@johnhenry/aimatey-frontend/mistral',
     description: 'Frontend adapter for Mistral-compatible request format',
     exports: ['MistralFrontendAdapter'],
   },
   'frontend-chrome-ai': {
     category: 'frontend',
-    title: 'ai.matey.frontend/chrome-ai',
+    title: '@johnhenry/aimatey-frontend/chrome-ai',
     description: 'Frontend adapter for Chrome AI request format',
     exports: ['ChromeAIFrontendAdapter'],
   },
@@ -340,49 +340,49 @@ const packageInfo = {
   // HTTP integrations
   'http-express': {
     category: 'http',
-    title: 'ai.matey.http/express',
+    title: '@johnhenry/aimatey-http/express',
     framework: 'Express',
     description: 'HTTP integration for Express.js',
     exports: ['createExpressHandler', 'createExpressMiddleware'],
   },
   'http-fastify': {
     category: 'http',
-    title: 'ai.matey.http/fastify',
+    title: '@johnhenry/aimatey-http/fastify',
     framework: 'Fastify',
     description: 'HTTP integration for Fastify',
     exports: ['createFastifyHandler', 'createFastifyPlugin'],
   },
   'http-hono': {
     category: 'http',
-    title: 'ai.matey.http/hono',
+    title: '@johnhenry/aimatey-http/hono',
     framework: 'Hono',
     description: 'HTTP integration for Hono',
     exports: ['createHonoHandler', 'createHonoMiddleware'],
   },
   'http-koa': {
     category: 'http',
-    title: 'ai.matey.http/koa',
+    title: '@johnhenry/aimatey-http/koa',
     framework: 'Koa',
     description: 'HTTP integration for Koa',
     exports: ['createKoaHandler', 'createKoaMiddleware'],
   },
   'http-node': {
     category: 'http',
-    title: 'ai.matey.http/node',
+    title: '@johnhenry/aimatey-http/node',
     framework: 'Node.js',
     description: 'HTTP integration for Node.js http module',
     exports: ['NodeHTTPListener', 'createNodeHandler'],
   },
   'http-deno': {
     category: 'http',
-    title: 'ai.matey.http/deno',
+    title: '@johnhenry/aimatey-http/deno',
     framework: 'Deno',
     description: 'HTTP integration for Deno',
     exports: ['createDenoHandler'],
   },
   'http-core': {
     category: 'http',
-    title: 'ai.matey.http.core',
+    title: '@johnhenry/aimatey-http-core',
     framework: 'Core',
     description: 'Core HTTP utilities shared across integrations',
     exports: ['createCorsMiddleware', 'validateApiKey', 'parseRequestBody'],
@@ -391,70 +391,70 @@ const packageInfo = {
   // Middleware
   'middleware-logging': {
     category: 'middleware',
-    title: 'ai.matey.middleware',
+    title: '@johnhenry/aimatey-middleware',
     description: 'Logging middleware for request/response logging',
     exports: ['createLoggingMiddleware'],
     config: ['level', 'logRequests', 'logResponses', 'logErrors', 'redactFields'],
   },
   'middleware-caching': {
     category: 'middleware',
-    title: 'ai.matey.middleware',
+    title: '@johnhenry/aimatey-middleware',
     description: 'Caching middleware for response caching',
     exports: ['createCachingMiddleware', 'InMemoryCacheStorage'],
     config: ['maxSize', 'ttlMs', 'keyGenerator'],
   },
   'middleware-retry': {
     category: 'middleware',
-    title: 'ai.matey.middleware',
+    title: '@johnhenry/aimatey-middleware',
     description: 'Retry middleware for automatic request retries',
     exports: ['createRetryMiddleware'],
     config: ['maxRetries', 'initialDelayMs', 'maxDelayMs', 'backoffMultiplier', 'retryableErrors'],
   },
   'middleware-transform': {
     category: 'middleware',
-    title: 'ai.matey.middleware',
+    title: '@johnhenry/aimatey-middleware',
     description: 'Transform middleware for request/response modification',
     exports: ['createTransformMiddleware'],
     config: ['transformRequest', 'transformResponse', 'transformMessages'],
   },
   'middleware-validation': {
     category: 'middleware',
-    title: 'ai.matey.middleware',
+    title: '@johnhenry/aimatey-middleware',
     description: 'Validation middleware for request validation',
     exports: ['createValidationMiddleware'],
     config: ['validateRequest', 'validateResponse', 'schema'],
   },
   'middleware-telemetry': {
     category: 'middleware',
-    title: 'ai.matey.middleware',
+    title: '@johnhenry/aimatey-middleware',
     description: 'Telemetry middleware for metrics collection',
     exports: ['createTelemetryMiddleware', 'InMemoryTelemetrySink'],
     config: ['sink', 'collectLatency', 'collectTokens'],
   },
   'middleware-opentelemetry': {
     category: 'middleware',
-    title: 'ai.matey.middleware',
+    title: '@johnhenry/aimatey-middleware',
     description: 'OpenTelemetry middleware for distributed tracing',
     exports: ['createOpenTelemetryMiddleware'],
     config: ['tracer', 'spanName'],
   },
   'middleware-cost-tracking': {
     category: 'middleware',
-    title: 'ai.matey.middleware',
+    title: '@johnhenry/aimatey-middleware',
     description: 'Cost tracking middleware for usage monitoring',
     exports: ['createCostTrackingMiddleware'],
     config: ['costPerToken', 'onCost'],
   },
   'middleware-security': {
     category: 'middleware',
-    title: 'ai.matey.middleware',
+    title: '@johnhenry/aimatey-middleware',
     description: 'Security middleware for rate limiting and access control',
     exports: ['createSecurityMiddleware'],
     config: ['rateLimit', 'allowedModels', 'blockedPatterns'],
   },
   'middleware-conversation-history': {
     category: 'middleware',
-    title: 'ai.matey.middleware',
+    title: '@johnhenry/aimatey-middleware',
     description: 'Conversation history middleware for maintaining context',
     exports: ['createConversationHistoryMiddleware'],
     config: ['maxMessages', 'storage'],
@@ -463,25 +463,25 @@ const packageInfo = {
   // Wrappers
   'wrapper-openai-sdk': {
     category: 'wrapper',
-    title: 'ai.matey.wrapper/openai',
+    title: '@johnhenry/aimatey-wrapper/openai',
     description: 'OpenAI SDK-compatible wrapper for any backend',
     exports: ['OpenAI', 'OpenAIClient', 'ChatCompletions'],
   },
   'wrapper-anthropic-sdk': {
     category: 'wrapper',
-    title: 'ai.matey.wrapper/anthropic',
+    title: '@johnhenry/aimatey-wrapper/anthropic',
     description: 'Anthropic SDK-compatible wrapper for any backend',
     exports: ['Anthropic', 'AnthropicClient', 'Messages'],
   },
   'wrapper-chrome-ai': {
     category: 'wrapper',
-    title: 'ai.matey.wrapper/chrome-ai',
+    title: '@johnhenry/aimatey-wrapper/chrome-ai',
     description: 'Chrome AI API wrapper for any backend',
     exports: ['ChromeAILanguageModel'],
   },
   'wrapper-chrome-ai-legacy': {
     category: 'wrapper',
-    title: 'ai.matey.wrapper/chrome-ai-legacy',
+    title: '@johnhenry/aimatey-wrapper/chrome-ai-legacy',
     description: 'Legacy Chrome AI API wrapper',
     exports: ['ChromeAILegacyWrapper'],
   },
@@ -495,25 +495,25 @@ const packageInfo = {
   // React
   'react-core': {
     category: 'react',
-    title: 'ai.matey.react.core',
+    title: '@johnhenry/aimatey-react-core',
     description: 'Core React hooks for AI chat interactions',
     exports: ['useChat', 'useCompletion', 'useObject'],
   },
   'react-hooks': {
     category: 'react',
-    title: 'ai.matey.react.hooks',
+    title: '@johnhenry/aimatey-react-hooks',
     description: 'Additional React hooks for AI features',
     exports: ['useAssistant', 'useStream', 'useTokenCount'],
   },
   'react-stream': {
     category: 'react',
-    title: 'ai.matey.react.stream',
+    title: '@johnhenry/aimatey-react-stream',
     description: 'React components for streaming AI responses',
     exports: ['StreamProvider', 'StreamText', 'TypeWriter'],
   },
   'react-nextjs': {
     category: 'react',
-    title: 'ai.matey.react.nextjs',
+    title: '@johnhenry/aimatey-react-nextjs',
     description: 'Next.js App Router integration',
     exports: ['createStreamingResponse', 'AIProvider'],
   },
@@ -521,19 +521,19 @@ const packageInfo = {
   // Native
   'native-node-llamacpp': {
     category: 'native',
-    title: 'ai.matey.native.node-llamacpp',
+    title: '@johnhenry/aimatey-native-node-llamacpp',
     description: 'Native llama.cpp integration via node-llama-cpp',
     exports: ['NodeLlamaCppBackend'],
   },
   'native-apple': {
     category: 'native',
-    title: 'ai.matey.native.apple',
+    title: '@johnhenry/aimatey-native-apple',
     description: 'Native Apple Intelligence integration (macOS 15+)',
     exports: ['AppleBackend'],
   },
   'native-model-runner': {
     category: 'native',
-    title: 'ai.matey.native.model-runner',
+    title: '@johnhenry/aimatey-native-model-runner',
     description: 'Generic model runner for local models',
     exports: ['ModelRunner', 'createModelRunner'],
   },
@@ -567,8 +567,8 @@ npm install ${npmName}
 
 \`\`\`typescript
 import { ${mainExport} } from '${npmName}';
-import { Bridge } from 'ai.matey.core';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
+import { Bridge } from '@johnhenry/aimatey-core';
+import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend/openai';
 
 // Create the backend adapter
 const backend = new ${mainExport}({
@@ -660,7 +660,7 @@ This adapter supports streaming responses. Use \`executeStream()\` for real-time
 ## Error Handling
 
 \`\`\`typescript
-import { AuthenticationError, RateLimitError } from 'ai.matey.errors';
+import { AuthenticationError, RateLimitError } from '@johnhenry/aimatey-errors';
 
 try {
   const response = await backend.execute(request);
@@ -700,8 +700,8 @@ npm install ${npmName}
 
 \`\`\`typescript
 import { ${mainExport} } from '${npmName}';
-import { Bridge } from 'ai.matey.core';
-import { OpenAIBackendAdapter } from 'ai.matey.backend/openai';
+import { Bridge } from '@johnhenry/aimatey-core';
+import { OpenAIBackendAdapter } from '@johnhenry/aimatey-backend/openai';
 
 // Create a bridge that accepts ${mainExport.replace('FrontendAdapter', '')} format requests
 const bridge = new Bridge(
@@ -741,9 +741,9 @@ Convert an IR stream chunk to the provider-specific format.
 ### Accept OpenAI Format, Use Any Backend
 
 \`\`\`typescript
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
-import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
-import { Bridge } from 'ai.matey.core';
+import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend/openai';
+import { AnthropicBackendAdapter } from '@johnhenry/aimatey-backend/anthropic';
+import { Bridge } from '@johnhenry/aimatey-core';
 
 const bridge = new Bridge(
   new OpenAIFrontendAdapter(),
@@ -785,9 +785,9 @@ npm install ${npmName}
 
 \`\`\`typescript
 import { ${mainExport} } from '${npmName}';
-import { Bridge } from 'ai.matey.core';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
-import { OpenAIBackendAdapter } from 'ai.matey.backend/openai';
+import { Bridge } from '@johnhenry/aimatey-core';
+import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend/openai';
+import { OpenAIBackendAdapter } from '@johnhenry/aimatey-backend/openai';
 
 const bridge = new Bridge(
   new OpenAIFrontendAdapter(),
@@ -860,9 +860,9 @@ npm install ${npmName}
 
 \`\`\`typescript
 import { ${mainExport} } from '${npmName}';
-import { Bridge } from 'ai.matey.core';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
-import { OpenAIBackendAdapter } from 'ai.matey.backend/openai';
+import { Bridge } from '@johnhenry/aimatey-core';
+import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend/openai';
+import { OpenAIBackendAdapter } from '@johnhenry/aimatey-backend/openai';
 
 const bridge = new Bridge(
   new OpenAIFrontendAdapter(),
@@ -926,7 +926,7 @@ npm install ${npmName}
 
 \`\`\`typescript
 import { ${mainExport} } from '${npmName}';
-import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
+import { AnthropicBackendAdapter } from '@johnhenry/aimatey-backend/anthropic';
 
 // Create an SDK-compatible client backed by any adapter
 const client = ${mainExport}(
@@ -967,7 +967,7 @@ const client = new OpenAI({ apiKey: '...' });
 
 // After
 import { ${mainExport} } from '${npmName}';
-import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
+import { AnthropicBackendAdapter } from '@johnhenry/aimatey-backend/anthropic';
 const client = ${mainExport}(new AnthropicBackendAdapter({ apiKey: '...' }));
 
 // Same API, different backend!

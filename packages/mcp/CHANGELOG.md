@@ -1,4 +1,6 @@
-# ai.matey.mcp
+# @johnhenry/aimatey-mcp
+
+> Previously published as `ai.matey.mcp`, last unscoped version `0.1.0`.
 
 ## 0.1.0
 

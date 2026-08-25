@@ -4,16 +4,16 @@ import {
   OpenAIClient,
   OpenAIChat as Chat,
   ChatCompletions,
-} from 'ai.matey.wrapper';
+} from '@johnhenry/aimatey-wrapper';
 import {
   Anthropic,
   AnthropicClient,
   Messages,
-} from 'ai.matey.wrapper';
-import { MockBackendAdapter } from 'ai.matey.backend.browser';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend';
-import { AnthropicFrontendAdapter } from 'ai.matey.frontend';
-import { Bridge } from 'ai.matey.core';
+} from '@johnhenry/aimatey-wrapper';
+import { MockBackendAdapter } from '@johnhenry/aimatey-backend-browser';
+import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend';
+import { AnthropicFrontendAdapter } from '@johnhenry/aimatey-frontend';
+import { Bridge } from '@johnhenry/aimatey-core';
 
 describe('SDK Wrappers', () => {
   describe('OpenAI SDK Wrapper', () => {

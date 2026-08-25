@@ -23,23 +23,23 @@ function dependenciesOf(packageDir: string): Record<string, string> {
 
 describe('package layering', () => {
   it('ai.matey.frontend does not depend on ai.matey.backend', () => {
-    expect(dependenciesOf('frontend')).not.toHaveProperty('ai.matey.backend');
+    expect(dependenciesOf('frontend')).not.toHaveProperty('@johnhenry/aimatey-backend');
   });
 
   it('ai.matey.utils does not depend on core, frontend, or backend', () => {
     const deps = dependenciesOf('ai.matey.utils');
-    expect(deps).not.toHaveProperty('ai.matey.core');
-    expect(deps).not.toHaveProperty('ai.matey.frontend');
-    expect(deps).not.toHaveProperty('ai.matey.backend');
+    expect(deps).not.toHaveProperty('@johnhenry/aimatey-core');
+    expect(deps).not.toHaveProperty('@johnhenry/aimatey-frontend');
+    expect(deps).not.toHaveProperty('@johnhenry/aimatey-backend');
   });
 
   it('ai.matey.types has no internal runtime dependencies', () => {
     const deps = dependenciesOf('ai.matey.types');
-    expect(Object.keys(deps).filter((d) => d.startsWith('ai.matey'))).toEqual([]);
+    expect(Object.keys(deps).filter((d) => d.startsWith('@johnhenry/aimatey'))).toEqual([]);
   });
 
   it('ai.matey.mcp depends only on ai.matey.types (no core, no MCP SDK)', () => {
     const deps = dependenciesOf('mcp');
-    expect(Object.keys(deps)).toEqual(['ai.matey.types']);
+    expect(Object.keys(deps)).toEqual(['@johnhenry/aimatey-types']);
   });
 });

@@ -27,25 +27,25 @@ const colors = {
 
 // Known valid import paths from package.json exports
 const VALID_IMPORTS = [
-  'ai.matey',
-  'ai.matey/types',
-  'ai.matey/errors',
-  'ai.matey/utils',
-  'ai.matey/http',
-  'ai.matey/http/node',
-  'ai.matey/http/express',
-  'ai.matey/http/fastify',
-  'ai.matey/http/hono',
-  'ai.matey/http/koa',
-  'ai.matey/http/deno',
-  'ai.matey/middleware',
-  'ai.matey/adapters/frontend',
-  'ai.matey/adapters/backend',
-  'ai.matey/adapters/backend-native',
-  'ai.matey/adapters/backend-native/model-runners',
-  'ai.matey/wrappers',
-  'ai.matey/cli',
-  'ai.matey/cli/ollama',
+  '@johnhenry/aimatey',
+  '@johnhenry/aimatey/types',
+  '@johnhenry/aimatey/errors',
+  '@johnhenry/aimatey/utils',
+  '@johnhenry/aimatey/http',
+  '@johnhenry/aimatey/http/node',
+  '@johnhenry/aimatey/http/express',
+  '@johnhenry/aimatey/http/fastify',
+  '@johnhenry/aimatey/http/hono',
+  '@johnhenry/aimatey/http/koa',
+  '@johnhenry/aimatey/http/deno',
+  '@johnhenry/aimatey/middleware',
+  '@johnhenry/aimatey/adapters/frontend',
+  '@johnhenry/aimatey/adapters/backend',
+  '@johnhenry/aimatey/adapters/backend-native',
+  '@johnhenry/aimatey/adapters/backend-native/model-runners',
+  '@johnhenry/aimatey/wrappers',
+  '@johnhenry/aimatey/cli',
+  '@johnhenry/aimatey/cli/ollama',
 ];
 
 async function findExampleFiles(dir, files = []) {
@@ -79,7 +79,7 @@ async function validateFile(filePath) {
     const importPath = match[1];
 
     // Check if it's an ai.matey import
-    if (importPath.startsWith('ai.matey')) {
+    if (importPath.startsWith('@johnhenry/aimatey')) {
       // Check if it's valid
       const isValid = VALID_IMPORTS.some(valid => importPath === valid || importPath.startsWith(valid + '/'));
 
@@ -97,10 +97,10 @@ async function validateFile(filePath) {
   const lines = content.split('\n');
   lines.forEach((line, idx) => {
     // Check for common typos
-    if (line.includes('ai.matey/wrappers/openai-sdk') || line.includes('ai.matey/wrappers/anthropic-sdk')) {
+    if (line.includes('@johnhenry/aimatey/wrappers/openai-sdk') || line.includes('@johnhenry/aimatey/wrappers/anthropic-sdk')) {
       errors.push({
         type: 'DEPRECATED_IMPORT',
-        message: `Use 'ai.matey/wrappers' instead of subpath`,
+        message: `Use '@johnhenry/aimatey/wrappers' instead of subpath`,
         line: idx + 1
       });
     }

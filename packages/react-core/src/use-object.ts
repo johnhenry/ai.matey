@@ -17,7 +17,7 @@ import type { UseObjectOptions, UseObjectReturn } from './types.js';
  *
  * @example
  * ```tsx
- * import { useObject } from 'ai.matey.react.core';
+ * import { useObject } from '@johnhenry/aimatey-react-core';
  *
  * interface Recipe {
  *   name: string;

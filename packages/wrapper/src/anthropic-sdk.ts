@@ -15,13 +15,13 @@ import type {
   AIModel,
   ListModelsOptions,
   ListModelsResult,
-} from 'ai.matey.types';
+} from '@johnhenry/aimatey-types';
 import {
   AnthropicFrontendAdapter,
   type AnthropicRequest,
   type AnthropicStreamEvent,
   type AnthropicContentBlock,
-} from 'ai.matey.frontend';
+} from '@johnhenry/aimatey-frontend';
 
 // ============================================================================
 // Re-export types from frontend adapter
@@ -33,7 +33,7 @@ export type {
   AnthropicStreamEvent,
   AnthropicMessage,
   AnthropicContentBlock,
-} from 'ai.matey.frontend';
+} from '@johnhenry/aimatey-frontend';
 
 // ============================================================================
 // SDK-style Types (compatibility aliases)
@@ -330,8 +330,8 @@ export class AnthropicClient {
  *
  * @example
  * ```typescript
- * import { Anthropic } from 'ai.matey.wrapper/anthropic';
- * import { OpenAIBackendAdapter } from 'ai.matey.backend/openai';
+ * import { Anthropic } from '@johnhenry/aimatey-wrapper/anthropic';
+ * import { OpenAIBackendAdapter } from '@johnhenry/aimatey-backend/openai';
  *
  * const backend = new OpenAIBackendAdapter({ apiKey: 'sk-...' });
  *

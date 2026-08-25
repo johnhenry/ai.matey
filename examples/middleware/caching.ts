@@ -4,10 +4,10 @@
  * Shows how to cache responses to reduce API calls and costs.
  */
 
-import { Bridge } from 'ai.matey.core';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend';
-import { AnthropicBackendAdapter } from 'ai.matey.backend';
-import { createCachingMiddleware, InMemoryCacheStorage } from 'ai.matey.middleware';
+import { Bridge } from '@johnhenry/aimatey-core';
+import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend';
+import { AnthropicBackendAdapter } from '@johnhenry/aimatey-backend';
+import { createCachingMiddleware, InMemoryCacheStorage } from '@johnhenry/aimatey-middleware';
 
 async function main() {
   const bridge = new Bridge(

@@ -15,7 +15,7 @@ import type {
   IRStreamChunk,
   IRParameters,
   IRTool,
-} from 'ai.matey.types';
+} from '@johnhenry/aimatey-types';
 
 /**
  * Backend adapter interface for direct mode.

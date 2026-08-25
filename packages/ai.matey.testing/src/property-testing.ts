@@ -2,7 +2,12 @@
  * Property-based testing utilities - generate random valid inputs
  */
 
-import type { IRChatRequest, IRMessage, MessageContent, IRParameters } from 'ai.matey.types';
+import type {
+  IRChatRequest,
+  IRMessage,
+  MessageContent,
+  IRParameters,
+} from '@johnhenry/aimatey-types';
 
 /**
  * Random seed generator for deterministic randomness

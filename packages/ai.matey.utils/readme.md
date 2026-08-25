@@ -1,4 +1,6 @@
-# ai.matey.utils
+# @johnhenry/aimatey-utils
+
+> **Note:** Previously published as `ai.matey.utils@0.5.0`.
 
 Shared utility functions for streaming, validation, and conversions.
 
@@ -7,7 +9,7 @@ Part of the [ai.matey](https://github.com/johnhenry/ai.matey) monorepo.
 ## Installation
 
 ```bash
-npm install ai.matey.utils
+npm install @johnhenry/aimatey-utils
 ```
 
 ## Stream Utilities
@@ -22,7 +24,7 @@ import {
   collectStreamFull,    // Collect with rich metadata
   streamToText,         // Get accumulated text
   streamToResponse,     // Convert to IR response
-} from 'ai.matey.utils';
+} from '@johnhenry/aimatey-utils';
 
 // Collect all chunks
 const chunks = await collectStream(stream);
@@ -41,7 +43,7 @@ const text = await streamToText(stream);
 ### Processing Streams
 
 ```typescript
-import { processStream, streamToLines, streamToTextIterator } from 'ai.matey.utils';
+import { processStream, streamToLines, streamToTextIterator } from '@johnhenry/aimatey-utils';
 
 // Process with callbacks
 const result = await processStream(stream, {
@@ -70,7 +72,7 @@ import {
   filterStream,
   mapStream,
   tapStream,
-} from 'ai.matey.utils';
+} from '@johnhenry/aimatey-utils';
 
 // Transform chunks
 const transformed = transformStream(stream, (chunk) => ({
@@ -98,7 +100,7 @@ import {
   rateLimitStream,
   teeStream,
   splitStream,
-} from 'ai.matey.utils';
+} from '@johnhenry/aimatey-utils';
 
 // Throttle updates (batches content chunks)
 // Great for limiting UI update frequency
@@ -121,7 +123,7 @@ await Promise.all([
 ### Stream Validation
 
 ```typescript
-import { validateStream, validateChunkSequence } from 'ai.matey.utils';
+import { validateStream, validateChunkSequence } from '@johnhenry/aimatey-utils';
 
 // Validate stream structure
 const validated = validateStream(stream, {
@@ -138,7 +140,7 @@ const isValid = validateChunkSequence(chunks);
 ### Error Handling
 
 ```typescript
-import { catchStreamErrors, streamWithTimeout, createStreamError } from 'ai.matey.utils';
+import { catchStreamErrors, streamWithTimeout, createStreamError } from '@johnhenry/aimatey-utils';
 
 // Catch and handle errors
 const safe = catchStreamErrors(stream, (error) => {
@@ -162,7 +164,7 @@ import {
   accumulateChunk,
   accumulatorToMessage,
   accumulatorToResponse,
-} from 'ai.matey.utils';
+} from '@johnhenry/aimatey-utils';
 
 const accumulator = createStreamAccumulator();
 
@@ -178,7 +180,7 @@ const response = accumulatorToResponse(accumulator);
 ## Content Utilities
 
 ```typescript
-import { getContentDeltas, isContentChunk, isDoneChunk, isErrorChunk } from 'ai.matey.utils';
+import { getContentDeltas, isContentChunk, isDoneChunk, isErrorChunk } from '@johnhenry/aimatey-utils';
 
 // Get just the text deltas
 for await (const delta of getContentDeltas(stream)) {
@@ -203,7 +205,7 @@ for await (const chunk of stream) {
 import {
   asyncGeneratorToReadableStream,
   readableStreamToAsyncGenerator,
-} from 'ai.matey.utils';
+} from '@johnhenry/aimatey-utils';
 
 // Convert async generator to Web ReadableStream
 const readable = asyncGeneratorToReadableStream(stream);
@@ -219,7 +221,7 @@ quality/latency heuristics), seeded from a built-in `MODEL_REGISTRY_SEED` and ex
 runtime so consumers aren't blocked by stale built-in data:
 
 ```typescript
-import { registerModels, getModelEntry, getModelPricingInfo } from 'ai.matey.utils';
+import { registerModels, getModelEntry, getModelPricingInfo } from '@johnhenry/aimatey-utils';
 
 registerModels([
   { id: 'gpt-6-preview', provider: 'openai', family: 'gpt-6', pricing: { inputPer1M: 2.0, outputPer1M: 16.0 } },
@@ -237,7 +239,7 @@ an unrecognized dated snapshot still resolves to its family entry instead of ret
 `schemaToToolDefinition`, `validateWithSchema`, and PII/prompt-injection detection helpers
 (`DEFAULT_PII_PATTERNS`, `DEFAULT_INJECTION_PATTERNS`) for building and validating tool schemas.
 Note: this is separate from `IRResponseFormat`/`responseFormat` (schema-constrained *model
-output*, defined in `ai.matey.types` and mapped per-backend in `ai.matey.backend` - see
+output*, defined in `@johnhenry/aimatey-types` and mapped per-backend in `@johnhenry/aimatey-backend` - see
 [`docs/IR-FORMAT.md`](../../docs/IR-FORMAT.md#structured-output)); these utilities are about
 tool/function schemas and input validation instead.
 
@@ -248,7 +250,7 @@ import type {
   CollectedStream,      // Rich result from collectStreamFull
   ProcessStreamOptions, // Options for processStream
   StreamValidationOptions,
-} from 'ai.matey.utils';
+} from '@johnhenry/aimatey-utils';
 ```
 
 ## API Reference

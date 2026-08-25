@@ -6,8 +6,8 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { AnthropicBackendAdapter, supportsSamplingParams } from 'ai.matey.backend';
-import type { IRChatRequest } from 'ai.matey.types';
+import { AnthropicBackendAdapter, supportsSamplingParams } from '@johnhenry/aimatey-backend';
+import type { IRChatRequest } from '@johnhenry/aimatey-types';
 
 function makeRequest(overrides: Partial<IRChatRequest> = {}): IRChatRequest {
   return {

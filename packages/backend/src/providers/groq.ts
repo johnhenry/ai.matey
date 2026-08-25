@@ -8,7 +8,7 @@
  */
 
 import { OpenAIBackendAdapter, type OpenAIRequest, type OpenAIResponse } from './openai.js';
-import type { BackendAdapter, BackendAdapterConfig, IRChatRequest } from 'ai.matey.types';
+import type { BackendAdapter, BackendAdapterConfig, IRChatRequest } from '@johnhenry/aimatey-types';
 
 /**
  * Backend adapter for Groq API.
@@ -18,7 +18,7 @@ import type { BackendAdapter, BackendAdapterConfig, IRChatRequest } from 'ai.mat
  *
  * @example Basic Usage
  * ```typescript
- * import { GroqBackendAdapter } from 'ai.matey';
+ * import { GroqBackendAdapter } from '@johnhenry/aimatey';
  *
  * const adapter = new GroqBackendAdapter({
  *   apiKey: process.env.GROQ_API_KEY,
@@ -139,7 +139,7 @@ export class GroqBackendAdapter
  *
  * @example
  * ```typescript
- * import { createGroqAdapter } from 'ai.matey';
+ * import { createGroqAdapter } from '@johnhenry/aimatey';
  *
  * const adapter = createGroqAdapter({
  *   apiKey: process.env.GROQ_API_KEY,

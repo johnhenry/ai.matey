@@ -6,10 +6,10 @@
  * (requires OPENAI_API_KEY and ANTHROPIC_API_KEY)
  */
 
-import { createComplexityRouter, createBatchProcessor } from 'ai.matey.patterns';
-import { Bridge } from 'ai.matey.core';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend';
-import { OpenAIBackendAdapter, AnthropicBackendAdapter } from 'ai.matey.backend';
+import { createComplexityRouter, createBatchProcessor } from '@johnhenry/aimatey-patterns';
+import { Bridge } from '@johnhenry/aimatey-core';
+import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend';
+import { OpenAIBackendAdapter, AnthropicBackendAdapter } from '@johnhenry/aimatey-backend';
 
 const router = createComplexityRouter({
   tiers: [

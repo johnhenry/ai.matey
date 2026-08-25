@@ -9,10 +9,19 @@
 
 import { spawn, type ChildProcess } from 'node:child_process';
 import { EventEmitter } from 'node:events';
-import type { BackendAdapter, AdapterMetadata } from 'ai.matey.types';
-import type { IRChatRequest, IRChatResponse, IRChatStream, IRStreamChunk } from 'ai.matey.types';
-import type { ModelRunnerBackendConfig, ModelRunnerStats, PromptTemplate } from 'ai.matey.types';
-import { ErrorCode, ProviderError } from 'ai.matey.errors';
+import type { BackendAdapter, AdapterMetadata } from '@johnhenry/aimatey-types';
+import type {
+  IRChatRequest,
+  IRChatResponse,
+  IRChatStream,
+  IRStreamChunk,
+} from '@johnhenry/aimatey-types';
+import type {
+  ModelRunnerBackendConfig,
+  ModelRunnerStats,
+  PromptTemplate,
+} from '@johnhenry/aimatey-types';
+import { ErrorCode, ProviderError } from '@johnhenry/aimatey-errors';
 
 // ============================================================================
 // Base Class

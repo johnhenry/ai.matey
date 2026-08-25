@@ -6,8 +6,8 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { Bridge } from 'ai.matey.core';
-import { BridgeEventType } from 'ai.matey.types';
+import { Bridge } from '@johnhenry/aimatey-core';
+import { BridgeEventType } from '@johnhenry/aimatey-types';
 import type {
   FrontendAdapter,
   BackendAdapter,
@@ -15,7 +15,7 @@ import type {
   IRChatRequest,
   IRChatResponse,
   BridgeEventData,
-} from 'ai.matey.types';
+} from '@johnhenry/aimatey-types';
 
 // ============================================================================
 // Test Helpers

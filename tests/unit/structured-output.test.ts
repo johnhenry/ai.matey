@@ -6,7 +6,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { z } from 'zod';
-import type { IRChatRequest, IRChatResponse } from 'ai.matey.types';
+import type { IRChatRequest, IRChatResponse } from '@johnhenry/aimatey-types';
 import {
   schemaToToolDefinition,
   validateWithSchema,
@@ -16,7 +16,7 @@ import {
   sanitizeText,
   DEFAULT_PII_PATTERNS,
   DEFAULT_INJECTION_PATTERNS,
-} from 'ai.matey.utils';
+} from '@johnhenry/aimatey-utils';
 
 // Types we'll need to implement for generateObject/streamObject
 interface GenerateObjectOptions<T extends z.ZodType> {

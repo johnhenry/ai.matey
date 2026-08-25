@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { OpenAIBackendAdapter } from 'ai.matey.backend';
+import { OpenAIBackendAdapter } from '@johnhenry/aimatey-backend';
 
 // ============================================================================
 // invalidateModelCache Tests

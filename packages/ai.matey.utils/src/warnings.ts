@@ -6,7 +6,7 @@
  * @module
  */
 
-import type { IRWarning, WarningSeverity, WarningCategory } from 'ai.matey.types';
+import type { IRWarning, WarningSeverity, WarningCategory } from '@johnhenry/aimatey-types';
 
 // ============================================================================
 // Warning Creation

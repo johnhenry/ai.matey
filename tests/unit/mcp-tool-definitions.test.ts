@@ -4,8 +4,8 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { mcpToolsToDefinitions } from 'ai.matey.mcp';
-import type { McpCallToolResult, McpClientLike, McpToolSchema } from 'ai.matey.mcp';
+import { mcpToolsToDefinitions } from '@johnhenry/aimatey-mcp';
+import type { McpCallToolResult, McpClientLike, McpToolSchema } from '@johnhenry/aimatey-mcp';
 
 const WEATHER_TOOL: McpToolSchema = {
   name: 'get_weather',

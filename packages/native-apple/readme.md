@@ -1,4 +1,6 @@
-# ai.matey.native.apple
+# @johnhenry/aimatey-native-apple
+
+> **Note:** Previously published as `ai.matey.native.apple@0.2.1`.
 
 Run AI Matey against Apple's on-device Foundation Models (Apple Intelligence) — no API key, no
 network, no cost. Part of the [ai.matey](https://github.com/johnhenry/ai.matey) monorepo.
@@ -13,15 +15,15 @@ network, no cost. Part of the [ai.matey](https://github.com/johnhenry/ai.matey) 
 ## Installation
 
 ```bash
-npm install ai.matey.native.apple apple-foundation-models
+npm install @johnhenry/aimatey-native-apple apple-foundation-models
 ```
 
 ## Quick Start
 
 ```typescript
-import { Bridge } from 'ai.matey.core';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend';
-import { AppleBackend } from 'ai.matey.native.apple';
+import { Bridge } from '@johnhenry/aimatey-core';
+import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend';
+import { AppleBackend } from '@johnhenry/aimatey-native-apple';
 
 const backend = new AppleBackend({
   maximumResponseTokens: 2048,

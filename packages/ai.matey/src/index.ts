@@ -7,13 +7,13 @@
  * @example
  * ```typescript
  * // Import from specific packages (recommended)
- * import { Bridge, Router } from 'ai.matey.core';
- * import { OpenAIBackendAdapter } from 'ai.matey.backend';
- * import { AnthropicBackendAdapter } from 'ai.matey.backend';
- * import type { IRChatRequest } from 'ai.matey.types';
+ * import { Bridge, Router } from '@johnhenry/aimatey-core';
+ * import { OpenAIBackendAdapter } from '@johnhenry/aimatey-backend';
+ * import { AnthropicBackendAdapter } from '@johnhenry/aimatey-backend';
+ * import type { IRChatRequest } from '@johnhenry/aimatey-types';
  *
  * // Or import specific providers with subpath exports
- * import { OpenAIBackendAdapter } from 'ai.matey.backend/openai';
+ * import { OpenAIBackendAdapter } from '@johnhenry/aimatey-backend/openai';
  * ```
  *
  * @module

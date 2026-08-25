@@ -6,9 +6,14 @@
  * @module
  */
 
-import type { FrontendAdapter, AdapterMetadata } from 'ai.matey.types';
-import type { IRChatRequest, IRChatResponse, IRStreamChunk, IRMessage } from 'ai.matey.types';
-import type { StreamConversionOptions } from 'ai.matey.types';
+import type { FrontendAdapter, AdapterMetadata } from '@johnhenry/aimatey-types';
+import type {
+  IRChatRequest,
+  IRChatResponse,
+  IRStreamChunk,
+  IRMessage,
+} from '@johnhenry/aimatey-types';
+import type { StreamConversionOptions } from '@johnhenry/aimatey-types';
 
 // Mistral API Types (defined locally to avoid cross-package type warnings)
 /**

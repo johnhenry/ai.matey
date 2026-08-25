@@ -1,6 +1,6 @@
 {
-  "name": "ai.matey.http",
-  "version": "0.3.1",
+  "name": "@johnhenry/aimatey-http",
+  "version": "0.0.0",
   "description": "HTTP framework adapters for AI Matey - Universal AI Adapter System",
   "type": "module",
   "main": "./dist/cjs/index.js",
@@ -107,9 +107,9 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "ai.matey.types": "*",
-    "ai.matey.core": "*",
-    "ai.matey.http.core": "*"
+    "@johnhenry/aimatey-types": "^0.0.0",
+    "@johnhenry/aimatey-core": "^0.0.0",
+    "@johnhenry/aimatey-http-core": "^0.0.0"
   },
   "peerDependencies": {
     "express": "^4.0.0 || ^5.0.0",
@@ -132,7 +132,7 @@
     }
   },
   "devDependencies": {
-    "ai.matey.testing": "*",
+    "@johnhenry/aimatey-testing": "^0.0.0",
     "@types/express": "^5.0.3",
     "@types/koa": "^3.0.0",
     "@types/node": "^24.7.2",

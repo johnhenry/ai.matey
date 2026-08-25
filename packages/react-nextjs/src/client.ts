@@ -6,13 +6,16 @@
  * @module
  */
 
-import { useChat as useChatCore, useCompletion as useCompletionCore } from 'ai.matey.react.core';
+import {
+  useChat as useChatCore,
+  useCompletion as useCompletionCore,
+} from '@johnhenry/aimatey-react-core';
 import type {
   UseChatOptions,
   UseChatReturn,
   UseCompletionOptions,
   UseCompletionReturn,
-} from 'ai.matey.react.core';
+} from '@johnhenry/aimatey-react-core';
 
 /**
  * Extended options for Next.js useChat.
@@ -44,7 +47,7 @@ export interface UseNextChatOptions extends UseChatOptions {
  * ```tsx
  * 'use client';
  *
- * import { useChat } from 'ai.matey.react.nextjs';
+ * import { useChat } from '@johnhenry/aimatey-react-nextjs';
  *
  * export function ChatComponent() {
  *   const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat({
@@ -107,7 +110,7 @@ export interface UseNextCompletionOptions extends UseCompletionOptions {
  * ```tsx
  * 'use client';
  *
- * import { useCompletion } from 'ai.matey.react.nextjs';
+ * import { useCompletion } from '@johnhenry/aimatey-react-nextjs';
  *
  * export function CompletionComponent() {
  *   const {
@@ -192,7 +195,7 @@ export interface GenerateMetadataOptions {
  * @example
  * ```typescript
  * // app/blog/[slug]/page.tsx
- * import { generateMetadata } from 'ai.matey.react.nextjs';
+ * import { generateMetadata } from '@johnhenry/aimatey-react-nextjs';
  *
  * export async function generateMetadata({ params }) {
  *   const article = await getAIArticle(params.slug);

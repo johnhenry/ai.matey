@@ -1,4 +1,6 @@
-# ai.matey.backend
+# @johnhenry/aimatey-backend
+
+> Previously published as `ai.matey.backend`, last unscoped version `0.9.0`.
 
 ## 0.9.0
 

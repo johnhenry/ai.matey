@@ -7,9 +7,9 @@
  */
 
 import type { Request, Response, NextFunction } from 'express';
-import type { Bridge } from 'ai.matey.core';
-import type { HTTPListenerOptions } from 'ai.matey.http.core';
-import { CoreHTTPHandler } from 'ai.matey.http.core';
+import type { Bridge } from '@johnhenry/aimatey-core';
+import type { HTTPListenerOptions } from '@johnhenry/aimatey-http-core';
+import { CoreHTTPHandler } from '@johnhenry/aimatey-http-core';
 import { ExpressRequestAdapter, ExpressResponseAdapter } from './adapter.js';
 
 /**
@@ -22,7 +22,7 @@ import { ExpressRequestAdapter, ExpressResponseAdapter } from './adapter.js';
  * @example
  * ```typescript
  * import express from 'express';
- * import { ExpressMiddleware } from 'ai.matey.http/express';
+ * import { ExpressMiddleware } from '@johnhenry/aimatey-http/express';
  *
  * const app = express();
  * const bridge = new Bridge(frontend, backend);

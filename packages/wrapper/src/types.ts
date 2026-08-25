@@ -13,7 +13,7 @@ import type {
   IRUsage,
   IRParameters,
   IRTool,
-} from 'ai.matey.types';
+} from '@johnhenry/aimatey-types';
 
 // ============================================================================
 // Configuration Types
@@ -80,12 +80,12 @@ export interface ChatConfig {
  */
 export interface ChatBackend {
   execute(
-    request: import('ai.matey.types').IRChatRequest,
+    request: import('@johnhenry/aimatey-types').IRChatRequest,
     signal?: AbortSignal
   ): Promise<IRChatResponse>;
 
   executeStream?(
-    request: import('ai.matey.types').IRChatRequest,
+    request: import('@johnhenry/aimatey-types').IRChatRequest,
     signal?: AbortSignal
   ): AsyncGenerator<IRStreamChunk, void, undefined>;
 }

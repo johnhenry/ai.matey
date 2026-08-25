@@ -54,7 +54,7 @@ export interface UseStreamReturn {
  *
  * @example
  * ```tsx
- * import { useStream } from 'ai.matey.react.hooks';
+ * import { useStream } from '@johnhenry/aimatey-react-hooks';
  *
  * function StreamingComponent() {
  *   const { text, isStreaming, startStream, stop } = useStream({

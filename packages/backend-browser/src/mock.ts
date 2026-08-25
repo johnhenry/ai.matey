@@ -7,15 +7,15 @@
  * @module
  */
 
-import type { BackendAdapter, AdapterMetadata } from 'ai.matey.types';
+import type { BackendAdapter, AdapterMetadata } from '@johnhenry/aimatey-types';
 import type {
   IRChatRequest,
   IRChatResponse,
   IRChatStream,
   IRMessage,
   MessageContent,
-} from 'ai.matey.types';
-import type { AIModel, ListModelsOptions, ListModelsResult } from 'ai.matey.types';
+} from '@johnhenry/aimatey-types';
+import type { AIModel, ListModelsOptions, ListModelsResult } from '@johnhenry/aimatey-types';
 
 // ============================================================================
 // Default Mock Models
@@ -176,7 +176,7 @@ export interface MockBackendConfig {
  *
  * @example Basic Usage
  * ```typescript
- * import { MockBackendAdapter } from 'ai.matey';
+ * import { MockBackendAdapter } from '@johnhenry/aimatey';
  *
  * const backend = new MockBackendAdapter({
  *   defaultResponse: 'This is a test response',
@@ -660,7 +660,7 @@ export class MockBackendAdapter implements BackendAdapter {
  *
  * @example
  * ```typescript
- * import { createEchoBackend } from 'ai.matey';
+ * import { createEchoBackend } from '@johnhenry/aimatey';
  *
  * const backend = createEchoBackend();
  * ```
@@ -690,7 +690,7 @@ export function createEchoBackend(): MockBackendAdapter {
  * @param error - Error to throw
  * @example
  * ```typescript
- * import { createErrorBackend } from 'ai.matey';
+ * import { createErrorBackend } from '@johnhenry/aimatey';
  *
  * const backend = createErrorBackend(new Error('API unavailable'));
  * ```
@@ -711,7 +711,7 @@ export function createErrorBackend(error: Error): MockBackendAdapter {
  * @param response - Response to return
  * @example
  * ```typescript
- * import { createDelayedBackend } from 'ai.matey';
+ * import { createDelayedBackend } from '@johnhenry/aimatey';
  *
  * const backend = createDelayedBackend(1000, 'Delayed response');
  * ```

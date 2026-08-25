@@ -12,8 +12,8 @@ import {
   clampParameter,
   sanitizeParameters,
   areParametersValid,
-} from 'ai.matey.utils';
-import type { IRParameters } from 'ai.matey.types';
+} from '@johnhenry/aimatey-utils';
+import type { IRParameters } from '@johnhenry/aimatey-types';
 
 describe('Parameter Normalizer', () => {
   describe('normalizeTemperature', () => {

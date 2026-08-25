@@ -20,8 +20,8 @@ import {
   ReplicateBackendAdapter,
   GroqBackendAdapter,
   DashScopeBackendAdapter,
-} from 'ai.matey.backend';
-import type { IRChatRequest } from 'ai.matey.types';
+} from '@johnhenry/aimatey-backend';
+import type { IRChatRequest } from '@johnhenry/aimatey-types';
 
 function makeRequest(overrides: Partial<IRChatRequest> = {}): IRChatRequest {
   return {

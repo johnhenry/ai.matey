@@ -1,4 +1,6 @@
-# ai.matey.native.node-llamacpp
+# @johnhenry/aimatey-native-node-llamacpp
+
+> Previously published as `ai.matey.native.node-llamacpp`, last unscoped version `0.2.2`.
 
 ## 0.2.2
 

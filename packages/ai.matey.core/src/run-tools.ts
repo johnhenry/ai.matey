@@ -17,14 +17,14 @@ import type {
   RunToolsOptions,
   RunToolsResult,
   RunToolsStep,
-} from 'ai.matey.types';
-import { AdapterError, ErrorCode } from 'ai.matey.errors';
+} from '@johnhenry/aimatey-types';
+import { AdapterError, ErrorCode } from '@johnhenry/aimatey-errors';
 import {
   extractToolCalls,
   createToolResultMessage,
   validateToolArgs,
   type ToolCallResult,
-} from 'ai.matey.utils';
+} from '@johnhenry/aimatey-utils';
 
 /**
  * The subset of Bridge that runTools needs (avoids a circular type import).

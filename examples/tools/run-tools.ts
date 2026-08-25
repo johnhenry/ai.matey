@@ -4,9 +4,9 @@
  * Run: npx tsx examples/tools/run-tools.ts (requires OPENAI_API_KEY)
  */
 
-import { Bridge } from 'ai.matey.core';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend';
-import { OpenAIBackendAdapter } from 'ai.matey.backend';
+import { Bridge } from '@johnhenry/aimatey-core';
+import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend';
+import { OpenAIBackendAdapter } from '@johnhenry/aimatey-backend';
 
 const bridge = new Bridge(
   new OpenAIFrontendAdapter(),

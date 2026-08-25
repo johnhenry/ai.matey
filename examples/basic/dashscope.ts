@@ -9,9 +9,9 @@
  * https://www.alibabacloud.com/help/en/model-studio/get-api-key
  */
 
-import { Bridge } from 'ai.matey.core';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
-import { DashScopeBackendAdapter } from 'ai.matey.backend/dashscope';
+import { Bridge } from '@johnhenry/aimatey-core';
+import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend/openai';
+import { DashScopeBackendAdapter } from '@johnhenry/aimatey-backend/dashscope';
 
 async function main() {
   const bridge = new Bridge(

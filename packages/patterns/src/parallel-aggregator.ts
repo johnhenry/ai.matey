@@ -8,14 +8,14 @@
  * @module
  */
 
-import { Router } from 'ai.matey.core';
+import { Router } from '@johnhenry/aimatey-core';
 import type {
   BackendAdapter,
   AdapterMetadata,
   IRChatRequest,
   IRChatResponse,
   IRChatStream,
-} from 'ai.matey.types';
+} from '@johnhenry/aimatey-types';
 
 /**
  * Aggregation strategy: fastest response, all responses (primary = first),
@@ -66,7 +66,7 @@ export function createParallelAggregator(config: ParallelAggregatorConfig): Back
   const metadata: AdapterMetadata = {
     name: 'parallel-aggregator',
     version: '1.0.0',
-    provider: 'ai.matey.patterns',
+    provider: '@johnhenry/aimatey-patterns',
     capabilities: {
       streaming: false,
       multiModal: true,

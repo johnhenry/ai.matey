@@ -31,9 +31,9 @@ import type {
   IRMessage,
   IRStreamChunk,
   IRWarning,
-} from 'ai.matey.types';
-import { AdapterError, ProviderError, ErrorCode } from 'ai.matey.errors';
-import { createWarning } from 'ai.matey.utils';
+} from '@johnhenry/aimatey-types';
+import { AdapterError, ProviderError, ErrorCode } from '@johnhenry/aimatey-errors';
+import { createWarning } from '@johnhenry/aimatey-utils';
 
 // ============================================================================
 // Structural types for @litert-lm/core (kept local: the peer is optional, so
@@ -145,9 +145,9 @@ export function clearLiteRtLmEngineCache(): void {
  *
  * @example
  * ```typescript
- * import { Bridge } from 'ai.matey.core';
- * import { OpenAIFrontendAdapter } from 'ai.matey.frontend';
- * import { LiteRtLmBackendAdapter } from 'ai.matey.backend.browser';
+ * import { Bridge } from '@johnhenry/aimatey-core';
+ * import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend';
+ * import { LiteRtLmBackendAdapter } from '@johnhenry/aimatey-backend-browser';
  *
  * const backend = new LiteRtLmBackendAdapter({
  *   model:

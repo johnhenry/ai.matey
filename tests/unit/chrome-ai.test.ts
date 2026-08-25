@@ -7,15 +7,15 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { ChromeAIBackendAdapter } from 'ai.matey.backend.browser';
+import { ChromeAIBackendAdapter } from '@johnhenry/aimatey-backend-browser';
 import type {
   LanguageModelAPI,
   LanguageModelAvailability,
   LanguageModelCreateOptions,
   LanguageModelPromptOptions,
   LanguageModelSession,
-} from 'ai.matey.backend.browser';
-import type { IRChatRequest, StreamContentChunk, StreamErrorChunk } from 'ai.matey.types';
+} from '@johnhenry/aimatey-backend-browser';
+import type { IRChatRequest, StreamContentChunk, StreamErrorChunk } from '@johnhenry/aimatey-types';
 
 // ============================================================================
 // Fake LanguageModel

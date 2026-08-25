@@ -6,7 +6,7 @@
  * @module cli/ollama/commands/show
  */
 
-import type { BackendAdapter } from 'ai.matey.types';
+import type { BackendAdapter } from '@johnhenry/aimatey-types';
 import type { ModelMapping } from '../../utils/model-translation.js';
 import { translateModel } from '../../utils/model-translation.js';
 import { isModelRunner } from '../../utils/backend-loader.js';

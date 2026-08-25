@@ -9,7 +9,7 @@ import type {
   IRStreamChunk,
   IRMessage,
   MessageContent,
-} from 'ai.matey.types';
+} from '@johnhenry/aimatey-types';
 
 /**
  * Assert that a response has the correct structure

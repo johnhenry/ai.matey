@@ -546,7 +546,7 @@ import {
   createMockRequest,
   createMockResponse,
   mockStreamChunks
-} from 'ai.matey.testing';
+} from '@johnhenry/aimatey-testing';
 
 // Create mock backend
 const mockBackend = createMockBackend({
@@ -638,7 +638,7 @@ All critical issues have been resolved:
 ```typescript
 // Example unit test
 import { describe, it, expect } from 'vitest';
-import { Bridge } from 'ai.matey.core';
+import { Bridge } from '@johnhenry/aimatey-core';
 
 describe('Bridge', () => {
   it('should execute request successfully', async () => {
@@ -711,7 +711,7 @@ git push
 - [Roadmap](./ROADMAP.md) - Future testing plans
 
 **Repositories**:
-- [ai.matey](https://github.com/johnhenry/ai.matey) - Main monorepo
+- [@johnhenry/aimatey](https://github.com/johnhenry/ai.matey) - Main monorepo
 - [ai.matey.examples](https://github.com/johnhenry/ai.matey.examples) - Integration test applications
 
 **Test Reports**:

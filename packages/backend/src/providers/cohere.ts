@@ -7,8 +7,12 @@
  * @module
  */
 
-import type { BackendAdapter, BackendAdapterConfig, AdapterMetadata } from 'ai.matey.types';
-import type { IREmbedRequest, IREmbedResponse } from 'ai.matey.types';
+import type {
+  BackendAdapter,
+  BackendAdapterConfig,
+  AdapterMetadata,
+} from '@johnhenry/aimatey-types';
+import type { IREmbedRequest, IREmbedResponse } from '@johnhenry/aimatey-types';
 import type {
   IRChatRequest,
   IRChatResponse,
@@ -19,7 +23,7 @@ import type {
   ListModelsOptions,
   ListModelsResult,
   AIModel,
-} from 'ai.matey.types';
+} from '@johnhenry/aimatey-types';
 import {
   AdapterConversionError,
   NetworkError,
@@ -27,9 +31,9 @@ import {
   StreamError,
   ErrorCode,
   createErrorFromHttpResponse,
-} from 'ai.matey.errors';
-import { normalizeSystemMessages, getModelCache } from 'ai.matey.utils';
-import { getEffectiveStreamMode, mergeStreamingConfig } from 'ai.matey.utils';
+} from '@johnhenry/aimatey-errors';
+import { normalizeSystemMessages, getModelCache } from '@johnhenry/aimatey-utils';
+import { getEffectiveStreamMode, mergeStreamingConfig } from '@johnhenry/aimatey-utils';
 import {
   buildStaticResult,
   applyModelFilter,
