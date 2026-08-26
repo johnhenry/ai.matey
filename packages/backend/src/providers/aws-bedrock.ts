@@ -174,7 +174,9 @@ function sigV4UriEncode(value: string): string {
 
 /** URI-encode an absolute path, segment by segment, preserving '/'. */
 function canonicalUri(path: string): string {
-  if (!path) return '/';
+  if (!path) {
+    return '/';
+  }
   return path
     .split('/')
     .map((segment) => sigV4UriEncode(segment))
@@ -636,11 +638,7 @@ export class AWSBedrockBackendAdapter implements BackendAdapter<BedrockRequest, 
    * signature using `awsAccessKeyId` + `awsSecretAccessKey`, rather than a
    * placeholder `Authorization` header.
    */
-  private getHeaders(
-    method: string,
-    path: string,
-    body: string
-  ): Promise<Record<string, string>> {
+  private getHeaders(method: string, path: string, body: string): Promise<Record<string, string>> {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       Accept: 'application/json',

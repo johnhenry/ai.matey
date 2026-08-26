@@ -129,7 +129,7 @@ export class NVIDIABackendAdapter
   /**
    * Estimate cost for NVIDIA NIM.
    */
-  async estimateCost(request: IRChatRequest): Promise<number | null> {
+  estimateCost(request: IRChatRequest): Promise<number | null> {
     // NVIDIA NIM pricing varies by model and deployment
     // For cloud API, estimate based on token usage
     //
@@ -145,11 +145,11 @@ export class NVIDIABackendAdapter
     if (baseURL.includes('integrate.api.nvidia.com')) {
       const inputCost = (estimatedInputTokens / 1_000_000) * 0.2; // Rough estimate
       const outputCost = (estimatedOutputTokens / 1_000_000) * 0.2;
-      return inputCost + outputCost;
+      return Promise.resolve(inputCost + outputCost);
     }
 
     // Self-hosted or custom endpoint
-    return null;
+    return Promise.resolve(null);
   }
 }
 

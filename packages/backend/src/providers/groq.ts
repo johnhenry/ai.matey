@@ -119,7 +119,7 @@ export class GroqBackendAdapter
   /**
    * Estimate cost for Groq (very low cost, optimized for speed).
    */
-  async estimateCost(request: IRChatRequest): Promise<number | null> {
+  estimateCost(request: IRChatRequest): Promise<number | null> {
     // Groq pricing: ~$0.05 per 1M input tokens, ~$0.10 per 1M output tokens
     // (Extremely competitive pricing)
     //
@@ -132,7 +132,7 @@ export class GroqBackendAdapter
     const inputCost = (estimatedInputTokens / 1_000_000) * 0.05;
     const outputCost = (estimatedOutputTokens / 1_000_000) * 0.1;
 
-    return inputCost + outputCost;
+    return Promise.resolve(inputCost + outputCost);
   }
 }
 
