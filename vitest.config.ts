@@ -42,6 +42,12 @@ export default defineConfig({
 
       // CLI
       '@johnhenry/aimatey-cli': path.resolve(__dirname, 'packages/cli/src'),
+
+      // MCP tool-calling
+      '@johnhenry/aimatey-mcp': path.resolve(__dirname, 'packages/mcp/src'),
+
+      // Integration patterns
+      '@johnhenry/aimatey-patterns': path.resolve(__dirname, 'packages/patterns/src'),
     },
   },
   test: {
