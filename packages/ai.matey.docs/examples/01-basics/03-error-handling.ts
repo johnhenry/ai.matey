@@ -12,16 +12,16 @@
  * - Basic understanding of async/await and error handling
  *
  * Run:
- *   npx tsx examples/01-basics/03-error-handling.ts
+ *   npx tsx packages/ai.matey.docs/examples/01-basics/03-error-handling.ts
  *
  * Expected Output:
  *   Demonstrates both successful requests and proper error handling
  *   when things go wrong (invalid API key, network issues, etc.)
  */
 
-import { Bridge } from 'ai.matey.core';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
-import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
+import { Bridge } from '@johnhenry/aimatey-core';
+import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend/openai';
+import { AnthropicBackendAdapter } from '@johnhenry/aimatey-backend/anthropic';
 import { displayExampleInfo, displayResponse, displayError } from '../_shared/helpers.js';
 
 async function main() {
@@ -70,7 +70,7 @@ async function main() {
     // (In real scenario, you'd catch 429 errors)
 
     console.log('💡 In production, use retry middleware for rate limits');
-    console.log('   import { createRetryMiddleware } from "ai.matey.middleware"');
+    console.log('   import { createRetryMiddleware } from "@johnhenry/aimatey-middleware"');
     console.log('   bridge.use(createRetryMiddleware({ maxAttempts: 3 }))\n');
 
   } catch (error) {
@@ -153,7 +153,7 @@ async function main() {
       console.log('Falling back to secondary backend (OpenAI)...');
 
       try {
-        const { OpenAIBackendAdapter } = await import('ai.matey.backend/openai');
+        const { OpenAIBackendAdapter } = await import('@johnhenry/aimatey-backend/openai');
         const bridge = new Bridge(
           new OpenAIFrontendAdapter(),
           new OpenAIBackendAdapter({ apiKey: backupKey })

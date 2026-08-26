@@ -10,20 +10,20 @@
  *
  * Prerequisites:
  * - ANTHROPIC_API_KEY environment variable set
- * - ai.matey.middleware package installed
+ * - @johnhenry/aimatey-middleware package installed
  *
  * Run:
- *   npx tsx examples/03-middleware/03-retry.ts
+ *   npx tsx packages/ai.matey.docs/examples/03-middleware/03-retry.ts
  *
  * Expected Output:
  *   Request succeeds with automatic retry on transient failures.
  *   Retry attempts are logged with backoff timing.
  */
 
-import { Bridge } from 'ai.matey.core';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
-import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
-import { createRetryMiddleware } from 'ai.matey.middleware';
+import { Bridge } from '@johnhenry/aimatey-core';
+import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend/openai';
+import { AnthropicBackendAdapter } from '@johnhenry/aimatey-backend/anthropic';
+import { createRetryMiddleware } from '@johnhenry/aimatey-middleware';
 import { requireAPIKey } from '../_shared/env-loader.js';
 import { displayExampleInfo, displayResponse, displayError } from '../_shared/helpers.js';
 
@@ -33,7 +33,7 @@ async function main() {
     'Automatically retry failed requests with exponential backoff',
     [
       'ANTHROPIC_API_KEY environment variable',
-      'ai.matey.middleware package installed'
+      '@johnhenry/aimatey-middleware package installed'
     ]
   );
 

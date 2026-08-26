@@ -10,19 +10,19 @@
  *
  * Prerequisites:
  * - OPENAI_API_KEY environment variable set
- * - ai.matey.backend package installed
+ * - @johnhenry/aimatey-backend package installed
  *
  * Run:
- *   npx tsx examples/02-providers/02-openai.ts
+ *   npx tsx packages/ai.matey.docs/examples/02-providers/02-openai.ts
  *
  * Expected Output:
  *   Responses from GPT models demonstrating various capabilities
  *   including standard chat, streaming, and JSON mode.
  */
 
-import { Bridge } from 'ai.matey.core';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
-import { OpenAIBackendAdapter } from 'ai.matey.backend/openai';
+import { Bridge } from '@johnhenry/aimatey-core';
+import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend/openai';
+import { OpenAIBackendAdapter } from '@johnhenry/aimatey-backend/openai';
 import { requireAPIKey } from '../_shared/env-loader.js';
 import { displayExampleInfo, displayResponse, displayStream, displayError } from '../_shared/helpers.js';
 
@@ -32,7 +32,7 @@ async function main() {
     'Use OpenAI GPT as your AI backend',
     [
       'OPENAI_API_KEY environment variable',
-      'ai.matey.backend package installed'
+      '@johnhenry/aimatey-backend package installed'
     ]
   );
 

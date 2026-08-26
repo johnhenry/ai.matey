@@ -10,21 +10,21 @@
  *
  * Prerequisites:
  * - ANTHROPIC_API_KEY in web.env.local.mjs (or any other provider)
- * - ai.matey.wrapper package installed
+ * - @johnhenry/aimatey-wrapper package installed
  *
  * Run:
- *   npx tsx examples/06-sdk-wrappers/01-openai-sdk.ts
+ *   npx tsx packages/ai.matey.docs/examples/06-sdk-wrappers/01-openai-sdk.ts
  *
  * Expected Output:
  *   OpenAI SDK code running on Anthropic (or any other) backend,
  *   demonstrating provider-agnostic development.
  */
 
-import { OpenAI } from 'ai.matey.wrapper/openai';
-import { Bridge } from 'ai.matey.core';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
-import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
-import { createLoggingMiddleware } from 'ai.matey.middleware';
+import { OpenAI } from '@johnhenry/aimatey-wrapper/openai';
+import { Bridge } from '@johnhenry/aimatey-core';
+import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend/openai';
+import { AnthropicBackendAdapter } from '@johnhenry/aimatey-backend/anthropic';
+import { createLoggingMiddleware } from '@johnhenry/aimatey-middleware';
 import { requireAPIKey } from '../_shared/env-loader.js';
 import { displayExampleInfo, displayError } from '../_shared/helpers.js';
 
@@ -34,7 +34,7 @@ async function main() {
     'Use OpenAI SDK syntax with any AI provider',
     [
       'ANTHROPIC_API_KEY (or any provider key) in web.env.local.mjs',
-      'npm install ai.matey.wrapper'
+      'npm install @johnhenry/aimatey-wrapper'
     ]
   );
 
@@ -181,7 +181,7 @@ async function main() {
 
     console.log('🎯 Migration Path:');
     console.log('   1. Replace: import { OpenAI } from "openai"');
-    console.log('      With: import { OpenAI } from "ai.matey.wrapper/openai"');
+    console.log('      With: import { OpenAI } from "@johnhenry/aimatey-wrapper/openai"');
     console.log('   2. Create bridge with your preferred backend');
     console.log('   3. Pass bridge to OpenAI constructor');
     console.log('   4. All existing code works unchanged!\n');

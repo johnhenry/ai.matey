@@ -10,21 +10,21 @@
  *
  * Prerequisites:
  * - OPENAI_API_KEY in web.env.local.mjs (or any other provider)
- * - ai.matey.wrapper package installed
+ * - @johnhenry/aimatey-wrapper package installed
  *
  * Run:
- *   npx tsx examples/06-sdk-wrappers/02-anthropic-sdk.ts
+ *   npx tsx packages/ai.matey.docs/examples/06-sdk-wrappers/02-anthropic-sdk.ts
  *
  * Expected Output:
  *   Anthropic SDK code running on OpenAI (or any other) backend,
  *   demonstrating provider-agnostic development.
  */
 
-import { Anthropic } from 'ai.matey.wrapper/anthropic';
-import { Bridge } from 'ai.matey.core';
-import { AnthropicFrontendAdapter } from 'ai.matey.frontend/anthropic';
-import { OpenAIBackendAdapter } from 'ai.matey.backend/openai';
-import { createLoggingMiddleware } from 'ai.matey.middleware';
+import { Anthropic } from '@johnhenry/aimatey-wrapper/anthropic';
+import { Bridge } from '@johnhenry/aimatey-core';
+import { AnthropicFrontendAdapter } from '@johnhenry/aimatey-frontend/anthropic';
+import { OpenAIBackendAdapter } from '@johnhenry/aimatey-backend/openai';
+import { createLoggingMiddleware } from '@johnhenry/aimatey-middleware';
 import { requireAPIKey } from '../_shared/env-loader.js';
 import { displayExampleInfo, displayError } from '../_shared/helpers.js';
 
@@ -34,7 +34,7 @@ async function main() {
     'Use Anthropic SDK syntax with any AI provider',
     [
       'OPENAI_API_KEY (or any provider key) in web.env.local.mjs',
-      'npm install ai.matey.wrapper'
+      'npm install @johnhenry/aimatey-wrapper'
     ]
   );
 
@@ -206,7 +206,7 @@ async function main() {
 
     console.log('🎯 Migration Path:');
     console.log('   1. Replace: import { Anthropic } from "@anthropic-ai/sdk"');
-    console.log('      With: import { Anthropic } from "ai.matey.wrapper/anthropic"');
+    console.log('      With: import { Anthropic } from "@johnhenry/aimatey-wrapper/anthropic"');
     console.log('   2. Create bridge with your preferred backend');
     console.log('   3. Pass bridge to Anthropic constructor');
     console.log('   4. All existing code works unchanged!\n');

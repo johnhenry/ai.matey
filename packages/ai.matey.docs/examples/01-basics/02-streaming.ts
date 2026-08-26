@@ -11,16 +11,16 @@
  * - Understanding of async iterators/generators
  *
  * Run:
- *   npx tsx examples/01-basics/02-streaming.ts
+ *   npx tsx packages/ai.matey.docs/examples/01-basics/02-streaming.ts
  *
  * Expected Output:
  *   Streaming text appearing character-by-character in real-time,
  *   similar to how ChatGPT displays responses.
  */
 
-import { Bridge } from 'ai.matey.core';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
-import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
+import { Bridge } from '@johnhenry/aimatey-core';
+import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend/openai';
+import { AnthropicBackendAdapter } from '@johnhenry/aimatey-backend/anthropic';
 import { requireAPIKey } from '../_shared/env-loader.js';
 import { displayExampleInfo, displayStream, displayError } from '../_shared/helpers.js';
 

@@ -1,23 +1,31 @@
 # ai.matey Examples
 
-This directory contains **35+ runnable examples** demonstrating all features of the ai.matey Universal AI Adapter System, organized into 10 progressive categories from beginner to advanced.
+This directory contains **34 runnable examples** demonstrating the features of the ai.matey Universal AI Adapter System, organized into 7 progressive categories from beginner to advanced. Additional examples (OpenTelemetry observability, WebSocket server, React hooks, Chrome AI wrapper) live in the repo-root [`examples/`](../../../examples) directory.
 
 ## 📁 Directory Structure
 
 ```
 examples/
 ├── 01-basics/              ⭐ Beginner (4 examples)
-├── 02-providers/           ⭐ Beginner (5 examples)
+├── 02-providers/           ⭐ Beginner (6 examples)
 ├── 03-middleware/          ⭐⭐ Intermediate (6 examples)
 ├── 04-routing/             ⭐⭐ Intermediate (5 examples)
-├── 05-http-servers/        ⭐⭐ Intermediate (4 examples)
-├── 06-sdk-wrappers/        ⭐⭐ Intermediate (4 examples)
-├── 07-advanced-patterns/   ⭐⭐⭐ Advanced (5 examples)
-├── 08-observability/       ⭐⭐⭐ Advanced (4 examples)
-├── 09-react/               🎯 Specialized (1 example)
-├── 10-cli-tools/           🎯 Specialized (1 example)
+├── 05-http-servers/        ⭐⭐ Intermediate (3 examples)
+├── 06-sdk-wrappers/        ⭐⭐ Intermediate (2 examples)
+├── 07-advanced-patterns/   ⭐⭐⭐ Advanced (8 examples)
 └── _shared/                📦 Shared utilities
 ```
+
+## 🔑 API Key Requirements
+
+Most examples call real providers and need at least one API key in your environment
+(see the Prerequisites header comment in each file). The exceptions run fully offline:
+
+- `07-advanced-patterns/05-react-integration.ts` — prints annotated patterns (`npm run example:07-05`)
+- `07-advanced-patterns/08-edge-deployment.ts` — prints annotated patterns (`npm run example:07-08`)
+
+Everything else requires provider keys and has no npm script — run it directly with
+`npx tsx` once your `.env` is set up.
 
 ## 🚀 Quick Start
 
@@ -52,9 +60,9 @@ All examples are written in TypeScript and can be run with `tsx`:
 
 ```bash
 # Run any example
-npx tsx examples/01-basics/01-hello-world.ts
-npx tsx examples/03-middleware/01-logging.ts
-npx tsx examples/07-advanced-patterns/01-streaming-aggregation.ts
+npx tsx packages/ai.matey.docs/examples/01-basics/01-hello-world.ts
+npx tsx packages/ai.matey.docs/examples/03-middleware/01-logging.ts
+npx tsx packages/ai.matey.docs/examples/07-advanced-patterns/01-streaming-aggregation.ts
 ```
 
 ## 📚 Example Categories
@@ -72,11 +80,12 @@ npx tsx examples/07-advanced-patterns/01-streaming-aggregation.ts
 ### 02. Providers ⭐ (Beginner)
 **Work with different AI providers**
 
-- `01-openai.ts` - OpenAI backend configuration
-- `02-anthropic.ts` - Anthropic (Claude) backend
-- `03-gemini.ts` - Google Gemini backend
-- `04-local-ollama.ts` - Local models with Ollama
-- `05-multi-provider.ts` - Using multiple providers
+- `01-anthropic.ts` - Anthropic (Claude) backend
+- `02-openai.ts` - OpenAI backend configuration
+- `03-google-gemini.ts` - Google Gemini backend
+- `04-local-models.ts` - Local models (Ollama, LM Studio)
+- `05-multiple-providers.ts` - Using multiple providers
+- `06-provider-switching.ts` - Switch providers at runtime
 
 **Start here if:** You want to understand provider-specific features.
 
@@ -97,19 +106,20 @@ npx tsx examples/07-advanced-patterns/01-streaming-aggregation.ts
 
 - `01-round-robin.ts` - Load balance across backends
 - `02-fallback.ts` - Automatic failover to backup providers
-- `03-complexity-based.ts` - Route by query complexity
-- `04-parallel-dispatch.ts` - Fan-out to multiple providers
-- `05-cost-optimized.ts` - Choose cheapest provider (84% savings!)
+- `03-weighted-routing.ts` - Weighted load distribution
+- `04-cost-based-routing.ts` - Choose the cheapest provider
+- `05-custom-strategy.ts` - Build your own routing strategy
 
 **Start here if:** You need multi-provider routing or failover.
 
 ### 05. HTTP Servers ⭐⭐ (Intermediate)
 **Integrate with web frameworks**
 
-- `01-node-http.ts` - Native Node.js HTTP server
-- `02-express.ts` - Express.js integration
-- `03-hono.ts` - Hono framework (edge-ready)
-- `04-streaming-http.ts` - SSE streaming over HTTP
+- `01-express.ts` - Express.js integration
+- `02-hono.ts` - Hono framework (edge-ready)
+- `03-node-http.ts` - Native Node.js HTTP server
+
+See also the repo-root [`examples/http/`](../../../examples/http) directory for a WebSocket server example.
 
 **Start here if:** You're building an HTTP API.
 
@@ -118,8 +128,8 @@ npx tsx examples/07-advanced-patterns/01-streaming-aggregation.ts
 
 - `01-openai-sdk.ts` - OpenAI SDK wrapper
 - `02-anthropic-sdk.ts` - Anthropic SDK wrapper
-- `03-chrome-ai.ts` - Chrome AI API compatibility
-- `04-wrapper-utils.ts` - Stream processing utilities (50+ functions)
+
+See also the repo-root [`examples/chrome-ai-wrapper.js`](../../../examples/chrome-ai-wrapper.js) for Chrome AI API compatibility.
 
 **Start here if:** You want SDK compatibility.
 
@@ -127,36 +137,23 @@ npx tsx examples/07-advanced-patterns/01-streaming-aggregation.ts
 **Production-ready patterns**
 
 - `01-streaming-aggregation.ts` - Parallel streaming from multiple providers
-- `02-websocket-chat.ts` - Real-time WebSocket chat with multiple backends
-- `03-batch-processing.ts` - Process requests in batches (21+ req/s)
-- `04-health-monitoring.ts` - Continuous provider health checks
-- `05-middleware-chain.ts` - Complex middleware composition (<10ms overhead)
+- `02-observability.ts` - Metrics and tracing patterns
+- `03-testing.ts` - Testing with mock adapters
+- `04-cli-tool.ts` - Build a command-line tool
+- `05-react-integration.ts` - React integration patterns (no API keys needed)
+- `06-performance.ts` - Performance tuning and benchmarks
+- `07-production.ts` - Production deployment practices
+- `08-edge-deployment.ts` - Edge deployment (Workers, Deno) (no API keys needed)
 
 **Start here if:** You're building production systems.
 
-### 08. Observability ⭐⭐⭐ (Advanced)
-**Monitor and trace your AI requests**
+### Observability (repo-root examples)
+**Monitor and trace your AI requests** — see [`examples/opentelemetry/`](../../../examples/opentelemetry)
 
-- `01-jaeger.ts` - OpenTelemetry + Jaeger (local)
-- `02-honeycomb.ts` - Honeycomb.io integration
-- `03-sampling.ts` - Sampling strategies for tracing
-- `04-multi-provider.ts` - Trace across multiple providers
-
-**Start here if:** You need monitoring and observability.
-
-### 09. React 🎯 (Specialized)
-**Frontend integration with React**
-
-- `01-hooks.tsx` - useChat, useCompletion, useObject hooks
-
-**Start here if:** You're building React applications.
-
-### 10. CLI Tools 🎯 (Specialized)
-**Command-line utilities**
-
-- `01-cli-basics.ts` - Format conversion, backend generation
-
-**Start here if:** You need CLI tooling.
+- `basic-jaeger.ts` - OpenTelemetry + Jaeger (local)
+- `honeycomb.ts` - Honeycomb.io integration
+- `sampling.ts` - Sampling strategies for tracing
+- `multi-provider.ts` - Trace across multiple providers
 
 ## 🛠️ Shared Utilities
 
@@ -202,13 +199,13 @@ Each example follows this structure:
  * - [Requirement 2]
  *
  * Run:
- *   npx tsx examples/[category]/[filename].ts
+ *   npx tsx packages/ai.matey.docs/examples/[category]/[filename].ts
  *
  * Expected Output:
  *   [Description of expected output]
  */
 
-import { Bridge } from 'ai.matey.core';
+import { Bridge } from '@johnhenry/aimatey-core';
 import { requireAPIKey } from '../_shared/env-loader.js';
 import { displayExampleInfo, displayResponse } from '../_shared/helpers.js';
 
@@ -231,20 +228,20 @@ main();
 ### Beginner Path (Start Here!)
 1. 01-basics/01-hello-world.ts
 2. 01-basics/02-streaming.ts
-3. 02-providers/01-openai.ts
-4. 02-providers/05-multi-provider.ts
+3. 02-providers/02-openai.ts
+4. 02-providers/05-multiple-providers.ts
 
 ### Intermediate Path
 1. 03-middleware/01-logging.ts
 2. 03-middleware/02-caching.ts
 3. 04-routing/01-round-robin.ts
-4. 05-http-servers/02-express.ts
+4. 05-http-servers/01-express.ts
 
 ### Advanced Path
-1. 04-routing/05-cost-optimized.ts
+1. 04-routing/04-cost-based-routing.ts
 2. 07-advanced-patterns/01-streaming-aggregation.ts
-3. 07-advanced-patterns/04-health-monitoring.ts
-4. 08-observability/01-jaeger.ts
+3. 07-advanced-patterns/07-production.ts
+4. ../../../examples/opentelemetry/basic-jaeger.ts
 
 ## 🐛 Troubleshooting
 
@@ -256,7 +253,7 @@ Error: Missing required API key: ANTHROPIC_API_KEY
 
 ### "Module not found" Error
 ```
-Error: Cannot find module 'ai.matey.core'
+Error: Cannot find module '@johnhenry/aimatey-core'
 ```
 **Solution:** Run `npm install && npm run build` from the monorepo root.
 

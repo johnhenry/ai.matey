@@ -13,17 +13,17 @@
  * - Optionally: npm install commander inquirer ora chalk
  *
  * Run:
- *   npx tsx examples/07-advanced-patterns/04-cli-tool.ts
- *   npx tsx examples/07-advanced-patterns/04-cli-tool.ts "What is TypeScript?"
+ *   npx tsx packages/ai.matey.docs/examples/07-advanced-patterns/04-cli-tool.ts
+ *   npx tsx packages/ai.matey.docs/examples/07-advanced-patterns/04-cli-tool.ts "What is TypeScript?"
  *
  * Expected Output:
  *   Interactive CLI tool with streaming responses,
  *   history, and professional output formatting.
  */
 
-import { Bridge } from 'ai.matey.core';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
-import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
+import { Bridge } from '@johnhenry/aimatey-core';
+import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend/openai';
+import { AnthropicBackendAdapter } from '@johnhenry/aimatey-backend/anthropic';
 import { requireAPIKey } from '../_shared/env-loader.js';
 import { displayError } from '../_shared/helpers.js';
 import * as readline from 'readline';

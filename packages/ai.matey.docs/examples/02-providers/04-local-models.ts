@@ -15,18 +15,18 @@
  * - Optional: ANTHROPIC_API_KEY for hybrid example
  *
  * Run:
- *   npx tsx examples/02-providers/04-local-models.ts
+ *   npx tsx packages/ai.matey.docs/examples/02-providers/04-local-models.ts
  *
  * Expected Output:
  *   Responses from local models, demonstrating privacy-first
  *   AI inference with optional cloud fallback.
  */
 
-import { Bridge, Router } from 'ai.matey.core';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
-import { OllamaBackendAdapter } from 'ai.matey.backend/ollama';
-import { LMStudioBackendAdapter } from 'ai.matey.backend/lmstudio';
-import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
+import { Bridge, Router } from '@johnhenry/aimatey-core';
+import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend/openai';
+import { OllamaBackendAdapter } from '@johnhenry/aimatey-backend/ollama';
+import { LMStudioBackendAdapter } from '@johnhenry/aimatey-backend/lmstudio';
+import { AnthropicBackendAdapter } from '@johnhenry/aimatey-backend/anthropic';
 import { displayExampleInfo, displayResponse, displayError } from '../_shared/helpers.js';
 import { loadAPIKeys } from '../_shared/env-loader.js';
 

@@ -13,19 +13,19 @@
  * - Understanding of provider pricing
  *
  * Run:
- *   npx tsx examples/04-routing/04-cost-based-routing.ts
+ *   npx tsx packages/ai.matey.docs/examples/04-routing/04-cost-based-routing.ts
  *
  * Expected Output:
  *   Requests routed to cheapest provider, with cost tracking
  *   and budget monitoring.
  */
 
-import { Router } from 'ai.matey.core';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
-import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
-import { OpenAIBackendAdapter } from 'ai.matey.backend/openai';
-import { GeminiBackendAdapter } from 'ai.matey.backend/gemini';
-import { GroqBackendAdapter } from 'ai.matey.backend/groq';
+import { Router } from '@johnhenry/aimatey-core';
+import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend/openai';
+import { AnthropicBackendAdapter } from '@johnhenry/aimatey-backend/anthropic';
+import { OpenAIBackendAdapter } from '@johnhenry/aimatey-backend/openai';
+import { GeminiBackendAdapter } from '@johnhenry/aimatey-backend/gemini';
+import { GroqBackendAdapter } from '@johnhenry/aimatey-backend/groq';
 import { loadAPIKeys } from '../_shared/env-loader.js';
 import { displayExampleInfo, displayError } from '../_shared/helpers.js';
 

@@ -10,10 +10,10 @@
  *
  * Prerequisites:
  * - ANTHROPIC_API_KEY in web.env.local.mjs
- * - Hono and ai.matey.http packages installed
+ * - Hono and @johnhenry/aimatey-http packages installed
  *
  * Run:
- *   npx tsx examples/05-http-servers/02-hono.ts
+ *   npx tsx packages/ai.matey.docs/examples/05-http-servers/02-hono.ts
  *   # Or with Bun: bun run examples/05-http-servers/02-hono.ts
  *
  * Test:
@@ -29,10 +29,10 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
-import { createHonoMiddleware } from 'ai.matey.http';
-import { Bridge } from 'ai.matey.core';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
-import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
+import { createHonoMiddleware } from '@johnhenry/aimatey-http';
+import { Bridge } from '@johnhenry/aimatey-core';
+import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend/openai';
+import { AnthropicBackendAdapter } from '@johnhenry/aimatey-backend/anthropic';
 import { requireAPIKey } from '../_shared/env-loader.js';
 import { displayExampleInfo, displayError } from '../_shared/helpers.js';
 
@@ -42,7 +42,7 @@ async function main() {
     'Ultra-fast edge-compatible AI API with Hono',
     [
       'ANTHROPIC_API_KEY in web.env.local.mjs',
-      'npm install hono ai.matey.http'
+      'npm install hono @johnhenry/aimatey-http'
     ]
   );
 
@@ -66,7 +66,7 @@ async function main() {
     app.get('/health', (c) => {
       return c.json({
         status: 'ok',
-        service: 'ai.matey',
+        service: '@johnhenry/aimatey',
         backend: 'anthropic',
         runtime: 'hono',
         timestamp: new Date().toISOString(),

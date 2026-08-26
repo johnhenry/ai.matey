@@ -28,7 +28,9 @@
     "release:staggered:dry-run": "./scripts/staggered-publish.sh --dry-run",
     "docs:dev": "turbo run start --filter=ai.matey.docs",
     "docs:build": "turbo run build --filter=ai.matey.docs",
-    "docs:serve": "turbo run serve --filter=ai.matey.docs"
+    "docs:serve": "turbo run serve --filter=ai.matey.docs",
+    "example:07-05": "npx tsx packages/ai.matey.docs/examples/07-advanced-patterns/05-react-integration.ts",
+    "example:07-08": "npx tsx packages/ai.matey.docs/examples/07-advanced-patterns/08-edge-deployment.ts"
   },
   "keywords": [
     "ai",

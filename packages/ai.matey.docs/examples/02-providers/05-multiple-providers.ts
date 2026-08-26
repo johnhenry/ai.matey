@@ -10,21 +10,21 @@
  *
  * Prerequisites:
  * - At least 2 of: ANTHROPIC_API_KEY, OPENAI_API_KEY, GOOGLE_API_KEY
- * - ai.matey.backend package installed
+ * - @johnhenry/aimatey-backend package installed
  *
  * Run:
- *   npx tsx examples/02-providers/05-multiple-providers.ts
+ *   npx tsx packages/ai.matey.docs/examples/02-providers/05-multiple-providers.ts
  *
  * Expected Output:
  *   Side-by-side comparison of responses from multiple providers,
  *   with performance metrics and cost estimates.
  */
 
-import { Bridge } from 'ai.matey.core';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
-import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
-import { OpenAIBackendAdapter } from 'ai.matey.backend/openai';
-import { GeminiBackendAdapter } from 'ai.matey.backend/gemini';
+import { Bridge } from '@johnhenry/aimatey-core';
+import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend/openai';
+import { AnthropicBackendAdapter } from '@johnhenry/aimatey-backend/anthropic';
+import { OpenAIBackendAdapter } from '@johnhenry/aimatey-backend/openai';
+import { GeminiBackendAdapter } from '@johnhenry/aimatey-backend/gemini';
 import { loadAPIKeys } from '../_shared/env-loader.js';
 import { displayExampleInfo, displayError } from '../_shared/helpers.js';
 

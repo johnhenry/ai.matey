@@ -44,6 +44,7 @@ const apiEntryPoints = [
   'backend', 'frontend', 'middleware', 'http', 'http.core', 'wrapper', 'cli',
   'react-core', 'react-hooks', 'react-stream', 'react-nextjs',
   'native-apple', 'native-node-llamacpp', 'native-model-runner', 'backend-browser',
+  'mcp', 'patterns',
 ].map((pkg) => `../${pkg}`);
 
 // 'packages' entryPointStrategy invokes TypeDoc's PackageJsonReader, which

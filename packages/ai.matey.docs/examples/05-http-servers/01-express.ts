@@ -10,10 +10,10 @@
  *
  * Prerequisites:
  * - ANTHROPIC_API_KEY in web.env.local.mjs
- * - Express and ai.matey.http packages installed
+ * - Express and @johnhenry/aimatey-http packages installed
  *
  * Run:
- *   npx tsx examples/05-http-servers/01-express.ts
+ *   npx tsx packages/ai.matey.docs/examples/05-http-servers/01-express.ts
  *
  * Test:
  *   curl -X POST http://localhost:3000/v1/chat/completions \
@@ -26,11 +26,11 @@
  */
 
 import express from 'express';
-import { createExpressMiddleware } from 'ai.matey.http';
-import { Bridge } from 'ai.matey.core';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
-import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
-import { createLoggingMiddleware } from 'ai.matey.middleware';
+import { createExpressMiddleware } from '@johnhenry/aimatey-http';
+import { Bridge } from '@johnhenry/aimatey-core';
+import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend/openai';
+import { AnthropicBackendAdapter } from '@johnhenry/aimatey-backend/anthropic';
+import { createLoggingMiddleware } from '@johnhenry/aimatey-middleware';
 import { requireAPIKey } from '../_shared/env-loader.js';
 import { displayExampleInfo, displayError } from '../_shared/helpers.js';
 
@@ -40,7 +40,7 @@ async function main() {
     'Create OpenAI-compatible API endpoints with Express',
     [
       'ANTHROPIC_API_KEY in web.env.local.mjs',
-      'npm install express ai.matey.http'
+      'npm install express @johnhenry/aimatey-http'
     ]
   );
 
@@ -72,7 +72,7 @@ async function main() {
     app.get('/health', (_req, res) => {
       res.json({
         status: 'ok',
-        service: 'ai.matey',
+        service: '@johnhenry/aimatey',
         backend: 'anthropic',
         timestamp: new Date().toISOString(),
       });

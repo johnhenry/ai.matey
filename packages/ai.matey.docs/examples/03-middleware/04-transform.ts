@@ -10,21 +10,21 @@
  *
  * Prerequisites:
  * - ANTHROPIC_API_KEY environment variable set
- * - ai.matey.middleware package installed
+ * - @johnhenry/aimatey-middleware package installed
  *
  * Run:
- *   npx tsx examples/03-middleware/04-transform.ts
+ *   npx tsx packages/ai.matey.docs/examples/03-middleware/04-transform.ts
  *
  * Expected Output:
  *   AI responses are automatically transformed by injected system
  *   message, demonstrating powerful middleware capabilities.
  */
 
-import { Bridge } from 'ai.matey.core';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
-import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
-import { createTransformMiddleware } from 'ai.matey.middleware';
-import type { IRChatCompletionRequest, IRChatCompletionResponse } from 'ai.matey.types';
+import { Bridge } from '@johnhenry/aimatey-core';
+import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend/openai';
+import { AnthropicBackendAdapter } from '@johnhenry/aimatey-backend/anthropic';
+import { createTransformMiddleware } from '@johnhenry/aimatey-middleware';
+import type { IRChatCompletionRequest, IRChatCompletionResponse } from '@johnhenry/aimatey-types';
 import { requireAPIKey } from '../_shared/env-loader.js';
 import { displayExampleInfo, displayError } from '../_shared/helpers.js';
 
@@ -34,7 +34,7 @@ async function main() {
     'Transform requests and responses with custom logic',
     [
       'ANTHROPIC_API_KEY environment variable',
-      'ai.matey.middleware package installed'
+      '@johnhenry/aimatey-middleware package installed'
     ]
   );
 

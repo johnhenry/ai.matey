@@ -8,19 +8,19 @@
  *
  * Prerequisites:
  * - ANTHROPIC_API_KEY environment variable set
- * - ai.matey.core, ai.matey.frontend, ai.matey.backend packages installed
+ * - @johnhenry/aimatey-core, @johnhenry/aimatey-frontend, @johnhenry/aimatey-backend packages installed
  *
  * Run:
- *   npx tsx examples/01-basics/01-hello-world.ts
+ *   npx tsx packages/ai.matey.docs/examples/01-basics/01-hello-world.ts
  *
  * Expected Output:
  *   A response from Claude (Anthropic) to the greeting, even though
  *   the request was written in OpenAI format.
  */
 
-import { Bridge } from 'ai.matey.core';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
-import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
+import { Bridge } from '@johnhenry/aimatey-core';
+import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend/openai';
+import { AnthropicBackendAdapter } from '@johnhenry/aimatey-backend/anthropic';
 import { requireAPIKey } from '../_shared/env-loader.js';
 import { displayExampleInfo, displayResponse, displayError } from '../_shared/helpers.js';
 
