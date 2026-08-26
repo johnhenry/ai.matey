@@ -22,6 +22,7 @@ class MockBackendAdapter implements BackendAdapter {
     public name: string,
     private shouldFail: boolean = false,
     private responseText: string = 'Response',
+    private delayMs: number = 0,
   ) {
     this.metadata = {
       name,
@@ -45,6 +46,10 @@ class MockBackendAdapter implements BackendAdapter {
   }
 
   async execute(request: IRChatRequest): Promise<IRChatResponse> {
+    if (this.delayMs > 0) {
+      await new Promise((resolve) => setTimeout(resolve, this.delayMs));
+    }
+
     if (this.shouldFail) {
       throw new Error(`${this.name} failed`);
     }
@@ -370,6 +375,86 @@ describe('Router - Parallel Fallback', () => {
     };
 
     await expect(router.execute(request)).rejects.toThrow();
+  });
+
+  it('should return a slower success instead of aborting on a faster failure', async () => {
+    // Regression test: fallbackParallel() previously used Promise.race()
+    // over the raw (rejecting) backend promises, so a fast failure would
+    // reject the whole dispatch immediately even though a slower backend
+    // was still in flight and would have succeeded.
+    const router = new Router({
+      routingStrategy: 'round-robin',
+      fallbackStrategy: 'parallel',
+    });
+    router.register('backend-1', new MockBackendAdapter('backend-1', true)); // primary, fails immediately
+    router.register('backend-2', new MockBackendAdapter('backend-2', true, 'Response', 5)); // fast fallback failure
+    router.register('backend-3', new MockBackendAdapter('backend-3', false, 'Response', 50)); // slow fallback success
+
+    const request: IRChatRequest = {
+      messages: [{ role: 'user', content: 'Test' }],
+      parameters: { model: 'test-model' },
+      stream: false,
+      metadata: {
+        requestId: randomUUID(),
+        timestamp: Date.now(),
+      },
+    };
+
+    const response = await router.execute(request);
+    expect(response.message.content).toContain('backend-3');
+  });
+});
+
+describe('Router - dispatchParallel "first" strategy', () => {
+  it('should resolve with a slower success rather than a faster failure', async () => {
+    // Regression test: dispatchParallel()'s 'first' strategy raced on
+    // Promise.race() over wrapped { success, ... } results (which always
+    // fulfill), so it returned whichever backend *settled* first -- even a
+    // failure -- instead of waiting for the first genuine success.
+    const router = new Router({ routingStrategy: 'round-robin' });
+    router.register('backend-fast-fail', new MockBackendAdapter('backend-fast-fail', true, 'Response', 5));
+    router.register('backend-slow-success', new MockBackendAdapter('backend-slow-success', false, 'Response', 50));
+
+    const request: IRChatRequest = {
+      messages: [{ role: 'user', content: 'Test' }],
+      parameters: { model: 'test-model' },
+      stream: false,
+      metadata: {
+        requestId: randomUUID(),
+        timestamp: Date.now(),
+      },
+    };
+
+    const result = await router.dispatchParallel(request, {
+      strategy: 'first',
+      backends: ['backend-fast-fail', 'backend-slow-success'],
+    });
+
+    expect(result.response.message.content).toContain('backend-slow-success');
+    expect(result.successfulBackends).toContain('backend-slow-success');
+  });
+
+  it('should throw ALL_BACKENDS_FAILED only once every backend has failed', async () => {
+    const router = new Router({ routingStrategy: 'round-robin' });
+    router.register('backend-1', new MockBackendAdapter('backend-1', true, 'Response', 5));
+    router.register('backend-2', new MockBackendAdapter('backend-2', true, 'Response', 50));
+
+    const request: IRChatRequest = {
+      messages: [{ role: 'user', content: 'Test' }],
+      parameters: { model: 'test-model' },
+      stream: false,
+      metadata: {
+        requestId: randomUUID(),
+        timestamp: Date.now(),
+      },
+    };
+
+    await expect(
+      router.dispatchParallel(request, {
+        strategy: 'first',
+        backends: ['backend-1', 'backend-2'],
+      })
+    ).rejects.toThrow(/All parallel backends failed/);
   });
 });
 

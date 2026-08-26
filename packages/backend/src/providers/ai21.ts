@@ -37,6 +37,7 @@ import {
   extractStructuredOutputJSON,
   buildResponseFormatFallbackWarning,
   type ModelCapabilityFilter,
+  estimateTokens,
 } from '../shared.js';
 import type { ListModelsOptions, ListModelsResult } from '@johnhenry/aimatey-types';
 
@@ -499,10 +500,7 @@ export class AI21BackendAdapter implements BackendAdapter<AI21Request, AI21Respo
       return Promise.resolve(null);
     }
 
-    const inputTokens = request.messages.reduce((sum, msg) => {
-      const content = typeof msg.content === 'string' ? msg.content : '';
-      return sum + Math.ceil(content.length / 4);
-    }, 0);
+    const inputTokens = estimateTokens(request);
 
     const outputTokens = request.parameters?.maxTokens || 1024;
 

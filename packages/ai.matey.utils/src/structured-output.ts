@@ -13,6 +13,8 @@
  */
 
 import type { z } from 'zod';
+import type { IRChatRequest, IRChatResponse, IRChatStream, IRTool } from '@johnhenry/aimatey-types';
+import { extractToolCalls } from './tools.js';
 
 // ============================================================================
 // Zod Availability Check
@@ -404,6 +406,27 @@ export function sanitizeText(text: string): string {
 // ============================================================================
 
 /**
+ * Minimal Bridge surface needed by generateObject/streamObject.
+ *
+ * Uses `executeIR`/`executeIRStream` (IR in, IR out) rather than the
+ * frontend-native `chat()`/`chatStream()` methods, so the forced tool call
+ * this module builds is expressed once in the universal IR shape
+ * (`tools`/`toolChoice`/`ToolUseContent`) and each backend adapter's own
+ * `fromIR`/`toIR` handles translating it to and from that provider's actual
+ * wire format (OpenAI's `tool_choice: { type: 'function', ... }`,
+ * Anthropic's `tool_choice: { type: 'tool', ... }`, etc). This keeps
+ * generateObject/streamObject correct for any backend, not just Anthropic.
+ */
+export interface StructuredOutputBridge {
+  executeIR(request: IRChatRequest, options?: { signal?: AbortSignal }): Promise<IRChatResponse>;
+  executeIRStream?(request: IRChatRequest, options?: { signal?: AbortSignal }): IRChatStream;
+  readonly frontend: { readonly metadata: { readonly name: string } };
+  readonly config?: { readonly defaultModel?: string };
+}
+
+const EXTRACT_TOOL_NAME = 'extract_data';
+
+/**
  * Options for generateObject
  */
 export interface GenerateObjectOptions<T = any> {
@@ -412,6 +435,7 @@ export interface GenerateObjectOptions<T = any> {
   model?: string;
   temperature?: number;
   maxRetries?: number;
+  signal?: AbortSignal;
 }
 
 /**
@@ -435,52 +459,80 @@ export interface StreamObjectOptions<T = any> {
   prompt: string;
   model?: string;
   onPartial?: (partial: Partial<T>) => void;
+  signal?: AbortSignal;
+}
+
+/**
+ * Build the IR tool definition + forced toolChoice shared by
+ * generateObject/streamObject.
+ */
+function buildExtractDataTool(schema: any): IRTool {
+  const toolDef = schemaToToolDefinition(schema, EXTRACT_TOOL_NAME, 'Extract structured data');
+  return {
+    name: toolDef.function.name,
+    description: toolDef.function.description,
+    // This module's local JSONSchema type (a hand-rolled subset used for
+    // Zod conversion) is structurally compatible with the IR JSONSchema
+    // type at runtime, but its `type` field is a plain `string` rather
+    // than IR's narrower JSONSchemaType union -- cast through `unknown`.
+    parameters: toolDef.function.parameters as unknown as IRTool['parameters'],
+  };
 }
 
 /**
  * Create a generateObject function bound to a Bridge instance
  *
  * This is a factory function that creates a generateObject implementation
- * that uses the provided Bridge for making LLM calls.
+ * that uses the provided Bridge's `executeIR()` for making LLM calls -- so
+ * it works with any backend/frontend combination, not just Anthropic.
  */
-export function createGenerateObject(bridge: any) {
+export function createGenerateObject(bridge: StructuredOutputBridge) {
   return async function generateObject<T = any>(
     options: GenerateObjectOptions
   ): Promise<GenerateObjectResult<T>> {
     // Ensure Zod is available
     getZod();
-    const { schema, prompt, model, temperature = 0.7, maxRetries = 3 } = options;
+    const { schema, prompt, model, temperature = 0.7, maxRetries = 3, signal } = options;
 
-    // Convert schema to tool definition
-    const toolDef = schemaToToolDefinition(schema, 'extract_data', 'Extract structured data');
+    // Convert schema to an IR tool definition (provider-agnostic)
+    const irTool = buildExtractDataTool(schema);
 
     let lastError: Error | undefined;
 
     for (let attempt = 0; attempt < maxRetries; attempt++) {
       try {
-        // Make the LLM call with tool use
-        const response = await bridge.chat({
-          model: model || bridge.config.defaultModel,
-          messages: [
-            {
-              role: 'user',
-              content: prompt,
-            },
-          ],
-          tools: [toolDef],
-          tool_choice: { type: 'tool', name: 'extract_data' },
-          temperature,
-        });
+        const request: IRChatRequest = {
+          messages: [{ role: 'user', content: prompt }],
+          parameters: {
+            model: model ?? bridge.config?.defaultModel,
+            temperature,
+          },
+          tools: [irTool],
+          toolChoice: { name: EXTRACT_TOOL_NAME },
+          metadata: {
+            requestId:
+              typeof crypto !== 'undefined' && crypto.randomUUID
+                ? crypto.randomUUID()
+                : `generate-object-${Date.now()}-${attempt}`,
+            timestamp: Date.now(),
+            provenance: { frontend: bridge.frontend.metadata.name },
+          },
+        };
 
-        // Extract tool call result
-        const toolCalls = response.content?.filter((c: any) => c.type === 'tool_use');
+        // Make the LLM call via IR -- correct for any backend's own
+        // forced-tool-call wire format, since executeIR skips frontend
+        // conversion and each backend's fromIR/toIR already normalizes
+        // toolChoice/ToolUseContent to and from its native shape.
+        const response = await bridge.executeIR(request, { signal });
 
-        if (!toolCalls || toolCalls.length === 0) {
+        const toolCalls = extractToolCalls(response);
+        const firstToolCall = toolCalls[0];
+
+        if (!firstToolCall) {
           throw new Error('No tool call in response');
         }
 
-        const toolCall = toolCalls[0];
-        const data = toolCall.input;
+        const data = firstToolCall.input;
 
         // Validate against schema
         const validation = validateWithSchema(data, schema);
@@ -495,7 +547,7 @@ export function createGenerateObject(bridge: any) {
         return {
           object: validation.data,
           usage: response.usage,
-          finishReason: response.stop_reason || 'stop',
+          finishReason: response.finishReason || 'stop',
         };
       } catch (error) {
         lastError = error as Error;
@@ -513,44 +565,55 @@ export function createGenerateObject(bridge: any) {
  * Create a streamObject function bound to a Bridge instance
  *
  * This is a factory function that creates a streamObject implementation
- * that uses the provided Bridge for making streaming LLM calls.
+ * that uses the provided Bridge's `executeIRStream()` for making streaming
+ * LLM calls -- so it works with any backend/frontend combination, not just
+ * Anthropic. Partial JSON is accumulated from IR `tool_use` chunks'
+ * `inputDelta`, which every backend adapter already normalizes to the same
+ * shape regardless of that provider's native streaming event format.
  */
-export function createStreamObject(bridge: any) {
+export function createStreamObject(bridge: StructuredOutputBridge) {
   return async function* streamObject<T = any>(
     options: StreamObjectOptions
   ): AsyncGenerator<Partial<T>, T> {
     // Ensure Zod is available
     getZod();
-    const { schema, prompt, model, onPartial } = options;
+    const { schema, prompt, model, onPartial, signal } = options;
 
-    // Convert schema to tool definition
-    const toolDef = schemaToToolDefinition(schema, 'extract_data', 'Extract structured data');
+    if (!bridge.executeIRStream) {
+      throw new Error('streamObject requires a Bridge with executeIRStream() support');
+    }
 
-    // Make streaming LLM call
-    const stream = await bridge.chatStream({
-      model: model || bridge.config.defaultModel,
-      messages: [
-        {
-          role: 'user',
-          content: prompt,
-        },
-      ],
-      tools: [toolDef],
-      tool_choice: { type: 'tool', name: 'extract_data' },
-    });
+    // Convert schema to an IR tool definition (provider-agnostic)
+    const irTool = buildExtractDataTool(schema);
 
+    const request: IRChatRequest = {
+      messages: [{ role: 'user', content: prompt }],
+      parameters: { model: model ?? bridge.config?.defaultModel },
+      tools: [irTool],
+      toolChoice: { name: EXTRACT_TOOL_NAME },
+      metadata: {
+        requestId:
+          typeof crypto !== 'undefined' && crypto.randomUUID
+            ? crypto.randomUUID()
+            : `stream-object-${Date.now()}`,
+        timestamp: Date.now(),
+        provenance: { frontend: bridge.frontend.metadata.name },
+      },
+    };
+
+    const stream = bridge.executeIRStream(request, { signal });
+
+    let accumulatedRaw = '';
     let accumulatedData: Partial<T> = {};
+    let finalData: Partial<T> | undefined;
 
     for await (const chunk of stream) {
-      // Check if chunk contains tool use delta
-      if (chunk.delta?.type === 'input_json_delta') {
-        const jsonDelta = chunk.delta.partial_json;
+      if (chunk.type === 'tool_use' && chunk.name === EXTRACT_TOOL_NAME) {
+        accumulatedRaw += chunk.inputDelta ?? '';
 
         try {
-          // Parse accumulated JSON
-          accumulatedData = JSON.parse(jsonDelta || '{}') as Partial<T>;
+          accumulatedData = JSON.parse(accumulatedRaw || '{}') as Partial<T>;
 
-          // Emit partial
           if (onPartial) {
             onPartial(accumulatedData);
           }
@@ -559,11 +622,22 @@ export function createStreamObject(bridge: any) {
         } catch {
           // JSON not yet complete, continue
         }
+      } else if (chunk.type === 'done' && chunk.message) {
+        const toolCalls = extractToolCalls(chunk.message);
+        const firstToolCall = toolCalls[0];
+        if (firstToolCall) {
+          finalData = firstToolCall.input as Partial<T>;
+        }
       }
     }
 
+    // Prefer the fully-assembled object from the `done` chunk (already
+    // parsed by the backend adapter); fall back to whatever was
+    // successfully parsed from accumulated deltas.
+    const resolvedData = finalData ?? accumulatedData;
+
     // Validate final object
-    const validation = validateWithSchema(accumulatedData, schema);
+    const validation = validateWithSchema(resolvedData, schema);
 
     if (!validation.success) {
       const errors = 'errors' in validation ? validation.errors : 'unknown error';

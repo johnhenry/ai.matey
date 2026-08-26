@@ -362,10 +362,10 @@ export async function streamToText(stream: IRChatStream): Promise<string> {
 export function splitStream(stream: IRChatStream, consumerCount: number): IRChatStream[] {
   const chunks: IRStreamChunk[] = [];
   const consumers: Array<{
-    resolve: (chunk: IteratorResult<IRStreamChunk>) => void;
+    resolve: ((chunk: IteratorResult<IRStreamChunk>) => void) | null;
     queue: IRStreamChunk[];
   }> = Array.from({ length: consumerCount }, () => ({
-    resolve: () => {},
+    resolve: null,
     queue: [],
   }));
 
@@ -382,7 +382,7 @@ export function splitStream(stream: IRChatStream, consumerCount: number): IRChat
           consumer.queue.push(chunk);
           if (consumer.resolve) {
             const resolver = consumer.resolve;
-            consumer.resolve = () => {};
+            consumer.resolve = null;
             resolver({ value: consumer.queue.shift()!, done: false });
           }
         }

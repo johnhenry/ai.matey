@@ -3,6 +3,15 @@
  *
  * Caches responses with TTL-based expiration and LRU eviction.
  *
+ * **Multi-tenant warning**: the default cache key is derived only from
+ * model/messages/parameters -- it has no notion of caller identity. If this
+ * middleware's cache is shared across multiple users or tenants, two
+ * different callers sending the same prompt will collide and one can
+ * receive the other's cached response. In a multi-tenant deployment, either
+ * pass `scopeKey` (a tenant/user ID, or a function deriving one from the
+ * request) or supply your own fully custom `keyGenerator` that mixes in
+ * caller identity.
+ *
  * @module
  */
 
@@ -25,9 +34,26 @@ import { createHash } from 'crypto';
 export interface CachingConfig {
   /**
    * Cache key generator function.
-   * @default Default implementation based on request hash
+   *
+   * **Multi-tenant warning**: if you supply a custom generator, it MUST
+   * itself mix in caller/tenant identity when the cache is shared across
+   * users -- this option entirely replaces `scopeKey` below.
+   *
+   * @default Default implementation based on request hash (+ `scopeKey`, if set)
    */
   keyGenerator?: (request: IRChatRequest) => string;
+
+  /**
+   * A tenant/user/session identifier (or a function deriving one from the
+   * request) mixed into the *default* cache key generator.
+   *
+   * **Multi-tenant deployments sharing a single cache MUST set this** (or
+   * supply a fully custom `keyGenerator` that itself scopes by identity) --
+   * otherwise two different callers sending the same prompt collide on the
+   * same cache key and one can receive the other's cached response.
+   * Ignored when a custom `keyGenerator` is supplied.
+   */
+  scopeKey?: string | ((request: IRChatRequest) => string);
 
   /**
    * Cache TTL in milliseconds.
@@ -59,28 +85,39 @@ export interface CachingConfig {
 // ============================================================================
 
 /**
- * Default cache key generator.
+ * Build the default cache key generator, optionally scoped by `scopeKey`.
  *
- * Generates cache key from model, messages, and parameters.
- * Excludes metadata and streaming flag.
+ * Generates cache key from model, messages, and parameters (plus `scope`,
+ * if `scopeKey` is set). Excludes metadata and streaming flag.
+ *
+ * **Multi-tenant warning**: without `scopeKey`, this hashes only
+ * model/messages/parameters -- it has no notion of caller identity, so a
+ * shared cache will serve one caller's response to a different caller who
+ * sends the same prompt. Pass `scopeKey` (or a custom `keyGenerator`) to
+ * scope the cache by tenant/user/session.
  */
-function defaultKeyGenerator(request: IRChatRequest): string {
-  // Create a stable cache key from request
-  const cacheableData = {
-    model: request.parameters?.model,
-    messages: request.messages,
-    temperature: request.parameters?.temperature,
-    maxTokens: request.parameters?.maxTokens,
-    topP: request.parameters?.topP,
-    topK: request.parameters?.topK,
-    stopSequences: request.parameters?.stopSequences,
-    tools: request.tools,
-    toolChoice: request.toolChoice,
-  };
+function createDefaultKeyGenerator(
+  scopeKey?: string | ((request: IRChatRequest) => string)
+): (request: IRChatRequest) => string {
+  return (request: IRChatRequest): string => {
+    // Create a stable cache key from request
+    const cacheableData = {
+      scope: typeof scopeKey === 'function' ? scopeKey(request) : scopeKey,
+      model: request.parameters?.model,
+      messages: request.messages,
+      temperature: request.parameters?.temperature,
+      maxTokens: request.parameters?.maxTokens,
+      topP: request.parameters?.topP,
+      topK: request.parameters?.topK,
+      stopSequences: request.parameters?.stopSequences,
+      tools: request.tools,
+      toolChoice: request.toolChoice,
+    };
 
-  // Generate hash
-  const json = JSON.stringify(cacheableData);
-  return createHash('sha256').update(json).digest('hex');
+    // Generate hash
+    const json = JSON.stringify(cacheableData);
+    return createHash('sha256').update(json).digest('hex');
+  };
 }
 
 // ============================================================================
@@ -264,7 +301,7 @@ export class InMemoryCacheStorage implements CacheStorage {
  */
 export function createCachingMiddleware(config: CachingConfig = {}): Middleware {
   const {
-    keyGenerator = defaultKeyGenerator,
+    keyGenerator = createDefaultKeyGenerator(config.scopeKey),
     ttl = 3600000, // 1 hour
     maxSize = 1000,
     storage = new InMemoryCacheStorage(maxSize),

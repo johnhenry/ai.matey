@@ -9,7 +9,7 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import type { Bridge } from '@johnhenry/aimatey-core';
 import type { HTTPListenerOptions, HTTPRequestHandler } from '@johnhenry/aimatey-http-core';
-import { CoreHTTPHandler } from '@johnhenry/aimatey-http-core';
+import { CoreHTTPHandler, sendError } from '@johnhenry/aimatey-http-core';
 import { NodeRequestAdapter, NodeResponseAdapter } from './adapter.js';
 
 /**
@@ -60,15 +60,29 @@ export function NodeHTTPListener(
     req.setTimeout?.(timeout);
     res.setTimeout?.(timeout);
 
-    // Create adapters
-    const genericReq = new NodeRequestAdapter(req, maxBodySize);
-    const genericRes = new NodeResponseAdapter(res);
+    try {
+      // Create adapters
+      const genericReq = new NodeRequestAdapter(req, maxBodySize);
+      const genericRes = new NodeResponseAdapter(res);
 
-    // Parse request body before passing to core handler
-    await genericReq.parse();
+      // Parse request body before passing to core handler
+      await genericReq.parse();
 
-    // Handle request through core handler
-    await coreHandler.handle(genericReq, genericRes);
+      // Handle request through core handler
+      await coreHandler.handle(genericReq, genericRes);
+    } catch (error) {
+      // A malformed request (e.g. parseRequest() throwing on bad input) must
+      // not become an unhandled rejection -- that terminates the process on
+      // Node >= 15. Mirror the error-response pattern already used by the
+      // other framework adapters (deno/express/fastify/hono/koa).
+      console.error('Node HTTP listener error:', error);
+
+      if (!res.headersSent) {
+        sendError(res, error instanceof Error ? error : new Error(String(error)), 500);
+      } else if (res.writable) {
+        res.end();
+      }
+    }
   };
 }
 

@@ -9,6 +9,7 @@
 
 import { OpenAIBackendAdapter, type OpenAIRequest, type OpenAIResponse } from './openai.js';
 import type { BackendAdapter, BackendAdapterConfig, IRChatRequest } from '@johnhenry/aimatey-types';
+import { estimateTokens } from '../shared.js';
 
 /**
  * Backend adapter for Moonshot AI (Kimi) API.
@@ -133,10 +134,7 @@ export class MoonshotBackendAdapter
       return null;
     }
 
-    const inputTokens = request.messages.reduce((sum, msg) => {
-      const content = typeof msg.content === 'string' ? msg.content : '';
-      return sum + Math.ceil(content.length / 4);
-    }, 0);
+    const inputTokens = estimateTokens(request);
 
     const outputTokens = request.parameters?.maxTokens || 1024;
 

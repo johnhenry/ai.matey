@@ -712,12 +712,15 @@ export class Router implements IRouter {
       let results: Awaited<(typeof promises)[0]>[];
 
       if (strategy === 'first') {
-        // Return first successful response
-        const firstSuccess = await Promise.race(promises);
-        if (cancelOnFirstSuccess) {
+        // Return the first *successful* response -- racing on settlement
+        // (Promise.race) would abort the whole dispatch if the fastest
+        // backend happened to fail, even though a slower backend might
+        // still succeed.
+        const { winner, settled } = await this.raceFirstSuccess(promises);
+        if (cancelOnFirstSuccess && winner) {
           abortController.abort();
         }
-        results = [firstSuccess];
+        results = winner ? [winner] : settled;
       } else {
         // Wait for all responses
         results = await Promise.all(promises);
@@ -1453,7 +1456,25 @@ export class Router implements IRouter {
       return this.executeOnBackend(backendName, translatedRequest, signal);
     });
 
-    return Promise.race(promises);
+    try {
+      // Promise.any() resolves with the first *fulfilled* promise and only
+      // rejects once every promise has rejected -- unlike Promise.race(),
+      // a fast failure does not preempt a slower backend that would have
+      // succeeded.
+      return await Promise.any(promises);
+    } catch (error) {
+      const errors =
+        error instanceof AggregateError
+          ? error.errors.map((e) => (e instanceof Error ? e.message : String(e)))
+          : [error instanceof Error ? error.message : String(error)];
+
+      throw new AdapterError({
+        code: ErrorCode.ALL_BACKENDS_FAILED,
+        message: `All parallel fallback backends failed: ${errors.join(', ')}`,
+        isRetryable: true,
+        provenance: { router: this.metadata.name },
+      });
+    }
   }
 
   /**
@@ -1779,6 +1800,44 @@ export class Router implements IRouter {
     }
 
     return controller.signal;
+  }
+
+  /**
+   * Wait for the first promise to fulfill with `.success === true`, only
+   * settling on failure once *every* promise has settled unsuccessfully.
+   *
+   * Unlike `Promise.race()`, a fast failure does not preempt a slower
+   * backend that would have succeeded -- the whole point of "first success"
+   * parallel dispatch / fallback is to race on success, not on settlement.
+   */
+  private async raceFirstSuccess<T extends { success: boolean }>(
+    promises: Promise<T>[]
+  ): Promise<{ winner: T | null; settled: T[] }> {
+    return new Promise((resolve) => {
+      const settled: T[] = [];
+      let remaining = promises.length;
+      let resolved = false;
+
+      for (const p of promises) {
+        void p.then((result) => {
+          settled.push(result);
+
+          if (result.success) {
+            if (!resolved) {
+              resolved = true;
+              resolve({ winner: result, settled });
+            }
+            return;
+          }
+
+          remaining -= 1;
+          if (remaining === 0 && !resolved) {
+            resolved = true;
+            resolve({ winner: null, settled });
+          }
+        });
+      }
+    });
   }
 
   /**

@@ -25,8 +25,26 @@ export interface EmbeddingCachingConfig {
   /** Maximum cached entries (LRU-ish eviction of oldest). @default 1000 */
   maxEntries?: number;
 
-  /** Custom cache key generator. */
+  /**
+   * Custom cache key generator.
+   *
+   * **Multi-tenant warning**: if you supply a custom generator, it MUST
+   * itself mix in caller/tenant identity when the cache is shared across
+   * users -- this option entirely replaces `scopeKey` below.
+   */
   keyGenerator?: (request: IREmbedRequest) => string;
+
+  /**
+   * A tenant/user/session identifier (or a function deriving one from the
+   * request) mixed into the *default* cache key generator.
+   *
+   * **Multi-tenant deployments sharing a single cache MUST set this** (or
+   * supply a fully custom `keyGenerator` that itself scopes by identity) --
+   * otherwise two different callers embedding the same input collide on the
+   * same cache key and one can receive the other's cached response.
+   * Ignored when a custom `keyGenerator` is supplied.
+   */
+  scopeKey?: string | ((request: IREmbedRequest) => string);
 }
 
 interface CacheEntry {
@@ -34,14 +52,29 @@ interface CacheEntry {
   expiresAt: number;
 }
 
-function defaultKeyGenerator(request: IREmbedRequest): string {
-  const payload = JSON.stringify({
-    input: request.input,
-    model: request.parameters?.model,
-    dimensions: request.parameters?.dimensions,
-    inputType: request.parameters?.inputType,
-  });
-  return createHash('sha256').update(payload).digest('hex');
+/**
+ * Build the default embedding cache key generator, optionally scoped by
+ * `scopeKey`.
+ *
+ * **Multi-tenant warning**: without `scopeKey`, this hashes only
+ * input/model/parameters -- it has no notion of caller identity, so a
+ * shared cache will serve one caller's embedding to a different caller who
+ * embeds the same input. Pass `scopeKey` (or a custom `keyGenerator`) to
+ * scope the cache by tenant/user/session.
+ */
+function createDefaultKeyGenerator(
+  scopeKey?: string | ((request: IREmbedRequest) => string)
+): (request: IREmbedRequest) => string {
+  return (request: IREmbedRequest): string => {
+    const payload = JSON.stringify({
+      scope: typeof scopeKey === 'function' ? scopeKey(request) : scopeKey,
+      input: request.input,
+      model: request.parameters?.model,
+      dimensions: request.parameters?.dimensions,
+      inputType: request.parameters?.inputType,
+    });
+    return createHash('sha256').update(payload).digest('hex');
+  };
 }
 
 /**
@@ -60,7 +93,7 @@ export function createEmbeddingCachingMiddleware(
 ): EmbedMiddleware {
   const ttl = config.ttl ?? 3_600_000;
   const maxEntries = config.maxEntries ?? 1000;
-  const keyGenerator = config.keyGenerator ?? defaultKeyGenerator;
+  const keyGenerator = config.keyGenerator ?? createDefaultKeyGenerator(config.scopeKey);
   const cache = new Map<string, CacheEntry>();
 
   return async (request, next) => {

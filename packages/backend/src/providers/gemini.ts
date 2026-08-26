@@ -541,9 +541,11 @@ export class GeminiBackendAdapter implements BackendAdapter<GeminiRequest, Gemin
       contents,
       systemInstruction,
       generationConfig: {
-        temperature: request.parameters?.temperature
-          ? request.parameters.temperature / 2
-          : undefined,
+        // Pass temperature through unmodified, like every other backend
+        // adapter -- do not rescale it. A previous `? value / 2 : undefined`
+        // transform both applied an undocumented scale conversion and used
+        // truthiness, which silently dropped an explicit `temperature: 0`.
+        temperature: request.parameters?.temperature,
         topP: request.parameters?.topP,
         topK: request.parameters?.topK,
         maxOutputTokens: request.parameters?.maxTokens,
