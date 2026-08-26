@@ -40,22 +40,22 @@ ai.matey                    # Umbrella package (backwards compatibility)
 ### New Style (Recommended for New Projects)
 ```typescript
 // Import only what you need
-import { Bridge } from 'ai.matey.core';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
-import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
-import { createLoggingMiddleware } from 'ai.matey.middleware';
+import { Bridge } from '@johnhenry/aimatey-core';
+import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend/openai';
+import { AnthropicBackendAdapter } from '@johnhenry/aimatey-backend/anthropic';
+import { createLoggingMiddleware } from '@johnhenry/aimatey-middleware';
 ```
 
 ### Specific Package Imports (Alternative Style)
 ```typescript
 // Import from specific subpackage paths
-import { Bridge } from 'ai.matey.core';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
-import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
-import { createLoggingMiddleware } from 'ai.matey.middleware/logging';
+import { Bridge } from '@johnhenry/aimatey-core';
+import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend/openai';
+import { AnthropicBackendAdapter } from '@johnhenry/aimatey-backend/anthropic';
+import { createLoggingMiddleware } from '@johnhenry/aimatey-middleware/logging';
 ```
 
-Note: The umbrella package `ai.matey` only exports `VERSION` for version checking. Always import from specific packages as shown above.
+Note: The umbrella package `@johnhenry/aimatey` only exports `VERSION` for version checking. Always import from specific packages as shown above.
 
 ## Running Examples
 

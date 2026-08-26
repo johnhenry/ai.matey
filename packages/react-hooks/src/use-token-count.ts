@@ -7,7 +7,7 @@
  */
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { getModelContextWindow } from 'ai.matey.utils';
+import { getModelContextWindow } from '@johnhenry/aimatey-utils';
 
 /**
  * Token count options.
@@ -75,7 +75,7 @@ function defaultTokenizer(text: string): number {
  *
  * @example
  * ```tsx
- * import { useTokenCount } from 'ai.matey.react.hooks';
+ * import { useTokenCount } from '@johnhenry/aimatey-react-hooks';
  *
  * function TokenCounter() {
  *   const [text, setText] = useState('');

@@ -8,8 +8,8 @@
  *
  * @example
  * ```typescript
- * import { createChat } from 'ai.matey.wrapper/ir';
- * import { AnthropicBackend } from 'ai.matey.backend/anthropic';
+ * import { createChat } from '@johnhenry/aimatey-wrapper/ir';
+ * import { AnthropicBackend } from '@johnhenry/aimatey-backend/anthropic';
  *
  * const chat = createChat({
  *   backend: new AnthropicBackend({ apiKey: process.env.ANTHROPIC_API_KEY }),

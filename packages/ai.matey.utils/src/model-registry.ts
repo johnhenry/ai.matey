@@ -7,7 +7,7 @@
  * are never blocked by stale built-in data:
  *
  * ```typescript
- * import { registerModels } from 'ai.matey.utils';
+ * import { registerModels } from '@johnhenry/aimatey-utils';
  *
  * registerModels([
  *   {
@@ -27,7 +27,7 @@
  * @module
  */
 
-import type { ModelRegistryEntry, ModelPricingInfo } from 'ai.matey.types';
+import type { ModelRegistryEntry, ModelPricingInfo } from '@johnhenry/aimatey-types';
 import { MODEL_REGISTRY_SEED } from './model-registry-data.js';
 
 /** Minimum prefix length considered meaningful for fallback matching. */

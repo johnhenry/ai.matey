@@ -16,7 +16,7 @@ A practical guide to get you started with the Universal AI Adapter System. This 
 Install the package via npm:
 
 ```bash
-npm install ai.matey
+npm install @johnhenry/aimatey
 ```
 
 Set up your environment variables:
@@ -38,9 +38,9 @@ GOOGLE_API_KEY=...
 Write your code using Anthropic's interface, but run it against OpenAI's API:
 
 ```typescript
-import { Bridge } from 'ai.matey.core';
-import { AnthropicFrontendAdapter } from 'ai.matey.frontend/anthropic';
-import { OpenAIBackendAdapter } from 'ai.matey.backend/openai';
+import { Bridge } from '@johnhenry/aimatey-core';
+import { AnthropicFrontendAdapter } from '@johnhenry/aimatey-frontend/anthropic';
+import { OpenAIBackendAdapter } from '@johnhenry/aimatey-backend/openai';
 
 // Create frontend and backend adapters
 const frontend = new AnthropicFrontendAdapter();
@@ -90,9 +90,9 @@ const bridge = frontend.connect(backend);
 Get real-time streaming responses with consistent behavior across providers:
 
 ```typescript
-import { Bridge } from 'ai.matey.core';
-import { AnthropicFrontendAdapter } from 'ai.matey.frontend/anthropic';
-import { OpenAIBackendAdapter } from 'ai.matey.backend/openai';
+import { Bridge } from '@johnhenry/aimatey-core';
+import { AnthropicFrontendAdapter } from '@johnhenry/aimatey-frontend/anthropic';
+import { OpenAIBackendAdapter } from '@johnhenry/aimatey-backend/openai';
 
 const frontend = new AnthropicFrontendAdapter();
 const backend = new OpenAIBackendAdapter({
@@ -179,11 +179,11 @@ async function cancelableStream() {
 Use the Router to switch between backends at runtime based on your needs:
 
 ```typescript
-import { Bridge } from 'ai.matey.core';
-import { Router } from 'ai.matey.core';
-import { AnthropicFrontendAdapter } from 'ai.matey.frontend/anthropic';
-import { OpenAIBackendAdapter } from 'ai.matey.backend/openai';
-import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
+import { Bridge } from '@johnhenry/aimatey-core';
+import { Router } from '@johnhenry/aimatey-core';
+import { AnthropicFrontendAdapter } from '@johnhenry/aimatey-frontend/anthropic';
+import { OpenAIBackendAdapter } from '@johnhenry/aimatey-backend/openai';
+import { AnthropicBackendAdapter } from '@johnhenry/aimatey-backend/anthropic';
 
 // Create multiple backend options
 const openai = new OpenAIBackendAdapter({
@@ -291,12 +291,12 @@ Add logging, transformations, and other concerns without modifying your core cod
 ### Basic Logging Middleware
 
 ```typescript
-import { Bridge } from 'ai.matey.core';
-import { AnthropicFrontendAdapter } from 'ai.matey.frontend/anthropic';
-import { OpenAIBackendAdapter } from 'ai.matey.backend/openai';
-import type { Middleware } from 'ai.matey.types';
-import type { IRChatRequest } from 'ai.matey.types';
-import type { IRChatResponse } from 'ai.matey.types';
+import { Bridge } from '@johnhenry/aimatey-core';
+import { AnthropicFrontendAdapter } from '@johnhenry/aimatey-frontend/anthropic';
+import { OpenAIBackendAdapter } from '@johnhenry/aimatey-backend/openai';
+import type { Middleware } from '@johnhenry/aimatey-types';
+import type { IRChatRequest } from '@johnhenry/aimatey-types';
+import type { IRChatResponse } from '@johnhenry/aimatey-types';
 
 // Create a simple logging middleware
 const loggingMiddleware: Middleware = async (context, next) => {
@@ -425,7 +425,7 @@ Proper error handling patterns for production use:
 ### Basic Try/Catch
 
 ```typescript
-import { AdapterError } from 'ai.matey.errors';
+import { AdapterError } from '@johnhenry/aimatey-errors';
 
 async function handleErrors() {
   try {
@@ -455,11 +455,11 @@ async function handleErrors() {
 ### Handling Specific Error Types
 
 ```typescript
-import { AdapterError } from 'ai.matey.errors';
-import { AuthenticationError } from 'ai.matey.errors';
-import { RateLimitError } from 'ai.matey.errors';
-import { ValidationError } from 'ai.matey.errors';
-import { ErrorCode } from 'ai.matey.errors';
+import { AdapterError } from '@johnhenry/aimatey-errors';
+import { AuthenticationError } from '@johnhenry/aimatey-errors';
+import { RateLimitError } from '@johnhenry/aimatey-errors';
+import { ValidationError } from '@johnhenry/aimatey-errors';
+import { ErrorCode } from '@johnhenry/aimatey-errors';
 
 async function handleSpecificErrors() {
   try {
@@ -592,11 +592,11 @@ async function chatWithRetry(maxRetries = 3) {
 ### Type-Safe Usage Example
 
 ```typescript
-import type { Bridge } from 'ai.matey.core';
-import type { IRChatRequest } from 'ai.matey.types';
-import type { IRChatResponse } from 'ai.matey.types';
-import { AnthropicFrontendAdapter } from 'ai.matey.frontend/anthropic';
-import { OpenAIBackendAdapter } from 'ai.matey.backend/openai';
+import type { Bridge } from '@johnhenry/aimatey-core';
+import type { IRChatRequest } from '@johnhenry/aimatey-types';
+import type { IRChatResponse } from '@johnhenry/aimatey-types';
+import { AnthropicFrontendAdapter } from '@johnhenry/aimatey-frontend/anthropic';
+import { OpenAIBackendAdapter } from '@johnhenry/aimatey-backend/openai';
 
 // Types are inferred automatically
 const frontend = new AnthropicFrontendAdapter();
@@ -645,10 +645,10 @@ function processIR(ir: IRChatRequest) {
 
 ```typescript
 // Bridge is generic over frontend adapter type
-import type { Bridge } from 'ai.matey.core';
-import type { FrontendAdapter, BackendAdapter } from 'ai.matey.types';
-import { AnthropicFrontendAdapter } from 'ai.matey.frontend/anthropic';
-import { OpenAIBackendAdapter } from 'ai.matey.backend/openai';
+import type { Bridge } from '@johnhenry/aimatey-core';
+import type { FrontendAdapter, BackendAdapter } from '@johnhenry/aimatey-types';
+import { AnthropicFrontendAdapter } from '@johnhenry/aimatey-frontend/anthropic';
+import { OpenAIBackendAdapter } from '@johnhenry/aimatey-backend/openai';
 
 function createTypedBridge<F extends FrontendAdapter>(
   frontend: F,
@@ -678,14 +678,14 @@ await typedBridge.chat({
 Putting it all together:
 
 ```typescript
-import { Bridge } from 'ai.matey.core';
-import { Router } from 'ai.matey.core';
-import { AnthropicFrontendAdapter } from 'ai.matey.frontend/anthropic';
-import { OpenAIBackendAdapter } from 'ai.matey.backend/openai';
-import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
-import type { Middleware } from 'ai.matey.types';
-import { RateLimitError } from 'ai.matey.errors';
-import { AuthenticationError } from 'ai.matey.errors';
+import { Bridge } from '@johnhenry/aimatey-core';
+import { Router } from '@johnhenry/aimatey-core';
+import { AnthropicFrontendAdapter } from '@johnhenry/aimatey-frontend/anthropic';
+import { OpenAIBackendAdapter } from '@johnhenry/aimatey-backend/openai';
+import { AnthropicBackendAdapter } from '@johnhenry/aimatey-backend/anthropic';
+import type { Middleware } from '@johnhenry/aimatey-types';
+import { RateLimitError } from '@johnhenry/aimatey-errors';
+import { AuthenticationError } from '@johnhenry/aimatey-errors';
 
 // Middleware setup
 const loggingMiddleware: Middleware = async (context, next) => {

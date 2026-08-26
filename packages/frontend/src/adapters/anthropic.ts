@@ -7,7 +7,7 @@
  * @module
  */
 
-import type { FrontendAdapter, AdapterMetadata } from 'ai.matey.types';
+import type { FrontendAdapter, AdapterMetadata } from '@johnhenry/aimatey-types';
 import type {
   IRChatRequest,
   IRChatResponse,
@@ -15,10 +15,10 @@ import type {
   IRMessage,
   JSONSchema,
   MessageContent,
-} from 'ai.matey.types';
-import type { StreamConversionOptions } from 'ai.matey.types';
-import { AdapterConversionError, ErrorCode } from 'ai.matey.errors';
-import { convertStreamMode } from 'ai.matey.utils';
+} from '@johnhenry/aimatey-types';
+import type { StreamConversionOptions } from '@johnhenry/aimatey-types';
+import { AdapterConversionError, ErrorCode } from '@johnhenry/aimatey-errors';
+import { convertStreamMode } from '@johnhenry/aimatey-utils';
 
 // ============================================================================
 // Anthropic API Types

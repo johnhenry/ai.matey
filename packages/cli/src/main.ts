@@ -21,7 +21,7 @@
 
 function showHelp(): void {
   console.log(`
-AI.Matey CLI v0.1.0
+AI.Matey CLI v0.0.0
 Universal AI Adapter System - Provider-agnostic interface for AI APIs
 
 USAGE:
@@ -75,7 +75,7 @@ Run 'ai-matey <command> --help' for more information on a specific command.
 }
 
 function showVersion(): void {
-  console.log('ai-matey version 0.1.0');
+  console.log('ai-matey version 0.0.0');
 }
 
 // ============================================================================

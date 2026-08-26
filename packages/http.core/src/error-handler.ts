@@ -17,7 +17,7 @@ import {
   NetworkError,
   ProviderError,
   StreamError,
-} from 'ai.matey.errors';
+} from '@johnhenry/aimatey-errors';
 
 /**
  * Default error handler

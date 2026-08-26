@@ -9,7 +9,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { RateLimiter } from 'ai.matey.http.core';
+import { RateLimiter } from '@johnhenry/aimatey-http-core';
 import type { IncomingMessage, ServerResponse } from 'http';
 
 // ============================================================================
@@ -132,7 +132,7 @@ describe('Auth timing-safe comparison', () => {
   // but we can verify the functionality works correctly
 
   it('should correctly validate matching bearer tokens', async () => {
-    const { createBearerTokenValidator } = await import('ai.matey.http.core');
+    const { createBearerTokenValidator } = await import('@johnhenry/aimatey-http-core');
 
     const validator = createBearerTokenValidator(['valid-token-123']);
     const req = {
@@ -144,7 +144,7 @@ describe('Auth timing-safe comparison', () => {
   });
 
   it('should reject non-matching bearer tokens', async () => {
-    const { createBearerTokenValidator } = await import('ai.matey.http.core');
+    const { createBearerTokenValidator } = await import('@johnhenry/aimatey-http-core');
 
     const validator = createBearerTokenValidator(['valid-token-123']);
     const req = {
@@ -156,7 +156,7 @@ describe('Auth timing-safe comparison', () => {
   });
 
   it('should correctly validate matching API keys', async () => {
-    const { createAPIKeyValidator } = await import('ai.matey.http.core');
+    const { createAPIKeyValidator } = await import('@johnhenry/aimatey-http-core');
 
     const validator = createAPIKeyValidator(['my-api-key']);
     const req = {
@@ -168,7 +168,7 @@ describe('Auth timing-safe comparison', () => {
   });
 
   it('should reject non-matching API keys', async () => {
-    const { createAPIKeyValidator } = await import('ai.matey.http.core');
+    const { createAPIKeyValidator } = await import('@johnhenry/aimatey-http-core');
 
     const validator = createAPIKeyValidator(['my-api-key']);
     const req = {
@@ -180,7 +180,7 @@ describe('Auth timing-safe comparison', () => {
   });
 
   it('should correctly validate basic auth credentials', async () => {
-    const { createBasicAuthValidator } = await import('ai.matey.http.core');
+    const { createBasicAuthValidator } = await import('@johnhenry/aimatey-http-core');
 
     const credentials = new Map([['admin', 'secret123']]);
     const validator = createBasicAuthValidator(credentials);
@@ -196,7 +196,7 @@ describe('Auth timing-safe comparison', () => {
   });
 
   it('should reject invalid basic auth credentials', async () => {
-    const { createBasicAuthValidator } = await import('ai.matey.http.core');
+    const { createBasicAuthValidator } = await import('@johnhenry/aimatey-http-core');
 
     const credentials = new Map([['admin', 'secret123']]);
     const validator = createBasicAuthValidator(credentials);
@@ -212,7 +212,7 @@ describe('Auth timing-safe comparison', () => {
   });
 
   it('should reject non-existent user in basic auth', async () => {
-    const { createBasicAuthValidator } = await import('ai.matey.http.core');
+    const { createBasicAuthValidator } = await import('@johnhenry/aimatey-http-core');
 
     const credentials = new Map([['admin', 'secret123']]);
     const validator = createBasicAuthValidator(credentials);
@@ -228,7 +228,7 @@ describe('Auth timing-safe comparison', () => {
   });
 
   it('should validate with Set of tokens', async () => {
-    const { createBearerTokenValidator } = await import('ai.matey.http.core');
+    const { createBearerTokenValidator } = await import('@johnhenry/aimatey-http-core');
 
     const tokens = new Set(['token1', 'token2', 'token3']);
     const validator = createBearerTokenValidator(tokens);

@@ -7,7 +7,7 @@
  * @module cli/utils/model-translation
  */
 
-import type { BackendAdapter } from 'ai.matey.types';
+import type { BackendAdapter } from '@johnhenry/aimatey-types';
 
 export type ModelMapping = Record<string, string>;
 

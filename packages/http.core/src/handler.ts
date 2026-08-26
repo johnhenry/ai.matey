@@ -7,7 +7,7 @@
  * @module
  */
 
-import type { Bridge } from 'ai.matey.core';
+import type { Bridge } from '@johnhenry/aimatey-core';
 import type {
   GenericRequest,
   GenericResponse,
@@ -18,7 +18,7 @@ import { GenericRateLimiter } from './rate-limiter.js';
 import { RouteMatcher, applyPathPrefix } from './route-matcher.js';
 import { createHealthCheck, createReadinessCheck, createLivenessCheck } from './health.js';
 import { createMetricsHandler } from './metrics.js';
-import { openaiEmbedRequestToIR, irToOpenAIEmbedResponse } from 'ai.matey.utils';
+import { openaiEmbedRequestToIR, irToOpenAIEmbedResponse } from '@johnhenry/aimatey-utils';
 import { normalizeCORSOptions } from './cors.js';
 import { detectProviderFormat } from './response-formatter.js';
 

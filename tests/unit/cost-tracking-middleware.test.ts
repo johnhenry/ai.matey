@@ -6,9 +6,9 @@ import {
   calculateCost,
   getCostStats,
   DEFAULT_PRICING,
-} from 'ai.matey.middleware';
-import type { IRChatRequest, IRChatResponse, IRStreamChunk } from 'ai.matey.types';
-import type { MiddlewareContext, StreamingMiddlewareContext } from 'ai.matey.types';
+} from '@johnhenry/aimatey-middleware';
+import type { IRChatRequest, IRChatResponse, IRStreamChunk } from '@johnhenry/aimatey-types';
+import type { MiddlewareContext, StreamingMiddlewareContext } from '@johnhenry/aimatey-types';
 
 describe('Cost Tracking Middleware', () => {
   const mockRequest: IRChatRequest = {

@@ -16,7 +16,7 @@ import {
   OpenRouterBackendAdapter,
   TogetherAIBackendAdapter,
   XAIBackendAdapter,
-} from 'ai.matey.backend';
+} from '@johnhenry/aimatey-backend';
 
 const ADAPTERS: Array<[string, () => { metadata: { capabilities: { tools?: boolean } } }]> = [
   ['Mistral', () => new MistralBackendAdapter({ apiKey: 'test-key' })],

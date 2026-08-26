@@ -20,7 +20,7 @@ import {
   createErrorFromHttpResponse,
   createErrorFromProviderError,
   ErrorCode,
-} from 'ai.matey.errors';
+} from '@johnhenry/aimatey-errors';
 
 // ============================================================================
 // AdapterError Tests

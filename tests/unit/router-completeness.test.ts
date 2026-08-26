@@ -6,8 +6,8 @@
  */
 
 import { describe, it, expect, vi } from 'vitest';
-import { createRouter } from 'ai.matey.core';
-import type { BackendAdapter, IRChatRequest, IRChatResponse } from 'ai.matey.types';
+import { createRouter } from '@johnhenry/aimatey-core';
+import type { BackendAdapter, IRChatRequest, IRChatResponse } from '@johnhenry/aimatey-types';
 
 // ============================================================================
 // Test Helpers

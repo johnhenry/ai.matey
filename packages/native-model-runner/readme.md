@@ -1,18 +1,20 @@
-# ai.matey.native.model-runner
+# @johnhenry/aimatey-native-model-runner
+
+> **Note:** Previously published as `ai.matey.native.model-runner@0.2.1`.
 
 Base class for wrapping **any local model CLI or binary** as an AI Matey backend — llama.cpp's
 `main`, whisper.cpp, MLX scripts, custom inference servers driven over stdio. Part of the
 [ai.matey](https://github.com/johnhenry/ai.matey) monorepo.
 
 > This package ships an abstract class, not a ready-made backend. If you want a turnkey local
-> backend, see [`ai.matey.native.node-llamacpp`](../native-node-llamacpp) or
-> [`ai.matey.native.apple`](../native-apple), or use the Ollama/LM Studio backends in
-> `ai.matey.backend`.
+> backend, see [`@johnhenry/aimatey-native-node-llamacpp`](../native-node-llamacpp) or
+> [`@johnhenry/aimatey-native-apple`](../native-apple), or use the Ollama/LM Studio backends in
+> `@johnhenry/aimatey-backend`.
 
 ## Installation
 
 ```bash
-npm install ai.matey.native.model-runner
+npm install @johnhenry/aimatey-native-model-runner
 ```
 
 ## Usage
@@ -20,8 +22,8 @@ npm install ai.matey.native.model-runner
 Subclass `GenericModelRunnerBackend` and implement the four translation hooks:
 
 ```typescript
-import { GenericModelRunnerBackend } from 'ai.matey.native.model-runner';
-import type { IRChatRequest } from 'ai.matey.types';
+import { GenericModelRunnerBackend } from '@johnhenry/aimatey-native-model-runner';
+import type { IRChatRequest } from '@johnhenry/aimatey-types';
 
 class LlamaCliBackend extends GenericModelRunnerBackend {
   constructor() {

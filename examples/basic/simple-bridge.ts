@@ -4,9 +4,9 @@
  * Shows the most basic usage of ai.matey - connecting OpenAI frontend to Anthropic backend.
  */
 
-import { Bridge } from 'ai.matey.core';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend';
-import { AnthropicBackendAdapter } from 'ai.matey.backend';
+import { Bridge } from '@johnhenry/aimatey-core';
+import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend';
+import { AnthropicBackendAdapter } from '@johnhenry/aimatey-backend';
 
 async function main() {
   // Create bridge: OpenAI format -> Anthropic execution

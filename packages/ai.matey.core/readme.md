@@ -1,4 +1,6 @@
-# ai.matey.core
+# @johnhenry/aimatey-core
+
+> **Note:** Previously published as `ai.matey.core@0.3.4`.
 
 Core Bridge, Router, and MiddlewareStack implementations
 
@@ -7,7 +9,7 @@ Part of the [ai.matey](https://github.com/johnhenry/ai.matey) monorepo.
 ## Installation
 
 ```bash
-npm install ai.matey.core
+npm install @johnhenry/aimatey-core
 ```
 
 ## Exports
@@ -23,7 +25,7 @@ npm install ai.matey.core
 ## Usage
 
 ```typescript
-import { Bridge, createBridge, Router, createRouter, MiddlewareStack, createMiddlewareContext } from 'ai.matey.core';
+import { Bridge, createBridge, Router, createRouter, MiddlewareStack, createMiddlewareContext } from '@johnhenry/aimatey-core';
 ```
 
 ## Structured Output
@@ -52,7 +54,7 @@ const result = await bridge.runTools({
 ```
 
 For MCP (Model Context Protocol) tools specifically, see
-[`ai.matey.mcp`](../mcp/readme.md), which translates MCP tools into the same `ToolDefinition`
+[`@johnhenry/aimatey-mcp`](../mcp/readme.md), which translates MCP tools into the same `ToolDefinition`
 shape this loop consumes.
 
 ## API Reference

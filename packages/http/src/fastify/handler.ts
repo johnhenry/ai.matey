@@ -7,9 +7,9 @@
  */
 
 import type { FastifyRequest, FastifyReply } from 'fastify';
-import type { Bridge } from 'ai.matey.core';
-import type { HTTPListenerOptions } from 'ai.matey.http.core';
-import { CoreHTTPHandler } from 'ai.matey.http.core';
+import type { Bridge } from '@johnhenry/aimatey-core';
+import type { HTTPListenerOptions } from '@johnhenry/aimatey-http-core';
+import { CoreHTTPHandler } from '@johnhenry/aimatey-http-core';
 import { FastifyRequestAdapter, FastifyResponseAdapter } from './adapter.js';
 
 /**
@@ -22,7 +22,7 @@ import { FastifyRequestAdapter, FastifyResponseAdapter } from './adapter.js';
  * @example
  * ```typescript
  * import Fastify from 'fastify';
- * import { FastifyHandler } from 'ai.matey.http/fastify';
+ * import { FastifyHandler } from '@johnhenry/aimatey-http/fastify';
  *
  * const fastify = Fastify();
  * const bridge = new Bridge(frontend, backend);

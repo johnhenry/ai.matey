@@ -2,6 +2,16 @@
 
 This guide covers how to publish ai.matey packages to npm using Changesets.
 
+> **Note:** All packages here now publish under the `@johnhenry` npm scope
+> (see the root [CHANGELOG.md](../CHANGELOG.md) and each package's readme.md for the
+> old → new name mapping and provenance). The **release trigger** described later in this
+> guide is also out of date: `.github/workflows/release.yml` now fires on a **published
+> GitHub Release** (`release: published` + manual `workflow_dispatch`), not on a pushed
+> `v*.*.*` tag — it still runs the same build/lint/typecheck/test gate and
+> `scripts/staggered-publish.sh` for the actual publish step. Treat the workflow file itself
+> as the source of truth over the tag-based walkthrough below; a full rewrite of this guide
+> is tracked as follow-up docs work.
+
 ## Overview
 
 The monorepo uses:
@@ -51,8 +61,8 @@ This creates a markdown file in `.changeset/` describing the changes.
 **Example changeset file** (`.changeset/happy-dogs-dance.md`):
 ```markdown
 ---
-"ai.matey.core": minor
-"ai.matey.http.core": patch
+"@johnhenry/aimatey-core": minor
+"@johnhenry/aimatey-http-core": patch
 ---
 
 Added new routing capabilities to core and fixed rate limiter bug
@@ -158,7 +168,7 @@ grep -r '"ai.matey' packages/*/package.json | grep -v '"*"' || echo "✅ All int
 # Check for unintended external dependencies
 for pkg in packages/*/package.json; do
   echo "=== $pkg ==="
-  jq '.dependencies // {} | keys | .[] | select(startswith("ai.matey") | not)' "$pkg"
+  jq '.dependencies // {} | keys | .[] | select(startswith("@johnhenry/aimatey") | not)' "$pkg"
 done
 ```
 
@@ -233,7 +243,7 @@ for pkg in ai.matey.backend ai.matey.backend.browser ai.matey.frontend; do
 done
 
 # Middleware and HTTP
-for pkg in ai.matey.middleware ai.matey.http-core ai.matey.http; do
+for pkg in @johnhenry/aimatey-middleware @johnhenry/aimatey-http-core @johnhenry/aimatey-http; do
   npm publish --workspace=$pkg --access public
   sleep 5
 done
@@ -370,7 +380,7 @@ npm publish --dry-run --workspace=ai.matey.core
 ```bash
 npm pack --workspace=ai.matey.core
 # Creates a tarball you can extract and inspect
-tar -tzf ai.matey.core-1.0.0.tgz
+tar -tzf johnhenry-aimatey-core-0.0.0.tgz
 ```
 
 ### Authentication issues
@@ -446,15 +456,15 @@ The monorepo contains 21 packages organized by category:
 
 | Category | Packages |
 |----------|----------|
-| Core | `ai.matey`, `ai.matey.core`, `ai.matey.types`, `ai.matey.errors`, `ai.matey.utils`, `ai.matey.testing` |
-| Backends | `ai.matey.backend` (server-side providers), `ai.matey.backend.browser` (browser-native) |
-| Frontend | `ai.matey.frontend` (all provider adapters) |
-| Middleware | `ai.matey.middleware` (retry, caching, logging, telemetry, etc.) |
-| HTTP | `ai.matey.http-core`, `ai.matey.http` (Express, Fastify, Hono, Koa, Node, Deno) |
-| React | `ai.matey.react.core`, `ai.matey.react.hooks`, `ai.matey.react.nextjs`, `ai.matey.react.stream` |
-| Wrappers | `ai.matey.wrapper` (OpenAI SDK, Anthropic SDK, Chrome AI, Chat) |
-| Native | `ai.matey.native.apple`, `ai.matey.native.model-runner`, `ai.matey.native.node-llamacpp` |
-| CLI | `ai.matey.cli` |
+| Core | `@johnhenry/aimatey`, `@johnhenry/aimatey-core`, `@johnhenry/aimatey-types`, `@johnhenry/aimatey-errors`, `@johnhenry/aimatey-utils`, `@johnhenry/aimatey-testing` |
+| Backends | `@johnhenry/aimatey-backend` (server-side providers), `@johnhenry/aimatey-backend-browser` (browser-native) |
+| Frontend | `@johnhenry/aimatey-frontend` (all provider adapters) |
+| Middleware | `@johnhenry/aimatey-middleware` (retry, caching, logging, telemetry, etc.) |
+| HTTP | `@johnhenry/aimatey-http-core`, `@johnhenry/aimatey-http` (Express, Fastify, Hono, Koa, Node, Deno) |
+| React | `@johnhenry/aimatey-react-core`, `@johnhenry/aimatey-react-hooks`, `@johnhenry/aimatey-react-nextjs`, `@johnhenry/aimatey-react-stream` |
+| Wrappers | `@johnhenry/aimatey-wrapper` (OpenAI SDK, Anthropic SDK, Chrome AI, Chat) |
+| Native | `@johnhenry/aimatey-native-apple`, `@johnhenry/aimatey-native-model-runner`, `@johnhenry/aimatey-native-node-llamacpp` |
+| CLI | `@johnhenry/aimatey-cli` |
 
 ## Adding New Packages
 
@@ -471,8 +481,8 @@ mkdir -p packages/my-new-package/src
 ```bash
 cat > packages/my-new-package/package.json << 'EOF'
 {
-  "name": "ai.matey.my-new-package",
-  "version": "1.0.0",
+  "name": "@johnhenry/aimatey-my-new-package",
+  "version": "0.0.0",
   "description": "Description of your package",
   "type": "module",
   "main": "./dist/cjs/index.js",
@@ -507,7 +517,7 @@ cat > packages/my-new-package/package.json << 'EOF'
     "lint:fix": "eslint src --ext .ts --fix"
   },
   "dependencies": {
-    "ai.matey.types": "*"
+    "@johnhenry/aimatey-types": "*"
   },
   "devDependencies": {
     "typescript": "^5.9.3",
@@ -611,20 +621,20 @@ EOF
 
 ```bash
 cat > packages/my-new-package/readme.md << 'EOF'
-# ai.matey.my-new-package
+# @johnhenry/aimatey-my-new-package
 
 Description of your package.
 
 ## Installation
 
 ```bash
-npm install ai.matey.my-new-package
+npm install @johnhenry/aimatey-my-new-package
 ```
 
 ## Usage
 
 ```typescript
-import { hello } from 'ai.matey.my-new-package';
+import { hello } from '@johnhenry/aimatey-my-new-package';
 
 console.log(hello());
 ```
@@ -638,28 +648,28 @@ EOF
 npm install
 
 # Build to verify everything works
-npm run build --workspace=ai.matey.my-new-package
+npm run build --workspace=@johnhenry/aimatey-my-new-package
 ```
 
 ### 7. Add to Version Control
 
 ```bash
 git add packages/my-new-package
-git commit -m "Add ai.matey.my-new-package"
+git commit -m "Add @johnhenry/aimatey-my-new-package"
 ```
 
 ### Package Naming Conventions
 
 | Type | Naming Pattern | Example |
 |------|----------------|---------|
-| Backend adapter | `ai.matey.backend.<provider>` | `ai.matey.backend/openai` |
-| Frontend adapter | `ai.matey.frontend.<provider>` | `ai.matey.frontend/openai` |
-| Middleware | `ai.matey.middleware.<name>` | `ai.matey.middleware` |
-| HTTP framework | `ai.matey.http.<framework>` | `ai.matey.http/express` |
-| React package | `ai.matey.react.<name>` | `ai.matey.react.hooks` |
-| Wrapper | `ai.matey.wrapper.<sdk>` | `ai.matey.wrapper/openai` |
-| Native | `ai.matey.native.<name>` | `ai.matey.native.model-runner` |
-| Core/Utility | `ai.matey.<name>` | `ai.matey.utils` |
+| Backend adapter | `ai.matey.backend.<provider>` | `@johnhenry/aimatey-backend/openai` |
+| Frontend adapter | `ai.matey.frontend.<provider>` | `@johnhenry/aimatey-frontend/openai` |
+| Middleware | `ai.matey.middleware.<name>` | `@johnhenry/aimatey-middleware` |
+| HTTP framework | `ai.matey.http.<framework>` | `@johnhenry/aimatey-http/express` |
+| React package | `ai.matey.react.<name>` | `@johnhenry/aimatey-react-hooks` |
+| Wrapper | `ai.matey.wrapper.<sdk>` | `@johnhenry/aimatey-wrapper/openai` |
+| Native | `ai.matey.native.<name>` | `@johnhenry/aimatey-native-model-runner` |
+| Core/Utility | `ai.matey.<name>` | `@johnhenry/aimatey-utils` |
 
 ### Internal Dependencies
 
@@ -668,8 +678,8 @@ To depend on other monorepo packages, use `"*"` as the version:
 ```json
 {
   "dependencies": {
-    "ai.matey.types": "*",
-    "ai.matey.errors": "*"
+    "@johnhenry/aimatey-types": "*",
+    "@johnhenry/aimatey-errors": "*"
   }
 }
 ```
@@ -702,27 +712,27 @@ cat > /tmp/verify-npm-publish.sh << 'EOF'
 #!/bin/bash
 
 packages=(
-  "ai.matey"
-  "ai.matey.core"
-  "ai.matey.types"
-  "ai.matey.errors"
-  "ai.matey.utils"
-  "ai.matey.testing"
-  "ai.matey.backend"
-  "ai.matey.backend.browser"
-  "ai.matey.frontend"
-  "ai.matey.middleware"
-  "ai.matey.http.core"
-  "ai.matey.http"
-  "ai.matey.react.core"
-  "ai.matey.react.hooks"
-  "ai.matey.react.nextjs"
-  "ai.matey.react.stream"
-  "ai.matey.wrapper"
-  "ai.matey.native.apple"
-  "ai.matey.native.model-runner"
-  "ai.matey.native.node-llamacpp"
-  "ai.matey.cli"
+  "@johnhenry/aimatey"
+  "@johnhenry/aimatey-core"
+  "@johnhenry/aimatey-types"
+  "@johnhenry/aimatey-errors"
+  "@johnhenry/aimatey-utils"
+  "@johnhenry/aimatey-testing"
+  "@johnhenry/aimatey-backend"
+  "@johnhenry/aimatey-backend-browser"
+  "@johnhenry/aimatey-frontend"
+  "@johnhenry/aimatey-middleware"
+  "@johnhenry/aimatey-http-core"
+  "@johnhenry/aimatey-http"
+  "@johnhenry/aimatey-react-core"
+  "@johnhenry/aimatey-react-hooks"
+  "@johnhenry/aimatey-react-nextjs"
+  "@johnhenry/aimatey-react-stream"
+  "@johnhenry/aimatey-wrapper"
+  "@johnhenry/aimatey-native-apple"
+  "@johnhenry/aimatey-native-model-runner"
+  "@johnhenry/aimatey-native-node-llamacpp"
+  "@johnhenry/aimatey-cli"
 )
 
 echo "Verifying npm packages..."
@@ -794,10 +804,10 @@ cd /tmp/verify-package
 
 # Example: Verify ai.matey.core
 npm pack ai.matey.core
-tar -tzf ai.matey.core-*.tgz
+tar -tzf johnhenry-aimatey-core-*.tgz
 
 # Check for required files
-tar -tzf ai.matey.core-*.tgz | grep -E "(dist/esm|dist/cjs|dist/types|package.json|README.md)" || echo "❌ Missing expected files"
+tar -tzf johnhenry-aimatey-core-*.tgz | grep -E "(dist/esm|dist/cjs|dist/types|package.json|README.md)" || echo "❌ Missing expected files"
 
 # Cleanup
 cd -
@@ -859,7 +869,7 @@ mkdir -p /tmp/test-ai-matey-install
 cd /tmp/test-ai-matey-install
 
 npm init -y
-npm install ai.matey ai.matey.core ai.matey.backend ai.matey.frontend
+npm install @johnhenry/aimatey ai.matey.core ai.matey.backend ai.matey.frontend
 
 # Verify installation succeeded
 if [ -d "node_modules/ai.matey" ]; then
@@ -885,8 +895,8 @@ Check that internal monorepo dependencies (using `*` version) were correctly rep
 ```bash
 # Check that internal deps were replaced
 npm view ai.matey.core dependencies
-# Should show real versions like "ai.matey.types": "^1.0.0"
-# NOT "ai.matey.types": "*"
+# Should show real versions like "@johnhenry/aimatey-types": "^1.0.0"
+# NOT "@johnhenry/aimatey-types": "*"
 
 # Verify for all core packages
 for pkg in ai.matey.core ai.matey.backend ai.matey.frontend ai.matey.middleware; do
@@ -906,10 +916,10 @@ cd /tmp/test-esm
 
 npm init -y
 npm pkg set type="module"
-npm install ai.matey.core
+npm install @johnhenry/aimatey-core
 
 cat > test.mjs << 'EOF'
-import { Bridge } from 'ai.matey.core';
+import { Bridge } from '@johnhenry/aimatey-core';
 console.log('✅ ESM import successful');
 console.log('Bridge:', typeof Bridge);
 EOF
@@ -927,10 +937,10 @@ mkdir -p /tmp/test-cjs
 cd /tmp/test-cjs
 
 npm init -y
-npm install ai.matey.core
+npm install @johnhenry/aimatey-core
 
 cat > test.cjs << 'EOF'
-const { Bridge } = require('ai.matey.core');
+const { Bridge } = require('@johnhenry/aimatey-core');
 console.log('✅ CJS require successful');
 console.log('Bridge:', typeof Bridge);
 EOF
@@ -951,7 +961,7 @@ cd /tmp/test-types
 
 npm init -y
 npm install -D typescript @types/node
-npm install ai.matey.core ai.matey.backend ai.matey.frontend
+npm install @johnhenry/aimatey-core ai.matey.backend ai.matey.frontend
 
 cat > tsconfig.json << 'EOF'
 {
@@ -966,9 +976,9 @@ cat > tsconfig.json << 'EOF'
 EOF
 
 cat > test.ts << 'EOF'
-import { Bridge } from 'ai.matey.core';
-import { OpenAIBackendAdapter } from 'ai.matey.backend';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend';
+import { Bridge } from '@johnhenry/aimatey-core';
+import { OpenAIBackendAdapter } from '@johnhenry/aimatey-backend';
+import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend';
 
 // Should have full type inference
 const bridge = new Bridge({
@@ -1015,10 +1025,10 @@ mkdir -p /tmp/test-real-world
 cd /tmp/test-real-world
 
 npm init -y
-npm install ai.matey
+npm install @johnhenry/aimatey
 
 cat > example.mjs << 'EOF'
-import { Bridge } from 'ai.matey';
+import { Bridge } from '@johnhenry/aimatey';
 
 console.log('Creating bridge...');
 // This verifies that the main package and its dependencies work
@@ -1054,8 +1064,8 @@ for pkg in ai.matey.core ai.matey.backend ai.matey.frontend; do
 done
 
 # Manually visit npm pages to verify:
-# - https://www.npmjs.com/package/ai.matey.core
-# - https://www.npmjs.com/package/ai.matey.backend
+# - https://www.npmjs.com/package/@johnhenry/aimatey-core
+# - https://www.npmjs.com/package/@johnhenry/aimatey-backend
 # - README renders correctly
 # - Links to GitHub repo work
 ```
@@ -1070,7 +1080,7 @@ npm view ai.matey.core --json | jq '.time'
 ```
 
 Visit npm stats:
-- https://www.npmjs.com/package/ai.matey.core
+- https://www.npmjs.com/package/@johnhenry/aimatey-core
 - Check "Weekly Downloads" section
 
 ### 12. Automated Verification Script
@@ -1112,8 +1122,8 @@ tmpdir=$(mktemp -d)
 cd "$tmpdir"
 npm init -y > /dev/null 2>&1
 npm pkg set type="module" > /dev/null 2>&1
-npm install ai.matey.core > /dev/null 2>&1
-echo "import { Bridge } from 'ai.matey.core'; console.log('ESM OK');" > test.mjs
+npm install @johnhenry/aimatey-core > /dev/null 2>&1
+echo "import { Bridge } from '@johnhenry/aimatey-core'; console.log('ESM OK');" > test.mjs
 node test.mjs
 cd -
 rm -rf "$tmpdir"
@@ -1124,8 +1134,8 @@ echo "3️⃣  Testing CJS require..."
 tmpdir=$(mktemp -d)
 cd "$tmpdir"
 npm init -y > /dev/null 2>&1
-npm install ai.matey.core > /dev/null 2>&1
-echo "const { Bridge } = require('ai.matey.core'); console.log('CJS OK');" > test.cjs
+npm install @johnhenry/aimatey-core > /dev/null 2>&1
+echo "const { Bridge } = require('@johnhenry/aimatey-core'); console.log('CJS OK');" > test.cjs
 node test.cjs
 cd -
 rm -rf "$tmpdir"
@@ -1137,9 +1147,9 @@ tmpdir=$(mktemp -d)
 cd "$tmpdir"
 npm init -y > /dev/null 2>&1
 npm install -D typescript > /dev/null 2>&1
-npm install ai.matey.core > /dev/null 2>&1
+npm install @johnhenry/aimatey-core > /dev/null 2>&1
 echo '{"compilerOptions":{"strict":true}}' > tsconfig.json
-echo "import { Bridge } from 'ai.matey.core';" > test.ts
+echo "import { Bridge } from '@johnhenry/aimatey-core';" > test.ts
 npx tsc --noEmit > /dev/null 2>&1 && echo "  ✅ Types OK" || echo "  ❌ Types failed"
 cd -
 rm -rf "$tmpdir"
@@ -1220,7 +1230,7 @@ npm run version-packages
 ```bash
 # Check dist/types exists in published package
 npm pack ai.matey.core
-tar -tzf ai.matey.core-*.tgz | grep types
+tar -tzf johnhenry-aimatey-core-*.tgz | grep types
 
 # Verify package.json exports point to types
 npm view ai.matey.core --json | jq '.exports'
@@ -1231,7 +1241,7 @@ npm view ai.matey.core --json | jq '.exports'
 ```bash
 # Check dual-format builds exist
 npm pack ai.matey.core
-tar -tzf ai.matey.core-*.tgz | grep -E "(dist/esm|dist/cjs)"
+tar -tzf johnhenry-aimatey-core-*.tgz | grep -E "(dist/esm|dist/cjs)"
 
 # Verify package.json exports
 npm view ai.matey.core --json | jq '.exports'
@@ -1255,7 +1265,7 @@ After 1 week, evaluate success:
 - [ ] Works in Node 18, 20, 22+
 - [ ] Works in modern browsers (if applicable)
 - [ ] Documentation renders correctly on npm
-- [ ] Search finds packages (search "ai.matey" on npm)
+- [ ] Search finds packages (search "@johnhenry/aimatey" on npm)
 - [ ] Weekly download trend is positive
 
 ## Best Practices

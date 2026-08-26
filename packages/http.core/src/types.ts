@@ -8,8 +8,8 @@
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
-import type { Bridge } from 'ai.matey.core';
-import type { FrontendAdapter } from 'ai.matey.types';
+import type { Bridge } from '@johnhenry/aimatey-core';
+import type { FrontendAdapter } from '@johnhenry/aimatey-types';
 
 // ============================================================================
 // Configuration Types (Must be defined first - no circular dependencies)

@@ -16,13 +16,13 @@ import type {
   MessageContent,
   IRMessage,
   IRChatRequest,
-} from 'ai.matey.types';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend';
-import { AnthropicFrontendAdapter } from 'ai.matey.frontend';
-import { GeminiFrontendAdapter } from 'ai.matey.frontend';
-import { OpenAIBackendAdapter } from 'ai.matey.backend';
-import { AnthropicBackendAdapter } from 'ai.matey.backend';
-import { GeminiBackendAdapter } from 'ai.matey.backend';
+} from '@johnhenry/aimatey-types';
+import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend';
+import { AnthropicFrontendAdapter } from '@johnhenry/aimatey-frontend';
+import { GeminiFrontendAdapter } from '@johnhenry/aimatey-frontend';
+import { OpenAIBackendAdapter } from '@johnhenry/aimatey-backend';
+import { AnthropicBackendAdapter } from '@johnhenry/aimatey-backend';
+import { GeminiBackendAdapter } from '@johnhenry/aimatey-backend';
 
 // ============================================================================
 // IR Type Construction Tests

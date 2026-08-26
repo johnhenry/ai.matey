@@ -6,14 +6,14 @@
  */
 
 import { describe, it, expect, vi } from 'vitest';
-import { Bridge } from 'ai.matey.core';
+import { Bridge } from '@johnhenry/aimatey-core';
 import type {
   FrontendAdapter,
   BackendAdapter,
   IRChatRequest,
   IRChatResponse,
   IRStreamChunk,
-} from 'ai.matey.types';
+} from '@johnhenry/aimatey-types';
 
 // ============================================================================
 // Test Helpers
@@ -204,7 +204,7 @@ describe('Bridge.chatStream AbortSignal support', () => {
 
 describe('Chat.stream (wrapper) AbortSignal support', () => {
   it('should stop streaming when signal is aborted mid-stream', async () => {
-    const { Chat } = await import('ai.matey.wrapper');
+    const { Chat } = await import('@johnhenry/aimatey-wrapper');
 
     const mockBackend = {
       execute: vi.fn(async () => ({

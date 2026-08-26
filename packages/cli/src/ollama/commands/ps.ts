@@ -6,7 +6,7 @@
  * @module cli/ollama/commands/ps
  */
 
-import type { BackendAdapter } from 'ai.matey.types';
+import type { BackendAdapter } from '@johnhenry/aimatey-types';
 import { stateManager } from '../../utils/state-manager.js';
 import { isModelRunner } from '../../utils/backend-loader.js';
 import { formatTable, formatSize, formatDuration, colorize } from '../../utils/output-formatter.js';

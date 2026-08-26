@@ -13,7 +13,7 @@ import type {
   StreamDoneChunk,
   StreamErrorChunk,
   IRMetadata,
-} from 'ai.matey.types';
+} from '@johnhenry/aimatey-types';
 import {
   // Stream Accumulation
   createStreamAccumulator,
@@ -44,7 +44,7 @@ import {
   createStreamError,
   // Backpressure
   rateLimitStream,
-} from 'ai.matey.utils';
+} from '@johnhenry/aimatey-utils';
 
 // ============================================================================
 // Test Helpers

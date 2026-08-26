@@ -1,4 +1,6 @@
-# ai.matey.errors
+# @johnhenry/aimatey-errors
+
+> Previously published as `ai.matey.errors`, last unscoped version `0.2.1`.
 
 ## 0.2.1
 

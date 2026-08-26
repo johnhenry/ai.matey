@@ -1,6 +1,6 @@
 {
-  "name": "ai.matey.backend",
-  "version": "0.9.0",
+  "name": "@johnhenry/aimatey-backend",
+  "version": "0.0.0",
   "description": "Backend provider adapters for AI Matey - Universal AI Adapter System",
   "type": "module",
   "main": "./dist/cjs/index.js",
@@ -347,12 +347,12 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "ai.matey.types": "*",
-    "ai.matey.errors": "*",
-    "ai.matey.utils": "*"
+    "@johnhenry/aimatey-types": "^0.0.0",
+    "@johnhenry/aimatey-errors": "^0.0.0",
+    "@johnhenry/aimatey-utils": "^0.0.0"
   },
   "devDependencies": {
-    "ai.matey.testing": "*",
+    "@johnhenry/aimatey-testing": "^0.0.0",
     "typescript": "^5.9.3",
     "vitest": "^3.2.4"
   },

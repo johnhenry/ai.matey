@@ -16,8 +16,8 @@ import type {
   IRWarning,
   AIModel,
   ListModelsResult,
-} from 'ai.matey.types';
-import { createErrorFromHttpResponse, NetworkError, ErrorCode } from 'ai.matey.errors';
+} from '@johnhenry/aimatey-types';
+import { createErrorFromHttpResponse, NetworkError, ErrorCode } from '@johnhenry/aimatey-errors';
 
 // ============================================================================
 // Token Estimation

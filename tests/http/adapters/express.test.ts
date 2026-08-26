@@ -7,12 +7,12 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import type { Request, Response, NextFunction } from 'express';
-import { ExpressMiddleware } from 'ai.matey.http';
-import { Bridge } from 'ai.matey.core';
-import { AnthropicFrontendAdapter } from 'ai.matey.frontend';
-import type { BackendAdapter } from 'ai.matey.types';
-import type { IRChatRequest, IRChatResponse } from 'ai.matey.types';
-import { createBearerTokenValidator } from 'ai.matey.http.core';
+import { ExpressMiddleware } from '@johnhenry/aimatey-http';
+import { Bridge } from '@johnhenry/aimatey-core';
+import { AnthropicFrontendAdapter } from '@johnhenry/aimatey-frontend';
+import type { BackendAdapter } from '@johnhenry/aimatey-types';
+import type { IRChatRequest, IRChatResponse } from '@johnhenry/aimatey-types';
+import { createBearerTokenValidator } from '@johnhenry/aimatey-http-core';
 
 // ============================================================================
 // Mock Backend Adapter

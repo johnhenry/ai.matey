@@ -15,7 +15,7 @@ import type {
   IRTool,
   JSONSchema,
   ToolUseContent,
-} from 'ai.matey.types';
+} from '@johnhenry/aimatey-types';
 
 // ============================================================================
 // Extraction

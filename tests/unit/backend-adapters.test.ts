@@ -10,14 +10,14 @@ import {
   GitHubModelsBackendAdapter,
   DashScopeBackendAdapter,
   OmniRouteBackendAdapter,
-} from 'ai.matey.backend';
+} from '@johnhenry/aimatey-backend';
 import {
   MockBackendAdapter,
   createEchoBackend,
   createErrorBackend,
   createDelayedBackend,
-} from 'ai.matey.backend.browser';
-import type { IRChatRequest } from 'ai.matey.types';
+} from '@johnhenry/aimatey-backend-browser';
+import type { IRChatRequest } from '@johnhenry/aimatey-types';
 
 describe('Backend Adapters', () => {
   const mockRequest: IRChatRequest = {

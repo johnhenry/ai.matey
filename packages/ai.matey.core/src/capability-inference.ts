@@ -7,7 +7,7 @@
  * @module
  */
 
-import type { ModelCapabilities } from 'ai.matey.types';
+import type { ModelCapabilities } from '@johnhenry/aimatey-types';
 import { getModelCapabilities } from './model-pricing.js';
 
 /**

@@ -8,8 +8,8 @@
  */
 
 import { useState, useCallback, useRef, useId, useEffect } from 'react';
-import { Chat, createChat, type ChatResponse } from 'ai.matey.wrapper';
-import type { IRMessage } from 'ai.matey.types';
+import { Chat, createChat, type ChatResponse } from '@johnhenry/aimatey-wrapper';
+import type { IRMessage } from '@johnhenry/aimatey-types';
 import type { Message, UseChatOptions, UseChatReturn, ChatRequestOptions } from './types.js';
 
 /**
@@ -41,7 +41,7 @@ function messageToIR(message: Message): IRMessage {
  *
  * @example HTTP Mode
  * ```tsx
- * import { useChat } from 'ai.matey.react.core';
+ * import { useChat } from '@johnhenry/aimatey-react-core';
  *
  * function ChatComponent() {
  *   const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat({
@@ -64,8 +64,8 @@ function messageToIR(message: Message): IRMessage {
  *
  * @example Direct Mode
  * ```tsx
- * import { useChat } from 'ai.matey.react.core';
- * import { AnthropicBackend } from 'ai.matey.backend/anthropic';
+ * import { useChat } from '@johnhenry/aimatey-react-core';
+ * import { AnthropicBackend } from '@johnhenry/aimatey-backend/anthropic';
  *
  * const backend = new AnthropicBackend({ apiKey: process.env.ANTHROPIC_API_KEY });
  *

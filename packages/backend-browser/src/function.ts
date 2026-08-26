@@ -7,9 +7,14 @@
  * @module
  */
 
-import type { BackendAdapter, AdapterMetadata, IRCapabilities } from 'ai.matey.types';
-import type { IRChatRequest, IRChatResponse, IRChatStream, IRStreamChunk } from 'ai.matey.types';
-import type { ListModelsOptions, ListModelsResult } from 'ai.matey.types';
+import type { BackendAdapter, AdapterMetadata, IRCapabilities } from '@johnhenry/aimatey-types';
+import type {
+  IRChatRequest,
+  IRChatResponse,
+  IRChatStream,
+  IRStreamChunk,
+} from '@johnhenry/aimatey-types';
+import type { ListModelsOptions, ListModelsResult } from '@johnhenry/aimatey-types';
 
 // ============================================================================
 // Function Types

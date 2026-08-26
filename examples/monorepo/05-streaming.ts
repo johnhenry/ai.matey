@@ -8,20 +8,20 @@
  */
 
 // Core imports
-import { Bridge } from 'ai.matey.core';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
-import { OpenAIBackendAdapter } from 'ai.matey.backend/openai';
-import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
+import { Bridge } from '@johnhenry/aimatey-core';
+import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend/openai';
+import { OpenAIBackendAdapter } from '@johnhenry/aimatey-backend/openai';
+import { AnthropicBackendAdapter } from '@johnhenry/aimatey-backend/anthropic';
 
 // Stream utilities
 import {
   asyncGeneratorToReadableStream,
   readableStreamToAsyncGenerator,
   collectStreamChunks,
-} from 'ai.matey.utils';
+} from '@johnhenry/aimatey-utils';
 
 // Types
-import type { IRStreamChunk } from 'ai.matey.types';
+import type { IRStreamChunk } from '@johnhenry/aimatey-types';
 
 async function main() {
   console.log('=== Streaming Examples ===\n');

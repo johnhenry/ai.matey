@@ -26,8 +26,8 @@ import type {
   MiddlewareErrorOptions,
   IRChatRequest,
   IRChatResponse,
-} from 'ai.matey.types';
-import { ErrorCode as ErrorCodeEnum, ERROR_CODE_CATEGORIES } from 'ai.matey.types';
+} from '@johnhenry/aimatey-types';
+import { ErrorCode as ErrorCodeEnum, ERROR_CODE_CATEGORIES } from '@johnhenry/aimatey-types';
 
 // ============================================================================
 // Base Error Class
@@ -383,4 +383,4 @@ export type {
   StreamErrorOptions,
   RouterErrorOptions,
   MiddlewareErrorOptions,
-} from 'ai.matey.types';
+} from '@johnhenry/aimatey-types';

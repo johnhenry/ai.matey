@@ -1,4 +1,6 @@
-# ai.matey.react.nextjs
+# @johnhenry/aimatey-react-nextjs
+
+> Previously published as `ai.matey.react.nextjs`, last unscoped version `0.2.2`.
 
 ## 0.2.2
 

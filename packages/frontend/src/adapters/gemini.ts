@@ -7,15 +7,15 @@
  * @module
  */
 
-import type { FrontendAdapter, AdapterMetadata } from 'ai.matey.types';
+import type { FrontendAdapter, AdapterMetadata } from '@johnhenry/aimatey-types';
 import type {
   IRChatRequest,
   IRChatResponse,
   IRStreamChunk,
   IRMessage,
   MessageContent,
-} from 'ai.matey.types';
-import type { StreamConversionOptions } from 'ai.matey.types';
+} from '@johnhenry/aimatey-types';
+import type { StreamConversionOptions } from '@johnhenry/aimatey-types';
 
 // ============================================================================
 // Gemini API Types

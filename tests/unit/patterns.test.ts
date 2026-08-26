@@ -14,11 +14,11 @@ import {
   createFailoverMiddleware,
   createCostOptimizer,
   createBatchProcessor,
-} from 'ai.matey.patterns';
-import { Bridge } from 'ai.matey.core';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend';
-import { MockBackendAdapter, createErrorBackend } from 'ai.matey.backend.browser';
-import type { IRChatRequest } from 'ai.matey.types';
+} from '@johnhenry/aimatey-patterns';
+import { Bridge } from '@johnhenry/aimatey-core';
+import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend';
+import { MockBackendAdapter, createErrorBackend } from '@johnhenry/aimatey-backend-browser';
+import type { IRChatRequest } from '@johnhenry/aimatey-types';
 
 function makeIRRequest(content: string): IRChatRequest {
   return {

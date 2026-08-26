@@ -7,7 +7,7 @@
  */
 
 import type { Request, Response } from 'express';
-import type { GenericRequest, GenericResponse } from 'ai.matey.http.core';
+import type { GenericRequest, GenericResponse } from '@johnhenry/aimatey-http-core';
 
 /**
  * Adapter that converts Express Request to GenericRequest

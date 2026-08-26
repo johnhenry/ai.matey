@@ -1,4 +1,6 @@
-# ai.matey.react.core
+# @johnhenry/aimatey-react-core
+
+> Previously published as `ai.matey.react.core`, last unscoped version `0.2.2`.
 
 ## 0.2.2
 

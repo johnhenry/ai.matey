@@ -6,7 +6,7 @@
  * @module
  */
 
-import type { Middleware } from 'ai.matey.types';
+import type { Middleware } from '@johnhenry/aimatey-types';
 
 /**
  * Security headers configuration
@@ -99,7 +99,7 @@ export const DEFAULT_SECURITY_CONFIG: Required<Omit<SecurityConfig, 'customHeade
  *
  * @example
  * ```typescript
- * import { createSecurityMiddleware } from 'ai.matey';
+ * import { createSecurityMiddleware } from '@johnhenry/aimatey';
  *
  * const security = createSecurityMiddleware({
  *   contentSecurityPolicy: "default-src 'self'",
@@ -209,7 +209,7 @@ export function createSecurityMiddleware(config: SecurityConfig = {}): Middlewar
  *
  * @example
  * ```typescript
- * import { createProductionSecurityMiddleware } from 'ai.matey';
+ * import { createProductionSecurityMiddleware } from '@johnhenry/aimatey';
  *
  * bridge.use(createProductionSecurityMiddleware());
  * ```
@@ -235,7 +235,7 @@ export function createProductionSecurityMiddleware(): Middleware {
  *
  * @example
  * ```typescript
- * import { createDevelopmentSecurityMiddleware } from 'ai.matey';
+ * import { createDevelopmentSecurityMiddleware } from '@johnhenry/aimatey';
  *
  * bridge.use(createDevelopmentSecurityMiddleware());
  * ```

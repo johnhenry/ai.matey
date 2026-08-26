@@ -7,7 +7,7 @@
  * @module
  */
 
-import type { IRMessage } from 'ai.matey.types';
+import type { IRMessage } from '@johnhenry/aimatey-types';
 
 /**
  * Strategy for trimming conversation history

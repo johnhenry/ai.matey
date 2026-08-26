@@ -7,8 +7,8 @@
  *
  * @example
  * ```typescript
- * import { GenericFrontendAdapter } from 'ai.matey.frontend/generic';
- * import { Bridge } from 'ai.matey.core';
+ * import { GenericFrontendAdapter } from '@johnhenry/aimatey-frontend/generic';
+ * import { Bridge } from '@johnhenry/aimatey-core';
  *
  * const frontend = new GenericFrontendAdapter();
  * const bridge = new Bridge(frontend, backend);
@@ -24,14 +24,14 @@
  * @module
  */
 
-import type { FrontendAdapter, AdapterMetadata } from 'ai.matey.types';
+import type { FrontendAdapter, AdapterMetadata } from '@johnhenry/aimatey-types';
 import type {
   IRChatRequest,
   IRChatResponse,
   IRChatStream,
   IRStreamChunk,
   StreamConversionOptions,
-} from 'ai.matey.types';
+} from '@johnhenry/aimatey-types';
 
 // ============================================================================
 // Configuration

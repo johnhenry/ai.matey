@@ -9,15 +9,15 @@
  */
 
 // Core imports
-import { Bridge } from 'ai.matey.core';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
-import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
+import { Bridge } from '@johnhenry/aimatey-core';
+import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend/openai';
+import { AnthropicBackendAdapter } from '@johnhenry/aimatey-backend/anthropic';
 
 // Middleware imports - each from its own package
-import { createLoggingMiddleware } from 'ai.matey.middleware';
-import { createRetryMiddleware } from 'ai.matey.middleware';
-import { createCachingMiddleware } from 'ai.matey.middleware';
-import { createTransformMiddleware } from 'ai.matey.middleware';
+import { createLoggingMiddleware } from '@johnhenry/aimatey-middleware';
+import { createRetryMiddleware } from '@johnhenry/aimatey-middleware';
+import { createCachingMiddleware } from '@johnhenry/aimatey-middleware';
+import { createTransformMiddleware } from '@johnhenry/aimatey-middleware';
 
 async function main() {
   // Create the base bridge

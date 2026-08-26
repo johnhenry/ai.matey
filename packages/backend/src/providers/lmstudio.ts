@@ -8,7 +8,7 @@
  */
 
 import { OpenAIBackendAdapter, type OpenAIRequest, type OpenAIResponse } from './openai.js';
-import type { BackendAdapter, BackendAdapterConfig, IRChatRequest } from 'ai.matey.types';
+import type { BackendAdapter, BackendAdapterConfig, IRChatRequest } from '@johnhenry/aimatey-types';
 
 /**
  * Backend adapter for LM Studio local API.
@@ -18,7 +18,7 @@ import type { BackendAdapter, BackendAdapterConfig, IRChatRequest } from 'ai.mat
  *
  * @example Basic Usage
  * ```typescript
- * import { LMStudioBackendAdapter } from 'ai.matey';
+ * import { LMStudioBackendAdapter } from '@johnhenry/aimatey';
  *
  * const adapter = new LMStudioBackendAdapter({
  *   baseURL: 'http://localhost:1234/v1', // Default LM Studio port
@@ -41,7 +41,7 @@ import type { BackendAdapter, BackendAdapterConfig, IRChatRequest } from 'ai.mat
  *
  * @example Privacy-Focused Local Inference
  * ```typescript
- * import { createBridge } from 'ai.matey';
+ * import { createBridge } from '@johnhenry/aimatey';
  *
  * const bridge = createBridge({
  *   backend: new LMStudioBackendAdapter({
@@ -137,7 +137,7 @@ export class LMStudioBackendAdapter
  *
  * @example Default Configuration
  * ```typescript
- * import { createLMStudioAdapter } from 'ai.matey';
+ * import { createLMStudioAdapter } from '@johnhenry/aimatey';
  *
  * const adapter = createLMStudioAdapter({});
  * ```

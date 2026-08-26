@@ -20,11 +20,11 @@
  * @module
  */
 
-import type { Middleware } from 'ai.matey.types';
-import type { IRChatRequest, MessageContent } from 'ai.matey.types';
-import { ValidationError, ErrorCode } from 'ai.matey.errors';
-import type { ErrorProvenance } from 'ai.matey.types';
-import { validateIRChatRequest, validateTemperature } from 'ai.matey.utils';
+import type { Middleware } from '@johnhenry/aimatey-types';
+import type { IRChatRequest, MessageContent } from '@johnhenry/aimatey-types';
+import { ValidationError, ErrorCode } from '@johnhenry/aimatey-errors';
+import type { ErrorProvenance } from '@johnhenry/aimatey-types';
+import { validateIRChatRequest, validateTemperature } from '@johnhenry/aimatey-utils';
 
 /**
  * Helper to create a structured validation error from simple field/value/message
@@ -669,7 +669,7 @@ export function sanitizeRequest(request: IRChatRequest, config: ValidationConfig
  *
  * @example Basic Usage
  * ```typescript
- * import { createValidationMiddleware } from 'ai.matey';
+ * import { createValidationMiddleware } from '@johnhenry/aimatey';
  *
  * const validation = createValidationMiddleware({
  *   maxMessages: 100,
@@ -792,7 +792,7 @@ export function createValidationMiddleware(config: ValidationConfig = {}): Middl
  *
  * @example
  * ```typescript
- * import { createProductionValidationMiddleware } from 'ai.matey';
+ * import { createProductionValidationMiddleware } from '@johnhenry/aimatey';
  *
  * bridge.use(createProductionValidationMiddleware());
  * ```
@@ -820,7 +820,7 @@ export function createProductionValidationMiddleware(): Middleware {
  *
  * @example
  * ```typescript
- * import { createDevelopmentValidationMiddleware } from 'ai.matey';
+ * import { createDevelopmentValidationMiddleware } from '@johnhenry/aimatey';
  *
  * bridge.use(createDevelopmentValidationMiddleware());
  * ```

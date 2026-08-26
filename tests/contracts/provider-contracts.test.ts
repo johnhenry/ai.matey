@@ -8,8 +8,8 @@ import {
   createMockFromFixture,
   isChatFixture,
   isStreamingFixture,
-} from 'ai.matey.testing';
-import type { IRChatRequest, IRChatResponse } from 'ai.matey.types';
+} from '@johnhenry/aimatey-testing';
+import type { IRChatRequest, IRChatResponse } from '@johnhenry/aimatey-types';
 
 /**
  * Contract test suite for a backend adapter

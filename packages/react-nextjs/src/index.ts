@@ -3,7 +3,7 @@
  *
  * Next.js integration for AI Matey.
  *
- * For server-side utilities, import from 'ai.matey.react.nextjs/server'.
+ * For server-side utilities, import from '@johnhenry/aimatey-react-nextjs/server'.
  *
  * @packageDocumentation
  */
@@ -19,7 +19,7 @@ export type {
   Tool,
   ChatRequestOptions,
   CompletionRequestOptions,
-} from 'ai.matey.react.core';
+} from '@johnhenry/aimatey-react-core';
 
 // Export Next.js specific types
 export type {

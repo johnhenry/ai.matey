@@ -4,10 +4,10 @@
  * Demonstrates middleware chaining with logging, telemetry, caching, retry, and transform.
  */
 
-import { Bridge } from 'ai.matey.core';
-import { AnthropicFrontendAdapter } from 'ai.matey.frontend/anthropic';
-import type { BackendAdapter } from 'ai.matey.types';
-import type { IRChatRequest, IRChatResponse } from 'ai.matey.types';
+import { Bridge } from '@johnhenry/aimatey-core';
+import { AnthropicFrontendAdapter } from '@johnhenry/aimatey-frontend/anthropic';
+import type { BackendAdapter } from '@johnhenry/aimatey-types';
+import type { IRChatRequest, IRChatResponse } from '@johnhenry/aimatey-types';
 import {
   createLoggingMiddleware,
   createTelemetryMiddleware,
@@ -17,7 +17,7 @@ import {
   InMemoryTelemetrySink,
   InMemoryCacheStorage,
   createSystemMessageInjector,
-} from 'ai.matey.middleware';
+} from '@johnhenry/aimatey-middleware';
 
 // ============================================================================
 // Mock Backend for Demo

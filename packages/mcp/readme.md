@@ -1,21 +1,23 @@
-# ai.matey.mcp
+# @johnhenry/aimatey-mcp
+
+> **Note:** Previously published as `ai.matey.mcp@0.1.0`.
 
 MCP (Model Context Protocol) tool-calling for the [ai.matey](https://github.com/johnhenry/ai.matey)
 Universal AI Adapter System — translate an MCP server's tools into the agentic tool-execution
-loop `ai.matey.core`'s `Bridge` already ships (`bridge.runTools()`), via an injectable client.
+loop `@johnhenry/aimatey-core`'s `Bridge` already ships (`bridge.runTools()`), via an injectable client.
 
 ```bash
-npm install ai.matey.mcp
+npm install @johnhenry/aimatey-mcp
 ```
 
-No hard (or peer) dependency on any MCP SDK — `ai.matey.mcp` depends only on `ai.matey.types` and
+No hard (or peer) dependency on any MCP SDK — `@johnhenry/aimatey-mcp` depends only on `@johnhenry/aimatey-types` and
 a small structural interface (`McpClientLike`: `listTools`, `callTool`) that any MCP client can
 satisfy: the official `@modelcontextprotocol/sdk`, [`mcp-query`](https://github.com/johnhenry/mcp-query)
 (`@johnhenry/mcpq`), or a test fake.
 
 ## Why this is small
 
-`ai.matey.core` already has a complete agentic loop (`Bridge.runTools()` / `createRunTools()`):
+`@johnhenry/aimatey-core` already has a complete agentic loop (`Bridge.runTools()` / `createRunTools()`):
 execute → if the model requests tools, run them → append results → re-execute, until the model
 answers. This package doesn't reimplement any of that — it just converts MCP tools into the
 `ToolDefinition` shape that loop already consumes, so MCP tool-calling gets the same validation,
@@ -24,14 +26,14 @@ iteration limits, and parallel execution for free.
 ## Quick start
 
 ```typescript
-import { Bridge } from 'ai.matey.core';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend';
-import { OpenAIBackendAdapter } from 'ai.matey.backend';
-import { runMcpTools } from 'ai.matey.mcp';
+import { Bridge } from '@johnhenry/aimatey-core';
+import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend';
+import { OpenAIBackendAdapter } from '@johnhenry/aimatey-backend';
+import { runMcpTools } from '@johnhenry/aimatey-mcp';
 
 // Any client satisfying McpClientLike - e.g. an mcp-query MCPClient already
 // connected to one or more servers.
-declare const mcpClient: import('ai.matey.mcp').McpClientLike;
+declare const mcpClient: import('@johnhenry/aimatey-mcp').McpClientLike;
 
 const bridge = new Bridge(
   new OpenAIFrontendAdapter(),
@@ -67,7 +69,7 @@ If you want more control than `runMcpTools` gives you (e.g. mixing MCP tools wit
 ones), use `mcpToolsToDefinitions` directly and call `bridge.runTools()` yourself:
 
 ```typescript
-import { mcpToolsToDefinitions } from 'ai.matey.mcp';
+import { mcpToolsToDefinitions } from '@johnhenry/aimatey-mcp';
 
 const mcpTools = await mcpToolsToDefinitions(mcpClient);
 
@@ -86,7 +88,7 @@ Any `MCPClient` built that way already satisfies `McpClientLike`.
 
 ## Protocol versions
 
-`ai.matey.mcp` is protocol-version-agnostic by design: it never speaks MCP's wire protocol
+`@johnhenry/aimatey-mcp` is protocol-version-agnostic by design: it never speaks MCP's wire protocol
 (JSON-RPC, transports, capability negotiation) itself — it only calls `client.listTools()` and
 `client.callTool()` through the `McpClientLike` structural interface. Whichever MCP protocol
 revision(s) the *injected client* negotiates are supported transparently, with zero code in this
@@ -114,9 +116,9 @@ new MCPClient({
 ```
 
 Unknown revision strings are passed through to the SDK verbatim, so a future MCP revision needs
-no change in `mcp-query` (or `ai.matey.mcp`) to support — only a new `versions` entry at the call
+no change in `mcp-query` (or `@johnhenry/aimatey-mcp`) to support — only a new `versions` entry at the call
 site. If you inject a different `McpClientLike` implementation (the official SDK wrapped by hand,
-or your own), consult its docs for which revisions it negotiates; `ai.matey.mcp`'s behavior is
+or your own), consult its docs for which revisions it negotiates; `@johnhenry/aimatey-mcp`'s behavior is
 identical either way.
 
 ## License

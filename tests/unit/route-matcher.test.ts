@@ -11,8 +11,8 @@ import {
   normalizePath,
   applyPathPrefix,
   createDefaultRoutes,
-} from 'ai.matey.http.core';
-import type { RouteConfig } from 'ai.matey.http.core';
+} from '@johnhenry/aimatey-http-core';
+import type { RouteConfig } from '@johnhenry/aimatey-http-core';
 
 // ============================================================================
 // Test Helpers

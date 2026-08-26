@@ -9,8 +9,8 @@ import {
   trimHistory,
   countMessagePairs,
   shouldTrimHistory,
-} from 'ai.matey.utils';
-import type { IRMessage } from 'ai.matey.types';
+} from '@johnhenry/aimatey-utils';
+import type { IRMessage } from '@johnhenry/aimatey-types';
 
 // ============================================================================
 // Test Helpers

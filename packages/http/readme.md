@@ -1,4 +1,6 @@
-# ai.matey.http
+# @johnhenry/aimatey-http
+
+> **Note:** Previously published as `ai.matey.http@0.3.1`.
 
 HTTP framework adapters for AI Matey - Universal AI Adapter System.
 
@@ -7,7 +9,7 @@ Part of the [ai.matey](https://github.com/johnhenry/ai.matey) monorepo.
 ## Installation
 
 ```bash
-npm install ai.matey.http
+npm install @johnhenry/aimatey-http
 ```
 
 ## Overview
@@ -23,7 +25,7 @@ This package provides HTTP framework integrations for serving AI Matey bridges a
 - **Node** - Native Node.js HTTP handler
 - **Deno** - Deno HTTP handler
 
-For core HTTP utilities (auth, CORS, rate limiting), see [`ai.matey.http-core`](https://www.npmjs.com/package/ai.matey.http-core).
+For core HTTP utilities (auth, CORS, rate limiting), see [`@johnhenry/aimatey-http-core`](https://www.npmjs.com/package/@johnhenry/aimatey-http-core).
 
 ## Usage
 
@@ -31,8 +33,8 @@ For core HTTP utilities (auth, CORS, rate limiting), see [`ai.matey.http-core`](
 
 ```typescript
 import express from 'express';
-import { ExpressMiddleware } from 'ai.matey.http';
-import { Bridge } from 'ai.matey.core';
+import { ExpressMiddleware } from '@johnhenry/aimatey-http';
+import { Bridge } from '@johnhenry/aimatey-core';
 
 const app = express();
 const bridge = new Bridge({ frontend, backend });
@@ -45,7 +47,7 @@ app.post('/v1/chat/completions', middleware.handler());
 
 ```typescript
 import Fastify from 'fastify';
-import { FastifyHandler } from 'ai.matey.http';
+import { FastifyHandler } from '@johnhenry/aimatey-http';
 
 const fastify = Fastify();
 const handler = new FastifyHandler({ bridge });
@@ -57,7 +59,7 @@ fastify.post('/v1/chat/completions', handler.handler());
 
 ```typescript
 import { Hono } from 'hono';
-import { HonoMiddleware } from 'ai.matey.http';
+import { HonoMiddleware } from '@johnhenry/aimatey-http';
 
 const app = new Hono();
 const middleware = new HonoMiddleware({ bridge });
@@ -69,7 +71,7 @@ app.post('/v1/chat/completions', middleware.handler());
 
 ```typescript
 import http from 'http';
-import { NodeHTTPListener } from 'ai.matey.http';
+import { NodeHTTPListener } from '@johnhenry/aimatey-http';
 
 const listener = new NodeHTTPListener({ bridge });
 const server = http.createServer(listener.handler());
@@ -78,7 +80,7 @@ const server = http.createServer(listener.handler());
 ### Deno
 
 ```typescript
-import { DenoHandler } from 'ai.matey.http';
+import { DenoHandler } from '@johnhenry/aimatey-http';
 
 const handler = new DenoHandler({ bridge });
 Deno.serve(handler.handler());

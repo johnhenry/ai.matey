@@ -9,7 +9,7 @@ import {
   MiddlewareStack,
   createMiddlewareContext,
   createStreamingMiddlewareContext,
-} from 'ai.matey.core';
+} from '@johnhenry/aimatey-core';
 import type {
   Middleware,
   StreamingMiddleware,
@@ -18,8 +18,8 @@ import type {
   IRChatRequest,
   IRChatResponse,
   IRChatStream,
-} from 'ai.matey.types';
-import { MiddlewareError } from 'ai.matey.errors';
+} from '@johnhenry/aimatey-types';
+import { MiddlewareError } from '@johnhenry/aimatey-errors';
 
 // ============================================================================
 // Test Helpers

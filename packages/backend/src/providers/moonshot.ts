@@ -8,7 +8,7 @@
  */
 
 import { OpenAIBackendAdapter, type OpenAIRequest, type OpenAIResponse } from './openai.js';
-import type { BackendAdapter, BackendAdapterConfig, IRChatRequest } from 'ai.matey.types';
+import type { BackendAdapter, BackendAdapterConfig, IRChatRequest } from '@johnhenry/aimatey-types';
 
 /**
  * Backend adapter for Moonshot AI (Kimi) API.
@@ -18,7 +18,7 @@ import type { BackendAdapter, BackendAdapterConfig, IRChatRequest } from 'ai.mat
  *
  * @example Basic Usage
  * ```typescript
- * import { MoonshotBackendAdapter } from 'ai.matey';
+ * import { MoonshotBackendAdapter } from '@johnhenry/aimatey';
  *
  * const adapter = new MoonshotBackendAdapter({
  *   apiKey: process.env.MOONSHOT_API_KEY,
@@ -155,7 +155,7 @@ export class MoonshotBackendAdapter
  *
  * @example
  * ```typescript
- * import { createMoonshotAdapter } from 'ai.matey';
+ * import { createMoonshotAdapter } from '@johnhenry/aimatey';
  *
  * const adapter = createMoonshotAdapter({
  *   apiKey: process.env.MOONSHOT_API_KEY,

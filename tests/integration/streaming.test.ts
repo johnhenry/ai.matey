@@ -8,9 +8,9 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { Bridge } from 'ai.matey.core';
-import { AnthropicFrontendAdapter, OpenAIFrontendAdapter } from 'ai.matey.frontend';
-import { AnthropicBackendAdapter, OpenAIBackendAdapter } from 'ai.matey.backend';
+import { Bridge } from '@johnhenry/aimatey-core';
+import { AnthropicFrontendAdapter, OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend';
+import { AnthropicBackendAdapter, OpenAIBackendAdapter } from '@johnhenry/aimatey-backend';
 import {
   collectStream,
   streamToText,
@@ -18,8 +18,8 @@ import {
   isContentChunk,
   isDoneChunk,
   isErrorChunk,
-} from 'ai.matey.utils';
-import type { IRStreamChunk } from 'ai.matey.types';
+} from '@johnhenry/aimatey-utils';
+import type { IRStreamChunk } from '@johnhenry/aimatey-types';
 
 // ============================================================================
 // Test Utilities

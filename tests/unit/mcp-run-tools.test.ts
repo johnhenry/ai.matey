@@ -4,9 +4,9 @@
  */
 
 import { describe, it, expect, vi } from 'vitest';
-import { runMcpTools } from 'ai.matey.mcp';
-import type { McpClientLike, McpToolSchema } from 'ai.matey.mcp';
-import type { RunToolsOptions, RunToolsResult } from 'ai.matey.types';
+import { runMcpTools } from '@johnhenry/aimatey-mcp';
+import type { McpClientLike, McpToolSchema } from '@johnhenry/aimatey-mcp';
+import type { RunToolsOptions, RunToolsResult } from '@johnhenry/aimatey-types';
 
 const WEATHER_TOOL: McpToolSchema = {
   name: 'get_weather',

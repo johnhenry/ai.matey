@@ -1,4 +1,6 @@
-# ai.matey.types
+# @johnhenry/aimatey-types
+
+> **Note:** Previously published as `ai.matey.types@0.5.1`.
 
 TypeScript type definitions for the ai.matey ecosystem
 
@@ -7,7 +9,7 @@ Part of the [ai.matey](https://github.com/johnhenry/ai.matey) monorepo.
 ## Installation
 
 ```bash
-npm install ai.matey.types
+npm install @johnhenry/aimatey-types
 ```
 
 ## Exports
@@ -55,7 +57,7 @@ import {
   FrontendAdapter,
   BackendAdapter,
   Middleware
-} from 'ai.matey.types';
+} from '@johnhenry/aimatey-types';
 
 // Create a chat request
 const request: IRChatRequest = {

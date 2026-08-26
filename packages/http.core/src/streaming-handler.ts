@@ -7,7 +7,7 @@
  */
 
 import type { ServerResponse } from 'http';
-import type { Bridge } from 'ai.matey.core';
+import type { Bridge } from '@johnhenry/aimatey-core';
 import {
   sendSSEHeaders,
   sendSSEChunk,

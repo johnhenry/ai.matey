@@ -6,6 +6,10 @@
 
 Provider-agnostic interface for AI APIs. Write once, run anywhere.
 
+> **Note:** All packages in this monorepo now publish under the `@johnhenry` npm scope
+> (e.g. `ai.matey.core` → `@johnhenry/aimatey-core`), restarting at version `0.0.0`. See each
+> package's readme.md for its prior unscoped name and last published version.
+
 ## Why ai.matey?
 
 **Same code, any provider.** Switch between OpenAI, Anthropic, Gemini, Ollama, and 26 other providers (30 total) without changing your application code.
@@ -32,9 +36,9 @@ new GroqBackendAdapter({ apiKey: '...' })        // → Groq (fast inference)
 Accept requests in one format, execute on any provider:
 
 ```typescript
-import { Bridge } from 'ai.matey.core';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
-import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
+import { Bridge } from '@johnhenry/aimatey-core';
+import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend/openai';
+import { AnthropicBackendAdapter } from '@johnhenry/aimatey-backend/anthropic';
 
 // Accept OpenAI format → Execute on Anthropic
 const bridge = new Bridge(
@@ -67,10 +71,10 @@ for await (const chunk of stream) {
 Route requests to multiple backends with automatic fallback:
 
 ```typescript
-import { Bridge, createRouter } from 'ai.matey.core';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
-import { OpenAIBackendAdapter } from 'ai.matey.backend/openai';
-import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
+import { Bridge, createRouter } from '@johnhenry/aimatey-core';
+import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend/openai';
+import { OpenAIBackendAdapter } from '@johnhenry/aimatey-backend/openai';
+import { AnthropicBackendAdapter } from '@johnhenry/aimatey-backend/anthropic';
 
 // Create router and register backends
 const router = createRouter({
@@ -96,10 +100,10 @@ const response = await bridge.chat({
 Query multiple models simultaneously for comparison or consensus:
 
 ```typescript
-import { createRouter } from 'ai.matey.core';
-import { OpenAIBackendAdapter } from 'ai.matey.backend/openai';
-import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
-import { GeminiBackendAdapter } from 'ai.matey.backend/gemini';
+import { createRouter } from '@johnhenry/aimatey-core';
+import { OpenAIBackendAdapter } from '@johnhenry/aimatey-backend/openai';
+import { AnthropicBackendAdapter } from '@johnhenry/aimatey-backend/anthropic';
+import { GeminiBackendAdapter } from '@johnhenry/aimatey-backend/gemini';
 
 // Create router with multiple backends
 const router = createRouter()
@@ -127,7 +131,7 @@ result.allResponses?.forEach(({ backend, response, latencyMs }) => {
 
 ### Middleware
 
-**Consolidated Package:** [`ai.matey.middleware`](./packages/middleware)
+**Consolidated Package:** [`@johnhenry/aimatey-middleware`](./packages/middleware)
 
 All 10 middleware types in one package for cross-cutting concerns:
 
@@ -143,7 +147,7 @@ import {
   createCostTrackingMiddleware,
   createSecurityMiddleware,
   createConversationHistoryMiddleware
-} from 'ai.matey.middleware';
+} from '@johnhenry/aimatey-middleware';
 
 bridge
   .use(createLoggingMiddleware({ level: 'info' }))
@@ -174,10 +178,10 @@ Serve an OpenAI-compatible API with any backend:
 
 ```typescript
 import express from 'express';
-import { ExpressMiddleware } from 'ai.matey.http/express';
-import { Bridge } from 'ai.matey.core';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
-import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
+import { ExpressMiddleware } from '@johnhenry/aimatey-http/express';
+import { Bridge } from '@johnhenry/aimatey-core';
+import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend/openai';
+import { AnthropicBackendAdapter } from '@johnhenry/aimatey-backend/anthropic';
 
 const bridge = new Bridge(
   new OpenAIFrontendAdapter(),
@@ -195,7 +199,7 @@ app.listen(3000);
 ### React Hooks
 
 ```tsx
-import { useChat } from 'ai.matey.react.core';
+import { useChat } from '@johnhenry/aimatey-react-core';
 
 function ChatComponent() {
   const { messages, input, handleInputChange, handleSubmit } = useChat({
@@ -218,8 +222,8 @@ function ChatComponent() {
 Use backend adapters directly without HTTP (great for Electron, browser extensions, testing):
 
 ```tsx
-import { useChat } from 'ai.matey.react.core';
-import { OpenAIBackend } from 'ai.matey.backend/openai';
+import { useChat } from '@johnhenry/aimatey-react-core';
+import { OpenAIBackend } from '@johnhenry/aimatey-backend/openai';
 
 const backend = new OpenAIBackend({ apiKey: process.env.REACT_APP_OPENAI_API_KEY });
 
@@ -247,8 +251,8 @@ function ChatComponent() {
 Use OpenAI SDK-style code with any backend:
 
 ```typescript
-import { OpenAI } from 'ai.matey.wrapper/openai';
-import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
+import { OpenAI } from '@johnhenry/aimatey-wrapper/openai';
+import { AnthropicBackendAdapter } from '@johnhenry/aimatey-backend/anthropic';
 
 // Create a backend adapter
 const backend = new AnthropicBackendAdapter({ apiKey: process.env.ANTHROPIC_API_KEY });
@@ -310,10 +314,10 @@ arguments, and frontend adapters re-emit them in their native streaming formats.
 
 ### Production Patterns
 
-The validated pattern library is importable from [`ai.matey.patterns`](./packages/patterns):
+The validated pattern library is importable from [`@johnhenry/aimatey-patterns`](./packages/patterns):
 
 ```typescript
-import { createComplexityRouter, createBatchProcessor } from 'ai.matey.patterns';
+import { createComplexityRouter, createBatchProcessor } from '@johnhenry/aimatey-patterns';
 ```
 
 Complexity-based routing, parallel aggregation, failover, cost optimization with budget windows,
@@ -335,7 +339,7 @@ const handler = new CoreHTTPHandler({
 Real-time streaming over WebSocket (any socket implementation — ws, Deno, Bun):
 
 ```typescript
-import { createWebSocketHandler } from 'ai.matey.http/websocket';
+import { createWebSocketHandler } from '@johnhenry/aimatey-http/websocket';
 new WebSocketServer({ port: 8080 }).on('connection', createWebSocketHandler(bridge));
 ```
 
@@ -345,7 +349,7 @@ Pricing, context windows, and capabilities come from a runtime-extensible regist
 models the day they ship instead of waiting for a library release:
 
 ```typescript
-import { registerModels } from 'ai.matey.utils';
+import { registerModels } from '@johnhenry/aimatey-utils';
 
 registerModels([
   {
@@ -373,25 +377,25 @@ registerModels([
 
 | Package | Description | Documentation |
 |---------|-------------|---------------|
-| [`ai.matey`](./packages/ai.matey) | Main umbrella package | [README](./packages/ai.matey/readme.md) |
-| [`ai.matey.core`](./packages/ai.matey.core) | Bridge, Router, MiddlewareStack | [README](./packages/ai.matey.core/readme.md) |
-| [`ai.matey.types`](./packages/ai.matey.types) | TypeScript type definitions | [README](./packages/ai.matey.types/readme.md) |
-| [`ai.matey.errors`](./packages/ai.matey.errors) | Error classes and utilities | [README](./packages/ai.matey.errors/readme.md) |
-| [`ai.matey.utils`](./packages/ai.matey.utils) | Shared utility functions | [README](./packages/ai.matey.utils/readme.md) |
-| [`ai.matey.testing`](./packages/ai.matey.testing) | Testing utilities and mocks | [README](./packages/ai.matey.testing/readme.md) |
-| [`ai.matey.cli`](./packages/cli) | CLI and conversion utilities | [README](./packages/cli/readme.md) |
-| [`ai.matey.patterns`](./packages/patterns) | Production integration patterns | [README](./packages/patterns/readme.md) |
+| [`@johnhenry/aimatey`](./packages/ai.matey) | Main umbrella package | [README](./packages/ai.matey/readme.md) |
+| [`@johnhenry/aimatey-core`](./packages/ai.matey.core) | Bridge, Router, MiddlewareStack | [README](./packages/ai.matey.core/readme.md) |
+| [`@johnhenry/aimatey-types`](./packages/ai.matey.types) | TypeScript type definitions | [README](./packages/ai.matey.types/readme.md) |
+| [`@johnhenry/aimatey-errors`](./packages/ai.matey.errors) | Error classes and utilities | [README](./packages/ai.matey.errors/readme.md) |
+| [`@johnhenry/aimatey-utils`](./packages/ai.matey.utils) | Shared utility functions | [README](./packages/ai.matey.utils/readme.md) |
+| [`@johnhenry/aimatey-testing`](./packages/ai.matey.testing) | Testing utilities and mocks | [README](./packages/ai.matey.testing/readme.md) |
+| [`@johnhenry/aimatey-cli`](./packages/cli) | CLI and conversion utilities | [README](./packages/cli/readme.md) |
+| [`@johnhenry/aimatey-patterns`](./packages/patterns) | Production integration patterns | [README](./packages/patterns/readme.md) |
 
 ### Backend Adapters
 
-**Consolidated Package:** [`ai.matey.backend`](./packages/backend) | [📚 Documentation](./packages/backend/readme.md)
+**Consolidated Package:** [`@johnhenry/aimatey-backend`](./packages/backend) | [📚 Documentation](./packages/backend/readme.md)
 
 All server-side provider adapters in one package. Import from main or use subpath imports:
 
 ```typescript
-import { OpenAIBackendAdapter, AnthropicBackendAdapter } from 'ai.matey.backend';
+import { OpenAIBackendAdapter, AnthropicBackendAdapter } from '@johnhenry/aimatey-backend';
 // or
-import { OpenAIBackendAdapter } from 'ai.matey.backend/openai';
+import { OpenAIBackendAdapter } from '@johnhenry/aimatey-backend/openai';
 ```
 
 **Included Providers:**
@@ -426,7 +430,7 @@ import { OpenAIBackendAdapter } from 'ai.matey.backend/openai';
 - Alibaba Cloud Model Studio / DashScope (Qwen)
 - OmniRoute (self-hosted gateway, 290+ providers, no API key required by default)
 
-**Browser-Compatible Package:** [`ai.matey.backend.browser`](./packages/backend-browser)
+**Browser-Compatible Package:** [`@johnhenry/aimatey-backend-browser`](./packages/backend-browser)
 
 Subset of adapters that work in browser environments:
 - Chrome AI
@@ -436,12 +440,12 @@ Subset of adapters that work in browser environments:
 
 ### Frontend Adapters
 
-**Consolidated Package:** [`ai.matey.frontend`](./packages/frontend) | [📚 Documentation](./packages/frontend/readme.md)
+**Consolidated Package:** [`@johnhenry/aimatey-frontend`](./packages/frontend) | [📚 Documentation](./packages/frontend/readme.md)
 
 All frontend request adapters in one package:
 
 ```typescript
-import { OpenAIFrontendAdapter, AnthropicFrontendAdapter } from 'ai.matey.frontend';
+import { OpenAIFrontendAdapter, AnthropicFrontendAdapter } from '@johnhenry/aimatey-frontend';
 ```
 
 **Included Adapters:**
@@ -455,9 +459,9 @@ import { OpenAIFrontendAdapter, AnthropicFrontendAdapter } from 'ai.matey.fronte
 
 ### HTTP Integrations
 
-**Consolidated Package:** [`ai.matey.http`](./packages/http) | [📚 Documentation](./packages/http/readme.md)
+**Consolidated Package:** [`@johnhenry/aimatey-http`](./packages/http) | [📚 Documentation](./packages/http/readme.md)
 
-Framework adapters for serving AI endpoints. Core utilities in [`ai.matey.http.core`](./packages/http.core).
+Framework adapters for serving AI endpoints. Core utilities in [`@johnhenry/aimatey-http-core`](./packages/http.core).
 
 **Supported Frameworks:**
 - Express.js
@@ -469,7 +473,7 @@ Framework adapters for serving AI endpoints. Core utilities in [`ai.matey.http.c
 
 ### Middleware
 
-**Consolidated Package:** [`ai.matey.middleware`](./packages/middleware) | [📚 Documentation](./packages/middleware/readme.md)
+**Consolidated Package:** [`@johnhenry/aimatey-middleware`](./packages/middleware) | [📚 Documentation](./packages/middleware/readme.md)
 
 All middleware in one package:
 
@@ -478,7 +482,7 @@ import {
   createLoggingMiddleware,
   createCachingMiddleware,
   createRetryMiddleware
-} from 'ai.matey.middleware';
+} from '@johnhenry/aimatey-middleware';
 ```
 
 **Included Middleware:**
@@ -497,19 +501,19 @@ import {
 
 | Package | Purpose | Documentation |
 |---------|---------|---------------|
-| [`ai.matey.react.core`](./packages/react-core) | Core hooks (useChat, useCompletion) | [README](./packages/react-core/readme.md) |
-| [`ai.matey.react.hooks`](./packages/react-hooks) | Additional hooks | [README](./packages/react-hooks/readme.md) |
-| [`ai.matey.react.stream`](./packages/react-stream) | Streaming components | [README](./packages/react-stream/readme.md) |
-| [`ai.matey.react.nextjs`](./packages/react-nextjs) | Next.js App Router | [README](./packages/react-nextjs/readme.md) |
+| [`@johnhenry/aimatey-react-core`](./packages/react-core) | Core hooks (useChat, useCompletion) | [README](./packages/react-core/readme.md) |
+| [`@johnhenry/aimatey-react-hooks`](./packages/react-hooks) | Additional hooks | [README](./packages/react-hooks/readme.md) |
+| [`@johnhenry/aimatey-react-stream`](./packages/react-stream) | Streaming components | [README](./packages/react-stream/readme.md) |
+| [`@johnhenry/aimatey-react-nextjs`](./packages/react-nextjs) | Next.js App Router | [README](./packages/react-nextjs/readme.md) |
 
 ### SDK Wrappers
 
-**Consolidated Package:** [`ai.matey.wrapper`](./packages/wrapper) | [📚 Documentation](./packages/wrapper/readme.md)
+**Consolidated Package:** [`@johnhenry/aimatey-wrapper`](./packages/wrapper) | [📚 Documentation](./packages/wrapper/readme.md)
 
 Drop-in replacements for official SDKs:
 
 ```typescript
-import { OpenAI } from 'ai.matey.wrapper';  // OpenAI SDK-compatible
+import { OpenAI } from '@johnhenry/aimatey-wrapper';  // OpenAI SDK-compatible
 ```
 
 **Included Wrappers:**
@@ -521,15 +525,15 @@ import { OpenAI } from 'ai.matey.wrapper';  // OpenAI SDK-compatible
 
 ### Tool Calling (MCP)
 
-**Package:** [`ai.matey.mcp`](./packages/mcp) | [📚 Documentation](./packages/mcp/readme.md)
+**Package:** [`@johnhenry/aimatey-mcp`](./packages/mcp) | [📚 Documentation](./packages/mcp/readme.md)
 
 Translates MCP (Model Context Protocol) tools into the `ToolDefinition` shape consumed by
-`ai.matey.core`'s `Bridge.runTools()` agentic loop, via an injectable client - no hard
+`@johnhenry/aimatey-core`'s `Bridge.runTools()` agentic loop, via an injectable client - no hard
 dependency on any MCP SDK. Works with the official `@modelcontextprotocol/sdk`,
 [`mcp-query`](https://github.com/johnhenry/mcp-query), or a test fake.
 
 ```typescript
-import { runMcpTools } from 'ai.matey.mcp';
+import { runMcpTools } from '@johnhenry/aimatey-mcp';
 
 const result = await runMcpTools(bridge.runTools, {
   client: mcpClient, // any object satisfying McpClientLike
@@ -541,15 +545,15 @@ const result = await runMcpTools(bridge.runTools, {
 
 | Package | Runtime | Documentation |
 |---------|---------|---------------|
-| [`ai.matey.native.node-llamacpp`](./packages/native-node-llamacpp) | llama.cpp via Node | [README](./packages/native-node-llamacpp/readme.md) |
-| [`ai.matey.native.apple`](./packages/native-apple) | Apple MLX (macOS 15+) | [README](./packages/native-apple/readme.md) |
-| [`ai.matey.native.model-runner`](./packages/native-model-runner) | Generic model runner | [README](./packages/native-model-runner/readme.md) |
+| [`@johnhenry/aimatey-native-node-llamacpp`](./packages/native-node-llamacpp) | llama.cpp via Node | [README](./packages/native-node-llamacpp/readme.md) |
+| [`@johnhenry/aimatey-native-apple`](./packages/native-apple) | Apple MLX (macOS 15+) | [README](./packages/native-apple/readme.md) |
+| [`@johnhenry/aimatey-native-model-runner`](./packages/native-model-runner) | Generic model runner | [README](./packages/native-model-runner/readme.md) |
 
 ## CLI Tools
 
 ```bash
 # Install globally
-npm install -g ai.matey.cli
+npm install -g @johnhenry/aimatey-cli
 
 # Start an OpenAI-compatible proxy with any backend
 ai-matey proxy --backend ./my-backend.mjs --port 3000

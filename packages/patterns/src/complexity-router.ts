@@ -8,9 +8,9 @@
  * @module
  */
 
-import { Router } from 'ai.matey.core';
-import type { RouterConfig } from 'ai.matey.types';
-import type { BackendAdapter, IRChatRequest } from 'ai.matey.types';
+import { Router } from '@johnhenry/aimatey-core';
+import type { RouterConfig } from '@johnhenry/aimatey-types';
+import type { BackendAdapter, IRChatRequest } from '@johnhenry/aimatey-types';
 
 /**
  * A complexity tier: requests scoring at or below `maxComplexity` go to

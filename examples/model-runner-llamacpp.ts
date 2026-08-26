@@ -17,8 +17,8 @@
 import {
   LlamaCppBackend,
   type ModelRunnerBackendConfig,
-} from 'ai.matey.native.node-llamacpp';
-import type { IRChatRequest } from 'ai.matey.types';
+} from '@johnhenry/aimatey-native-node-llamacpp';
+import type { IRChatRequest } from '@johnhenry/aimatey-types';
 
 // ============================================================================
 // Configuration

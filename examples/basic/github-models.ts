@@ -9,9 +9,9 @@
  * https://github.com/settings/tokens
  */
 
-import { Bridge } from 'ai.matey.core';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
-import { GitHubModelsBackendAdapter } from 'ai.matey.backend/github-models';
+import { Bridge } from '@johnhenry/aimatey-core';
+import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend/openai';
+import { GitHubModelsBackendAdapter } from '@johnhenry/aimatey-backend/github-models';
 
 async function main() {
   const bridge = new Bridge(

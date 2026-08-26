@@ -13,7 +13,7 @@ import {
   OllamaBackendAdapter,
   AI21BackendAdapter,
   AnthropicBackendAdapter,
-} from 'ai.matey.backend';
+} from '@johnhenry/aimatey-backend';
 import {
   DEFAULT_GEMINI_MODELS,
   DEFAULT_MISTRAL_MODELS,

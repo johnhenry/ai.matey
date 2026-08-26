@@ -10,8 +10,8 @@ import {
   mergeCapabilities,
   meetsRequirements,
   calculateCapabilitySimilarity,
-} from 'ai.matey.core';
-import type { ModelCapabilities } from 'ai.matey.types';
+} from '@johnhenry/aimatey-core';
+import type { ModelCapabilities } from '@johnhenry/aimatey-types';
 
 // ============================================================================
 // inferCapabilities Tests - Model Family Detection

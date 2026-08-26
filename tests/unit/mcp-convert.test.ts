@@ -3,8 +3,8 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { mcpToolToIRTool, extractMcpResultText } from 'ai.matey.mcp';
-import type { McpCallToolResult, McpToolSchema } from 'ai.matey.mcp';
+import { mcpToolToIRTool, extractMcpResultText } from '@johnhenry/aimatey-mcp';
+import type { McpCallToolResult, McpToolSchema } from '@johnhenry/aimatey-mcp';
 
 describe('mcpToolToIRTool', () => {
   it('maps name, description, and inputSchema through', () => {

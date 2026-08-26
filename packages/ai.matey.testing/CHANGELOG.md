@@ -1,4 +1,6 @@
-# ai.matey.testing
+# @johnhenry/aimatey-testing
+
+> Previously published as `ai.matey.testing`, last unscoped version `0.2.2`.
 
 ## 0.2.2
 

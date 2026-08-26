@@ -26,25 +26,25 @@ import demo from 'node:test';
 import { Readable } from 'stream';
 
 // Import from monorepo packages
-import { Bridge, createRouter } from 'ai.matey.core';
-import { AnthropicFrontendAdapter } from 'ai.matey.frontend/anthropic';
-import { OpenAIBackendAdapter } from 'ai.matey.backend/openai';
-import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
-import { GeminiBackendAdapter } from 'ai.matey.backend/gemini';
-import { OllamaBackendAdapter } from 'ai.matey.backend/ollama';
-import { MistralBackendAdapter } from 'ai.matey.backend/mistral';
-import { DeepSeekBackendAdapter } from 'ai.matey.backend/deepseek';
-import { GroqBackendAdapter } from 'ai.matey.backend/groq';
-import { HuggingFaceBackendAdapter } from 'ai.matey.backend/huggingface';
-import { LMStudioBackendAdapter } from 'ai.matey.backend/lmstudio';
-import { NVIDIABackendAdapter } from 'ai.matey.backend/nvidia';
-import { MockBackendAdapter, createEchoBackend } from 'ai.matey.backend.browser/mock';
-import { NodeHTTPListener } from 'ai.matey.http/node';
+import { Bridge, createRouter } from '@johnhenry/aimatey-core';
+import { AnthropicFrontendAdapter } from '@johnhenry/aimatey-frontend/anthropic';
+import { OpenAIBackendAdapter } from '@johnhenry/aimatey-backend/openai';
+import { AnthropicBackendAdapter } from '@johnhenry/aimatey-backend/anthropic';
+import { GeminiBackendAdapter } from '@johnhenry/aimatey-backend/gemini';
+import { OllamaBackendAdapter } from '@johnhenry/aimatey-backend/ollama';
+import { MistralBackendAdapter } from '@johnhenry/aimatey-backend/mistral';
+import { DeepSeekBackendAdapter } from '@johnhenry/aimatey-backend/deepseek';
+import { GroqBackendAdapter } from '@johnhenry/aimatey-backend/groq';
+import { HuggingFaceBackendAdapter } from '@johnhenry/aimatey-backend/huggingface';
+import { LMStudioBackendAdapter } from '@johnhenry/aimatey-backend/lmstudio';
+import { NVIDIABackendAdapter } from '@johnhenry/aimatey-backend/nvidia';
+import { MockBackendAdapter, createEchoBackend } from '@johnhenry/aimatey-backend-browser/mock';
+import { NodeHTTPListener } from '@johnhenry/aimatey-http/node';
 
 // SDK Wrappers - each in their own package
-import { OpenAI } from 'ai.matey.wrapper/openai';
-import { Anthropic } from 'ai.matey.wrapper/anthropic';
-import { ChromeAILanguageModel } from 'ai.matey.wrapper/chrome-ai';
+import { OpenAI } from '@johnhenry/aimatey-wrapper/openai';
+import { Anthropic } from '@johnhenry/aimatey-wrapper/anthropic';
+import { ChromeAILanguageModel } from '@johnhenry/aimatey-wrapper/chrome-ai';
 
 // Conversion utilities - from CLI package
 import {
@@ -56,18 +56,18 @@ import {
   toAnthropic,
   toGemini,
   toMultipleFormats,
-} from 'ai.matey.cli';
+} from '@johnhenry/aimatey-cli';
 
 // Import native backends (Node.js only) - optional, may not be available
 let NodeLlamaCppBackend, AppleBackend;
 try {
-  const nativeModule = await import('ai.matey.native.node-llamacpp');
+  const nativeModule = await import('@johnhenry/aimatey-native-node-llamacpp');
   NodeLlamaCppBackend = nativeModule.NodeLlamaCppBackend;
 } catch {
   // Node-llama-cpp not available
 }
 try {
-  const appleModule = await import('ai.matey.native.apple');
+  const appleModule = await import('@johnhenry/aimatey-native-apple');
   AppleBackend = appleModule.AppleBackend;
 } catch {
   // Apple backend not available

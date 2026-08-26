@@ -4,8 +4,8 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { OpenAIBackendAdapter, requiresMaxCompletionTokens } from 'ai.matey.backend';
-import type { IRChatRequest } from 'ai.matey.types';
+import { OpenAIBackendAdapter, requiresMaxCompletionTokens } from '@johnhenry/aimatey-backend';
+import type { IRChatRequest } from '@johnhenry/aimatey-types';
 
 function makeRequest(model: string, maxTokens = 200): IRChatRequest {
   return {

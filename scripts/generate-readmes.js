@@ -76,9 +76,9 @@ For functionality, import from specific packages:
 
 \`\`\`typescript
 // Import from specific packages
-import { Bridge } from 'ai.matey.core';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
-import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
+import { Bridge } from '@johnhenry/aimatey-core';
+import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend/openai';
+import { AnthropicBackendAdapter } from '@johnhenry/aimatey-backend/anthropic';
 \`\`\`
 
 ## Available Packages
@@ -103,8 +103,8 @@ See the [API documentation](https://github.com/johnhenry/ai.matey/tree/main/docs
 
 \`\`\`typescript
 import { ${providerName.replace(/[^a-zA-Z]/g, '')}BackendAdapter } from '${pkgName}';
-import { Bridge } from 'ai.matey.core';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
+import { Bridge } from '@johnhenry/aimatey-core';
+import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend/openai';
 
 const bridge = new Bridge(
   new OpenAIFrontendAdapter(),
@@ -137,7 +137,7 @@ See the provider's documentation for available models.
 
 \`\`\`typescript
 import { ${providerName.replace(/[^a-zA-Z]/g, '')}FrontendAdapter } from '${pkgName}';
-import { Bridge } from 'ai.matey.core';
+import { Bridge } from '@johnhenry/aimatey-core';
 
 // Create a bridge that accepts ${providerName} format requests
 const bridge = new Bridge(
@@ -153,7 +153,7 @@ const bridge = new Bridge(
 
 \`\`\`typescript
 import { create${providerName.replace(/[^a-zA-Z]/g, '')}Middleware } from '${pkgName}';
-import { Bridge } from 'ai.matey.core';
+import { Bridge } from '@johnhenry/aimatey-core';
 
 const bridge = new Bridge(frontend, backend);
 
@@ -170,7 +170,7 @@ bridge.use(create${providerName.replace(/[^a-zA-Z]/g, '')}Middleware({
 
 \`\`\`typescript
 import { create${providerName.replace(/[^a-zA-Z]/g, '')}Handler } from '${pkgName}';
-import { Bridge } from 'ai.matey.core';
+import { Bridge } from '@johnhenry/aimatey-core';
 
 const bridge = new Bridge(frontend, backend);
 const handler = create${providerName.replace(/[^a-zA-Z]/g, '')}Handler(bridge);

@@ -8,7 +8,7 @@
  */
 
 import { OpenAIBackendAdapter, type OpenAIRequest, type OpenAIResponse } from './openai.js';
-import type { BackendAdapter, BackendAdapterConfig, IRChatRequest } from 'ai.matey.types';
+import type { BackendAdapter, BackendAdapterConfig, IRChatRequest } from '@johnhenry/aimatey-types';
 
 /**
  * Backend adapter for NVIDIA NIM API.
@@ -19,7 +19,7 @@ import type { BackendAdapter, BackendAdapterConfig, IRChatRequest } from 'ai.mat
  *
  * @example Basic Usage
  * ```typescript
- * import { NVIDIABackendAdapter } from 'ai.matey';
+ * import { NVIDIABackendAdapter } from '@johnhenry/aimatey';
  *
  * const adapter = new NVIDIABackendAdapter({
  *   apiKey: process.env.NVIDIA_API_KEY,
@@ -156,7 +156,7 @@ export class NVIDIABackendAdapter
  *
  * @example
  * ```typescript
- * import { createNVIDIAAdapter } from 'ai.matey';
+ * import { createNVIDIAAdapter } from '@johnhenry/aimatey';
  *
  * const adapter = createNVIDIAAdapter({
  *   apiKey: process.env.NVIDIA_API_KEY,

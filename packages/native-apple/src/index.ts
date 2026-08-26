@@ -8,7 +8,7 @@
  *
  * @example Basic Usage
  * ```typescript
- * import { AppleBackend } from 'ai.matey.native.node-llamacpp';
+ * import { AppleBackend } from '@johnhenry/aimatey-native-node-llamacpp';
  *
  * const backend = new AppleBackend({
  *   maxTokens: 2048,
@@ -22,15 +22,15 @@
  * @module
  */
 
-import type { BackendAdapter, AdapterMetadata } from 'ai.matey.types';
+import type { BackendAdapter, AdapterMetadata } from '@johnhenry/aimatey-types';
 import type {
   IRChatRequest,
   IRChatResponse,
   IRChatStream,
   IRStreamChunk,
   IRMessage,
-} from 'ai.matey.types';
-import { AdapterError, ErrorCode, ProviderError } from 'ai.matey.errors';
+} from '@johnhenry/aimatey-types';
+import { AdapterError, ErrorCode, ProviderError } from '@johnhenry/aimatey-errors';
 import { platform } from 'node:os';
 
 // Dynamic import to handle apple-foundation-models

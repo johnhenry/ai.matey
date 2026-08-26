@@ -36,8 +36,8 @@ Analyze query complexity and route to appropriate providers based on a complexit
 ### Implementation
 
 ```typescript
-import { Router } from 'ai.matey.core';
-import { OpenAIBackendAdapter, AnthropicBackendAdapter, GroqBackendAdapter, DeepSeekBackendAdapter } from 'ai.matey.backend';
+import { Router } from '@johnhenry/aimatey-core';
+import { OpenAIBackendAdapter, AnthropicBackendAdapter, GroqBackendAdapter, DeepSeekBackendAdapter } from '@johnhenry/aimatey-backend';
 
 // Complexity analyzer
 function analyzeComplexity(query: string): number {
@@ -110,8 +110,8 @@ Execute the same request to multiple providers in parallel and aggregate streami
 ### Implementation
 
 ```typescript
-import { Bridge } from 'ai.matey.core';
-import { OpenAIBackendAdapter, AnthropicBackendAdapter, GroqBackendAdapter } from 'ai.matey.backend';
+import { Bridge } from '@johnhenry/aimatey-core';
+import { OpenAIBackendAdapter, AnthropicBackendAdapter, GroqBackendAdapter } from '@johnhenry/aimatey-backend';
 import { EventEmitter } from 'events';
 
 class ParallelAggregator extends EventEmitter {
@@ -196,7 +196,7 @@ Custom middleware that automatically retries failed requests with the next provi
 ### Implementation
 
 ```typescript
-import { Middleware } from 'ai.matey.core';
+import { Middleware } from '@johnhenry/aimatey-core';
 
 class FailoverMiddleware implements Middleware {
   private fallbackChain: string[];
@@ -257,7 +257,7 @@ class FailoverMiddleware implements Middleware {
 }
 
 // Usage with Router
-import { Router } from 'ai.matey.core';
+import { Router } from '@johnhenry/aimatey-core';
 
 const router = new Router({
   defaultBackend: 'openai'
@@ -377,8 +377,8 @@ WebSocket server with per-client conversation history and real-time streaming de
 
 ```typescript
 import WebSocket from 'ws';
-import { Bridge } from 'ai.matey.core';
-import { OpenAIBackendAdapter } from 'ai.matey.backend';
+import { Bridge } from '@johnhenry/aimatey-core';
+import { OpenAIBackendAdapter } from '@johnhenry/aimatey-backend';
 
 const wss = new WebSocket.Server({ port: 8080 });
 
@@ -590,7 +590,7 @@ Compose multiple middleware in a chain with short-circuiting capabilities.
 ### Implementation
 
 ```typescript
-import { Middleware } from 'ai.matey.core';
+import { Middleware } from '@johnhenry/aimatey-core';
 
 // 1. Validation Middleware
 class ValidationMiddleware implements Middleware {
@@ -849,7 +849,7 @@ These patterns are being extracted into reusable utilities:
 - `createBatchProcessor()` - Pattern 6
 
 **Planned for v0.4.0:**
-- `ai.matey.http/websocket` - Pattern 5
+- `@johnhenry/aimatey-http/websocket` - Pattern 5
 - Enhanced health monitoring integration - Pattern 8
 
 ### Contributing Patterns

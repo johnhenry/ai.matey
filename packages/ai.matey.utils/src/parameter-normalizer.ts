@@ -7,7 +7,7 @@
  * @module
  */
 
-import type { IRParameters, IRCapabilities, IRWarning } from 'ai.matey.types';
+import type { IRParameters, IRCapabilities, IRWarning } from '@johnhenry/aimatey-types';
 import {
   createNormalizationWarning,
   createClampingWarning,

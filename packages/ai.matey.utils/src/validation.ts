@@ -12,9 +12,9 @@ import type {
   IRParameters,
   MessageContent,
   MessageRole,
-} from 'ai.matey.types';
-import { ValidationError, ErrorCode as ErrorCodeEnum } from 'ai.matey.errors';
-import type { ErrorProvenance } from 'ai.matey.types';
+} from '@johnhenry/aimatey-types';
+import { ValidationError, ErrorCode as ErrorCodeEnum } from '@johnhenry/aimatey-errors';
+import type { ErrorProvenance } from '@johnhenry/aimatey-types';
 
 // ============================================================================
 // Message Validation

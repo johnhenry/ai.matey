@@ -1,4 +1,6 @@
-# ai.matey.frontend
+# @johnhenry/aimatey-frontend
+
+> **Note:** Previously published as `ai.matey.frontend@0.4.1`.
 
 Frontend adapters for AI Matey - Universal AI Adapter System.
 
@@ -7,7 +9,7 @@ Part of the [ai.matey](https://github.com/johnhenry/ai.matey) monorepo.
 ## Installation
 
 ```bash
-npm install ai.matey.frontend
+npm install @johnhenry/aimatey-frontend
 ```
 
 ## Overview
@@ -27,8 +29,8 @@ Frontend adapters convert provider-specific request formats to the Universal IR 
 ## Usage
 
 ```typescript
-import { OpenAIFrontendAdapter, AnthropicFrontendAdapter } from 'ai.matey.frontend';
-import { Bridge } from 'ai.matey.core';
+import { OpenAIFrontendAdapter, AnthropicFrontendAdapter } from '@johnhenry/aimatey-frontend';
+import { Bridge } from '@johnhenry/aimatey-core';
 
 // Accept OpenAI-formatted requests
 const openAIFrontend = new OpenAIFrontendAdapter();
@@ -48,7 +50,7 @@ const bridge = new Bridge({
 The Generic adapter passes IR format directly without conversion:
 
 ```typescript
-import { GenericFrontendAdapter, createGenericFrontend } from 'ai.matey.frontend';
+import { GenericFrontendAdapter, createGenericFrontend } from '@johnhenry/aimatey-frontend';
 
 const frontend = createGenericFrontend();
 ```

@@ -8,7 +8,7 @@
  *
  * @example Converting stream modes
  * ```typescript
- * import { convertStreamMode, createAccumulatorState } from 'ai.matey.utils';
+ * import { convertStreamMode, createAccumulatorState } from '@johnhenry/aimatey-utils';
  *
  * const converter = createAccumulatorState();
  * const accumulated = await convertStreamMode(deltaStream, 'accumulated', { converter });
@@ -17,9 +17,13 @@
  * @module streaming-modes
  */
 
-import type { IRChatStream, StreamContentChunk } from 'ai.matey.types';
-import type { StreamMode, StreamConversionOptions, StreamingConfig } from 'ai.matey.types';
-import { DEFAULT_CONVERSION_OPTIONS, DEFAULT_STREAMING_CONFIG } from 'ai.matey.types';
+import type { IRChatStream, StreamContentChunk } from '@johnhenry/aimatey-types';
+import type {
+  StreamMode,
+  StreamConversionOptions,
+  StreamingConfig,
+} from '@johnhenry/aimatey-types';
+import { DEFAULT_CONVERSION_OPTIONS, DEFAULT_STREAMING_CONFIG } from '@johnhenry/aimatey-types';
 
 // ============================================================================
 // Stream Accumulator

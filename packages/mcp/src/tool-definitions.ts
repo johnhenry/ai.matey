@@ -9,7 +9,7 @@
  * @module
  */
 
-import type { ToolDefinition } from 'ai.matey.types';
+import type { ToolDefinition } from '@johnhenry/aimatey-types';
 import { extractMcpResultText, mcpToolToIRTool } from './convert.js';
 import type { McpClientLike, McpToolSchema } from './types.js';
 

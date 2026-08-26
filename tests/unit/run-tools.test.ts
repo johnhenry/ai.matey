@@ -8,21 +8,21 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { Bridge } from 'ai.matey.core';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend';
+import { Bridge } from '@johnhenry/aimatey-core';
+import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend';
 import {
   extractToolCalls,
   hasToolCalls,
   createToolResultMessage,
   validateToolArgs,
-} from 'ai.matey.utils';
+} from '@johnhenry/aimatey-utils';
 import type {
   BackendAdapter,
   AdapterMetadata,
   IRChatRequest,
   IRChatResponse,
   IRTool,
-} from 'ai.matey.types';
+} from '@johnhenry/aimatey-types';
 
 // ============================================================================
 // Scripted backend

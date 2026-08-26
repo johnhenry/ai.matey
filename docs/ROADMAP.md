@@ -23,17 +23,17 @@ Development roadmap and strategic direction for the Universal AI Adapter System.
 - ✅ Provider-agnostic request/response handling
 
 ### Providers
-- ✅ **30 Backend Providers** in `ai.matey.backend`:
+- ✅ **30 Backend Providers** in `@johnhenry/aimatey-backend`:
   OpenAI, Anthropic, Gemini, Mistral, Cohere, Groq, Ollama, AI21, Anyscale, AWS Bedrock, Azure OpenAI, Cerebras, Cloudflare, DeepInfra, DeepSeek, Fireworks, HuggingFace, LMStudio, NVIDIA, OpenRouter, Perplexity, Replicate, Together AI, XAI, Inception Labs, Moonshot AI, SambaNova, GitHub Models, DashScope (Alibaba Cloud Model Studio), OmniRoute
-- ✅ **7 Frontend Adapters** in `ai.matey.frontend`:
+- ✅ **7 Frontend Adapters** in `@johnhenry/aimatey-frontend`:
   OpenAI, Anthropic, Gemini, Mistral, Ollama, Chrome AI, Generic
-- ✅ **3 Browser Backends** in `ai.matey.backend.browser`:
+- ✅ **3 Browser Backends** in `@johnhenry/aimatey-backend-browser`:
   Chrome AI, Function-based, Mock provider
 - ✅ **Native adapters** in `ai.matey.native.*`:
   Apple Silicon (MLX), node-llamacpp, model-runner
 
 ### Middleware & Cross-Cutting Concerns
-All 10 middleware types in `ai.matey.middleware`:
+All 10 middleware types in `@johnhenry/aimatey-middleware`:
 - **logging** - Request/response logging
 - **telemetry** - Metrics collection
 - **opentelemetry** - Distributed tracing (OpenTelemetry standard)
@@ -46,40 +46,40 @@ All 10 middleware types in `ai.matey.middleware`:
 - **conversation-history** - Context management
 
 ### HTTP Integration
-- ✅ **Consolidated package** `ai.matey.http` with subpath imports for 6 frameworks:
-  - `ai.matey.http/express`
-  - `ai.matey.http/fastify`
-  - `ai.matey.http/hono`
-  - `ai.matey.http/koa`
-  - `ai.matey.http/node`
-  - `ai.matey.http/deno`
-- ✅ **Shared utilities** in `ai.matey.http.core`: auth, CORS, error-handler, health-check, rate-limiter, streaming-handler
+- ✅ **Consolidated package** `@johnhenry/aimatey-http` with subpath imports for 6 frameworks:
+  - `@johnhenry/aimatey-http/express`
+  - `@johnhenry/aimatey-http/fastify`
+  - `@johnhenry/aimatey-http/hono`
+  - `@johnhenry/aimatey-http/koa`
+  - `@johnhenry/aimatey-http/node`
+  - `@johnhenry/aimatey-http/deno`
+- ✅ **Shared utilities** in `@johnhenry/aimatey-http-core`: auth, CORS, error-handler, health-check, rate-limiter, streaming-handler
 - ✅ **OpenAI-compatible** API endpoints
 
 ### React Integration
-**Core Hooks** (`ai.matey.react.core`):
+**Core Hooks** (`@johnhenry/aimatey-react-core`):
 - useChat, useCompletion, useObject
 
-**Extended Hooks** (`ai.matey.react.hooks`):
+**Extended Hooks** (`@johnhenry/aimatey-react-hooks`):
 - useAssistant, useStream, useTokenCount
 
-**Streaming Components** (`ai.matey.react.stream`):
+**Streaming Components** (`@johnhenry/aimatey-react-stream`):
 - StreamProvider component
 
-**Next.js** (`ai.matey.react.nextjs`):
+**Next.js** (`@johnhenry/aimatey-react-nextjs`):
 - App Router integration
 - Server Actions support
 - Client and server utilities
 
 ### SDK Wrappers
-`ai.matey.wrapper` provides compatibility layers:
+`@johnhenry/aimatey-wrapper` provides compatibility layers:
 - OpenAI SDK-compatible wrapper
 - Anthropic SDK-compatible wrapper
 - Chrome AI legacy support
 - AnyMethod wrapper
 
 ### CLI Tools
-`ai.matey.cli` includes:
+`@johnhenry/aimatey-cli` includes:
 - Proxy server
 - Format converters (request/response)
 - Ollama command emulation (list, ps, pull, run, show)
@@ -98,66 +98,66 @@ All 10 middleware types in `ai.matey.middleware`:
 ## Package Structure
 
 ### Foundation (5 packages)
-- `ai.matey` - Main umbrella package
-- `ai.matey.types` - TypeScript type definitions
-- `ai.matey.errors` - Error classes and codes
-- `ai.matey.utils` - Utilities and helpers
-- `ai.matey.core` - Bridge, Router, Middleware core
+- `@johnhenry/aimatey` - Main umbrella package
+- `@johnhenry/aimatey-types` - TypeScript type definitions
+- `@johnhenry/aimatey-errors` - Error classes and codes
+- `@johnhenry/aimatey-utils` - Utilities and helpers
+- `@johnhenry/aimatey-core` - Bridge, Router, Middleware core
 
 ### Providers (3 packages)
-- `ai.matey.backend` - All 30 backend provider adapters
-- `ai.matey.backend.browser` - Browser-only backends
-- `ai.matey.frontend` - All 7 frontend adapters
+- `@johnhenry/aimatey-backend` - All 30 backend provider adapters
+- `@johnhenry/aimatey-backend-browser` - Browser-only backends
+- `@johnhenry/aimatey-frontend` - All 7 frontend adapters
 
 ### Infrastructure (4 packages)
-- `ai.matey.middleware` - All 10 middleware types
-- `ai.matey.http` - HTTP framework adapters (subpath imports for express, fastify, hono, koa, node, deno)
-- `ai.matey.http.core` - HTTP core utilities
-- `ai.matey.testing` - Testing utilities and fixtures
+- `@johnhenry/aimatey-middleware` - All 10 middleware types
+- `@johnhenry/aimatey-http` - HTTP framework adapters (subpath imports for express, fastify, hono, koa, node, deno)
+- `@johnhenry/aimatey-http-core` - HTTP core utilities
+- `@johnhenry/aimatey-testing` - Testing utilities and fixtures
 
 
 ### React Integration (4 packages)
-- `ai.matey.react.core` - Core hooks
-- `ai.matey.react.hooks` - Extended hooks
-- `ai.matey.react.stream` - Streaming components
-- `ai.matey.react.nextjs` - Next.js integration
+- `@johnhenry/aimatey-react-core` - Core hooks
+- `@johnhenry/aimatey-react-hooks` - Extended hooks
+- `@johnhenry/aimatey-react-stream` - Streaming components
+- `@johnhenry/aimatey-react-nextjs` - Next.js integration
 
 ### Native/Advanced (3 packages)
-- `ai.matey.native.apple` - Apple MLX integration
-- `ai.matey.native.node-llamacpp` - Node Llama.cpp
-- `ai.matey.native.model-runner` - Local model runner
+- `@johnhenry/aimatey-native-apple` - Apple MLX integration
+- `@johnhenry/aimatey-native-node-llamacpp` - Node Llama.cpp
+- `@johnhenry/aimatey-native-model-runner` - Local model runner
 
 ### Utilities (2 packages)
-- `ai.matey.wrapper` - SDK compatibility wrappers
-- `ai.matey.cli` - Command-line interface
+- `@johnhenry/aimatey-wrapper` - SDK compatibility wrappers
+- `@johnhenry/aimatey-cli` - Command-line interface
 
 ## Installation & Usage
 
 ### Core Installation
 
 ```bash
-npm install ai.matey.core ai.matey.types
+npm install @johnhenry/aimatey-core ai.matey.types
 ```
 
 ### Add Providers
 
 ```bash
 # All backend providers in one package
-npm install ai.matey.backend
+npm install @johnhenry/aimatey-backend
 
 # All frontend adapters in one package
-npm install ai.matey.frontend
+npm install @johnhenry/aimatey-frontend
 
 # All middleware in one package
-npm install ai.matey.middleware
+npm install @johnhenry/aimatey-middleware
 ```
 
 ### Basic Usage
 
 ```typescript
-import { Bridge } from 'ai.matey.core';
-import { OpenAIBackendAdapter } from 'ai.matey.backend';
-import { createLoggingMiddleware, createRetryMiddleware } from 'ai.matey.middleware';
+import { Bridge } from '@johnhenry/aimatey-core';
+import { OpenAIBackendAdapter } from '@johnhenry/aimatey-backend';
+import { createLoggingMiddleware, createRetryMiddleware } from '@johnhenry/aimatey-middleware';
 
 const bridge = new Bridge({
   backend: new OpenAIBackendAdapter({
@@ -178,11 +178,11 @@ const response = await bridge.execute({
 ### React Usage
 
 ```bash
-npm install ai.matey.react.core react
+npm install @johnhenry/aimatey-react-core react
 ```
 
 ```typescript
-import { useChat } from 'ai.matey.react.core';
+import { useChat } from '@johnhenry/aimatey-react-core';
 
 function ChatComponent() {
   const { messages, input, handleInputChange, handleSubmit } = useChat({
@@ -428,15 +428,15 @@ pricing sync.
 
 ### ✅ Wave 0 (shipped 2026-07): LiteRT-LM on-device backend
 
-`LiteRtLmBackendAdapter` in `ai.matey.backend.browser` — Gemma on WebGPU via `@litert-lm/core`
+`LiteRtLmBackendAdapter` in `@johnhenry/aimatey-backend-browser` — Gemma on WebGPU via `@litert-lm/core`
 (optional peer), engine caching per model URL, streaming, semantic-drift warnings for the Web
 SDK's dropped features. (`@litertjs/core` is tensor-only and deliberately out of scope; the
 MediaPipe genai API is maintenance-mode.)
 
 ### Wave 1 (next): MCP + Agents
 
-**MCP client — shipped as `ai.matey.mcp`** (`packages/mcp`, 2026-07-23; depends only on
-`ai.matey.types`, no MCP SDK dependency at all — the final design diverged from the original
+**MCP client — shipped as `@johnhenry/aimatey-mcp`** (`packages/mcp`, 2026-07-23; depends only on
+`@johnhenry/aimatey-types`, no MCP SDK dependency at all — the final design diverged from the original
 optional-peer-SDK plan below in favor of a purely structural `McpClientLike` interface, so any
 client implementation (the official SDK wrapped by hand, [`mcp-query`](https://github.com/johnhenry/mcp-query),
 or a test fake) works with zero adapter code):
@@ -445,7 +445,7 @@ or a test fake) works with zero adapter code):
   `isError` results throw so the existing `runTools` loop feeds them back as error tool results.
 - `runMcpTools(runTools, { client, ...RunToolsOptions })` composes the above with an
   already-bound `runTools` function (e.g. `bridge.runTools`) — zero loop changes needed.
-- Protocol-version-agnostic by design: `ai.matey.mcp` never touches the wire protocol, so
+- Protocol-version-agnostic by design: `@johnhenry/aimatey-mcp` never touches the wire protocol, so
   whichever MCP revision(s) the injected client negotiates are supported transparently. See
   `packages/mcp/readme.md`'s "Protocol Versions" section.
 
@@ -460,7 +460,7 @@ above.
 - Tests: SDK `InMemoryTransport.createLinkedPair()` roundtrips; peer-missing → friendly
   `AdapterError(UNSUPPORTED_FEATURE)`.
 
-**Agent abstraction — new package `ai.matey.agent`** (`packages/agent`):
+**Agent abstraction — new package `@johnhenry/aimatey-agent`** (`packages/agent`):
 - Small core prerequisite: `RunToolsOptions.stopWhen?: (step) => boolean | Promise<boolean>`
   checked after each iteration in `run-tools.ts`.
 - `Agent` class over `createRunTools`: `{ bridge | backend+model, name, instructions
@@ -478,7 +478,7 @@ above.
 
 ### Wave 2: Memory + Guardrails
 
-**Memory — new package `ai.matey.memory`** (`packages/memory`; depends on types/errors/utils
+**Memory — new package `@johnhenry/aimatey-memory`** (`packages/memory`; depends on types/errors/utils
 only via a structural `EmbeddingProvider = { embed() }`):
 - `createConversationMemory({ store?, maxMessages?, compressor? })` — session history with
   windowing and optional LLM compression of old turns into a summary message.
@@ -489,7 +489,7 @@ only via a structural `EmbeddingProvider = { embed() }`):
   `composeMemory(...)` chains them. Embedding caching comes free by stacking the existing
   `createEmbeddingCachingMiddleware`.
 
-**Guardrails — extend `ai.matey.middleware`** (new ErrorCode `GUARDRAIL_VIOLATION`):
+**Guardrails — extend `@johnhenry/aimatey-middleware`** (new ErrorCode `GUARDRAIL_VIOLATION`):
 - `createPIIRedactionMiddleware` — deterministic regex builtins (email/phone/ssn/creditCard/
   ipAddress/iban/apiKey) + custom patterns; actions transform (default) / deny / log; input,
   output, or both directions.
@@ -515,7 +515,7 @@ only via a structural `EmbeddingProvider = { embed() }`):
 
 - Additional browser backends beside LiteRT-LM: **web-llm/MLC** (OpenAI-shaped, fastest tok/s)
   and **transformers.js v4** (ONNX/WebGPU; also a path to on-device embeddings).
-- **Vue and Svelte hooks** mirroring `ai.matey.react.core`.
+- **Vue and Svelte hooks** mirroring `@johnhenry/aimatey-react-core`.
 - **Devtools/trace inspector** over the existing OpenTelemetry + stats surfaces.
 - **Registry pricing auto-sync**: optional fetch of a maintained pricing feed at runtime
   (`registerModels()` already supports live updates).

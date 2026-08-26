@@ -8,8 +8,13 @@
  * @module
  */
 
-import type { BackendAdapter, AdapterMetadata } from 'ai.matey.types';
-import type { IRChatRequest, IRChatResponse, IRChatStream, IRStreamChunk } from 'ai.matey.types';
+import type { BackendAdapter, AdapterMetadata } from '@johnhenry/aimatey-types';
+import type {
+  IRChatRequest,
+  IRChatResponse,
+  IRChatStream,
+  IRStreamChunk,
+} from '@johnhenry/aimatey-types';
 import type {
   Router as IRouter,
   RouterConfig,
@@ -21,12 +26,12 @@ import type {
   ModelPatternMapping,
   ParallelDispatchOptions,
   ParallelDispatchResult,
-} from 'ai.matey.types';
-import { AdapterError, ErrorCode } from 'ai.matey.errors';
-import { createWarning, supportsEmbeddings } from 'ai.matey.utils';
-import type { IREmbedRequest, IREmbedResponse } from 'ai.matey.types';
+} from '@johnhenry/aimatey-types';
+import { AdapterError, ErrorCode } from '@johnhenry/aimatey-errors';
+import { createWarning, supportsEmbeddings } from '@johnhenry/aimatey-utils';
+import type { IREmbedRequest, IREmbedResponse } from '@johnhenry/aimatey-types';
 import type { TranslationResult } from './model-translation.js';
-import type { AIModel } from 'ai.matey.types';
+import type { AIModel } from '@johnhenry/aimatey-types';
 import type { CapabilityRequirements, BackendModel } from './capability-matcher.js';
 import { findBestModel } from './capability-matcher.js';
 import { inferCapabilities } from './capability-inference.js';

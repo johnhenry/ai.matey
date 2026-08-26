@@ -9,8 +9,8 @@ import {
   ModelCache,
   globalModelCache,
   getModelCache,
-} from 'ai.matey.utils';
-import type { ListModelsResult } from 'ai.matey.types';
+} from '@johnhenry/aimatey-utils';
+import type { ListModelsResult } from '@johnhenry/aimatey-types';
 
 // ============================================================================
 // Test Helpers

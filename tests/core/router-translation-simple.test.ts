@@ -5,9 +5,9 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { Router } from 'ai.matey.core';
-import { MockBackendAdapter, createErrorBackend } from 'ai.matey.backend.browser';
-import type { IRChatRequest } from 'ai.matey.types';
+import { Router } from '@johnhenry/aimatey-core';
+import { MockBackendAdapter, createErrorBackend } from '@johnhenry/aimatey-backend-browser';
+import type { IRChatRequest } from '@johnhenry/aimatey-types';
 
 describe('Router Model Translation - Core Functionality', () => {
   it('should translate model name during fallback with exact match', async () => {

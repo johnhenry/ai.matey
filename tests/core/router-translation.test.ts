@@ -5,9 +5,9 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { Router } from 'ai.matey.core';
-import { MockBackendAdapter, createErrorBackend } from 'ai.matey.backend.browser';
-import type { IRChatRequest, IRChatResponse } from 'ai.matey.types';
+import { Router } from '@johnhenry/aimatey-core';
+import { MockBackendAdapter, createErrorBackend } from '@johnhenry/aimatey-backend-browser';
+import type { IRChatRequest, IRChatResponse } from '@johnhenry/aimatey-types';
 
 // Helper to extract text from response
 function getResponseText(response: IRChatResponse): string {

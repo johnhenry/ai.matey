@@ -1,4 +1,6 @@
-# ai.matey.backend
+# @johnhenry/aimatey-backend
+
+> **Note:** Previously published as `ai.matey.backend@0.9.0`.
 
 Server-side backend provider adapters for AI Matey - Universal AI Adapter System.
 
@@ -7,7 +9,7 @@ Part of the [ai.matey](https://github.com/johnhenry/ai.matey) monorepo.
 ## Installation
 
 ```bash
-npm install ai.matey.backend
+npm install @johnhenry/aimatey-backend
 ```
 
 ## Included Providers
@@ -56,12 +58,12 @@ This package includes adapters for **30 AI providers**:
 - **LM Studio** - Local desktop inference
 - **OmniRoute** - Self-hosted gateway fronting 290+ providers (90+ free), no API key required by default
 
-For browser-compatible adapters (Chrome AI, Function, Mock), see [`ai.matey.backend.browser`](../backend-browser).
+For browser-compatible adapters (Chrome AI, Function, Mock), see [`@johnhenry/aimatey-backend-browser`](../backend-browser).
 
 ## Usage
 
 ```typescript
-import { OpenAIBackendAdapter, AnthropicBackendAdapter } from 'ai.matey.backend';
+import { OpenAIBackendAdapter, AnthropicBackendAdapter } from '@johnhenry/aimatey-backend';
 
 // Create an OpenAI backend
 const openaiBackend = new OpenAIBackendAdapter({
@@ -79,8 +81,8 @@ const anthropicBackend = new AnthropicBackendAdapter({
 You can also import specific providers directly:
 
 ```typescript
-import { OpenAIBackendAdapter } from 'ai.matey.backend/openai';
-import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
+import { OpenAIBackendAdapter } from '@johnhenry/aimatey-backend/openai';
+import { AnthropicBackendAdapter } from '@johnhenry/aimatey-backend/anthropic';
 ```
 
 ## Structured Output

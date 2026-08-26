@@ -20,7 +20,7 @@
  * @module
  */
 
-import type { ModelRegistryEntry } from 'ai.matey.types';
+import type { ModelRegistryEntry } from '@johnhenry/aimatey-types';
 
 export const MODEL_REGISTRY_SEED: readonly ModelRegistryEntry[] = [
   // ==========================================================================

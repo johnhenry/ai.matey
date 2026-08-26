@@ -1,6 +1,6 @@
 {
-  "name": "ai.matey.native.apple",
-  "version": "0.2.1",
+  "name": "@johnhenry/aimatey-native-apple",
+  "version": "0.0.0",
   "description": "apple native backend for AI Matey",
   "type": "module",
   "main": "./dist/cjs/index.js",
@@ -37,12 +37,12 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "ai.matey.types": "*",
-    "ai.matey.errors": "*",
-    "ai.matey.utils": "*"
+    "@johnhenry/aimatey-types": "^0.0.0",
+    "@johnhenry/aimatey-errors": "^0.0.0",
+    "@johnhenry/aimatey-utils": "^0.0.0"
   },
   "devDependencies": {
-    "ai.matey.testing": "*",
+    "@johnhenry/aimatey-testing": "^0.0.0",
     "typescript": "^5.9.3",
     "vitest": "^3.2.4"
   },

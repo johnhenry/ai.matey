@@ -10,7 +10,7 @@
  * @module
  */
 
-import type { IRMessage, SystemMessageStrategy } from 'ai.matey.types';
+import type { IRMessage, SystemMessageStrategy } from '@johnhenry/aimatey-types';
 
 // ============================================================================
 // System Message Extraction

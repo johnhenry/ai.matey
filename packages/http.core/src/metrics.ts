@@ -9,7 +9,7 @@
  */
 
 import type { GenericRequest, GenericResponse } from './types.js';
-import type { Bridge, Router } from 'ai.matey.core';
+import type { Bridge, Router } from '@johnhenry/aimatey-core';
 
 /**
  * A single metric sample.

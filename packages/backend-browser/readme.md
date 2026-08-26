@@ -1,4 +1,6 @@
-# ai.matey.backend.browser
+# @johnhenry/aimatey-backend-browser
+
+> **Note:** Previously published as `ai.matey.backend.browser@0.5.1`.
 
 Browser-compatible backend adapters for AI Matey - Universal AI Adapter System.
 
@@ -7,7 +9,7 @@ Part of the [ai.matey](https://github.com/johnhenry/ai.matey) monorepo.
 ## Installation
 
 ```bash
-npm install ai.matey.backend.browser
+npm install @johnhenry/aimatey-backend-browser
 ```
 
 ## Overview
@@ -18,7 +20,7 @@ This package contains backend adapters that can run natively in browser environm
 - **Function** - Custom function-based backends for testing and integration
 - **Mock** - Mock responses for testing and development
 
-For server-side provider adapters (OpenAI, Anthropic, etc.), see [`ai.matey.backend`](https://www.npmjs.com/package/ai.matey.backend).
+For server-side provider adapters (OpenAI, Anthropic, etc.), see [`@johnhenry/aimatey-backend`](https://www.npmjs.com/package/@johnhenry/aimatey-backend).
 
 ## Usage
 
@@ -29,7 +31,7 @@ Requires Chrome 138+ (the `LanguageModel` global; `chrome://flags/#prompt-api-fo
 may be needed on some channels).
 
 ```typescript
-import { ChromeAIBackendAdapter } from 'ai.matey.backend.browser';
+import { ChromeAIBackendAdapter } from '@johnhenry/aimatey-backend-browser';
 
 const chromeAI = new ChromeAIBackendAdapter({ temperature: 0.7, topK: 40 });
 
@@ -72,7 +74,7 @@ Notes:
 ### Function Backend
 
 ```typescript
-import { FunctionBackendAdapter, createFunctionBackend } from 'ai.matey.backend.browser';
+import { FunctionBackendAdapter, createFunctionBackend } from '@johnhenry/aimatey-backend-browser';
 
 // Create a custom backend from a function
 const customBackend = createFunctionBackend(async (request) => ({
@@ -85,7 +87,7 @@ const customBackend = createFunctionBackend(async (request) => ({
 ### Mock Backend
 
 ```typescript
-import { MockBackendAdapter, createEchoBackend } from 'ai.matey.backend.browser';
+import { MockBackendAdapter, createEchoBackend } from '@johnhenry/aimatey-backend-browser';
 
 // Create a mock backend for testing
 const mockBackend = new MockBackendAdapter({
@@ -99,9 +101,9 @@ const echoBackend = createEchoBackend();
 ## Subpath Imports
 
 ```typescript
-import { ChromeAIBackendAdapter } from 'ai.matey.backend.browser/chrome-ai';
-import { FunctionBackendAdapter } from 'ai.matey.backend.browser/function';
-import { MockBackendAdapter } from 'ai.matey.backend.browser/mock';
+import { ChromeAIBackendAdapter } from '@johnhenry/aimatey-backend-browser/chrome-ai';
+import { FunctionBackendAdapter } from '@johnhenry/aimatey-backend-browser/function';
+import { MockBackendAdapter } from '@johnhenry/aimatey-backend-browser/mock';
 ```
 
 ## API Reference
@@ -117,13 +119,13 @@ MIT - see [LICENSE](./LICENSE) for details.
 Run Google's Gemma models entirely in the browser via [LiteRT-LM](https://developers.google.com/edge/litert-lm/js) — no API key, no server, no cost.
 
 ```bash
-npm install ai.matey.backend.browser @litert-lm/core
+npm install @johnhenry/aimatey-backend-browser @litert-lm/core
 ```
 
 ```typescript
-import { Bridge } from 'ai.matey.core';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend';
-import { LiteRtLmBackendAdapter } from 'ai.matey.backend.browser';
+import { Bridge } from '@johnhenry/aimatey-core';
+import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend';
+import { LiteRtLmBackendAdapter } from '@johnhenry/aimatey-backend-browser';
 
 const backend = new LiteRtLmBackendAdapter({
   model:

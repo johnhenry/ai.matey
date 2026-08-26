@@ -1,4 +1,6 @@
-# ai.matey.frontend
+# @johnhenry/aimatey-frontend
+
+> Previously published as `ai.matey.frontend`, last unscoped version `0.4.1`.
 
 ## 0.4.1
 

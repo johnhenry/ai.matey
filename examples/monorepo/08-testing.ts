@@ -12,14 +12,14 @@ import {
   createMockStreamResponse,
   assertChatRequest,
   assertStreamChunk,
-} from 'ai.matey.testing';
+} from '@johnhenry/aimatey-testing';
 
 // Core imports
-import { Bridge } from 'ai.matey.core';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
+import { Bridge } from '@johnhenry/aimatey-core';
+import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend/openai';
 
 // Types
-import type { IRChatRequest, IRChatResponse } from 'ai.matey.types';
+import type { IRChatRequest, IRChatResponse } from '@johnhenry/aimatey-types';
 
 async function main() {
   console.log('=== Testing Examples ===\n');

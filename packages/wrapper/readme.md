@@ -1,4 +1,6 @@
-# ai.matey.wrapper
+# @johnhenry/aimatey-wrapper
+
+> **Note:** Previously published as `ai.matey.wrapper@0.2.4`.
 
 SDK wrappers and utilities for AI Matey - Universal AI Adapter System.
 
@@ -7,7 +9,7 @@ Part of the [ai.matey](https://github.com/johnhenry/ai.matey) monorepo.
 ## Installation
 
 ```bash
-npm install ai.matey.wrapper
+npm install @johnhenry/aimatey-wrapper
 ```
 
 ## Overview
@@ -31,7 +33,7 @@ This package provides SDK-compatible wrappers that let you use familiar SDK patt
 ### OpenAI SDK Wrapper
 
 ```typescript
-import { OpenAI } from 'ai.matey.wrapper';
+import { OpenAI } from '@johnhenry/aimatey-wrapper';
 
 const client = new OpenAI({ backend: yourBackend });
 
@@ -44,7 +46,7 @@ const response = await client.chat.completions.create({
 ### Anthropic SDK Wrapper
 
 ```typescript
-import { Anthropic } from 'ai.matey.wrapper';
+import { Anthropic } from '@johnhenry/aimatey-wrapper';
 
 const client = new Anthropic({ backend: yourBackend });
 
@@ -58,7 +60,7 @@ const response = await client.messages.create({
 ### IR Chat Interface
 
 ```typescript
-import { Chat, createChat } from 'ai.matey.wrapper';
+import { Chat, createChat } from '@johnhenry/aimatey-wrapper';
 
 const chat = createChat({ backend: yourBackend });
 
@@ -74,7 +76,7 @@ for await (const chunk of chat.stream('Tell me a story')) {
 ### Stream Utilities
 
 ```typescript
-import { collectStream, streamToText } from 'ai.matey.wrapper';
+import { collectStream, streamToText } from '@johnhenry/aimatey-wrapper';
 
 // Collect all chunks from a stream
 const collected = await collectStream(stream);

@@ -9,7 +9,7 @@
  * @module
  */
 
-import type { RunToolsOptions, RunToolsResult } from 'ai.matey.types';
+import type { RunToolsOptions, RunToolsResult } from '@johnhenry/aimatey-types';
 import { mcpToolsToDefinitions } from './tool-definitions.js';
 import type { McpClientLike, McpToolSchema } from './types.js';
 

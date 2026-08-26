@@ -7,7 +7,7 @@
  * @module
  */
 
-import type { IRTool, JSONSchema } from 'ai.matey.types';
+import type { IRTool, JSONSchema } from '@johnhenry/aimatey-types';
 import type { McpCallToolResult, McpContentBlock, McpToolSchema } from './types.js';
 
 /**

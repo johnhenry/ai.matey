@@ -21,4 +21,4 @@ export {
   // Types
   type CollectedStream,
   type ProcessStreamOptions as TransformStreamOptions,
-} from 'ai.matey.utils';
+} from '@johnhenry/aimatey-utils';

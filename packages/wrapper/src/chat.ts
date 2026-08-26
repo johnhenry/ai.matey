@@ -14,7 +14,7 @@ import type {
   IRUsage,
   MessageContent,
   ToolUseContent,
-} from 'ai.matey.types';
+} from '@johnhenry/aimatey-types';
 
 import type {
   ChatConfig,
@@ -39,8 +39,8 @@ import type {
  *
  * @example
  * ```typescript
- * import { Chat } from 'ai.matey.wrapper/ir';
- * import { AnthropicBackend } from 'ai.matey.backend/anthropic';
+ * import { Chat } from '@johnhenry/aimatey-wrapper/ir';
+ * import { AnthropicBackend } from '@johnhenry/aimatey-backend/anthropic';
  *
  * const chat = new Chat({
  *   backend: new AnthropicBackend({ apiKey: process.env.ANTHROPIC_API_KEY }),

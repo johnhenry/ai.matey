@@ -4,11 +4,11 @@
  * Shows how to add automatic retry logic for failed requests.
  */
 
-import { Bridge } from 'ai.matey.core';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend';
-import { AnthropicBackendAdapter } from 'ai.matey.backend';
-import { createRetryMiddleware } from 'ai.matey.middleware';
-import { isRateLimitError, isNetworkError } from 'ai.matey.errors';
+import { Bridge } from '@johnhenry/aimatey-core';
+import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend';
+import { AnthropicBackendAdapter } from '@johnhenry/aimatey-backend';
+import { createRetryMiddleware } from '@johnhenry/aimatey-middleware';
+import { isRateLimitError, isNetworkError } from '@johnhenry/aimatey-errors';
 
 async function main() {
   const bridge = new Bridge(

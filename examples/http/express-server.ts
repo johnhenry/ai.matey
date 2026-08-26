@@ -5,10 +5,10 @@
  */
 
 import express from 'express';
-import { ExpressMiddleware } from 'ai.matey.http/express';
-import { Bridge } from 'ai.matey.core';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
-import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
+import { ExpressMiddleware } from '@johnhenry/aimatey-http/express';
+import { Bridge } from '@johnhenry/aimatey-core';
+import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend/openai';
+import { AnthropicBackendAdapter } from '@johnhenry/aimatey-backend/anthropic';
 
 async function main() {
   const app = express();
@@ -35,7 +35,7 @@ async function main() {
 
   // Health check endpoint
   app.get('/health', (_req, res) => {
-    res.json({ status: 'ok', service: 'ai.matey' });
+    res.json({ status: 'ok', service: '@johnhenry/aimatey' });
   });
 
   const PORT = process.env.PORT || 3000;

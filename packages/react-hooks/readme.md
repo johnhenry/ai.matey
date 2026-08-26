@@ -1,4 +1,6 @@
-# ai.matey.react.hooks
+# @johnhenry/aimatey-react-hooks
+
+> **Note:** Previously published as `ai.matey.react.hooks@0.2.2`.
 
 Additional specialized React hooks for AI applications.
 
@@ -7,13 +9,13 @@ Part of the [ai.matey](https://github.com/johnhenry/ai.matey) monorepo.
 ## Installation
 
 ```bash
-npm install ai.matey.react.hooks
+npm install @johnhenry/aimatey-react-hooks
 ```
 
 ## Quick Start
 
 ```tsx
-import { useAssistant } from 'ai.matey.react.hooks';
+import { useAssistant } from '@johnhenry/aimatey-react-hooks';
 
 function AssistantChat() {
   const { messages, input, handleInputChange, handleSubmit, status } = useAssistant({

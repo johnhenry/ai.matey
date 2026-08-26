@@ -9,9 +9,9 @@
  * required - `auto` already works on a fresh install.
  */
 
-import { Bridge } from 'ai.matey.core';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
-import { OmniRouteBackendAdapter } from 'ai.matey.backend/omniroute';
+import { Bridge } from '@johnhenry/aimatey-core';
+import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend/openai';
+import { OmniRouteBackendAdapter } from '@johnhenry/aimatey-backend/omniroute';
 
 async function main() {
   const bridge = new Bridge(

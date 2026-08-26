@@ -21,8 +21,8 @@ import {
   formatWarning,
   formatWarnings,
   getWarningSummary,
-} from 'ai.matey.utils';
-import type { IRWarning, WarningCategory, WarningSeverity } from 'ai.matey.types';
+} from '@johnhenry/aimatey-utils';
+import type { IRWarning, WarningCategory, WarningSeverity } from '@johnhenry/aimatey-types';
 
 // ============================================================================
 // createWarning Tests

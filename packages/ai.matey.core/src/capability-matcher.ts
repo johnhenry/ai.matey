@@ -7,7 +7,7 @@
  * @module
  */
 
-import type { AIModel, ModelCapabilities } from 'ai.matey.types';
+import type { AIModel, ModelCapabilities } from '@johnhenry/aimatey-types';
 import { inferCapabilities, meetsRequirements } from './capability-inference.js';
 
 /**

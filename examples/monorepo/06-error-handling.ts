@@ -6,9 +6,9 @@
  */
 
 // Core imports
-import { Bridge } from 'ai.matey.core';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
-import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
+import { Bridge } from '@johnhenry/aimatey-core';
+import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend/openai';
+import { AnthropicBackendAdapter } from '@johnhenry/aimatey-backend/anthropic';
 
 // Error imports - dedicated package for error types
 import {
@@ -20,7 +20,7 @@ import {
   NetworkError,
   ErrorCode,
   createErrorFromHttpResponse,
-} from 'ai.matey.errors';
+} from '@johnhenry/aimatey-errors';
 
 async function main() {
   console.log('=== Error Handling Examples ===\n');

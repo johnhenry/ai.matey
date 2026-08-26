@@ -7,9 +7,9 @@
  * @module
  */
 
-import type { Middleware, StreamingMiddleware } from 'ai.matey.types';
-import type { IRUsage } from 'ai.matey.types';
-import { getModelPricingInfo } from 'ai.matey.utils';
+import type { Middleware, StreamingMiddleware } from '@johnhenry/aimatey-types';
+import type { IRUsage } from '@johnhenry/aimatey-types';
+import { getModelPricingInfo } from '@johnhenry/aimatey-utils';
 
 /**
  * Provider pricing configuration
@@ -437,7 +437,7 @@ export function calculateCost(
  *
  * @example Basic Usage
  * ```typescript
- * import { createCostTrackingMiddleware } from 'ai.matey';
+ * import { createCostTrackingMiddleware } from '@johnhenry/aimatey';
  *
  * const costTracking = createCostTrackingMiddleware({
  *   logCosts: true,

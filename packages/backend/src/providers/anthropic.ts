@@ -7,7 +7,11 @@
  * @module
  */
 
-import type { BackendAdapter, BackendAdapterConfig, AdapterMetadata } from 'ai.matey.types';
+import type {
+  BackendAdapter,
+  BackendAdapterConfig,
+  AdapterMetadata,
+} from '@johnhenry/aimatey-types';
 import type {
   IRChatRequest,
   IRChatResponse,
@@ -16,8 +20,8 @@ import type {
   IRStreamChunk,
   FinishReason,
   MessageContent,
-} from 'ai.matey.types';
-import type { ListModelsOptions, ListModelsResult } from 'ai.matey.types';
+} from '@johnhenry/aimatey-types';
+import type { ListModelsOptions, ListModelsResult } from '@johnhenry/aimatey-types';
 import {
   AdapterConversionError,
   NetworkError,
@@ -25,10 +29,10 @@ import {
   StreamError,
   ErrorCode,
   createErrorFromHttpResponse,
-} from 'ai.matey.errors';
-import { normalizeSystemMessages, createWarning } from 'ai.matey.utils';
-import { getEffectiveStreamMode, mergeStreamingConfig } from 'ai.matey.utils';
-import { getModelPricingInfo } from 'ai.matey.utils';
+} from '@johnhenry/aimatey-errors';
+import { normalizeSystemMessages, createWarning } from '@johnhenry/aimatey-utils';
+import { getEffectiveStreamMode, mergeStreamingConfig } from '@johnhenry/aimatey-utils';
+import { getModelPricingInfo } from '@johnhenry/aimatey-utils';
 import {
   estimateTokens,
   buildStaticResult,

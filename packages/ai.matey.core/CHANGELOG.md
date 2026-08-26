@@ -1,4 +1,6 @@
-# ai.matey.core
+# @johnhenry/aimatey-core
+
+> Previously published as `ai.matey.core`, last unscoped version `0.3.4`.
 
 ## 0.3.4
 

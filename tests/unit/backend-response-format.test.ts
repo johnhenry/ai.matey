@@ -17,8 +17,8 @@ import {
   MistralBackendAdapter,
   OllamaBackendAdapter,
   CohereBackendAdapter,
-} from 'ai.matey.backend';
-import type { IRChatRequest, IRResponseFormat } from 'ai.matey.types';
+} from '@johnhenry/aimatey-backend';
+import type { IRChatRequest, IRResponseFormat } from '@johnhenry/aimatey-types';
 
 const FLAT_SCHEMA: IRResponseFormat = {
   type: 'json_schema',

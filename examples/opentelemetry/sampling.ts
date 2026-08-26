@@ -20,10 +20,10 @@
  *    npx tsx examples/opentelemetry/sampling.ts
  */
 
-import { Bridge } from 'ai.matey.core';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
-import { MockBackendAdapter } from 'ai.matey.backend/mock';
-import { createOpenTelemetryMiddleware, shutdownOpenTelemetry } from 'ai.matey.middleware/opentelemetry';
+import { Bridge } from '@johnhenry/aimatey-core';
+import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend/openai';
+import { MockBackendAdapter } from '@johnhenry/aimatey-backend/mock';
+import { createOpenTelemetryMiddleware, shutdownOpenTelemetry } from '@johnhenry/aimatey-middleware/opentelemetry';
 
 async function main() {
   console.log('📊 OpenTelemetry Sampling Example\n');

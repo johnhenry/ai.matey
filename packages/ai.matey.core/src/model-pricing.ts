@@ -11,7 +11,7 @@
  * @module
  */
 
-import type { ModelCapabilities, ModelRegistryEntry } from 'ai.matey.types';
+import type { ModelCapabilities, ModelRegistryEntry } from '@johnhenry/aimatey-types';
 import {
   getModelEntry,
   getModelPricingInfo,
@@ -20,7 +20,7 @@ import {
   overrideModelPricing,
   clearModelPricingOverride,
   clearModelPricingOverrides,
-} from 'ai.matey.utils';
+} from '@johnhenry/aimatey-utils';
 
 /**
  * Pricing data for a specific model (USD per 1k tokens).

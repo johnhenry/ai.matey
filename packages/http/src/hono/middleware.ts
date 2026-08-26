@@ -7,9 +7,9 @@
  */
 
 import type { Context, MiddlewareHandler } from 'hono';
-import type { Bridge } from 'ai.matey.core';
-import type { HTTPListenerOptions } from 'ai.matey.http.core';
-import { CoreHTTPHandler } from 'ai.matey.http.core';
+import type { Bridge } from '@johnhenry/aimatey-core';
+import type { HTTPListenerOptions } from '@johnhenry/aimatey-http-core';
+import { CoreHTTPHandler } from '@johnhenry/aimatey-http-core';
 import { HonoRequestAdapter, HonoResponseAdapter } from './adapter.js';
 
 /**
@@ -22,7 +22,7 @@ import { HonoRequestAdapter, HonoResponseAdapter } from './adapter.js';
  * @example
  * ```typescript
  * import { Hono } from 'hono';
- * import { HonoMiddleware } from 'ai.matey.http/hono';
+ * import { HonoMiddleware } from '@johnhenry/aimatey-http/hono';
  *
  * const app = new Hono();
  * const bridge = new Bridge(frontend, backend);

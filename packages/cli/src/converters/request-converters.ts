@@ -6,7 +6,7 @@
  *
  * @example
  * ```typescript
- * import { toOpenAIRequest, toAnthropicRequest } from 'ai.matey';
+ * import { toOpenAIRequest, toAnthropicRequest } from '@johnhenry/aimatey';
  *
  * // Convert IR request to see what will be sent to OpenAI
  * const openaiReq = toOpenAIRequest(irRequest);
@@ -19,12 +19,12 @@
  * @module
  */
 
-import type { IRChatRequest } from 'ai.matey.types';
-import { OpenAIBackendAdapter, type OpenAIRequest } from 'ai.matey.backend';
-import { AnthropicBackendAdapter, type AnthropicRequest } from 'ai.matey.backend';
-import { GeminiBackendAdapter, type GeminiRequest } from 'ai.matey.backend';
-import { OllamaBackendAdapter, type OllamaRequest } from 'ai.matey.backend';
-import { MistralBackendAdapter, type MistralRequest } from 'ai.matey.backend';
+import type { IRChatRequest } from '@johnhenry/aimatey-types';
+import { OpenAIBackendAdapter, type OpenAIRequest } from '@johnhenry/aimatey-backend';
+import { AnthropicBackendAdapter, type AnthropicRequest } from '@johnhenry/aimatey-backend';
+import { GeminiBackendAdapter, type GeminiRequest } from '@johnhenry/aimatey-backend';
+import { OllamaBackendAdapter, type OllamaRequest } from '@johnhenry/aimatey-backend';
+import { MistralBackendAdapter, type MistralRequest } from '@johnhenry/aimatey-backend';
 
 // ============================================================================
 // Individual Request Converters

@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+> **Note:** All 23 publishable packages in this monorepo moved into the `@johnhenry` npm scope
+> and restarted their version numbers at `0.0.0`. Each package's own CHANGELOG.md and readme.md
+> record its prior unscoped name and last published version. Entries below this note continue to
+> use the package names that were accurate at the time they were written.
+
 ## [Unreleased]
 
 ### Added

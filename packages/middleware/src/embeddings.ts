@@ -8,8 +8,8 @@
  */
 
 import { createHash } from 'crypto';
-import type { EmbedMiddleware, IREmbedRequest, IREmbedResponse } from 'ai.matey.types';
-import { getModelPricingInfo } from 'ai.matey.utils';
+import type { EmbedMiddleware, IREmbedRequest, IREmbedResponse } from '@johnhenry/aimatey-types';
+import { getModelPricingInfo } from '@johnhenry/aimatey-utils';
 
 // ============================================================================
 // Caching

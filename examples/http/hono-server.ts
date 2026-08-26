@@ -5,10 +5,10 @@
  */
 
 import { Hono } from 'hono';
-import { HonoMiddleware } from 'ai.matey.http/hono';
-import { Bridge } from 'ai.matey.core';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
-import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
+import { HonoMiddleware } from '@johnhenry/aimatey-http/hono';
+import { Bridge } from '@johnhenry/aimatey-core';
+import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend/openai';
+import { AnthropicBackendAdapter } from '@johnhenry/aimatey-backend/anthropic';
 
 const app = new Hono();
 
@@ -22,7 +22,7 @@ const bridge = new Bridge(
 
 // Health check
 app.get('/health', (c) => {
-  return c.json({ status: 'ok', service: 'ai.matey' });
+  return c.json({ status: 'ok', service: '@johnhenry/aimatey' });
 });
 
 // AI chat endpoint

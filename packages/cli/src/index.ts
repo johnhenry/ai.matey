@@ -2,7 +2,7 @@
  * CLI Utilities and Interfaces
  *
  * ⚠️ WARNING: This module uses Node.js-specific APIs (child_process, readline, fs) and
- * is NOT browser-compatible. Import from 'ai.matey.backend' for
+ * is NOT browser-compatible. Import from '@johnhenry/aimatey-backend' for
  * browser-compatible adapters.
  *
  * @module cli

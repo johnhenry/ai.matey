@@ -5,10 +5,10 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { Bridge } from 'ai.matey.core';
-import { AnthropicFrontendAdapter } from 'ai.matey.frontend';
-import type { IRChatRequest, IRChatResponse } from 'ai.matey.types';
-import type { BackendAdapter } from 'ai.matey.types';
+import { Bridge } from '@johnhenry/aimatey-core';
+import { AnthropicFrontendAdapter } from '@johnhenry/aimatey-frontend';
+import type { IRChatRequest, IRChatResponse } from '@johnhenry/aimatey-types';
+import type { BackendAdapter } from '@johnhenry/aimatey-types';
 import {
   createLoggingMiddleware,
   createTelemetryMiddleware,
@@ -17,7 +17,7 @@ import {
   InMemoryCacheStorage,
   createRetryMiddleware,
   createTransformMiddleware,
-} from 'ai.matey.middleware';
+} from '@johnhenry/aimatey-middleware';
 
 // ============================================================================
 // Mock Backend Adapter

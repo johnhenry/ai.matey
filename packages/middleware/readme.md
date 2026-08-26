@@ -1,4 +1,6 @@
-# ai.matey.middleware
+# @johnhenry/aimatey-middleware
+
+> **Note:** Previously published as `ai.matey.middleware@0.3.1`.
 
 Middleware components for AI Matey - Universal AI Adapter System.
 
@@ -7,7 +9,7 @@ Part of the [ai.matey](https://github.com/johnhenry/ai.matey) monorepo.
 ## Installation
 
 ```bash
-npm install ai.matey.middleware
+npm install @johnhenry/aimatey-middleware
 ```
 
 ## Overview
@@ -30,13 +32,13 @@ This package provides middleware components that can be composed into a middlewa
 ## Usage
 
 ```typescript
-import { Bridge } from 'ai.matey.core';
+import { Bridge } from '@johnhenry/aimatey-core';
 import {
   createRetryMiddleware,
   createCachingMiddleware,
   createLoggingMiddleware,
   InMemoryCacheStorage,
-} from 'ai.matey.middleware';
+} from '@johnhenry/aimatey-middleware';
 
 const bridge = new Bridge({
   frontend,
@@ -52,7 +54,7 @@ const bridge = new Bridge({
 ### Retry Middleware
 
 ```typescript
-import { createRetryMiddleware } from 'ai.matey.middleware';
+import { createRetryMiddleware } from '@johnhenry/aimatey-middleware';
 
 const retry = createRetryMiddleware({
   maxAttempts: 3,
@@ -65,7 +67,7 @@ const retry = createRetryMiddleware({
 ### Caching Middleware
 
 ```typescript
-import { createCachingMiddleware, InMemoryCacheStorage } from 'ai.matey.middleware';
+import { createCachingMiddleware, InMemoryCacheStorage } from '@johnhenry/aimatey-middleware';
 
 const cache = createCachingMiddleware({
   storage: new InMemoryCacheStorage(),
@@ -76,7 +78,7 @@ const cache = createCachingMiddleware({
 ### Validation Middleware
 
 ```typescript
-import { createValidationMiddleware } from 'ai.matey.middleware';
+import { createValidationMiddleware } from '@johnhenry/aimatey-middleware';
 
 const validation = createValidationMiddleware({
   detectPII: true,
@@ -87,7 +89,7 @@ const validation = createValidationMiddleware({
 ### Cost Tracking Middleware
 
 ```typescript
-import { createCostTrackingMiddleware, InMemoryCostStorage } from 'ai.matey.middleware';
+import { createCostTrackingMiddleware, InMemoryCostStorage } from '@johnhenry/aimatey-middleware';
 
 const costTracking = createCostTrackingMiddleware({
   storage: new InMemoryCostStorage(),

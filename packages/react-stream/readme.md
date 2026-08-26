@@ -1,4 +1,6 @@
-# ai.matey.react.stream
+# @johnhenry/aimatey-react-stream
+
+> **Note:** Previously published as `ai.matey.react.stream@0.2.2`.
 
 React components and utilities for streaming AI responses.
 
@@ -7,13 +9,13 @@ Part of the [ai.matey](https://github.com/johnhenry/ai.matey) monorepo.
 ## Installation
 
 ```bash
-npm install ai.matey.react.stream
+npm install @johnhenry/aimatey-react-stream
 ```
 
 ## Quick Start
 
 ```tsx
-import { StreamProvider, useStreamContext, StreamText } from 'ai.matey.react.stream';
+import { StreamProvider, useStreamContext, StreamText } from '@johnhenry/aimatey-react-stream';
 
 // Wrap your app with StreamProvider
 function App() {
@@ -172,7 +174,7 @@ import {
   createTextStream,
   parseSSEStream,
   fromAsyncIterable,
-} from 'ai.matey.react.stream';
+} from '@johnhenry/aimatey-react-stream';
 
 // Create text stream from fetch response
 const text = await createTextStream(response, {

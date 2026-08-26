@@ -8,10 +8,10 @@
  * @module
  */
 
-import { Router } from 'ai.matey.core';
-import { AdapterError, ErrorCode } from 'ai.matey.errors';
-import type { RouterConfig } from 'ai.matey.types';
-import type { BackendAdapter, Middleware } from 'ai.matey.types';
+import { Router } from '@johnhenry/aimatey-core';
+import { AdapterError, ErrorCode } from '@johnhenry/aimatey-errors';
+import type { RouterConfig } from '@johnhenry/aimatey-types';
+import type { BackendAdapter, Middleware } from '@johnhenry/aimatey-types';
 
 /**
  * Configuration for the cost optimizer.

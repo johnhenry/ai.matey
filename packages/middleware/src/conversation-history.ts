@@ -7,9 +7,9 @@
  * @module
  */
 
-import type { Middleware, MiddlewareContext, MiddlewareNext } from 'ai.matey.types';
-import type { IRChatResponse, IRMessage } from 'ai.matey.types';
-import { trimHistory, type TrimStrategy, shouldTrimHistory } from 'ai.matey.utils';
+import type { Middleware, MiddlewareContext, MiddlewareNext } from '@johnhenry/aimatey-types';
+import type { IRChatResponse, IRMessage } from '@johnhenry/aimatey-types';
+import { trimHistory, type TrimStrategy, shouldTrimHistory } from '@johnhenry/aimatey-utils';
 
 // ============================================================================
 // Types

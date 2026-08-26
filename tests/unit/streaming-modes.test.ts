@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import type { IRChatStream, StreamContentChunk, StreamChunk, StreamingConfig } from 'ai.matey.types';
+import type { IRChatStream, StreamContentChunk, StreamChunk, StreamingConfig } from '@johnhenry/aimatey-types';
 import {
   createAccumulatorState,
   detectChunkMode,
@@ -17,7 +17,7 @@ import {
   ensureStreamMode,
   addAccumulatedToStream,
   stripAccumulatedFromStream,
-} from 'ai.matey.utils';
+} from '@johnhenry/aimatey-utils';
 
 // ============================================================================
 // Test Helpers
