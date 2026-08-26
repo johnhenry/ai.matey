@@ -10,21 +10,21 @@
  *
  * Prerequisites:
  * - At least 2 of: ANTHROPIC_API_KEY, OPENAI_API_KEY, GOOGLE_API_KEY in web.env.local.mjs
- * - ai.matey.core (Router) package installed
+ * - @johnhenry/aimatey-core (Router) package installed
  *
  * Run:
- *   npx tsx examples/04-routing/01-round-robin.ts
+ *   npx tsx packages/ai.matey.docs/examples/04-routing/01-round-robin.ts
  *
  * Expected Output:
  *   Multiple requests distributed evenly across available backends,
  *   with statistics showing balanced usage.
  */
 
-import { Router } from 'ai.matey.core';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
-import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
-import { OpenAIBackendAdapter } from 'ai.matey.backend/openai';
-import { GeminiBackendAdapter } from 'ai.matey.backend/gemini';
+import { Router } from '@johnhenry/aimatey-core';
+import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend/openai';
+import { AnthropicBackendAdapter } from '@johnhenry/aimatey-backend/anthropic';
+import { OpenAIBackendAdapter } from '@johnhenry/aimatey-backend/openai';
+import { GeminiBackendAdapter } from '@johnhenry/aimatey-backend/gemini';
 import { loadAPIKeys } from '../_shared/env-loader.js';
 import { displayExampleInfo, displayError } from '../_shared/helpers.js';
 

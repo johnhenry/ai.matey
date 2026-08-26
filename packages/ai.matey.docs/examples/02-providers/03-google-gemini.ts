@@ -10,19 +10,19 @@
  *
  * Prerequisites:
  * - GOOGLE_API_KEY environment variable set
- * - ai.matey.backend package installed
+ * - @johnhenry/aimatey-backend package installed
  *
  * Run:
- *   npx tsx examples/02-providers/03-google-gemini.ts
+ *   npx tsx packages/ai.matey.docs/examples/02-providers/03-google-gemini.ts
  *
  * Expected Output:
  *   Responses from Gemini models demonstrating their capabilities
  *   and performance characteristics.
  */
 
-import { Bridge } from 'ai.matey.core';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
-import { GeminiBackendAdapter } from 'ai.matey.backend/gemini';
+import { Bridge } from '@johnhenry/aimatey-core';
+import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend/openai';
+import { GeminiBackendAdapter } from '@johnhenry/aimatey-backend/gemini';
 import { requireAPIKey } from '../_shared/env-loader.js';
 import { displayExampleInfo, displayResponse, displayStream, displayError } from '../_shared/helpers.js';
 
@@ -32,7 +32,7 @@ async function main() {
     'Use Google Gemini as your AI backend',
     [
       'GOOGLE_API_KEY environment variable',
-      'ai.matey.backend package installed'
+      '@johnhenry/aimatey-backend package installed'
     ]
   );
 

@@ -13,7 +13,7 @@
  * - Understanding of serverless platforms
  *
  * Run:
- *   npx tsx examples/07-advanced-patterns/08-edge-deployment.ts
+ *   npx tsx packages/ai.matey.docs/examples/07-advanced-patterns/08-edge-deployment.ts
  *
  * Expected Output:
  *   Deployment patterns for edge and serverless platforms.
@@ -38,9 +38,9 @@ function main() {
 
   console.log(`
 // worker.ts - Cloudflare Workers
-import { Bridge } from 'ai.matey.core';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
-import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
+import { Bridge } from '@johnhenry/aimatey-core';
+import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend/openai';
+import { AnthropicBackendAdapter } from '@johnhenry/aimatey-backend/anthropic';
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
@@ -123,9 +123,9 @@ ENVIRONMENT = "production"
 
   console.log(`
 // app/api/chat/route.ts - Vercel Edge Runtime
-import { Bridge } from 'ai.matey.core';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
-import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
+import { Bridge } from '@johnhenry/aimatey-core';
+import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend/openai';
+import { AnthropicBackendAdapter } from '@johnhenry/aimatey-backend/anthropic';
 
 export const runtime = 'edge'; // Enable Edge Runtime
 
@@ -176,9 +176,9 @@ export async function POST(request: Request) {
   console.log(`
 // main.ts - Deno Deploy
 import { serve } from "https://deno.land/std/http/server.ts";
-import { Bridge } from "npm:ai.matey.core";
-import { OpenAIFrontendAdapter } from "npm:ai.matey.frontend/openai";
-import { AnthropicBackendAdapter } from "npm:ai.matey.backend/anthropic";
+import { Bridge } from "npm:@johnhenry/aimatey-core";
+import { OpenAIFrontendAdapter } from "npm:@johnhenry/aimatey-frontend/openai";
+import { AnthropicBackendAdapter } from "npm:@johnhenry/aimatey-backend/anthropic";
 
 serve(async (request: Request) => {
   if (request.method === "POST" && new URL(request.url).pathname === "/chat") {
@@ -213,9 +213,9 @@ serve(async (request: Request) => {
 
   console.log(`
 // lambda-edge.ts
-import { Bridge } from 'ai.matey.core';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
-import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
+import { Bridge } from '@johnhenry/aimatey-core';
+import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend/openai';
+import { AnthropicBackendAdapter } from '@johnhenry/aimatey-backend/anthropic';
 
 export const handler = async (event: any) => {
   const body = JSON.parse(event.body);

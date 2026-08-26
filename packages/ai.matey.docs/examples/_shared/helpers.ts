@@ -5,7 +5,7 @@
  * formatting, error handling, and output display.
  */
 
-import type { IRChatCompletionChunk, IRChatCompletionResponse } from 'ai.matey.types';
+import type { IRChatCompletionChunk, IRChatCompletionResponse } from '@johnhenry/aimatey-types';
 
 /**
  * Extract text content from a completion response

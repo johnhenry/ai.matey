@@ -4,7 +4,7 @@
  * Common type definitions used across multiple examples.
  */
 
-import type { IRChatCompletionRequest, IRChatCompletionResponse } from 'ai.matey.types';
+import type { IRChatCompletionRequest, IRChatCompletionResponse } from '@johnhenry/aimatey-types';
 
 /**
  * Example metadata for documentation

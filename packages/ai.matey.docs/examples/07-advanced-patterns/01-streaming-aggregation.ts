@@ -13,19 +13,19 @@
  * - Understanding of async generators
  *
  * Run:
- *   npx tsx examples/07-advanced-patterns/01-streaming-aggregation.ts
+ *   npx tsx packages/ai.matey.docs/examples/07-advanced-patterns/01-streaming-aggregation.ts
  *
  * Expected Output:
  *   Multiple providers streaming responses simultaneously,
  *   with aggregation showing which provider responds first.
  */
 
-import { Bridge } from 'ai.matey.core';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
-import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
-import { OpenAIBackendAdapter } from 'ai.matey.backend/openai';
-import { GeminiBackendAdapter } from 'ai.matey.backend/gemini';
-import type { IRChatCompletionChunk } from 'ai.matey.types';
+import { Bridge } from '@johnhenry/aimatey-core';
+import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend/openai';
+import { AnthropicBackendAdapter } from '@johnhenry/aimatey-backend/anthropic';
+import { OpenAIBackendAdapter } from '@johnhenry/aimatey-backend/openai';
+import { GeminiBackendAdapter } from '@johnhenry/aimatey-backend/gemini';
+import type { IRChatCompletionChunk } from '@johnhenry/aimatey-types';
 import { loadAPIKeys } from '../_shared/env-loader.js';
 import { displayExampleInfo, displayError } from '../_shared/helpers.js';
 

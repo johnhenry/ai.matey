@@ -13,21 +13,21 @@
  * - Understanding of production requirements
  *
  * Run:
- *   npx tsx examples/07-advanced-patterns/07-production.ts
+ *   npx tsx packages/ai.matey.docs/examples/07-advanced-patterns/07-production.ts
  *
  * Expected Output:
  *   Production configuration patterns and best practices.
  */
 
-import { Bridge, Router } from 'ai.matey.core';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
-import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
-import { OpenAIBackendAdapter } from 'ai.matey.backend/openai';
+import { Bridge, Router } from '@johnhenry/aimatey-core';
+import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend/openai';
+import { AnthropicBackendAdapter } from '@johnhenry/aimatey-backend/anthropic';
+import { OpenAIBackendAdapter } from '@johnhenry/aimatey-backend/openai';
 import {
   createLoggingMiddleware,
   createRetryMiddleware,
   createCachingMiddleware,
-} from 'ai.matey.middleware';
+} from '@johnhenry/aimatey-middleware';
 import { loadAPIKeys } from '../_shared/env-loader.js';
 import { displayExampleInfo } from '../_shared/helpers.js';
 
@@ -166,7 +166,7 @@ bridge.use(
 
   console.log(`
 // Security best practices
-import { createSecurityMiddleware } from 'ai.matey.middleware';
+import { createSecurityMiddleware } from '@johnhenry/aimatey-middleware';
 
 bridge.use(
   createSecurityMiddleware({

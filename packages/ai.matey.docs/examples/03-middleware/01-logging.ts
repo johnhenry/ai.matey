@@ -9,20 +9,20 @@
  *
  * Prerequisites:
  * - ANTHROPIC_API_KEY environment variable set
- * - ai.matey.middleware package installed
+ * - @johnhenry/aimatey-middleware package installed
  *
  * Run:
- *   npx tsx examples/03-middleware/01-logging.ts
+ *   npx tsx packages/ai.matey.docs/examples/03-middleware/01-logging.ts
  *
  * Expected Output:
  *   Detailed logs of the request/response cycle, with sensitive
  *   data automatically redacted.
  */
 
-import { Bridge } from 'ai.matey.core';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
-import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
-import { createLoggingMiddleware } from 'ai.matey.middleware';
+import { Bridge } from '@johnhenry/aimatey-core';
+import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend/openai';
+import { AnthropicBackendAdapter } from '@johnhenry/aimatey-backend/anthropic';
+import { createLoggingMiddleware } from '@johnhenry/aimatey-middleware';
 import { requireAPIKey } from '../_shared/env-loader.js';
 import { displayExampleInfo, displayError } from '../_shared/helpers.js';
 
@@ -32,7 +32,7 @@ async function main() {
     'Track all AI requests and responses with automatic logging',
     [
       'ANTHROPIC_API_KEY environment variable',
-      'ai.matey.middleware package installed'
+      '@johnhenry/aimatey-middleware package installed'
     ]
   );
 

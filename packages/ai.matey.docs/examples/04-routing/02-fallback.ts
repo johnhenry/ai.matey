@@ -13,18 +13,18 @@
  * - Router will try primary, fallback to secondary
  *
  * Run:
- *   npx tsx examples/04-routing/02-fallback.ts
+ *   npx tsx packages/ai.matey.docs/examples/04-routing/02-fallback.ts
  *
  * Expected Output:
  *   Demonstrates automatic failover from primary to backup backend
  *   when the primary fails or is unavailable.
  */
 
-import { Router } from 'ai.matey.core';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
-import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
-import { OpenAIBackendAdapter } from 'ai.matey.backend/openai';
-import { GeminiBackendAdapter } from 'ai.matey.backend/gemini';
+import { Router } from '@johnhenry/aimatey-core';
+import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend/openai';
+import { AnthropicBackendAdapter } from '@johnhenry/aimatey-backend/anthropic';
+import { OpenAIBackendAdapter } from '@johnhenry/aimatey-backend/openai';
+import { GeminiBackendAdapter } from '@johnhenry/aimatey-backend/gemini';
 import { loadAPIKeys } from '../_shared/env-loader.js';
 import { displayExampleInfo, displayResponse, displayError } from '../_shared/helpers.js';
 

@@ -10,10 +10,10 @@
  *
  * Prerequisites:
  * - ANTHROPIC_API_KEY in web.env.local.mjs
- * - ai.matey.http package installed
+ * - @johnhenry/aimatey-http package installed
  *
  * Run:
- *   npx tsx examples/05-http-servers/03-node-http.ts
+ *   npx tsx packages/ai.matey.docs/examples/05-http-servers/03-node-http.ts
  *
  * Test:
  *   curl -X POST http://localhost:8080/v1/chat/completions \
@@ -26,11 +26,11 @@
  */
 
 import http from 'http';
-import { createNodeHTTPHandler } from 'ai.matey.http';
-import { Bridge } from 'ai.matey.core';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
-import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
-import { createLoggingMiddleware } from 'ai.matey.middleware';
+import { createNodeHTTPHandler } from '@johnhenry/aimatey-http';
+import { Bridge } from '@johnhenry/aimatey-core';
+import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend/openai';
+import { AnthropicBackendAdapter } from '@johnhenry/aimatey-backend/anthropic';
+import { createLoggingMiddleware } from '@johnhenry/aimatey-middleware';
 import { requireAPIKey } from '../_shared/env-loader.js';
 import { displayExampleInfo, displayError } from '../_shared/helpers.js';
 
@@ -40,7 +40,7 @@ async function main() {
     'Zero-framework HTTP API with native Node.js',
     [
       'ANTHROPIC_API_KEY in web.env.local.mjs',
-      'npm install ai.matey.http'
+      'npm install @johnhenry/aimatey-http'
     ]
   );
 
@@ -88,7 +88,7 @@ async function main() {
         res.end(
           JSON.stringify({
             status: 'ok',
-            service: 'ai.matey',
+            service: '@johnhenry/aimatey',
             backend: 'anthropic',
             runtime: 'node-http',
             uptime: process.uptime(),

@@ -10,19 +10,19 @@
  *
  * Prerequisites:
  * - ANTHROPIC_API_KEY environment variable set
- * - ai.matey.backend package installed
+ * - @johnhenry/aimatey-backend package installed
  *
  * Run:
- *   npx tsx examples/02-providers/01-anthropic.ts
+ *   npx tsx packages/ai.matey.docs/examples/02-providers/01-anthropic.ts
  *
  * Expected Output:
  *   Responses from Claude models demonstrating their capabilities
  *   and performance characteristics.
  */
 
-import { Bridge } from 'ai.matey.core';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
-import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
+import { Bridge } from '@johnhenry/aimatey-core';
+import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend/openai';
+import { AnthropicBackendAdapter } from '@johnhenry/aimatey-backend/anthropic';
 import { requireAPIKey } from '../_shared/env-loader.js';
 import { displayExampleInfo, displayResponse, displayStream, displayError } from '../_shared/helpers.js';
 
@@ -32,7 +32,7 @@ async function main() {
     'Use Anthropic Claude as your AI backend',
     [
       'ANTHROPIC_API_KEY environment variable',
-      'ai.matey.backend package installed'
+      '@johnhenry/aimatey-backend package installed'
     ]
   );
 

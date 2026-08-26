@@ -12,16 +12,16 @@
  * - Understanding of Bridge pattern
  *
  * Run:
- *   npx tsx examples/01-basics/04-reverse-bridge.ts
+ *   npx tsx packages/ai.matey.docs/examples/01-basics/04-reverse-bridge.ts
  *
  * Expected Output:
  *   Response from OpenAI (GPT) using Anthropic's API format,
  *   demonstrating that you can use any frontend with any backend.
  */
 
-import { Bridge } from 'ai.matey.core';
-import { AnthropicFrontendAdapter } from 'ai.matey.frontend/anthropic';
-import { OpenAIBackendAdapter } from 'ai.matey.backend/openai';
+import { Bridge } from '@johnhenry/aimatey-core';
+import { AnthropicFrontendAdapter } from '@johnhenry/aimatey-frontend/anthropic';
+import { OpenAIBackendAdapter } from '@johnhenry/aimatey-backend/openai';
 import { requireAPIKey } from '../_shared/env-loader.js';
 import { displayExampleInfo, displayResponse, displayError } from '../_shared/helpers.js';
 

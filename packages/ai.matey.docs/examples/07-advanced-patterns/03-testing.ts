@@ -9,20 +9,20 @@
  * - Performance testing
  *
  * Prerequisites:
- * - ai.matey.testing package installed (or custom mocks)
+ * - @johnhenry/aimatey-testing package installed (or custom mocks)
  * - Understanding of testing patterns
  *
  * Run:
- *   npx tsx examples/07-advanced-patterns/03-testing.ts
+ *   npx tsx packages/ai.matey.docs/examples/07-advanced-patterns/03-testing.ts
  *
  * Expected Output:
  *   Demonstration of various testing patterns with ai.matey,
  *   showing how to test AI-powered features reliably.
  */
 
-import { Bridge } from 'ai.matey.core';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
-import type { IRChatCompletionRequest, IRChatCompletionResponse, IRChatCompletionChunk } from 'ai.matey.types';
+import { Bridge } from '@johnhenry/aimatey-core';
+import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend/openai';
+import type { IRChatCompletionRequest, IRChatCompletionResponse, IRChatCompletionChunk } from '@johnhenry/aimatey-types';
 import { displayExampleInfo } from '../_shared/helpers.js';
 
 // Mock Backend Adapter

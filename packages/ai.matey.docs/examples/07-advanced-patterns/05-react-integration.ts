@@ -11,11 +11,11 @@
  * Prerequisites:
  * - ANTHROPIC_API_KEY in web.env.local.mjs
  * - React application set up
- * - ai.matey.react.hooks package (or custom hooks)
+ * - @johnhenry/aimatey-react-hooks package (or custom hooks)
  *
  * Run:
  *   # This example shows the patterns - integrate into your React app
- *   npx tsx examples/07-advanced-patterns/05-react-integration.ts
+ *   npx tsx packages/ai.matey.docs/examples/07-advanced-patterns/05-react-integration.ts
  *
  * Expected Output:
  *   Code examples for React integration patterns.
@@ -29,7 +29,7 @@ function main() {
     'Build AI-powered React applications with ai.matey',
     [
       'React application',
-      'ai.matey.react.hooks package',
+      '@johnhenry/aimatey-react-hooks package',
       'Understanding of React hooks'
     ]
   );
@@ -41,9 +41,9 @@ function main() {
   console.log(`
 // Custom hook for AI chat
 import { useState, useCallback } from 'react';
-import { Bridge } from 'ai.matey.core';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
-import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
+import { Bridge } from '@johnhenry/aimatey-core';
+import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend/openai';
+import { AnthropicBackendAdapter } from '@johnhenry/aimatey-backend/anthropic';
 
 export function useAIChat(apiKey: string) {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -141,9 +141,9 @@ export function StreamingChat({ apiKey }: { apiKey: string }) {
 
   console.log(`
 // app/api/chat/route.ts - Next.js API Route
-import { Bridge } from 'ai.matey.core';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
-import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
+import { Bridge } from '@johnhenry/aimatey-core';
+import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend/openai';
+import { AnthropicBackendAdapter } from '@johnhenry/aimatey-backend/anthropic';
 
 export async function POST(request: Request) {
   const { messages } = await request.json();

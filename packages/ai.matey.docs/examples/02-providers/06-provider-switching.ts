@@ -10,22 +10,22 @@
  *
  * Prerequisites:
  * - At least 2 of: ANTHROPIC_API_KEY, OPENAI_API_KEY, GOOGLE_API_KEY
- * - ai.matey.core (Router) package installed
+ * - @johnhenry/aimatey-core (Router) package installed
  *
  * Run:
- *   npx tsx examples/02-providers/06-provider-switching.ts
+ *   npx tsx packages/ai.matey.docs/examples/02-providers/06-provider-switching.ts
  *
  * Expected Output:
  *   Requests automatically routed to different providers based on
  *   availability, performance, and routing strategy.
  */
 
-import { Router } from 'ai.matey.core';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
-import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
-import { OpenAIBackendAdapter } from 'ai.matey.backend/openai';
-import { GeminiBackendAdapter } from 'ai.matey.backend/gemini';
-import { GroqBackendAdapter } from 'ai.matey.backend/groq';
+import { Router } from '@johnhenry/aimatey-core';
+import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend/openai';
+import { AnthropicBackendAdapter } from '@johnhenry/aimatey-backend/anthropic';
+import { OpenAIBackendAdapter } from '@johnhenry/aimatey-backend/openai';
+import { GeminiBackendAdapter } from '@johnhenry/aimatey-backend/gemini';
+import { GroqBackendAdapter } from '@johnhenry/aimatey-backend/groq';
 import { loadAPIKeys } from '../_shared/env-loader.js';
 import { displayExampleInfo, displayError } from '../_shared/helpers.js';
 

@@ -10,20 +10,20 @@
  *
  * Prerequisites:
  * - ANTHROPIC_API_KEY environment variable set
- * - ai.matey.middleware package installed
+ * - @johnhenry/aimatey-middleware package installed
  *
  * Run:
- *   npx tsx examples/03-middleware/02-caching.ts
+ *   npx tsx packages/ai.matey.docs/examples/03-middleware/02-caching.ts
  *
  * Expected Output:
  *   Two identical requests - first hits API, second serves from cache
  *   with dramatic speed improvement (milliseconds vs seconds).
  */
 
-import { Bridge } from 'ai.matey.core';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
-import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
-import { createCachingMiddleware } from 'ai.matey.middleware';
+import { Bridge } from '@johnhenry/aimatey-core';
+import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend/openai';
+import { AnthropicBackendAdapter } from '@johnhenry/aimatey-backend/anthropic';
+import { createCachingMiddleware } from '@johnhenry/aimatey-middleware';
 import { requireAPIKey } from '../_shared/env-loader.js';
 import { displayExampleInfo, displayError } from '../_shared/helpers.js';
 
@@ -33,7 +33,7 @@ async function main() {
     'Cache AI responses to improve performance and reduce costs',
     [
       'ANTHROPIC_API_KEY environment variable',
-      'ai.matey.middleware package installed'
+      '@johnhenry/aimatey-middleware package installed'
     ]
   );
 

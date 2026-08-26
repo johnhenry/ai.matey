@@ -13,16 +13,16 @@
  * - Understanding of performance optimization
  *
  * Run:
- *   npx tsx examples/07-advanced-patterns/06-performance.ts
+ *   npx tsx packages/ai.matey.docs/examples/07-advanced-patterns/06-performance.ts
  *
  * Expected Output:
  *   Performance benchmarks and optimization techniques.
  */
 
-import { Bridge } from 'ai.matey.core';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
-import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
-import { createCachingMiddleware } from 'ai.matey.middleware';
+import { Bridge } from '@johnhenry/aimatey-core';
+import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend/openai';
+import { AnthropicBackendAdapter } from '@johnhenry/aimatey-backend/anthropic';
+import { createCachingMiddleware } from '@johnhenry/aimatey-middleware';
 import { requireAPIKey } from '../_shared/env-loader.js';
 import { displayExampleInfo, displayError } from '../_shared/helpers.js';
 

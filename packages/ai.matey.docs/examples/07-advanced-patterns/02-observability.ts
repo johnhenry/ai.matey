@@ -14,7 +14,7 @@
  * - Jaeger running (optional): docker run -p 16686:16686 -p 4318:4318 jaegertracing/all-in-one
  *
  * Run:
- *   npx tsx examples/07-advanced-patterns/02-observability.ts
+ *   npx tsx packages/ai.matey.docs/examples/07-advanced-patterns/02-observability.ts
  *
  * View Traces:
  *   http://localhost:16686 (Jaeger UI)
@@ -24,10 +24,10 @@
  *   and custom metrics for AI operations.
  */
 
-import { Bridge } from 'ai.matey.core';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
-import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
-import { createObservabilityMiddleware } from 'ai.matey.middleware';
+import { Bridge } from '@johnhenry/aimatey-core';
+import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend/openai';
+import { AnthropicBackendAdapter } from '@johnhenry/aimatey-backend/anthropic';
+import { createObservabilityMiddleware } from '@johnhenry/aimatey-middleware';
 import { requireAPIKey } from '../_shared/env-loader.js';
 import { displayExampleInfo, displayError } from '../_shared/helpers.js';
 

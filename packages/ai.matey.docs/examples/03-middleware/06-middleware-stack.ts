@@ -10,26 +10,26 @@
  *
  * Prerequisites:
  * - ANTHROPIC_API_KEY environment variable set
- * - ai.matey.middleware package installed
+ * - @johnhenry/aimatey-middleware package installed
  *
  * Run:
- *   npx tsx examples/03-middleware/06-middleware-stack.ts
+ *   npx tsx packages/ai.matey.docs/examples/03-middleware/06-middleware-stack.ts
  *
  * Expected Output:
  *   Multiple requests demonstrating how middleware layers work together:
  *   logging, retry, caching, and transformation all working in harmony.
  */
 
-import { Bridge } from 'ai.matey.core';
-import { OpenAIFrontendAdapter } from 'ai.matey.frontend/openai';
-import { AnthropicBackendAdapter } from 'ai.matey.backend/anthropic';
+import { Bridge } from '@johnhenry/aimatey-core';
+import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend/openai';
+import { AnthropicBackendAdapter } from '@johnhenry/aimatey-backend/anthropic';
 import {
   createLoggingMiddleware,
   createRetryMiddleware,
   createCachingMiddleware,
   createTransformMiddleware,
-} from 'ai.matey.middleware';
-import type { IRChatCompletionRequest } from 'ai.matey.types';
+} from '@johnhenry/aimatey-middleware';
+import type { IRChatCompletionRequest } from '@johnhenry/aimatey-types';
 import { requireAPIKey } from '../_shared/env-loader.js';
 import { displayExampleInfo, displayError } from '../_shared/helpers.js';
 
@@ -39,7 +39,7 @@ async function main() {
     'Compose multiple middleware for production-ready AI bridges',
     [
       'ANTHROPIC_API_KEY environment variable',
-      'ai.matey.middleware package installed'
+      '@johnhenry/aimatey-middleware package installed'
     ]
   );
 
