@@ -41,6 +41,7 @@ import {
   extractStructuredOutputJSON,
   buildResponseFormatFallbackWarning,
   buildToolsUnsupportedWarning,
+  estimateTokens,
   type ModelCapabilityFilter,
 } from '../shared.js';
 import type { ListModelsOptions, ListModelsResult, AIModel } from '@johnhenry/aimatey-types';
@@ -314,7 +315,7 @@ export class MistralBackendAdapter implements BackendAdapter<MistralRequest, Mis
   }
 
   estimateCost(request: IRChatRequest): Promise<number | null> {
-    const estimatedTokens = this.estimateTokens(request);
+    const estimatedTokens = estimateTokens(request);
     return Promise.resolve((estimatedTokens / 1000) * 0.002); // Rough estimate: $0.002 per 1K tokens
   }
 
@@ -505,15 +506,5 @@ export class MistralBackendAdapter implements BackendAdapter<MistralRequest, Mis
       default:
         return 'stop';
     }
-  }
-
-  private estimateTokens(request: IRChatRequest): number {
-    let totalChars = 0;
-    for (const message of request.messages) {
-      if (typeof message.content === 'string') {
-        totalChars += message.content.length;
-      }
-    }
-    return Math.ceil(totalChars / 4);
   }
 }

@@ -102,7 +102,7 @@ export interface GeminiRequest {
 
   /** Generation parameters nested in config object */
   generationConfig?: {
-    /** Sampling temperature 0-1 (Gemini uses 0-1, not 0-2) */
+    /** Sampling temperature (passed through unmodified; see Gemini API docs for the valid range for a given model) */
     temperature?: number;
 
     /** Nucleus sampling parameter 0-1 */
@@ -194,7 +194,8 @@ export class GeminiFrontendAdapter implements FrontendAdapter<GeminiRequest, Gem
    * This method transforms a Gemini-formatted request into the standardized
    * Intermediate Representation (IR) format. It handles Gemini's unique
    * content structure (parts array), converts 'model' role to 'assistant',
-   * and adjusts temperature values (Gemini uses 0-1, IR uses 0-2).
+   * and passes temperature through unmodified (like every other frontend
+   * adapter -- no scale conversion is applied).
    *
    * @param request - Google Gemini API request
    * @returns Promise resolving to IR chat request
@@ -270,9 +271,11 @@ export class GeminiFrontendAdapter implements FrontendAdapter<GeminiRequest, Gem
     return Promise.resolve({
       messages,
       parameters: {
-        temperature: request.generationConfig?.temperature
-          ? request.generationConfig.temperature * 2
-          : undefined,
+        // Pass temperature through unmodified, like every other frontend
+        // adapter -- do not rescale it. A previous `? value * 2 : undefined`
+        // transform both applied an undocumented scale conversion and used
+        // truthiness, which silently dropped an explicit `temperature: 0`.
+        temperature: request.generationConfig?.temperature,
         topP: request.generationConfig?.topP,
         topK: request.generationConfig?.topK,
         maxTokens: request.generationConfig?.maxOutputTokens,

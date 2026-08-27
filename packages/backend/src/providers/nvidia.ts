@@ -9,6 +9,7 @@
 
 import { OpenAIBackendAdapter, type OpenAIRequest, type OpenAIResponse } from './openai.js';
 import type { BackendAdapter, BackendAdapterConfig, IRChatRequest } from '@johnhenry/aimatey-types';
+import { estimateTokens } from '../shared.js';
 
 /**
  * Backend adapter for NVIDIA NIM API.
@@ -128,23 +129,27 @@ export class NVIDIABackendAdapter
   /**
    * Estimate cost for NVIDIA NIM.
    */
-  async estimateCost(request: IRChatRequest): Promise<number | null> {
+  estimateCost(request: IRChatRequest): Promise<number | null> {
     // NVIDIA NIM pricing varies by model and deployment
     // For cloud API, estimate based on token usage
-    const estimatedInputTokens = (await super.estimateCost(request)) || 0;
+    //
+    // Note: super.estimateCost() (OpenAIBackendAdapter) already returns a
+    // dollar amount, not a token count -- re-multiplying it here would be
+    // off by orders of magnitude. Use estimateTokens() directly instead.
+    const estimatedInputTokens = estimateTokens(request);
     const estimatedOutputTokens = Math.min(request.parameters?.maxTokens || 1000, 4000);
 
     // Rough estimate for NVIDIA cloud API (varies by model)
     // Self-hosted NIM is free (just compute costs)
     const baseURL = (this.metadata.config as { baseURL: string }).baseURL;
     if (baseURL.includes('integrate.api.nvidia.com')) {
-      const inputCost = (estimatedInputTokens * 1000 * 0.2) / 1_000_000; // Rough estimate
+      const inputCost = (estimatedInputTokens / 1_000_000) * 0.2; // Rough estimate
       const outputCost = (estimatedOutputTokens / 1_000_000) * 0.2;
-      return inputCost + outputCost;
+      return Promise.resolve(inputCost + outputCost);
     }
 
     // Self-hosted or custom endpoint
-    return null;
+    return Promise.resolve(null);
   }
 }
 

@@ -7,6 +7,7 @@
  * @module
  */
 
+import { createHash, createHmac } from 'node:crypto';
 import type {
   BackendAdapter,
   BackendAdapterConfig,
@@ -33,6 +34,7 @@ import {
   buildStructuredOutputFallbackMessages,
   extractStructuredOutputJSON,
   buildResponseFormatFallbackWarning,
+  estimateTokens,
 } from '../shared.js';
 
 // ============================================================================
@@ -108,6 +110,151 @@ export interface AWSBedrockConfig extends BackendAdapterConfig {
   awsAccessKeyId?: string; // AWS credentials
   awsSecretAccessKey?: string;
   awsSessionToken?: string; // Optional session token
+}
+
+// ============================================================================
+// AWS Signature Version 4 (SigV4) Request Signing
+//
+// Implements the SigV4 algorithm directly (canonical request, string-to-
+// sign, signing-key derivation, signature) using Node's crypto module --
+// no AWS SDK dependency needed. See:
+// https://docs.aws.amazon.com/IAM/latest/UserGuide/create-signed-request.html
+// ============================================================================
+
+/**
+ * Input to `signAwsRequestV4`. All fields are the already-resolved values
+ * for a single request; the caller is responsible for choosing which
+ * headers should be signed (every key in `headers` is included in
+ * `SignedHeaders`/`CanonicalHeaders`).
+ */
+export interface SigV4SignInput {
+  /** HTTP method, e.g. 'POST'. */
+  readonly method: string;
+  /** Absolute request path (e.g. '/model/foo/converse'). Not URI-encoded yet. */
+  readonly path: string;
+  /** Canonical (already URI-encoded, sorted, '&'-joined) query string, or ''. */
+  readonly canonicalQueryString?: string;
+  /** Headers to sign, keyed by name (any casing) -> value. Must include at least `host`. */
+  readonly headers: Record<string, string>;
+  /** Raw request body (empty string if none). */
+  readonly body: string;
+  /** AWS region, e.g. 'us-east-1'. */
+  readonly region: string;
+  /** AWS service code, e.g. 'bedrock'. */
+  readonly service: string;
+  /** AWS access key ID. */
+  readonly accessKeyId: string;
+  /** AWS secret access key. */
+  readonly secretAccessKey: string;
+  /** X-Amz-Date value, format YYYYMMDDTHHMMSSZ (must match the `x-amz-date` header, if present). */
+  readonly amzDate: string;
+}
+
+export interface SigV4SignResult {
+  readonly canonicalRequest: string;
+  readonly stringToSign: string;
+  readonly credentialScope: string;
+  readonly signedHeaders: string;
+  readonly signature: string;
+  readonly authorizationHeader: string;
+}
+
+/**
+ * URI-encode a single path/query segment per the SigV4 spec: every byte is
+ * percent-encoded except the unreserved characters `A-Z a-z 0-9 - . _ ~`,
+ * using uppercase hex. (`encodeURIComponent` leaves `! ' ( ) *` unencoded,
+ * which AWS requires to be encoded too, so those are fixed up afterward.)
+ */
+function sigV4UriEncode(value: string): string {
+  return encodeURIComponent(value).replace(
+    /[!'()*]/g,
+    (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`
+  );
+}
+
+/** URI-encode an absolute path, segment by segment, preserving '/'. */
+function canonicalUri(path: string): string {
+  if (!path) {
+    return '/';
+  }
+  return path
+    .split('/')
+    .map((segment) => sigV4UriEncode(segment))
+    .join('/');
+}
+
+function sha256Hex(data: string): string {
+  return createHash('sha256').update(data, 'utf8').digest('hex');
+}
+
+function hmac(key: Buffer | string, data: string): Buffer {
+  return createHmac('sha256', key).update(data, 'utf8').digest();
+}
+
+/** Derive the SigV4 signing key: HMAC chain over date -> region -> service -> 'aws4_request'. */
+function deriveSigningKey(
+  secretAccessKey: string,
+  dateStamp: string,
+  region: string,
+  service: string
+): Buffer {
+  const kDate = hmac(`AWS4${secretAccessKey}`, dateStamp);
+  const kRegion = hmac(kDate, region);
+  const kService = hmac(kRegion, service);
+  return hmac(kService, 'aws4_request');
+}
+
+/**
+ * Compute an AWS SigV4 `Authorization` header value (and the intermediate
+ * canonical request / string-to-sign, for testing) for a single request.
+ */
+export function signAwsRequestV4(input: SigV4SignInput): SigV4SignResult {
+  const { method, path, headers, body, region, service, accessKeyId, secretAccessKey, amzDate } =
+    input;
+  const canonicalQueryString = input.canonicalQueryString ?? '';
+  const dateStamp = amzDate.slice(0, 8);
+
+  // Canonical headers: lowercase name, trimmed value, sorted by name.
+  const headerEntries = Object.entries(headers)
+    .map(([name, value]) => [name.toLowerCase(), value.trim()] as const)
+    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
+
+  const canonicalHeaders = headerEntries.map(([name, value]) => `${name}:${value}\n`).join('');
+  const signedHeaders = headerEntries.map(([name]) => name).join(';');
+  const hashedPayload = sha256Hex(body);
+
+  const canonicalRequest = [
+    method.toUpperCase(),
+    canonicalUri(path),
+    canonicalQueryString,
+    canonicalHeaders,
+    signedHeaders,
+    hashedPayload,
+  ].join('\n');
+
+  const credentialScope = `${dateStamp}/${region}/${service}/aws4_request`;
+  const stringToSign = [
+    'AWS4-HMAC-SHA256',
+    amzDate,
+    credentialScope,
+    sha256Hex(canonicalRequest),
+  ].join('\n');
+
+  const signingKey = deriveSigningKey(secretAccessKey, dateStamp, region, service);
+  const signature = hmac(signingKey, stringToSign).toString('hex');
+
+  const authorizationHeader =
+    `AWS4-HMAC-SHA256 Credential=${accessKeyId}/${credentialScope}, ` +
+    `SignedHeaders=${signedHeaders}, Signature=${signature}`;
+
+  return {
+    canonicalRequest,
+    stringToSign,
+    credentialScope,
+    signedHeaders,
+    signature,
+    authorizationHeader,
+  };
 }
 
 // ============================================================================
@@ -486,28 +633,44 @@ export class AWSBedrockBackendAdapter implements BackendAdapter<BedrockRequest, 
   }
 
   /**
-   * Get HTTP headers with AWS SigV4 signing.
-   *
-   * SIMPLIFIED VERSION: This implementation assumes AWS credentials are handled
-   * externally or uses basic headers. For production, use AWS SDK or aws4fetch
-   * for proper SigV4 signing.
+   * Get HTTP headers with real AWS SigV4 signing (see `signAwsRequestV4`
+   * above). Computes an actual canonical request / string-to-sign /
+   * signature using `awsAccessKeyId` + `awsSecretAccessKey`, rather than a
+   * placeholder `Authorization` header.
    */
-  private getHeaders(
-    _method: string,
-    _path: string,
-    _body: string
-  ): Promise<Record<string, string>> {
+  private getHeaders(method: string, path: string, body: string): Promise<Record<string, string>> {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       Accept: 'application/json',
     };
 
-    // If AWS credentials are provided in config, add Authorization header
-    // Note: In production, this should use proper AWS SigV4 signing
+    // If AWS credentials are provided in config, sign the request with SigV4.
     if (this.config.awsAccessKeyId && this.config.awsSecretAccessKey) {
-      // Simplified: In production, use AWS SDK or aws4fetch for proper SigV4 signing
-      headers['Authorization'] = `AWS4-HMAC-SHA256 Credential=${this.config.awsAccessKeyId}/...`;
-      headers['X-Amz-Date'] = new Date().toISOString().replace(/[:-]|\.\d{3}/g, '');
+      const amzDate = new Date().toISOString().replace(/[:-]|\.\d{3}/g, '');
+      const host = new URL(this.baseURL).host;
+
+      const signedHeaders: Record<string, string> = {
+        host,
+        'x-amz-date': amzDate,
+      };
+      if (this.config.awsSessionToken) {
+        signedHeaders['x-amz-security-token'] = this.config.awsSessionToken;
+      }
+
+      const { authorizationHeader } = signAwsRequestV4({
+        method,
+        path,
+        headers: signedHeaders,
+        body,
+        region: this.region,
+        service: 'bedrock',
+        accessKeyId: this.config.awsAccessKeyId,
+        secretAccessKey: this.config.awsSecretAccessKey,
+        amzDate,
+      });
+
+      headers['Authorization'] = authorizationHeader;
+      headers['X-Amz-Date'] = amzDate;
 
       if (this.config.awsSessionToken) {
         headers['X-Amz-Security-Token'] = this.config.awsSessionToken;
@@ -550,10 +713,7 @@ export class AWSBedrockBackendAdapter implements BackendAdapter<BedrockRequest, 
       return Promise.resolve(null);
     }
 
-    const inputTokens = request.messages.reduce((sum, msg) => {
-      const content = typeof msg.content === 'string' ? msg.content : '';
-      return sum + Math.ceil(content.length / 4);
-    }, 0);
+    const inputTokens = estimateTokens(request);
 
     const outputTokens = request.parameters?.maxTokens || 1024;
 

@@ -340,6 +340,40 @@ describe('embedding middleware', () => {
     expect(backend.embedCalls).toHaveLength(2);
   });
 
+  it('without scopeKey, two different callers embedding the same input collide on one cache entry', async () => {
+    // Documents the default (unscoped) multi-tenant cache-collision risk:
+    // a single shared cache backing two "callers" sees only one embed call
+    // for the second caller's identical input.
+    const backend = makeEmbedBackend({});
+    const bridge = makeBridge(backend).useEmbed(createEmbeddingCachingMiddleware());
+
+    await bridge.embed('same input'); // caller A
+    await bridge.embed('same input'); // caller B -- would-be collision
+
+    expect(backend.embedCalls).toHaveLength(1);
+  });
+
+  it('scopeKey prevents cross-tenant cache collisions for identical input on a shared cache', async () => {
+    // Regression test for the cache-key-collision fix: with a single shared
+    // middleware instance (i.e. a shared cache), distinct scopeKey values
+    // for otherwise-identical requests must produce distinct cache entries,
+    // so one tenant never receives another tenant's cached embedding.
+    const backend = makeEmbedBackend({});
+    let currentTenant = 'tenant-a';
+    const sharedCachingMiddleware = createEmbeddingCachingMiddleware({
+      scopeKey: () => currentTenant,
+    });
+    const bridge = makeBridge(backend).useEmbed(sharedCachingMiddleware);
+
+    currentTenant = 'tenant-a';
+    await bridge.embed('same input');
+
+    currentTenant = 'tenant-b';
+    await bridge.embed('same input');
+
+    expect(backend.embedCalls).toHaveLength(2);
+  });
+
   it('tracks cost from usage and registry pricing', async () => {
     const backend = makeEmbedBackend({});
     const costs: number[] = [];

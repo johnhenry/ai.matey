@@ -14,7 +14,7 @@ import type {
   InferFrontendResponse,
   InferFrontendStreamChunk,
 } from '@johnhenry/aimatey-types';
-import type { IRChatRequest, IRChatResponse } from '@johnhenry/aimatey-types';
+import type { IRChatRequest, IRChatResponse, IRChatStream } from '@johnhenry/aimatey-types';
 import type {
   BridgeConfig,
   RequestOptions,
@@ -628,6 +628,42 @@ export class Bridge<
     });
 
     return this.enrichResponse(irResponse, enrichedRequest);
+  }
+
+  /**
+   * Execute a streaming IR request directly (no frontend conversion).
+   *
+   * Streaming counterpart to `executeIR()`: runs the same
+   * enrich → validate → middleware → backend pipeline as `chatStream()`,
+   * but takes and yields IR stream chunks directly instead of converting to
+   * frontend-native ones. Used by `streamObject()` so structured-output
+   * streaming works with any backend/frontend combination, not just
+   * Anthropic's wire format.
+   */
+  async *executeIRStream(request: IRChatRequest, options?: RequestOptions): IRChatStream {
+    const streamingRequest: IRChatRequest = { ...request, stream: true };
+    const enrichedRequest = this.enrichRequest(streamingRequest, options);
+
+    validateIRChatRequest(enrichedRequest, {
+      frontend: this.frontend.metadata.name,
+    });
+
+    const context = createStreamingMiddlewareContext(
+      enrichedRequest,
+      this.config as Record<string, unknown>,
+      options?.signal
+    );
+
+    const irStream = await this.middlewareStack.executeStream(context, () =>
+      Promise.resolve(this.backend.executeStream(enrichedRequest, options?.signal))
+    );
+
+    for await (const chunk of irStream) {
+      if (options?.signal?.aborted) {
+        break;
+      }
+      yield chunk;
+    }
   }
 
   // ==========================================================================

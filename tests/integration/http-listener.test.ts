@@ -538,6 +538,33 @@ describe('HTTP Listener', () => {
       expect(res._body).toContain('error');
     });
 
+    it('should respond with an error status instead of crashing on a malformed request body', async () => {
+      // Regression test: NodeHTTPListener's handler had no try/catch, so a
+      // parseRequest() failure (e.g. invalid JSON with a
+      // `content-type: application/json` header) became an unhandled
+      // promise rejection -- which terminates the Node process on Node >= 15
+      // -- instead of producing an HTTP error response like the other 5
+      // framework adapters (deno/express/fastify/hono/koa) already do.
+      const listener = NodeHTTPListener(bridge);
+
+      const req = new Readable() as IncomingMessage;
+      req.method = 'POST';
+      req.url = '/v1/messages';
+      req.headers = { 'content-type': 'application/json' };
+      (req as any).socket = { remoteAddress: '127.0.0.1' };
+      req.push('{this is not valid json');
+      req.push(null);
+
+      const res = createMockResponse();
+
+      // Must not throw / reject -- the handler should catch the parse
+      // error internally and produce an error response.
+      await expect(listener(req, res)).resolves.toBeUndefined();
+
+      expect(res.statusCode).toBeGreaterThanOrEqual(400);
+      expect(res._body).toContain('error');
+    });
+
     it('should use custom error handler', async () => {
       let errorHandlerCalled = false;
 

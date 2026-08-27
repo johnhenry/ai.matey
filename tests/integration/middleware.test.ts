@@ -291,6 +291,55 @@ describe('Middleware Integration', () => {
 
       expect(backend.executionCount).toBe(2); // Two backend calls
     });
+
+    it('without scopeKey, two different callers sharing a cache collide on the same request', async () => {
+      // Documents the default (unscoped) multi-tenant cache-collision risk:
+      // a cache shared across two callers/tenants serves caller B the
+      // response that was actually generated for caller A's identical
+      // request.
+      const storage = new InMemoryCacheStorage(100);
+
+      const bridgeA = new Bridge(frontend, backend);
+      bridgeA.use(createCachingMiddleware({ storage, ttl: 60000 }));
+
+      const bridgeB = new Bridge(new AnthropicFrontendAdapter(), backend);
+      bridgeB.use(createCachingMiddleware({ storage, ttl: 60000 }));
+
+      await bridgeA.chat({
+        model: 'claude-3-opus-20240229',
+        messages: [{ role: 'user', content: 'Hello' }],
+      });
+      await bridgeB.chat({
+        model: 'claude-3-opus-20240229',
+        messages: [{ role: 'user', content: 'Hello' }],
+      });
+
+      expect(backend.executionCount).toBe(1); // Collision: only one backend call
+    });
+
+    it('scopeKey prevents cross-tenant cache collisions on a shared cache', async () => {
+      // Regression test for the cache-key-collision fix: with a shared
+      // `storage`, distinct scopeKey values for otherwise-identical
+      // requests must produce distinct cache entries.
+      const storage = new InMemoryCacheStorage(100);
+
+      const bridgeA = new Bridge(frontend, backend);
+      bridgeA.use(createCachingMiddleware({ storage, ttl: 60000, scopeKey: 'tenant-a' }));
+
+      const bridgeB = new Bridge(new AnthropicFrontendAdapter(), backend);
+      bridgeB.use(createCachingMiddleware({ storage, ttl: 60000, scopeKey: 'tenant-b' }));
+
+      await bridgeA.chat({
+        model: 'claude-3-opus-20240229',
+        messages: [{ role: 'user', content: 'Hello' }],
+      });
+      await bridgeB.chat({
+        model: 'claude-3-opus-20240229',
+        messages: [{ role: 'user', content: 'Hello' }],
+      });
+
+      expect(backend.executionCount).toBe(2); // No collision: two backend calls
+    });
   });
 
   describe('Retry Middleware', () => {

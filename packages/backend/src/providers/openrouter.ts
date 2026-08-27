@@ -34,6 +34,7 @@ import {
   extractStructuredOutputJSON,
   buildResponseFormatFallbackWarning,
   buildToolsUnsupportedWarning,
+  estimateTokens,
 } from '../shared.js';
 
 // ============================================================================
@@ -553,10 +554,7 @@ export class OpenRouterBackendAdapter implements BackendAdapter<
       return Promise.resolve(null);
     }
 
-    const inputTokens = request.messages.reduce((sum, msg) => {
-      const content = typeof msg.content === 'string' ? msg.content : '';
-      return sum + Math.ceil(content.length / 4);
-    }, 0);
+    const inputTokens = estimateTokens(request);
 
     const outputTokens = request.parameters?.maxTokens || 1024;
 

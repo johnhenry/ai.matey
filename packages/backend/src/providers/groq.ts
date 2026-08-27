@@ -9,6 +9,7 @@
 
 import { OpenAIBackendAdapter, type OpenAIRequest, type OpenAIResponse } from './openai.js';
 import type { BackendAdapter, BackendAdapterConfig, IRChatRequest } from '@johnhenry/aimatey-types';
+import { estimateTokens } from '../shared.js';
 
 /**
  * Backend adapter for Groq API.
@@ -118,16 +119,20 @@ export class GroqBackendAdapter
   /**
    * Estimate cost for Groq (very low cost, optimized for speed).
    */
-  async estimateCost(request: IRChatRequest): Promise<number | null> {
+  estimateCost(request: IRChatRequest): Promise<number | null> {
     // Groq pricing: ~$0.05 per 1M input tokens, ~$0.10 per 1M output tokens
     // (Extremely competitive pricing)
-    const estimatedInputTokens = (await super.estimateCost(request)) || 0;
+    //
+    // Note: super.estimateCost() (OpenAIBackendAdapter) already returns a
+    // dollar amount, not a token count -- re-multiplying it here would be
+    // off by orders of magnitude. Use estimateTokens() directly instead.
+    const estimatedInputTokens = estimateTokens(request);
     const estimatedOutputTokens = Math.min(request.parameters?.maxTokens || 1000, 4000);
 
-    const inputCost = (estimatedInputTokens * 1000 * 0.05) / 1_000_000;
+    const inputCost = (estimatedInputTokens / 1_000_000) * 0.05;
     const outputCost = (estimatedOutputTokens / 1_000_000) * 0.1;
 
-    return inputCost + outputCost;
+    return Promise.resolve(inputCost + outputCost);
   }
 }
 

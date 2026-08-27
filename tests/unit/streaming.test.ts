@@ -44,6 +44,8 @@ import {
   createStreamError,
   // Backpressure
   rateLimitStream,
+  // Stream Splitting
+  splitStream,
 } from '@johnhenry/aimatey-utils';
 
 // ============================================================================
@@ -1070,5 +1072,54 @@ describe('Streaming Integration', () => {
 
     expect(response.message.content).toBe('Hello World');
     expect(response.finishReason).toBe('stop');
+  });
+});
+
+// ============================================================================
+// splitStream Tests
+// ============================================================================
+
+describe('splitStream', () => {
+  it('should deliver all chunks to a split that starts consuming late', async () => {
+    // Regression test: splitStream() previously defaulted each consumer's
+    // resolver to a truthy no-op (`() => {}`), so the eager producer would
+    // immediately shift-and-discard chunks into that no-op before any real
+    // consumer had started iterating. A consumer that begins consuming only
+    // after another split has already been fully drained would see its
+    // chunks silently dropped.
+    const chunks: IRStreamChunk[] = [
+      { type: 'content', delta: 'a', sequence: 0 },
+      { type: 'content', delta: 'b', sequence: 1 },
+      { type: 'content', delta: 'c', sequence: 2 },
+      { type: 'done', sequence: 3, finishReason: 'stop' },
+    ];
+
+    const stream = createMockStream(chunks);
+    const [first, second] = splitStream(stream, 2);
+
+    // Fully drain the first split before touching the second at all.
+    const firstResult = await collect(first);
+    expect(firstResult).toEqual(chunks);
+
+    // The second split must still yield every chunk, not a truncated/empty
+    // result -- chunks must have been queued for it, not discarded.
+    const secondResult = await collect(second);
+    expect(secondResult).toEqual(chunks);
+  });
+
+  it('should deliver all chunks when both splits consume concurrently', async () => {
+    const chunks: IRStreamChunk[] = [
+      { type: 'content', delta: 'x', sequence: 0 },
+      { type: 'content', delta: 'y', sequence: 1 },
+      { type: 'done', sequence: 2, finishReason: 'stop' },
+    ];
+
+    const stream = createMockStream(chunks);
+    const [first, second] = splitStream(stream, 2);
+
+    const [firstResult, secondResult] = await Promise.all([collect(first), collect(second)]);
+
+    expect(firstResult).toEqual(chunks);
+    expect(secondResult).toEqual(chunks);
   });
 });
