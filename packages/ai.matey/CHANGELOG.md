@@ -1,5 +1,19 @@
 # @johnhenry/aimatey
 
+## 0.1.0
+
+### Minor Changes
+
+- Republish from current main with a real fresh build.
+
+  The 0.0.0 scope-import publishes (2026-08-26) shipped stale dist output --
+  local npm publish without a rebuild, so the tarballs were missing everything
+  after mid-July: the OmniRoute/GitHub Models/DashScope/Moonshot/SambaNova/
+  Inception providers, litert-lm, the embeddings types module, and the
+  provider-default-model fixes. This release republishes every package from
+  current main (which also includes the 2026-08-26 audit fixes) via the CI
+  release workflow, which always builds fresh before publishing.
+
 > Previously published as `ai.matey`, last unscoped version `0.2.1`.
 
 ## 0.2.1
