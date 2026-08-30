@@ -15,6 +15,7 @@
  */
 
 import type {
+  BackendAdapter,
   Middleware,
   MiddlewareContext,
   MiddlewareNext,
@@ -678,16 +679,22 @@ export class MiddlewareStack {
  * @param request IR request
  * @param config Bridge configuration
  * @param signal Optional abort signal
+ * @param backend Backend the request is about to be dispatched to. Populates
+ *   `context.backend` and `context.backendName` so middleware can execute an extra
+ *   turn of its own; omit it only when building a context by hand.
  * @returns Middleware context
  */
 export function createMiddlewareContext(
   request: IRChatRequest,
   config: Record<string, unknown>,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  backend?: BackendAdapter
 ): MiddlewareContext {
   return {
     request,
     isStreaming: request.stream ?? false,
+    backend,
+    backendName: backend?.metadata.name,
     state: {},
     config,
     signal,
@@ -700,16 +707,21 @@ export function createMiddlewareContext(
  * @param request IR request
  * @param config Bridge configuration
  * @param signal Optional abort signal
+ * @param backend Backend the request is about to be dispatched to. See
+ *   {@link createMiddlewareContext}.
  * @returns Streaming middleware context
  */
 export function createStreamingMiddlewareContext(
   request: IRChatRequest,
   config: Record<string, unknown>,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  backend?: BackendAdapter
 ): StreamingMiddlewareContext {
   return {
     request,
     isStreaming: true,
+    backend,
+    backendName: backend?.metadata.name,
     state: {},
     config,
     signal,
