@@ -126,12 +126,21 @@ export class Bridge<
     const startTime = Date.now();
     this._totalRequests++;
 
-    // Step 1: Convert frontend request to IR
+    // Steps 1-2 run before the retry loop, so their failures need the same accounting
+    // the loop body gets - otherwise the request is counted as sent but never as failed
+    // and no error event is emitted (#60).
+    let irRequest: IRChatRequest | undefined;
+    let enrichedRequest: IRChatRequest;
+    try {
+      // Step 1: Convert frontend request to IR
+      irRequest = await this.frontend.toIR(request as any);
 
-    const irRequest = await this.frontend.toIR(request as any);
-
-    // Step 2: Ensure metadata has requestId and timestamp
-    const enrichedRequest = this.enrichRequest(irRequest, options);
+      // Step 2: Ensure metadata has requestId and timestamp
+      enrichedRequest = this.enrichRequest(irRequest, options);
+    } catch (error) {
+      this.recordPreflightFailure(error, startTime, BridgeEventType.REQUEST_ERROR, irRequest);
+      throw error;
+    }
 
     // Emit REQUEST_START event
     this.emit({
@@ -248,18 +257,28 @@ export class Bridge<
     this._totalRequests++;
     this._streamingRequests++;
 
-    // Step 1: Convert frontend request to IR
+    // Steps 1-3 run outside the try below, so their failures need the same accounting
+    // the try does - otherwise the request is counted as sent but never as failed and
+    // no error event is emitted (#60). The registered-backend check enrichRequest()
+    // performs lands here.
+    let irRequest: IRChatRequest | undefined;
+    let enrichedRequest: IRChatRequest;
+    try {
+      // Step 1: Convert frontend request to IR
+      irRequest = await this.frontend.toIR(request as any);
 
-    const irRequest = await this.frontend.toIR(request as any);
+      // Step 2: Ensure streaming is enabled
+      const streamingRequest: IRChatRequest = {
+        ...irRequest,
+        stream: true,
+      };
 
-    // Step 2: Ensure streaming is enabled
-    const streamingRequest: IRChatRequest = {
-      ...irRequest,
-      stream: true,
-    };
-
-    // Step 3: Ensure metadata has requestId and timestamp
-    const enrichedRequest = this.enrichRequest(streamingRequest, options);
+      // Step 3: Ensure metadata has requestId and timestamp
+      enrichedRequest = this.enrichRequest(streamingRequest, options);
+    } catch (error) {
+      this.recordPreflightFailure(error, startTime, BridgeEventType.STREAM_ERROR, irRequest);
+      throw error;
+    }
 
     // Emit STREAM_START event
     this.emit({
@@ -692,6 +711,10 @@ export class Bridge<
    * pipeline as `chat()`, but takes and returns IR. Useful for agentic
    * loops (`runTools`) and programmatic callers that already speak IR.
    * Single-attempt: layer retry middleware for retries.
+   *
+   * Does not participate in bridge statistics or the event stream: `getStats()`
+   * and the `REQUEST_*` events count `chat()` calls only, so a `runTools()` loop
+   * reports as the one request the caller made rather than one per turn.
    */
   async executeIR(request: IRChatRequest, options?: RequestOptions): Promise<IRChatResponse> {
     const enrichedRequest = this.enrichRequest(request, options);
@@ -722,6 +745,8 @@ export class Bridge<
    * frontend-native ones. Used by `streamObject()` so structured-output
    * streaming works with any backend/frontend combination, not just
    * Anthropic's wire format.
+   *
+   * Like {@link executeIR}, it stays outside bridge statistics and the event stream.
    */
   async *executeIRStream(request: IRChatRequest, options?: RequestOptions): IRChatStream {
     const streamingRequest: IRChatRequest = { ...request, stream: true };
@@ -997,6 +1022,62 @@ export class Bridge<
       provenance: { frontend: this.frontend.metadata.name },
       details: { requestedBackend: name, registeredBackends: [...registered] },
     });
+  }
+
+  /**
+   * Account for a request that died before its execution pipeline ran.
+   *
+   * `_totalRequests` is incremented the moment a request arrives, but the work that
+   * happens before the retry loop - `frontend.toIR()`, request enrichment, and the
+   * registered-backend check enrichment performs - used to throw straight past the
+   * failure accounting. `getStats()` then reported a request counted as sent, never
+   * counted as failed, with no error event to explain it, so a caller watching
+   * `successRate` saw it drift down for no visible reason (#60).
+   *
+   * This is accounting only. The caller re-throws the original error untouched, so
+   * nothing about which error a caller sees changes.
+   *
+   * @param error Error that is about to be re-thrown
+   * @param startTime When the request arrived, for `durationMs`
+   * @param type `REQUEST_ERROR` on the non-streaming path, `STREAM_ERROR` on the streaming one
+   * @param request The IR request, when conversion got far enough to produce one
+   */
+  private recordPreflightFailure(
+    error: unknown,
+    startTime: number,
+    type: typeof BridgeEventType.REQUEST_ERROR | typeof BridgeEventType.STREAM_ERROR,
+    request: IRChatRequest | undefined
+  ): void {
+    this._failedRequests++;
+    const errorCode = error instanceof AdapterError ? error.code : 'UNKNOWN';
+    this._errorCounts[errorCode] = (this._errorCounts[errorCode] ?? 0) + 1;
+
+    // The event types require a request, but a `frontend.toIR()` that threw never
+    // produced one. Report a stub carrying only what is known for certain rather than
+    // dropping the event - a listener that learns nothing is the bug being fixed.
+    const reported: IRChatRequest = request ?? {
+      messages: [],
+      metadata: {
+        requestId: this.generateRequestId(),
+        timestamp: startTime,
+        provenance: { frontend: this.frontend.metadata.name },
+      },
+    };
+
+    const details = {
+      timestamp: Date.now(),
+      requestId: reported.metadata.requestId,
+      request: reported,
+      error: error instanceof Error ? error : new Error(String(error)),
+      durationMs: Date.now() - startTime,
+    };
+
+    const event: RequestEvent | StreamEvent =
+      type === BridgeEventType.REQUEST_ERROR
+        ? { type: BridgeEventType.REQUEST_ERROR, ...details }
+        : { type: BridgeEventType.STREAM_ERROR, ...details };
+
+    this.emit(event);
   }
 
   /**
