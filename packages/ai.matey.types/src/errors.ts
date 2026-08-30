@@ -406,6 +406,16 @@ export interface RouterErrorOptions {
   readonly provenance?: ErrorProvenance;
   readonly cause?: Error;
   readonly attemptedBackends?: string[];
+  /**
+   * The failures the attempted backends produced.
+   *
+   * `attemptedBackends` records *which* backends were tried; this records
+   * *how* each one failed. A composite `ALL_BACKENDS_FAILED` derives its
+   * `isRetryable` from these - retryable only when at least one leaf failure
+   * was itself retryable - so supplying them is what makes the classification
+   * meaningful rather than assumed.
+   */
+  readonly backendErrors?: readonly Error[];
   readonly irState?: {
     readonly request?: Partial<IRChatRequest>;
   };
@@ -518,6 +528,8 @@ export interface StreamError extends AdapterError {
 export interface RouterError extends AdapterError {
   readonly name: 'RouterError';
   readonly attemptedBackends?: string[];
+  /** The leaf failures this error is composed of, when the router had them. */
+  readonly backendErrors?: readonly Error[];
 }
 
 /**

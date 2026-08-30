@@ -425,7 +425,10 @@ describe('RouterError', () => {
     });
 
     expect(error.attemptedBackends).toEqual(['openai', 'anthropic', 'gemini']);
-    expect(error.isRetryable).toBe(true); // ALL_BACKENDS_FAILED is retryable
+    // ALL_BACKENDS_FAILED is no longer retryable by virtue of its code alone
+    // (#70): with no backend errors to derive from there is no evidence the
+    // fault was transient, and asserting it was is what burned retry budgets.
+    expect(error.isRetryable).toBe(false);
   });
 
   it('should not be retryable for routing failures', () => {
