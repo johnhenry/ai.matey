@@ -1034,10 +1034,10 @@ headers; they are meaningless as request headers to a provider API, and ai.matey
 does not send them upstream. Emit them from the HTTP layer instead:
 
 ```typescript
-import { createCoreHandler } from '@johnhenry/aimatey-http-core';
+import { CoreHTTPHandler } from '@johnhenry/aimatey-http-core';
 import { buildSecurityHeaders } from '@johnhenry/aimatey-middleware';
 
-const handler = createCoreHandler({
+const handler = new CoreHTTPHandler({
   bridge,
   headers: buildSecurityHeaders({ frameOptions: 'SAMEORIGIN' }),
 });

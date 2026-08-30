@@ -17,7 +17,7 @@
  *    API, so this middleware does not send them anywhere. It computes the
  *    policy and exposes it two ways:
  *    - {@link buildSecurityHeaders} - a pure function, for
- *      `createCoreHandler({ headers: buildSecurityHeaders() })`, which is the
+ *      `new CoreHTTPHandler({ headers: buildSecurityHeaders() })`, which is the
  *      supported way to actually emit them on HTTP responses.
  *    - `request.metadata.custom.securityHeaders`, readable via
  *      {@link getSecurityHeaders}, for a host application that wants the policy
@@ -260,10 +260,10 @@ export const SECURITY_HEADERS_METADATA_KEY = 'securityHeaders';
  *
  * @example
  * ```typescript
- * import { createCoreHandler } from '@johnhenry/aimatey-http-core';
+ * import { CoreHTTPHandler } from '@johnhenry/aimatey-http-core';
  * import { buildSecurityHeaders } from '@johnhenry/aimatey-middleware';
  *
- * const handler = createCoreHandler({
+ * const handler = new CoreHTTPHandler({
  *   bridge,
  *   headers: buildSecurityHeaders({ frameOptions: 'SAMEORIGIN' }),
  * });
@@ -410,7 +410,7 @@ function withMetadata(
  *
  * @example Emitting the header policy from the HTTP layer
  * ```typescript
- * const handler = createCoreHandler({
+ * const handler = new CoreHTTPHandler({
  *   bridge,
  *   headers: buildSecurityHeaders({ hsts: 'max-age=31536000; preload' }),
  * });

@@ -171,6 +171,7 @@ import {
   createValidationMiddleware,
   buildSecurityHeaders,
 } from '@johnhenry/aimatey-middleware';
+import { CoreHTTPHandler } from '@johnhenry/aimatey-http-core';
 
 // Protect the outgoing request: sanitize content, redact PII, block injection.
 bridge.use(
@@ -194,7 +195,7 @@ bridge.use(
 );
 
 // Security headers are HTTP *response* headers - apply them at the HTTP layer.
-const handler = createCoreHandler({
+const handler = new CoreHTTPHandler({
   bridge,
   headers: buildSecurityHeaders({ hsts: 'max-age=31536000; includeSubDomains; preload' }),
 });
