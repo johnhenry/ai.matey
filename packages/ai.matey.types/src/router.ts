@@ -730,7 +730,21 @@ export interface Router extends BackendAdapter<unknown, unknown> {
   // ==========================================================================
 
   /**
-   * Clone router with new configuration.
+   * Clone this router with a modified configuration.
+   *
+   * A clone is the same router with different settings, not a fresh one: it
+   * inherits the backend registrations (sharing adapter instances), every
+   * routing rule including the model *translation* mappings, the round-robin
+   * cursor, the cumulative request/latency/cost accounting, and the health
+   * verdict — `isHealthy` and the circuit-breaker state included, so cloning
+   * to change one option cannot silently re-arm a backend the breaker had
+   * taken out of rotation.
+   *
+   * The one exception is a clone that disables the circuit breaker: it starts
+   * with all circuits closed, since nothing in it would ever recover one.
+   *
+   * Use `resetStats()` / `resetCircuitBreaker()` on the clone for a fresh
+   * slate.
    */
   clone(config: Partial<RouterConfig>): Router;
 

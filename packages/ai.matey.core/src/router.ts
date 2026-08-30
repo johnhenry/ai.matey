@@ -1208,20 +1208,95 @@ export class Router implements IRouter {
   // ==========================================================================
 
   /**
-   * Clone router with new configuration.
+   * Clone this router with a modified configuration.
+   *
+   * A clone is *this router with different settings*, not a fresh router
+   * that happens to share adapters. It therefore inherits everything that
+   * describes this router except the fields `config` overrides:
+   *
+   * - **Routing configuration** — backend registrations (in the same order,
+   *   sharing the same adapter instances), the fallback chain, model
+   *   mappings and model patterns, and — previously dropped, which is what
+   *   made cross-provider fallback break in a clone — the global and
+   *   per-backend *model translation* mappings.
+   * - **Routing state** — the round-robin cursor, so a clone continues the
+   *   rotation rather than restarting it.
+   * - **Accounting** — router-level and per-backend request counts, latency
+   *   samples and `totalCost`, on the same reasoning as
+   *   {@link Router.replace}: this is a cumulative record of traffic that was
+   *   really sent and money that was really spent, and a configuration change
+   *   does not un-spend it.
+   * - **Health verdict** — `isHealthy`, `lastHealthCheck`,
+   *   `consecutiveFailures` and the circuit-breaker state.
+   *
+   * That last point is where `clone()` deliberately differs from
+   * {@link Router.replace}, which *resets* the health verdict. The two agree
+   * on the underlying rule: a health verdict survives exactly as long as the
+   * thing it judged. `replace()` swaps in a different adapter, so the verdict
+   * is stale by construction. `clone()` carries the *same adapter instances*
+   * across, so an open circuit is still an accurate statement about them —
+   * and silently re-arming a backend the breaker had just taken out of
+   * rotation, merely because the caller cloned to change an unrelated
+   * setting, is the more dangerous default.
+   *
+   * One exception: a clone that turns the circuit breaker *off* starts with
+   * every circuit closed. Nothing in such a router calls the breaker, so an
+   * inherited open circuit would never move back to half-open and the backend
+   * would be unroutable forever.
+   *
+   * Callers who do want a fresh slate can follow this with
+   * {@link Router.resetStats} and {@link Router.resetCircuitBreaker}.
    */
   clone(config: Partial<RouterConfig>): Router {
     const newRouter = new Router({ ...this.config, ...config });
 
-    // Copy backend registrations
+    // Copy backend registrations, along with the state that describes the
+    // adapter instance being shared rather than the config being changed.
     for (const [name, state] of this.backends.entries()) {
       newRouter.register(name, state.adapter);
+
+      const clonedState = newRouter.backends.get(name);
+      /* c8 ignore next 3 -- register() just created it */
+      if (!clonedState) {
+        continue;
+      }
+
+      // Accounting: traffic already sent, money already spent.
+      clonedState.totalRequests = state.totalRequests;
+      clonedState.successfulRequests = state.successfulRequests;
+      clonedState.failedRequests = state.failedRequests;
+      clonedState.latencies = [...state.latencies];
+      clonedState.totalCost = state.totalCost;
+
+      // Health verdict: still a statement about this same adapter instance.
+      clonedState.isHealthy = state.isHealthy;
+      clonedState.lastHealthCheck = state.lastHealthCheck;
+      clonedState.consecutiveFailures = state.consecutiveFailures;
+
+      // An open circuit is only inherited by a router that can reopen and
+      // recover it; otherwise it would be permanent.
+      if (newRouter.config.enableCircuitBreaker) {
+        clonedState.circuitBreakerState = state.circuitBreakerState;
+        clonedState.circuitOpenedAt = state.circuitOpenedAt;
+      }
     }
 
-    // Copy model mappings
+    // Copy model mappings, including the translation mappings that make a
+    // cross-provider fallback send a model name the target recognises.
     newRouter.modelMapping = new Map(this.modelMapping);
+    newRouter.modelTranslationMapping = new Map(this.modelTranslationMapping);
+    newRouter.backendTranslationMappings = new Map(
+      Array.from(
+        this.backendTranslationMappings,
+        ([backend, mapping]): [string, Map<string, string>] => [backend, new Map(mapping)]
+      )
+    );
     newRouter.modelPatterns = [...this.modelPatterns];
     newRouter.fallbackChain = [...this.fallbackChain];
+    newRouter.roundRobinIndex = this.roundRobinIndex;
+
+    // Router-level accounting, kept consistent with the per-backend counters.
+    newRouter.stats = { ...this.stats };
 
     return newRouter;
   }
