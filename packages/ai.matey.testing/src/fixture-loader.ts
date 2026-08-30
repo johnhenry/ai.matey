@@ -2,8 +2,8 @@
  * Fixture loader - loads fixtures from files
  */
 
-import { readFile } from 'fs/promises';
-import { join } from 'path';
+import { readFile } from 'node:fs/promises';
+import { join } from 'node:path';
 import type { Fixture, FixtureQuery, FixtureCollection } from './fixture-types.js';
 import { isChatFixture, isStreamingFixture } from './fixture-types.js';
 
@@ -66,7 +66,7 @@ export async function loadProviderFixtures(
   options?: { useCache?: boolean }
 ): Promise<Fixture[]> {
   try {
-    const { readdir } = await import('fs/promises');
+    const { readdir } = await import('node:fs/promises');
     const providerDir = join(FIXTURES_DIR, provider);
     const files = await readdir(providerDir);
 
@@ -92,7 +92,7 @@ export async function loadProviderFixtures(
  * Search fixtures by query
  */
 export async function findFixtures(query: FixtureQuery): Promise<Fixture[]> {
-  const { readdir, stat } = await import('fs/promises');
+  const { readdir, stat } = await import('node:fs/promises');
 
   // Get list of providers
   let providers: string[];

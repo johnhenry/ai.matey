@@ -26,7 +26,7 @@ import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend/openai';
 import { AnthropicBackendAdapter } from '@johnhenry/aimatey-backend/anthropic';
 import { requireAPIKey } from '../_shared/env-loader.js';
 import { displayError } from '../_shared/helpers.js';
-import * as readline from 'readline';
+import * as readline from 'node:readline';
 
 interface Message {
   role: 'system' | 'user' | 'assistant';

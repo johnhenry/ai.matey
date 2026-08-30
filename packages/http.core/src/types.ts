@@ -7,7 +7,7 @@
  * @module
  */
 
-import type { IncomingMessage, ServerResponse } from 'http';
+import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { Bridge } from '@johnhenry/aimatey-core';
 import type { FrontendAdapter } from '@johnhenry/aimatey-types';
 

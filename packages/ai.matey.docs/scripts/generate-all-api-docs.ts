@@ -4,10 +4,10 @@
  * using TypeDoc with the markdown plugin.
  */
 
-import { execSync } from 'child_process';
-import { existsSync, mkdirSync, writeFileSync, readdirSync, statSync } from 'fs';
-import { join, dirname } from 'path';
-import { fileURLToPath } from 'url';
+import { execSync } from 'node:child_process';
+import { existsSync, mkdirSync, writeFileSync, readdirSync, statSync } from 'node:fs';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const docsRoot = join(__dirname, '..');
@@ -65,7 +65,7 @@ function discoverPackages(): PackageInfo[] {
       const packageJsonPath = join(pkgPath, 'package.json');
       if (existsSync(packageJsonPath)) {
         try {
-          const packageJson = JSON.parse(require('fs').readFileSync(packageJsonPath, 'utf-8'));
+          const packageJson = JSON.parse(require('node:fs').readFileSync(packageJsonPath, 'utf-8'));
           description = packageJson.description || '';
           packageName = packageJson.name || pkg; // use npm package name
         } catch (e) {
@@ -223,7 +223,7 @@ function extractExportsFromFile(filePath: string, visited = new Set<string>()): 
   visited.add(filePath);
 
   try {
-    const content = require('fs').readFileSync(filePath, 'utf-8');
+    const content = require('node:fs').readFileSync(filePath, 'utf-8');
     const values: string[] = [];
     const types: string[] = [];
     const details: ExportDetail[] = [];

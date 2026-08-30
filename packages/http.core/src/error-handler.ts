@@ -6,7 +6,7 @@
  * @module
  */
 
-import type { IncomingMessage, ServerResponse } from 'http';
+import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { ErrorHandler } from './types.js';
 import { sendError, detectProviderFormat } from './response-formatter.js';
 import {

@@ -6,8 +6,8 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { IncomingMessage, ServerResponse } from 'http';
-import { Readable } from 'stream';
+import { IncomingMessage, ServerResponse } from 'node:http';
+import { Readable } from 'node:stream';
 import { NodeHTTPListener, createSimpleListener } from '@johnhenry/aimatey-http';
 import { Bridge } from '@johnhenry/aimatey-core';
 import { AnthropicFrontendAdapter, OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend';

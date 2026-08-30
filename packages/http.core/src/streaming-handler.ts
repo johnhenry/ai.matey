@@ -6,7 +6,7 @@
  * @module
  */
 
-import type { ServerResponse } from 'http';
+import type { ServerResponse } from 'node:http';
 import type { Bridge } from '@johnhenry/aimatey-core';
 import {
   sendSSEHeaders,

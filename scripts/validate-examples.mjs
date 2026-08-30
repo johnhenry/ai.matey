@@ -5,11 +5,11 @@
  * Quick syntax and import check for all examples.
  */
 
-import { readdir } from 'fs/promises';
-import { readFile } from 'fs/promises';
-import { join, relative } from 'path';
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
+import { readdir } from 'node:fs/promises';
+import { readFile } from 'node:fs/promises';
+import { join, relative } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { dirname } from 'node:path';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);

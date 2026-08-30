@@ -6,7 +6,7 @@
  * @module
  */
 
-import type { IncomingMessage, ServerResponse } from 'http';
+import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { Bridge } from '@johnhenry/aimatey-core';
 import type { HTTPListenerOptions, HTTPRequestHandler } from '@johnhenry/aimatey-http-core';
 import { CoreHTTPHandler, sendError } from '@johnhenry/aimatey-http-core';
@@ -21,7 +21,7 @@ import { NodeRequestAdapter, NodeResponseAdapter } from './adapter.js';
  *
  * @example
  * ```typescript
- * import { createServer } from 'http';
+ * import { createServer } from 'node:http';
  * import { NodeHTTPListener } from '@johnhenry/aimatey-http/node';
  *
  * const bridge = new Bridge(frontend, backend);
