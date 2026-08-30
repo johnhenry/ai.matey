@@ -559,6 +559,313 @@ describe('MiddlewareStack.executeStream', () => {
 });
 
 // ============================================================================
+// Repeated next() Tests (#56)
+// ============================================================================
+
+describe('MiddlewareStack repeated next()', () => {
+  // Regression: #56 - a shared mutable index meant a second next() advanced
+  // *past* the next middleware instead of re-running the rest of the chain.
+  it('should re-run the rest of the chain when a middleware calls next() twice', async () => {
+    const stack = new MiddlewareStack();
+    const order: string[] = [];
+
+    stack.use(async (_ctx, next) => {
+      order.push('retry:first');
+      await next();
+      order.push('retry:second');
+      return next();
+    });
+    stack.use(async (_ctx, next) => {
+      order.push('inner');
+      return next();
+    });
+
+    const context = createMiddlewareContext(createTestRequest(), {});
+    const finalHandler = vi.fn(async () => {
+      order.push('handler');
+      return createTestResponse();
+    });
+
+    await stack.execute(context, finalHandler);
+
+    expect(order).toEqual([
+      'retry:first',
+      'inner',
+      'handler',
+      'retry:second',
+      'inner',
+      'handler',
+    ]);
+    expect(finalHandler).toHaveBeenCalledTimes(2);
+  });
+
+  it('should preserve onion ordering on the second pass', async () => {
+    const stack = new MiddlewareStack();
+    const log: string[] = [];
+
+    stack.use(async (_ctx, next) => {
+      log.push('outer-before');
+      await next();
+      log.push('outer-retry');
+      const result = await next();
+      log.push('outer-after');
+      return result;
+    });
+    stack.use(createTestMiddleware('mw2', log));
+    stack.use(createTestMiddleware('mw3', log));
+
+    const context = createMiddlewareContext(createTestRequest(), {});
+    const finalHandler = vi.fn(async () => {
+      log.push('handler');
+      return createTestResponse();
+    });
+
+    await stack.execute(context, finalHandler);
+
+    expect(log).toEqual([
+      'outer-before',
+      'mw2-before',
+      'mw3-before',
+      'handler',
+      'mw3-after',
+      'mw2-after',
+      'outer-retry',
+      'mw2-before',
+      'mw3-before',
+      'handler',
+      'mw3-after',
+      'mw2-after',
+      'outer-after',
+    ]);
+  });
+
+  it('should re-run a downstream transform on every retry attempt', async () => {
+    const stack = new MiddlewareStack();
+
+    // Retry-shaped middleware: one retry of the rest of the chain on failure.
+    stack.use(async (_ctx, next) => {
+      try {
+        return await next();
+      } catch {
+        return next();
+      }
+    });
+
+    // Downstream transform: stamps a fresh per-attempt request id.
+    let stamped = 0;
+    stack.use(async (ctx, next) => {
+      stamped++;
+      ctx.request = {
+        ...ctx.request,
+        metadata: { ...ctx.request.metadata, requestId: `req-${stamped}` },
+      };
+      return next();
+    });
+
+    const context = createMiddlewareContext(createTestRequest(), {});
+    const seen: string[] = [];
+    let attempt = 0;
+    const finalHandler = vi.fn(async () => {
+      seen.push(context.request.metadata.requestId);
+      attempt++;
+      if (attempt === 1) {
+        throw new Error('transient failure');
+      }
+      return createTestResponse();
+    });
+
+    await stack.execute(context, finalHandler);
+
+    // Without the fix the retry skips the transform: stamped === 1 and the
+    // backend is re-called with the first attempt's request id.
+    expect(stamped).toBe(2);
+    expect(seen).toEqual(['req-1', 'req-2']);
+  });
+
+  it('should return the response produced by the pass the middleware returns', async () => {
+    const stack = new MiddlewareStack();
+
+    stack.use(async (_ctx, next) => {
+      await next();
+      return next();
+    });
+
+    // Downstream response transform: must run on the second pass too.
+    stack.use(async (_ctx, next) => {
+      const response = await next();
+      return {
+        ...response,
+        message: { ...response.message, content: `${response.message.content as string}+tagged` },
+      };
+    });
+
+    const context = createMiddlewareContext(createTestRequest(), {});
+    let call = 0;
+    const finalHandler = vi.fn(async () => {
+      call++;
+      return {
+        ...createTestResponse(),
+        message: { role: 'assistant' as const, content: `#${call}` },
+      };
+    });
+
+    const result = await stack.execute(context, finalHandler);
+
+    expect(result.message.content).toBe('#2+tagged');
+  });
+
+  it('should wrap an error thrown on a re-run pass exactly once', async () => {
+    const stack = new MiddlewareStack();
+
+    stack.use(async (_ctx, next) => {
+      await next();
+      return next();
+    });
+
+    let call = 0;
+    const downstreamError = new Error('second pass failed');
+    stack.use(async (_ctx, next) => {
+      call++;
+      if (call === 2) {
+        throw downstreamError;
+      }
+      return next();
+    });
+
+    const context = createMiddlewareContext(createTestRequest(), {});
+    const finalHandler = vi.fn().mockResolvedValue(createTestResponse());
+
+    const error = await stack.execute(context, finalHandler).catch((e: unknown) => e);
+
+    expect(error).toBeInstanceOf(MiddlewareError);
+    expect((error as MiddlewareError).cause).toBe(downstreamError);
+  });
+
+  it('should re-throw a MiddlewareError from a re-run pass as-is', async () => {
+    const stack = new MiddlewareStack();
+    const originalError = new MiddlewareError({ message: 'Original error' });
+
+    stack.use(async (_ctx, next) => {
+      await next();
+      return next();
+    });
+
+    let call = 0;
+    stack.use(async (_ctx, next) => {
+      call++;
+      if (call === 2) {
+        throw originalError;
+      }
+      return next();
+    });
+
+    const context = createMiddlewareContext(createTestRequest(), {});
+    const finalHandler = vi.fn().mockResolvedValue(createTestResponse());
+
+    await expect(stack.execute(context, finalHandler)).rejects.toBe(originalError);
+  });
+});
+
+describe('MiddlewareStack.executeStream repeated next()', () => {
+  it('should re-run the rest of the chain when a streaming middleware calls next() twice', async () => {
+    const stack = new MiddlewareStack();
+    const log: string[] = [];
+
+    stack.useStreaming(async (_ctx, next) => {
+      log.push('outer:first');
+      await next();
+      log.push('outer:second');
+      return next();
+    });
+    stack.useStreaming(async (_ctx, next) => {
+      log.push('inner');
+      return next();
+    });
+
+    const finalHandler = vi.fn(async () => {
+      log.push('handler');
+      return createTestStream();
+    });
+    const context = createStreamingMiddlewareContext(createTestRequest(), {});
+
+    const stream = await stack.executeStream(context, finalHandler);
+    for await (const _chunk of stream) {
+      // drain
+    }
+
+    expect(log).toEqual(['outer:first', 'inner', 'handler', 'outer:second', 'inner', 'handler']);
+    expect(finalHandler).toHaveBeenCalledTimes(2);
+  });
+
+  it('should re-run the chain when an adapted use() middleware retries a failed next()', async () => {
+    const stack = new MiddlewareStack();
+
+    // Retry-shaped standard middleware on the streaming path. The adapter
+    // allows this second next() because the first one never produced a stream.
+    stack.use(async (_ctx, next) => {
+      try {
+        return await next();
+      } catch {
+        return next();
+      }
+    });
+
+    let downstreamRuns = 0;
+    stack.use(async (_ctx, next) => {
+      downstreamRuns++;
+      return next();
+    });
+
+    let attempt = 0;
+    const finalHandler = vi.fn(async () => {
+      attempt++;
+      if (attempt === 1) {
+        throw new Error('transient failure');
+      }
+      return createTestStream();
+    });
+    const context = createStreamingMiddlewareContext(createTestRequest(), {});
+
+    const stream = await stack.executeStream(context, finalHandler);
+    const chunks = [];
+    for await (const chunk of stream) {
+      chunks.push(chunk);
+    }
+
+    // Without the fix the retry skips the downstream middleware entirely.
+    expect(downstreamRuns).toBe(2);
+    expect(finalHandler).toHaveBeenCalledTimes(2);
+    expect(chunks).toHaveLength(3);
+  });
+
+  // #46/#50: the adapter refuses a restart once chunks have been delivered -
+  // the one place a second next() is rejected instead of re-running the chain.
+  it('should throw when an adapted use() middleware calls next() after the stream was delivered', async () => {
+    const stack = new MiddlewareStack();
+
+    stack.use(async (_ctx, next) => {
+      await next();
+      return next();
+    });
+
+    const finalHandler = vi.fn(async () => createTestStream());
+    const context = createStreamingMiddlewareContext(createTestRequest(), {});
+
+    const stream = await stack.executeStream(context, finalHandler);
+
+    await expect(
+      (async () => {
+        for await (const _chunk of stream) {
+          // drain
+        }
+      })()
+    ).rejects.toThrow(/next\(\) was called more than once/);
+
+    expect(finalHandler).toHaveBeenCalledTimes(1);
+  });
+});
+
+// ============================================================================
 // MiddlewareStack.removeStreaming Tests
 // ============================================================================
 
