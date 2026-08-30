@@ -16,7 +16,7 @@ import type {
   InferFrontendStreamChunk,
 } from './adapters.js';
 import type { Router, RouterConfig } from './router.js';
-import type { Middleware } from './middleware.js';
+import type { Middleware, StreamingMiddleware } from './middleware.js';
 import type { IRChatRequest, IRChatResponse } from './ir.js';
 
 // ============================================================================
@@ -319,8 +319,20 @@ export interface Bridge<TFrontend extends FrontendAdapter = FrontendAdapter> {
 
   /**
    * Add middleware to the bridge's middleware stack.
+   *
+   * Runs on both `chat()` and `chatStream()`; on the streaming path the
+   * middleware is adapted (request phase before the backend, response phase
+   * after the stream is consumed).
    */
   use(middleware: Middleware): Bridge<TFrontend>;
+
+  /**
+   * Add stream-native middleware to the bridge's middleware stack.
+   *
+   * Runs on `chatStream()` only, interleaved with `use()` middleware in
+   * registration order.
+   */
+  useStreaming(middleware: StreamingMiddleware): Bridge<TFrontend>;
 
   /**
    * Remove middleware from the stack.
@@ -328,14 +340,24 @@ export interface Bridge<TFrontend extends FrontendAdapter = FrontendAdapter> {
   removeMiddleware(middleware: Middleware): Bridge<TFrontend>;
 
   /**
-   * Clear all middleware from the stack.
+   * Remove stream-native middleware from the stack.
+   */
+  removeStreamingMiddleware(middleware: StreamingMiddleware): Bridge<TFrontend>;
+
+  /**
+   * Clear all middleware from the stack (both standard and streaming).
    */
   clearMiddleware(): Bridge<TFrontend>;
 
   /**
-   * Get all middleware in the stack.
+   * Get all middleware registered through `use()`.
    */
   getMiddleware(): readonly Middleware[];
+
+  /**
+   * Get all stream-native middleware registered through `useStreaming()`.
+   */
+  getStreamingMiddleware(): readonly StreamingMiddleware[];
 
   // ==========================================================================
   // Event Handling

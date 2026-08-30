@@ -26,7 +26,7 @@ import type {
   StreamEvent,
 } from '@johnhenry/aimatey-types';
 import { BridgeEventType } from '@johnhenry/aimatey-types';
-import type { Middleware } from '@johnhenry/aimatey-types';
+import type { Middleware, StreamingMiddleware } from '@johnhenry/aimatey-types';
 import type { ListModelsOptions, ListModelsResult } from '@johnhenry/aimatey-types';
 import {
   MiddlewareStack,
@@ -153,9 +153,12 @@ export class Bridge<
         );
 
         // Step 5: Execute middleware stack + backend
+        // Read `context.request` (not the enriched request captured above) so
+        // request rewrites a middleware performed - redaction, sanitization,
+        // history prepending - actually reach the backend.
         const irResponse = await this.middlewareStack.execute(context, async () => {
           // Call backend adapter
-          return await this.backend.execute(enrichedRequest, options?.signal);
+          return await this.backend.execute(context.request, options?.signal);
         });
 
         // Step 6: Enrich response with provenance
@@ -274,10 +277,11 @@ export class Bridge<
       );
 
       // Step 6: Execute middleware stack + backend
-
+      // Read `context.request` (not the enriched request captured above) so
+      // request rewrites a middleware performed actually reach the backend.
       const irStream = await this.middlewareStack.executeStream(context, () =>
         // Call backend adapter streaming
-        Promise.resolve(this.backend.executeStream(enrichedRequest, options?.signal))
+        Promise.resolve(this.backend.executeStream(context.request, options?.signal))
       );
 
       // Step 7: Convert IR stream to frontend format
@@ -412,9 +416,42 @@ export class Bridge<
 
   /**
    * Add middleware to the bridge's middleware stack.
+   *
+   * The middleware runs on **both** `chat()` and `chatStream()`. On the
+   * streaming path it is adapted: its request phase runs before the backend is
+   * called (so request rewrites reach the backend), chunks pass straight
+   * through, and its response phase runs once the stream has been consumed,
+   * against a response assembled from the delivered chunks. Modifications it
+   * makes to that response cannot be applied to a stream that has already been
+   * delivered - use {@link useStreaming} for chunk-level control.
+   *
+   * @param middleware Middleware to add
+   * @returns This bridge for chaining
    */
   use(middleware: Middleware): Bridge<TFrontend> {
     this.middlewareStack.use(middleware);
+    return this;
+  }
+
+  /**
+   * Add stream-native middleware to the bridge's middleware stack.
+   *
+   * Streaming middleware receives the `IRChatStream` from `next()` and may wrap
+   * or transform it chunk by chunk. It runs on `chatStream()` only, interleaved
+   * with `use()` middleware in registration order.
+   *
+   * @param middleware Streaming middleware to add
+   * @returns This bridge for chaining
+   *
+   * @example
+   * ```typescript
+   * import { createStreamingCostTrackingMiddleware } from '@johnhenry/aimatey-middleware';
+   *
+   * bridge.useStreaming(createStreamingCostTrackingMiddleware({ logCosts: true }));
+   * ```
+   */
+  useStreaming(middleware: StreamingMiddleware): Bridge<TFrontend> {
+    this.middlewareStack.useStreaming(middleware);
     return this;
   }
 
@@ -430,7 +467,18 @@ export class Bridge<
   }
 
   /**
-   * Clear all middleware from the stack.
+   * Remove stream-native middleware from the stack.
+   *
+   * @param middleware Streaming middleware to remove
+   * @returns This bridge for chaining
+   */
+  removeStreamingMiddleware(middleware: StreamingMiddleware): Bridge<TFrontend> {
+    this.middlewareStack.removeStreaming(middleware);
+    return this;
+  }
+
+  /**
+   * Clear all middleware from the stack (both standard and streaming).
    */
   clearMiddleware(): Bridge<TFrontend> {
     this.middlewareStack.clear();
@@ -438,10 +486,20 @@ export class Bridge<
   }
 
   /**
-   * Get all middleware in the stack.
+   * Get all middleware registered through {@link use}, in order.
+   *
+   * These run on both the streaming and the non-streaming path.
    */
   getMiddleware(): readonly Middleware[] {
     return this.middlewareStack.getMiddleware();
+  }
+
+  /**
+   * Get all stream-native middleware registered through {@link useStreaming},
+   * in order.
+   */
+  getStreamingMiddleware(): readonly StreamingMiddleware[] {
+    return this.middlewareStack.getStreamingMiddleware();
   }
 
   // ==========================================================================
@@ -624,7 +682,7 @@ export class Bridge<
     );
 
     const irResponse = await this.middlewareStack.execute(context, async () => {
-      return await this.backend.execute(enrichedRequest, options?.signal);
+      return await this.backend.execute(context.request, options?.signal);
     });
 
     return this.enrichResponse(irResponse, enrichedRequest);
@@ -655,7 +713,7 @@ export class Bridge<
     );
 
     const irStream = await this.middlewareStack.executeStream(context, () =>
-      Promise.resolve(this.backend.executeStream(enrichedRequest, options?.signal))
+      Promise.resolve(this.backend.executeStream(context.request, options?.signal))
     );
 
     for await (const chunk of irStream) {

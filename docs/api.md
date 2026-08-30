@@ -192,10 +192,10 @@ off(event: BridgeEventType, listener: BridgeEventListener): void
 
 ##### `use(middleware)`
 
-Add middleware to the bridge.
+Add middleware to the bridge. It runs on **both** `chat()` and `chatStream()`.
 
 ```typescript
-use(middleware: Middleware | StreamingMiddleware): Bridge
+use(middleware: Middleware): Bridge
 ```
 
 **Returns:** The bridge instance (for chaining)
@@ -206,6 +206,75 @@ bridge
   .use(createLoggingMiddleware({ level: 'info' }))
   .use(createRetryMiddleware({ maxRetries: 3 }))
   .use(createCachingMiddleware({ ttl: 3600 }));
+```
+
+On the streaming path a `Middleware` is adapted onto the stream:
+
+- Everything before `await next()` runs **before** the backend is called, so
+  rewrites of `context.request` (redaction, sanitization, history prepending)
+  reach the backend.
+- Chunks pass straight through - no buffering, no added latency.
+- Everything after `await next()` runs **once the stream has been consumed**,
+  against an `IRChatResponse` assembled from the delivered chunks. Its
+  `metadata.custom.assembledFromStream` is `true` and it carries an `info`
+  `capability-unsupported` warning.
+
+Limitations on the streaming path:
+
+- A middleware cannot change what was already streamed, so **modifications it
+  makes to the assembled response are dropped**. Use `useStreaming()` when you
+  need to transform what the consumer sees.
+- Errors thrown *before* `next()` surface as soon as the stream is started, the
+  way `chat()` rejects. Errors thrown *after* `next()` surface later, while the
+  consumer is still iterating.
+- A middleware that short-circuits (returns without calling `next()`, e.g. a
+  cache hit) has its response replayed as a synthetic stream.
+- A stream cannot be restarted: calling `next()` twice throws a
+  `MiddlewareError`.
+
+##### `useStreaming(middleware)`
+
+Add stream-native middleware. It runs on `chatStream()` only, interleaved with
+`use()` middleware in registration order, and receives the `IRChatStream` from
+`next()` so it can transform chunks directly.
+
+```typescript
+useStreaming(middleware: StreamingMiddleware): Bridge
+```
+
+**Example:**
+```typescript
+import { createStreamingCostTrackingMiddleware } from '@johnhenry/aimatey-middleware';
+
+bridge.useStreaming(createStreamingCostTrackingMiddleware({ logCosts: true }));
+```
+
+##### `removeMiddleware(middleware)` / `removeStreamingMiddleware(middleware)`
+
+Remove a previously registered middleware.
+
+```typescript
+removeMiddleware(middleware: Middleware): Bridge
+removeStreamingMiddleware(middleware: StreamingMiddleware): Bridge
+```
+
+##### `getMiddleware()` / `getStreamingMiddleware()`
+
+List registered middleware in order. `getMiddleware()` reports `use()`
+registrations (which run on both paths); `getStreamingMiddleware()` reports
+`useStreaming()` registrations.
+
+```typescript
+getMiddleware(): readonly Middleware[]
+getStreamingMiddleware(): readonly StreamingMiddleware[]
+```
+
+##### `clearMiddleware()`
+
+Remove every registration, standard and streaming.
+
+```typescript
+clearMiddleware(): Bridge
 ```
 
 #### Factory Function
@@ -384,28 +453,62 @@ const router = createRouter(
 
 Internal component for managing middleware chains. Generally not used directly.
 
+A single stack drives both paths. `use()` registers a `Middleware` that runs on
+both; `useStreaming()` registers a `StreamingMiddleware` that runs on the
+streaming path only. Registration order is preserved across the two.
+
 #### Methods
 
-##### `execute(context, next)`
+##### `use(middleware)` / `useStreaming(middleware)`
 
-Execute middleware chain.
+Register middleware.
+
+```typescript
+use(middleware: Middleware): void
+useStreaming(middleware: StreamingMiddleware): void
+```
+
+##### `remove(middleware)` / `removeStreaming(middleware)`
+
+Unregister middleware. Returns `true` when it was found.
+
+```typescript
+remove(middleware: Middleware): boolean
+removeStreaming(middleware: StreamingMiddleware): boolean
+```
+
+##### `execute(context, finalHandler)`
+
+Execute the non-streaming middleware chain.
 
 ```typescript
 async execute(
   context: MiddlewareContext,
-  next: MiddlewareNext
-): Promise<void>
+  finalHandler: () => Promise<IRChatResponse>
+): Promise<IRChatResponse>
 ```
 
-##### `executeStreaming(context, next)`
+##### `executeStream(context, finalHandler)`
 
-Execute streaming middleware chain.
+Execute the streaming middleware chain. Standard middleware is wrapped by
+`adaptMiddlewareToStreaming()`.
 
 ```typescript
-async executeStreaming(
+async executeStream(
   context: StreamingMiddlewareContext,
-  next: StreamingMiddlewareNext
-): Promise<void>
+  finalHandler: () => Promise<IRChatStream>
+): Promise<IRChatStream>
+```
+
+##### `adaptMiddlewareToStreaming(middleware)`
+
+Exported helper that turns a `Middleware` into a `StreamingMiddleware`,
+preserving the onion shape: request phase before the backend, chunks passed
+straight through, response phase once the stream has been consumed. See
+`Bridge.use()` above for the limitations this carries.
+
+```typescript
+adaptMiddlewareToStreaming(middleware: Middleware): StreamingMiddleware
 ```
 
 ---
@@ -1850,7 +1953,7 @@ import { Bridge, createBridge, OpenAIBackendAdapter } from '@johnhenry/aimatey';
 #### Core Components
 - `Bridge`, `createBridge`
 - `Router`, `createRouter`
-- `MiddlewareStack`, `createMiddlewareContext`, `createStreamingMiddlewareContext`
+- `MiddlewareStack`, `createMiddlewareContext`, `createStreamingMiddlewareContext`, `adaptMiddlewareToStreaming`
 
 #### Frontend Adapters
 - `AnthropicFrontendAdapter` - Anthropic Messages API format
