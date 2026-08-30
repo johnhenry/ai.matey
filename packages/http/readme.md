@@ -37,7 +37,7 @@ import { ExpressMiddleware } from '@johnhenry/aimatey-http';
 import { Bridge } from '@johnhenry/aimatey-core';
 
 const app = express();
-const bridge = new Bridge({ frontend, backend });
+const bridge = new Bridge(frontend, backend);
 
 const middleware = new ExpressMiddleware({ bridge });
 app.post('/v1/chat/completions', middleware.handler());

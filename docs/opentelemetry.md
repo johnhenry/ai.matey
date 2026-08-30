@@ -67,18 +67,18 @@ npm install @opentelemetry/api \
 
 ```typescript
 import { Bridge } from '@johnhenry/aimatey-core';
-import { createOpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend/openai';
-import { createOpenAIBackendAdapter } from '@johnhenry/aimatey-backend/openai';
+import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend/openai';
+import { OpenAIBackendAdapter } from '@johnhenry/aimatey-backend/openai';
 import { createOpenTelemetryMiddleware } from '@johnhenry/aimatey-middleware/opentelemetry';
 
 async function main() {
   // Create bridge
-  const bridge = new Bridge({
-    frontend: createOpenAIFrontendAdapter(),
-    backend: createOpenAIBackendAdapter({
+  const bridge = new Bridge(
+    new OpenAIFrontendAdapter(),
+    new OpenAIBackendAdapter({
       apiKey: process.env.OPENAI_API_KEY!,
-    }),
-  });
+    })
+  );
 
   // Add OpenTelemetry middleware (async)
   const otelMiddleware = await createOpenTelemetryMiddleware({
@@ -192,7 +192,7 @@ interface OpenTelemetryConfig {
 ### Example: Production Configuration
 
 ```typescript
-const otel = createOpenTelemetryMiddleware({
+const otel = await createOpenTelemetryMiddleware({
   serviceName: 'production-ai-service',
   serviceVersion: '1.2.3',
   endpoint: 'https://api.honeycomb.io/v1/traces',
@@ -227,7 +227,7 @@ docker run -d --name jaeger \
 ```typescript
 import { createOpenTelemetryMiddleware } from '@johnhenry/aimatey-middleware';
 
-const otel = createOpenTelemetryMiddleware({
+const otel = await createOpenTelemetryMiddleware({
   serviceName: 'my-ai-service',
   endpoint: 'http://localhost:4318/v1/traces',
 });
@@ -256,7 +256,7 @@ docker run -d -p 9411:9411 openzipkin/zipkin
 // You'll need to use the Zipkin exporter instead
 import { createOpenTelemetryMiddleware } from '@johnhenry/aimatey-middleware';
 
-const otel = createOpenTelemetryMiddleware({
+const otel = await createOpenTelemetryMiddleware({
   serviceName: 'my-ai-service',
   endpoint: 'http://localhost:9411/api/v2/spans',
 });
@@ -281,7 +281,7 @@ Follow [Datadog's installation guide](https://docs.datadoghq.com/agent/).
 ```typescript
 import { createOpenTelemetryMiddleware } from '@johnhenry/aimatey-middleware';
 
-const otel = createOpenTelemetryMiddleware({
+const otel = await createOpenTelemetryMiddleware({
   serviceName: 'my-ai-service',
   endpoint: 'http://localhost:4318/v1/traces', // Datadog Agent OTLP endpoint
   resourceAttributes: {
@@ -313,7 +313,7 @@ Sign up at https://honeycomb.io and get your API key.
 ```typescript
 import { createOpenTelemetryMiddleware } from '@johnhenry/aimatey-middleware';
 
-const otel = createOpenTelemetryMiddleware({
+const otel = await createOpenTelemetryMiddleware({
   serviceName: 'my-ai-service',
   endpoint: 'https://api.honeycomb.io/v1/traces',
   headers: {
@@ -341,7 +341,7 @@ Get your New Relic license key from the dashboard.
 ```typescript
 import { createOpenTelemetryMiddleware } from '@johnhenry/aimatey-middleware';
 
-const otel = createOpenTelemetryMiddleware({
+const otel = await createOpenTelemetryMiddleware({
   serviceName: 'my-ai-service',
   endpoint: 'https://otlp.nr-data.net:4318/v1/traces', // US datacenter
   // For EU: 'https://otlp.eu01.nr-data.net:4318/v1/traces'
@@ -399,7 +399,7 @@ import {
 
 // OpenTelemetry for distributed tracing
 bridge.use(
-  createOpenTelemetryMiddleware({
+  await createOpenTelemetryMiddleware({
     serviceName: 'my-ai-service',
     endpoint: 'http://localhost:4318/v1/traces',
   })
@@ -442,7 +442,7 @@ bridge.use(
 For high-traffic applications, use sampling to reduce overhead:
 
 ```typescript
-const otel = createOpenTelemetryMiddleware({
+const otel = await createOpenTelemetryMiddleware({
   serviceName: 'my-ai-service',
   samplingRate: process.env.NODE_ENV === 'production' ? 0.1 : 1.0,
 });
@@ -453,7 +453,7 @@ const otel = createOpenTelemetryMiddleware({
 Include environment information in resource attributes:
 
 ```typescript
-const otel = createOpenTelemetryMiddleware({
+const otel = await createOpenTelemetryMiddleware({
   serviceName: 'my-ai-service',
   resourceAttributes: {
     'deployment.environment': process.env.NODE_ENV || 'development',
@@ -540,7 +540,7 @@ npm install @opentelemetry/api \
 **Solution:** Lower sampling rate or use batch span processor configuration:
 
 ```typescript
-const otel = createOpenTelemetryMiddleware({
+const otel = await createOpenTelemetryMiddleware({
   serviceName: 'my-ai-service',
   samplingRate: 0.01, // Sample 1% of requests
 });

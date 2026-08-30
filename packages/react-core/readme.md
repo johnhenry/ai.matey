@@ -46,10 +46,10 @@ Use any backend adapter directly without HTTP - great for Electron apps, browser
 
 ```tsx
 import { useChat } from '@johnhenry/aimatey-react-core';
-import { OpenAIBackend } from '@johnhenry/aimatey-backend/openai';
+import { OpenAIBackendAdapter } from '@johnhenry/aimatey-backend/openai';
 
 // Create backend (could also be Anthropic, Gemini, Ollama, etc.)
-const backend = new OpenAIBackend({
+const backend = new OpenAIBackendAdapter({
   apiKey: process.env.REACT_APP_OPENAI_API_KEY,
 });
 

@@ -131,29 +131,49 @@ const bridge = new Bridge(
 Route simple queries to cheaper models, complex ones to powerful models:
 
 ```typescript
-const router = new Router(new OpenAIFrontendAdapter(), {
-  backends: [deepseek, groq, openai, anthropic],
-  strategy: 'custom',
-  customStrategy: (request) => {
+// A Router is a BackendAdapter: register backends by name, then give it to a Bridge.
+const router = new Router({
+  routingStrategy: 'custom',
+  customRouter: async (request, availableBackends) => {
     const complexity = analyzeComplexity(request);
-    if (complexity < 25) return 0; // DeepSeek (cheapest)
-    if (complexity < 50) return 1; // Groq
-    if (complexity < 80) return 2; // OpenAI
-    return 3; // Anthropic (most capable)
-  }
+    const preferred =
+      complexity < 25 ? 'deepseek'   // cheapest
+      : complexity < 50 ? 'groq'
+      : complexity < 80 ? 'openai'
+      : 'anthropic';                 // most capable
+    return availableBackends.includes(preferred) ? preferred : (availableBackends[0] ?? null);
+  },
 });
+
+router
+  .register('deepseek', deepseek)
+  .register('groq', groq)
+  .register('openai', openai)
+  .register('anthropic', anthropic);
+
+const bridge = new Bridge(new OpenAIFrontendAdapter(), router);
 ```
 
 ### High Availability
 Automatic failover when providers go down:
 
 ```typescript
-const router = new Router(new OpenAIFrontendAdapter(), {
-  backends: [primary, secondary, tertiary],
-  strategy: 'priority',
-  fallbackOnError: true,
-  healthCheck: { enabled: true, interval: 60000 }
+const router = new Router({
+  routingStrategy: 'explicit',
+  defaultBackend: 'primary',
+  fallbackStrategy: 'sequential',
+  healthCheckInterval: 60000,
+  enableCircuitBreaker: true,
 });
+
+router
+  .register('primary', primary)
+  .register('secondary', secondary)
+  .register('tertiary', tertiary);
+
+router.setFallbackChain(['secondary', 'tertiary']);
+
+const bridge = new Bridge(new OpenAIFrontendAdapter(), router);
 ```
 
 ## Packages Overview

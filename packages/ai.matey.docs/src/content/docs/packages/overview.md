@@ -75,8 +75,8 @@ TypeScript type definitions shared across all packages.
 **Install:** `npm install @johnhenry/aimatey-types`
 
 **Key Types:**
-- `IRChatCompletionRequest` - IR request format
-- `IRChatCompletionResponse` - IR response format
+- `IRChatRequest` - IR request format
+- `IRChatResponse` - IR response format
 - `BackendAdapter` - Backend interface
 - `FrontendAdapter` - Frontend interface
 
@@ -91,8 +91,11 @@ Error classes and error handling utilities.
 **Install:** `npm install @johnhenry/aimatey-errors`
 
 **Key Exports:**
-- `AIMateyError` - Base error class
-- `BackendError`, `RateLimitError`, `AuthenticationError`, etc.
+- `AdapterError` - Base error class for every adapter error
+- `ProviderError`, `NetworkError`, `RateLimitError`, `AuthenticationError`,
+  `AuthorizationError`, `ValidationError`, `AdapterConversionError`,
+  `StreamError`, `RouterError`, `MiddlewareError`
+- `ErrorCode` - Machine-readable error codes
 
 **Use when:** You need specific error handling.
 
@@ -120,9 +123,15 @@ Testing utilities and mock adapters.
 **Install:** `npm install -D @johnhenry/aimatey-testing`
 
 **Key Exports:**
-- `MockBackendAdapter` - Mock backend
-- `createTestBridge()` - Test bridge factory
-- `createMockResponse()` - Mock responses
+- `loadFixture()`, `loadProviderFixtures()`, `findFixtures()` - Load recorded provider fixtures
+- `captureChat()`, `captureStream()`, `createCaptureMiddleware()` - Record new fixtures
+- `createMockFromFixture()`, `createConfigurableMock()`, `replayStreamWithTiming()` - Replay them
+- `assertValidChatRequest()`, `assertValidChatResponse()`, `assertValidStreamSequence()` - Assertions
+- `buildChatRequest()`, `extractTextFromResponse()`, `accumulateStreamText()` - Test helpers
+- `generateChatRequest()`, `forAll()`, `SeededRandom` - Property-based testing
+
+A plain mock backend adapter is not here: `MockBackendAdapter` lives in
+`@johnhenry/aimatey-backend-browser`, subpath `./mock`.
 
 **Use when:** Writing tests for AI integrations.
 
@@ -471,7 +480,7 @@ All packages include TypeScript definitions:
 
 ```typescript
 import type {
-  IRChatCompletionRequest,
+  IRChatRequest,
   BackendAdapter,
   Middleware
 } from '@johnhenry/aimatey-types';

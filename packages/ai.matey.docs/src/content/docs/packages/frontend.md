@@ -16,13 +16,13 @@ npm install @johnhenry/aimatey-frontend
 Frontend adapters translate your chosen API format into ai.matey's Intermediate Representation (IR). This allows you to write code in whatever format you're most comfortable with.
 
 **Available Adapters:**
-- OpenAI
-- Anthropic
-- Google Gemini
-- Ollama
-- Cohere
-- Mistral
-- Groq
+- OpenAI (`/openai`)
+- Anthropic (`/anthropic`)
+- Google Gemini (`/gemini`)
+- Ollama (`/ollama`)
+- Mistral (`/mistral`)
+- Chrome built-in AI (`/chrome-ai`)
+- Generic IR (`/generic`)
 
 ## OpenAI Frontend Adapter
 
@@ -72,21 +72,20 @@ const response = await bridge.chat({
 ### Request Format
 
 ```typescript
-interface OpenAIChatRequest {
+interface OpenAIRequest {
   model: string;
   messages: OpenAIMessage[];
   temperature?: number;
   max_tokens?: number;
   top_p?: number;
-  n?: number;
-  stream?: boolean;
-  stop?: string | string[];
-  presence_penalty?: number;
   frequency_penalty?: number;
-  logit_bias?: Record<string, number>;
+  presence_penalty?: number;
+  stop?: string | string[];
+  stream?: boolean;
   user?: string;
-  tools?: OpenAITool[];
-  tool_choice?: 'none' | 'auto' | { type: 'function'; function: { name: string } };
+  seed?: number;
+  tools?: Array<{ type: 'function'; function: { name: string; description?: string; parameters?: object } }>;
+  tool_choice?: 'auto' | 'none' | 'required' | { type: 'function'; function: { name: string } };
 }
 ```
 
@@ -238,47 +237,6 @@ const response = await bridge.chat({
 - ✅ Temperature, top_p, top_k
 - ⚠️ Limited tool support (model-dependent)
 
-## Cohere Frontend Adapter
-
-Use Cohere's API format as input.
-
-### Installation
-
-```typescript
-import { CohereFrontendAdapter } from '@johnhenry/aimatey-frontend/cohere';
-```
-
-### Usage
-
-```typescript
-import { Bridge } from '@johnhenry/aimatey-core';
-import { CohereFrontendAdapter } from '@johnhenry/aimatey-frontend/cohere';
-import { OpenAIBackendAdapter } from '@johnhenry/aimatey-backend/openai';
-
-const bridge = new Bridge(
-  new CohereFrontendAdapter(),
-  new OpenAIBackendAdapter({ apiKey: 'your-key' })
-);
-
-// Write in Cohere format
-const response = await bridge.chat({
-  model: 'command-r-plus',
-  message: 'Hello!',
-  chat_history: [
-    { role: 'USER', message: 'Hi' },
-    { role: 'CHATBOT', message: 'Hello!' }
-  ],
-  temperature: 0.7
-});
-```
-
-### Key Differences
-
-- Uses `message` for current user message
-- Chat history separate from current message
-- Roles are `USER` and `CHATBOT` (uppercase)
-- Different parameter names
-
 ## Mistral Frontend Adapter
 
 Use Mistral's API format (very similar to OpenAI).
@@ -311,36 +269,11 @@ const response = await bridge.chat({
 });
 ```
 
-## Groq Frontend Adapter
+## Groq and Other OpenAI-Compatible APIs
 
-Use Groq's API format (OpenAI-compatible).
-
-### Installation
-
-```typescript
-import { GroqFrontendAdapter } from '@johnhenry/aimatey-frontend/groq';
-```
-
-### Usage
-
-```typescript
-import { Bridge } from '@johnhenry/aimatey-core';
-import { GroqFrontendAdapter } from '@johnhenry/aimatey-frontend/groq';
-import { AnthropicBackendAdapter } from '@johnhenry/aimatey-backend/anthropic';
-
-const bridge = new Bridge(
-  new GroqFrontendAdapter(),
-  new AnthropicBackendAdapter({ apiKey: 'your-key' })
-);
-
-// Groq uses OpenAI-compatible format
-const response = await bridge.chat({
-  model: 'llama3-8b-8192',
-  messages: [
-    { role: 'user', content: 'Hello!' }
-  ]
-});
-```
+Groq's API is OpenAI-compatible, so there is no separate Groq frontend adapter -
+use `OpenAIFrontendAdapter` for Groq-shaped requests. (Groq *as a provider* is
+available on the backend side, as `@johnhenry/aimatey-backend/groq`.)
 
 ## Choosing a Frontend Adapter
 
@@ -367,13 +300,13 @@ const response = await bridge.chat({
 
 ## Feature Compatibility Matrix
 
-| Feature | OpenAI | Anthropic | Gemini | Ollama | Cohere | Mistral | Groq |
-|---------|--------|-----------|--------|--------|--------|---------|------|
-| Chat | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Streaming | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Tools/Functions | ✅ | ✅ | ✅ | ⚠️ | ✅ | ✅ | ⚠️ |
-| Vision | ✅ | ✅ | ✅ | ⚠️ | ❌ | ⚠️ | ⚠️ |
-| System Messages | ✅ | ✅ | ✅ | ✅ | ⚠️ | ✅ | ✅ |
+| Feature | OpenAI | Anthropic | Gemini | Ollama | Mistral | Chrome AI |
+|---------|--------|-----------|--------|--------|---------|-----------|
+| Chat | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Streaming | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Tools/Functions | ✅ | ✅ | ✅ | ⚠️ | ✅ | ❌ |
+| Vision | ✅ | ✅ | ✅ | ⚠️ | ⚠️ | ❌ |
+| System Messages | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 
 ✅ Fully supported | ⚠️ Partially supported | ❌ Not supported
 
@@ -381,41 +314,68 @@ const response = await bridge.chat({
 
 You can create your own frontend adapter:
 
-```typescript
-import { FrontendAdapter } from '@johnhenry/aimatey-core';
-import type { IRChatCompletionRequest, IRChatCompletionResponse } from '@johnhenry/aimatey-types';
+`toIR()` and `fromIR()` are async, and `fromIRStream()` is required.
 
-export class CustomFrontendAdapter implements FrontendAdapter {
-  name = 'custom';
+```typescript
+import type {
+  AdapterMetadata,
+  FrontendAdapter,
+  IRChatRequest,
+  IRChatResponse,
+  IRChatStream
+} from '@johnhenry/aimatey-types';
+
+export class CustomFrontendAdapter
+  implements FrontendAdapter<CustomRequest, CustomResponse, CustomChunk>
+{
+  readonly metadata: AdapterMetadata = {
+    name: 'custom',
+    version: '1.0.0',
+    provider: 'Custom',
+    capabilities: {
+      streaming: true,
+      multiModal: false,
+      systemMessageStrategy: 'in-messages',
+      supportsMultipleSystemMessages: true
+    }
+  };
 
   // Convert custom format to IR
-  toIR(request: CustomRequest): IRChatCompletionRequest {
+  async toIR(request: CustomRequest): Promise<IRChatRequest> {
     return {
-      model: request.modelName,
-      messages: request.conversation.map(msg => ({
+      messages: request.conversation.map((msg) => ({
         role: msg.sender === 'human' ? 'user' : 'assistant',
         content: msg.text
       })),
-      temperature: request.temp,
-      max_tokens: request.maxLength
+      parameters: {
+        model: request.modelName,
+        temperature: request.temp,
+        maxTokens: request.maxLength
+      },
+      metadata: {
+        requestId: crypto.randomUUID(),
+        timestamp: Date.now(),
+        provenance: { frontend: 'custom' }
+      }
     };
   }
 
   // Convert IR back to custom format
-  fromIR(response: IRChatCompletionResponse): CustomResponse {
+  async fromIR(response: IRChatResponse): Promise<CustomResponse> {
     return {
-      reply: response.choices[0].message.content,
-      tokens: response.usage?.total_tokens || 0
+      reply: typeof response.message.content === 'string' ? response.message.content : '',
+      tokens: response.usage?.totalTokens ?? 0
     };
   }
 
-  // Stream support (optional)
-  async *fromIRStream(stream: AsyncIterable<IRChatCompletionChunk>) {
+  // Stream support
+  async *fromIRStream(stream: IRChatStream) {
     for await (const chunk of stream) {
-      yield {
-        text: chunk.choices?.[0]?.delta?.content || '',
-        done: chunk.choices?.[0]?.finish_reason !== null
-      };
+      if (chunk.type === 'content') {
+        yield { text: chunk.delta, done: false };
+      } else if (chunk.type === 'done') {
+        yield { text: '', done: true };
+      }
     }
   }
 }
@@ -461,19 +421,29 @@ new Bridge(new GeminiFrontendAdapter(), new GroqBackendAdapter({ apiKey }));
 Use TypeScript for frontend-specific request types:
 
 ```typescript
-import type { OpenAIChatRequest, OpenAIChatResponse } from '@johnhenry/aimatey-frontend/openai';
+import type {
+  OpenAIRequest,
+  OpenAIResponse,
+  OpenAIStreamChunk
+} from '@johnhenry/aimatey-frontend/openai';
 
 const bridge = new Bridge(
   new OpenAIFrontendAdapter(),
   new AnthropicBackendAdapter({ apiKey })
 );
 
-const request: OpenAIChatRequest = {
+const request: OpenAIRequest = {
   model: 'gpt-4',
   messages: [{ role: 'user', content: 'Hello' }]
 };
 
-const response: OpenAIChatResponse = await bridge.chat(request);
+const response: OpenAIResponse = await bridge.chat(request);
+
+// Streaming chunks are typed as OpenAIStreamChunk
+for await (const chunk of bridge.chatStream({ ...request, stream: true })) {
+  const delta: OpenAIStreamChunk = chunk;
+  process.stdout.write(delta.choices[0]?.delta?.content ?? '');
+}
 ```
 
 ## Semantic Drift

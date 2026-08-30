@@ -40,16 +40,17 @@ import {
   InMemoryCacheStorage,
 } from '@johnhenry/aimatey-middleware';
 
-const bridge = new Bridge({
-  frontend,
-  backend,
-  middleware: [
-    createLoggingMiddleware({ level: 'info' }),
-    createRetryMiddleware({ maxAttempts: 3 }),
-    createCachingMiddleware({ storage: new InMemoryCacheStorage() }),
-  ],
-});
+// Bridge takes positional arguments; middleware is registered with `use()`.
+// There is no `middleware` field on BridgeConfig - passing one is silently ignored.
+const bridge = new Bridge(frontend, backend);
+
+bridge
+  .use(createLoggingMiddleware({ level: 'info' }))
+  .use(createRetryMiddleware({ maxAttempts: 3 }))
+  .use(createCachingMiddleware({ storage: new InMemoryCacheStorage() }));
 ```
+
+Middleware runs in registration order: the first registered is the outermost.
 
 ### Retry Middleware
 
@@ -58,8 +59,8 @@ import { createRetryMiddleware } from '@johnhenry/aimatey-middleware';
 
 const retry = createRetryMiddleware({
   maxAttempts: 3,
-  initialDelayMs: 1000,
-  maxDelayMs: 10000,
+  initialDelay: 1000,
+  maxDelay: 10000,
   backoffMultiplier: 2,
 });
 ```
@@ -71,7 +72,7 @@ import { createCachingMiddleware, InMemoryCacheStorage } from '@johnhenry/aimate
 
 const cache = createCachingMiddleware({
   storage: new InMemoryCacheStorage(),
-  ttlMs: 60000, // 1 minute
+  ttl: 60000, // milliseconds - 1 minute
 });
 ```
 
@@ -82,7 +83,7 @@ import { createValidationMiddleware } from '@johnhenry/aimatey-middleware';
 
 const validation = createValidationMiddleware({
   detectPII: true,
-  detectPromptInjection: true,
+  preventPromptInjection: true,
 });
 ```
 

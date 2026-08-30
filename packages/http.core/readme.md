@@ -15,7 +15,7 @@ npm install @johnhenry/aimatey-http-core
 ## Quick Start
 
 ```typescript
-import { createCorsMiddleware } from '@johnhenry/aimatey-http-core';
+import { CoreHTTPHandler } from '@johnhenry/aimatey-http-core';
 import { Bridge } from '@johnhenry/aimatey-core';
 import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend/openai';
 import { OpenAIBackendAdapter } from '@johnhenry/aimatey-backend/openai';
@@ -25,37 +25,54 @@ const bridge = new Bridge(
   new OpenAIBackendAdapter({ apiKey: process.env.OPENAI_API_KEY })
 );
 
-const handler = createCorsMiddleware(bridge, {
-  streaming: true,
+const handler = new CoreHTTPHandler({
+  bridge,
   timeout: 30000,
+  cors: true,
 });
 
-// Use with your Core server
+// Framework-agnostic: adapt your server's request/response to the generic shape,
+// or use one of the @johnhenry/aimatey-http adapters, which wrap this class.
+await handler.handle(genericRequest, genericResponse);
 ```
 
 ## API Reference
 
-### createCorsMiddleware
+### CoreHTTPHandler
 
-Creates an HTTP handler for Core.
+Framework-agnostic HTTP handler. The adapters in `@johnhenry/aimatey-http`
+(Express, Fastify, Hono, Koa, Node, Deno) are thin wrappers around it.
 
 ```typescript
-createCorsMiddleware(bridge: Bridge, options?: HandlerOptions): Handler
+new CoreHTTPHandler(options: CoreHandlerOptions)
+handler.handle(req: GenericRequest, res: GenericResponse): Promise<void>
+handler.dispose(): void
 ```
 
-#### Options
+#### CoreHandlerOptions
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `streaming` | `boolean` | `true` | Enable streaming responses |
-| `timeout` | `number` | `30000` | Request timeout in milliseconds |
-| `cors` | `boolean` | `false` | Enable CORS headers |
+| Option | Type | Description |
+|--------|------|-------------|
+| `bridge` | `Bridge` | Required. The bridge that executes requests. |
+| `cors` | `CORSOptions \| boolean` | CORS configuration. |
+| `validateAuth` | `GenericAuthValidator` | Authentication callback. |
+| `onError` | `GenericErrorHandler` | Custom error handling. |
+| `headers` | `Record<string, string>` | Extra response headers. |
+| `timeout` | `number` | Request timeout in milliseconds. |
+| `pathPrefix` | `string` | Prefix applied to all routes. |
+| `rateLimit` | `GenericRateLimitOptions` | Rate limiting configuration. |
+| `routes` | `RouteConfig[]` | Custom route table. |
+| `health` | `{ enabled: boolean; path?: string }` | Health-check endpoint. |
+| `metrics` | see `src/types.ts` | Metrics endpoint. |
+| `embeddings` | see `src/types.ts` | Embeddings endpoint. |
 
-## Exports
+### Utilities
 
-- `createCorsMiddleware`
-- `validateApiKey`
-- `parseRequestBody`
+Request parsing (`parseRequest`, `extractBearerToken`, `getClientIP`), response
+formatting (`sendJSON`, `sendError`, `sendSSEChunk`, `sendText`), CORS
+(`handleCORS`, `handlePreflight`, `isPreflight`, `normalizeCORSOptions`),
+authentication validators, and `RateLimiter` are all exported from this package.
+See `src/index.ts` for the full list.
 
 ## License
 

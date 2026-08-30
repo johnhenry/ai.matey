@@ -136,7 +136,7 @@ All 10 middleware types in `@johnhenry/aimatey-middleware`:
 ### Core Installation
 
 ```bash
-npm install @johnhenry/aimatey-core ai.matey.types
+npm install @johnhenry/aimatey-core @johnhenry/aimatey-types
 ```
 
 ### Add Providers
@@ -156,20 +156,22 @@ npm install @johnhenry/aimatey-middleware
 
 ```typescript
 import { Bridge } from '@johnhenry/aimatey-core';
+import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend';
 import { OpenAIBackendAdapter } from '@johnhenry/aimatey-backend';
 import { createLoggingMiddleware, createRetryMiddleware } from '@johnhenry/aimatey-middleware';
 
-const bridge = new Bridge({
-  backend: new OpenAIBackendAdapter({
+const bridge = new Bridge(
+  new OpenAIFrontendAdapter(),
+  new OpenAIBackendAdapter({
     apiKey: process.env.OPENAI_API_KEY
   })
-});
+);
 
 bridge
   .use(createLoggingMiddleware({ level: 'info' }))
   .use(createRetryMiddleware({ maxAttempts: 3 }));
 
-const response = await bridge.execute({
+const response = await bridge.chat({
   messages: [{ role: 'user', content: 'Hello!' }],
   model: 'gpt-4'
 });

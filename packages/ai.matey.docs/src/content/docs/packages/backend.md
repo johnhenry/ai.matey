@@ -59,13 +59,18 @@ import { OpenAIBackendAdapter } from '@johnhenry/aimatey-backend/openai';
 
 ```typescript
 const backend = new OpenAIBackendAdapter({
-  apiKey: process.env.OPENAI_API_KEY, // Required
+  apiKey: process.env.OPENAI_API_KEY,   // Required
   baseURL: 'https://api.openai.com/v1', // Optional
-  organization: 'org-xxx', // Optional
-  timeout: 60000, // Optional (default: 60s)
-  maxRetries: 3 // Optional (default: 2)
+  timeout: 60000,                       // Optional (default: 30000)
+  defaultModel: 'gpt-4o',               // Optional
+  headers: { 'OpenAI-Organization': 'org-xxx' }, // Optional; there is no `organization` field
 });
 ```
+
+All backend adapters take the same [`BackendAdapterConfig`](https://github.com/johnhenry/ai.matey/blob/main/packages/ai.matey.types/src/adapters.ts):
+`apiKey` (required), `baseURL`, `timeout`, `maxRetries`, `debug`, `headers`,
+`custom`, `browserMode`, `defaultModel`, `models`. Provider-specific options that
+are not in that list go in `custom` or `headers`.
 
 ### Available Models
 
@@ -347,9 +352,9 @@ const backend = new PerplexityBackendAdapter({
 ### Together AI
 
 ```typescript
-import { TogetherBackendAdapter } from '@johnhenry/aimatey-backend/together';
+import { TogetherAIBackendAdapter } from '@johnhenry/aimatey-backend/together-ai';
 
-const backend = new TogetherBackendAdapter({
+const backend = new TogetherAIBackendAdapter({
   apiKey: process.env.TOGETHER_API_KEY
 });
 ```
@@ -428,20 +433,26 @@ const bridge = new Bridge(new OpenAIFrontendAdapter(), backend);
 Use Router for automatic failover:
 
 ```typescript
-import { Router } from '@johnhenry/aimatey-core';
+import { Bridge, Router } from '@johnhenry/aimatey-core';
 
-const router = new Router(new OpenAIFrontendAdapter(), {
-  backends: [
-    new AnthropicBackendAdapter({ apiKey: process.env.ANTHROPIC_API_KEY }),
-    new OpenAIBackendAdapter({ apiKey: process.env.OPENAI_API_KEY }),
-    new GroqBackendAdapter({ apiKey: process.env.GROQ_API_KEY })
-  ],
-  strategy: 'priority',
-  fallbackOnError: true
+// A Router is a BackendAdapter, so it goes *inside* a Bridge.
+const router = new Router({
+  routingStrategy: 'explicit',
+  defaultBackend: 'anthropic',
+  fallbackStrategy: 'sequential',
 });
 
+router
+  .register('anthropic', new AnthropicBackendAdapter({ apiKey: process.env.ANTHROPIC_API_KEY }))
+  .register('openai', new OpenAIBackendAdapter({ apiKey: process.env.OPENAI_API_KEY }))
+  .register('groq', new GroqBackendAdapter({ apiKey: process.env.GROQ_API_KEY }));
+
+router.setFallbackChain(['openai', 'groq']);
+
+const bridge = new Bridge(new OpenAIFrontendAdapter(), router);
+
 // Automatically tries Anthropic, then OpenAI, then Groq
-const response = await router.chat({
+const response = await bridge.chat({
   model: 'gpt-4',
   messages: [{ role: 'user', content: 'Hello!' }]
 });
@@ -452,23 +463,29 @@ const response = await router.chat({
 ### Route by Complexity
 
 ```typescript
-const router = new Router(new OpenAIFrontendAdapter(), {
-  backends: [
-    new DeepSeekBackendAdapter({ apiKey: process.env.DEEPSEEK_API_KEY }), // Cheap
-    new GroqBackendAdapter({ apiKey: process.env.GROQ_API_KEY }),         // Fast
-    new OpenAIBackendAdapter({ apiKey: process.env.OPENAI_API_KEY }),     // Powerful
-    new AnthropicBackendAdapter({ apiKey: process.env.ANTHROPIC_API_KEY }) // Most capable
-  ],
-  strategy: 'custom',
-  customStrategy: (request) => {
+const router = new Router({
+  routingStrategy: 'custom',
+  // customRouter is async and returns a backend NAME (or null to fall through)
+  customRouter: async (request, availableBackends) => {
     const messageLength = JSON.stringify(request.messages).length;
 
-    if (messageLength < 100) return 0;  // DeepSeek: simple queries
-    if (messageLength < 500) return 1;  // Groq: moderate queries
-    if (messageLength < 2000) return 2; // OpenAI: complex queries
-    return 3; // Anthropic: very complex queries
-  }
+    const preferred =
+      messageLength < 100 ? 'deepseek'   // simple queries
+      : messageLength < 500 ? 'groq'     // moderate queries
+      : messageLength < 2000 ? 'openai'  // complex queries
+      : 'anthropic';                     // very complex queries
+
+    return availableBackends.includes(preferred) ? preferred : (availableBackends[0] ?? null);
+  },
 });
+
+router
+  .register('deepseek', new DeepSeekBackendAdapter({ apiKey: process.env.DEEPSEEK_API_KEY })) // Cheap
+  .register('groq', new GroqBackendAdapter({ apiKey: process.env.GROQ_API_KEY }))             // Fast
+  .register('openai', new OpenAIBackendAdapter({ apiKey: process.env.OPENAI_API_KEY }))       // Powerful
+  .register('anthropic', new AnthropicBackendAdapter({ apiKey: process.env.ANTHROPIC_API_KEY })); // Most capable
+
+const bridge = new Bridge(new OpenAIFrontendAdapter(), router);
 ```
 
 **Potential savings:** Up to 90% compared to always using GPT-4.
@@ -546,16 +563,20 @@ const backend = new OpenAIBackendAdapter({
 ### 3. Handle Errors
 
 ```typescript
+import { AdapterError, ErrorCode } from '@johnhenry/aimatey-errors';
+
 try {
   const response = await bridge.chat(request);
 } catch (error) {
-  if (error.code === 'RATE_LIMIT_ERROR') {
+  if (!(error instanceof AdapterError)) throw error;
+
+  if (error.code === ErrorCode.RATE_LIMIT_EXCEEDED) {
     console.log('Rate limited, waiting...');
     await sleep(1000);
-  } else if (error.code === 'AUTH_ERROR') {
+  } else if (error.code === ErrorCode.INVALID_API_KEY) {
     console.error('Invalid API key');
   } else {
-    console.error('Error:', error.message);
+    console.error('Error:', error.code, error.message);
   }
 }
 ```
@@ -566,9 +587,9 @@ try {
 import { createCostTrackingMiddleware } from '@johnhenry/aimatey-middleware';
 
 bridge.use(createCostTrackingMiddleware({
-  budgetLimit: 100,
-  onBudgetExceeded: () => {
-    console.error('Daily budget exceeded!');
+  dailyThreshold: 100,
+  onThresholdExceeded: (cost, threshold) => {
+    console.error(`Spend passed $${threshold} (last request $${cost.totalCost.toFixed(4)})`);
   }
 }));
 ```

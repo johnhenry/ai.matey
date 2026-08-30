@@ -67,14 +67,14 @@ interface TextContent {
 ```typescript
 interface ImageContent {
   type: 'image';
-  source: {
-    type: 'url' | 'base64';
-    url?: string;
-    mediaType?: string;
-    data?: string;
-  };
+  source:
+    | { type: 'url'; url: string }
+    | { type: 'base64'; mediaType: string; data: string };
 }
 ```
+
+`AudioContent`, `DocumentContent` and `VideoContent` follow the same
+`{ type, source }` shape.
 
 ### Tool Use Content
 
@@ -100,150 +100,265 @@ interface ToolResultContent {
 
 ## Request Format
 
-### IRChatCompletionRequest
+### IRChatRequest
 
 ```typescript
-interface IRChatCompletionRequest {
-  model: string;
-  messages: IRMessage[];
-  temperature?: number;
-  max_tokens?: number;
-  top_p?: number;
+interface IRChatRequest {
+  messages: readonly IRMessage[];
+  tools?: readonly IRTool[];
+  toolChoice?: 'auto' | 'required' | 'none' | { name: string };
+  responseFormat?: IRResponseFormat;
+  parameters?: IRParameters;
+  metadata: IRMetadata;
   stream?: boolean;
-  tools?: IRTool[];
-  // ...additional parameters
+  streamMode?: StreamMode;
 }
 ```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `messages` | `IRMessage[]` | ✅ | Conversation messages (minimum 1) |
+| `tools` | `IRTool[]` | ❌ | Available tools/functions |
+| `toolChoice` | `string \| object` | ❌ | Tool selection strategy |
+| `responseFormat` | `IRResponseFormat` | ❌ | JSON-schema-constrained output request |
+| `parameters` | `IRParameters` | ❌ | Generation parameters (model, temperature, ...) |
+| `metadata` | `IRMetadata` | ✅ | Request tracking metadata |
+| `stream` | `boolean` | ❌ | Enable streaming (default: `false`) |
+| `streamMode` | `StreamMode` | ❌ | Streaming mode (default: `'delta'`) |
+
+Note that the model and the sampling options are **not** top-level fields - they
+live on `parameters` - and that `metadata` is required.
 
 **Example:**
 ```typescript
 {
-  model: 'gpt-4',
   messages: [
     { role: 'system', content: 'You are helpful.' },
     { role: 'user', content: 'Hello!' }
   ],
-  temperature: 0.7,
-  max_tokens: 150
+  parameters: {
+    model: 'gpt-4',
+    temperature: 0.7,
+    maxTokens: 150
+  },
+  metadata: {
+    requestId: 'req_abc123xyz',
+    timestamp: 1701234567890,
+    provenance: { frontend: 'openai' }
+  },
+  stream: false
 }
 ```
 
 ## Response Format
 
-### IRChatCompletionResponse
+### IRChatResponse
 
 ```typescript
-interface IRChatCompletionResponse {
-  id: string;
-  object: 'chat.completion';
-  created: number;
-  model: string;
-  choices: IRChoice[];
+interface IRChatResponse {
+  message: IRMessage;
+  finishReason: FinishReason;
   usage?: IRUsage;
+  metadata: IRMetadata;
+  raw?: Record<string, unknown>;
+}
+```
+
+A response carries exactly one assistant `message` - there is no `choices`
+array, and no `id` / `object` / `created` / `model` fields. The provider's own
+response id, when there is one, is `metadata.providerResponseId`.
+
+```typescript
+type FinishReason =
+  | 'stop'           // Natural completion
+  | 'length'         // Hit max tokens
+  | 'tool_calls'     // Requested tool execution
+  | 'content_filter' // Filtered by safety system
+  | 'error'          // Error occurred
+  | 'cancelled';     // Request cancelled
+
+interface IRUsage {
+  promptTokens: number;
+  completionTokens: number;
+  totalTokens: number;
+  details?: Record<string, unknown>;
 }
 ```
 
 **Example:**
 ```typescript
 {
-  id: 'chatcmpl-abc123',
-  object: 'chat.completion',
-  created: 1677858242,
-  model: 'gpt-4',
-  choices: [{
-    index: 0,
-    message: {
-      role: 'assistant',
-      content: 'Hello! How can I help you today?'
-    },
-    finish_reason: 'stop'
-  }],
+  message: {
+    role: 'assistant',
+    content: 'Hello! How can I help you today?'
+  },
+  finishReason: 'stop',
   usage: {
-    prompt_tokens: 10,
-    completion_tokens: 9,
-    total_tokens: 19
+    promptTokens: 10,
+    completionTokens: 9,
+    totalTokens: 19
+  },
+  metadata: {
+    requestId: 'req_abc123xyz',
+    providerResponseId: 'chatcmpl-abc123',
+    timestamp: 1677858242000,
+    provenance: { frontend: 'openai', backend: 'anthropic' }
   }
 }
 ```
 
 ## Streaming Format
 
-### IRChatCompletionChunk
+### IRStreamChunk
+
+`IRStreamChunk` is a discriminated union keyed on `type`, and every chunk carries
+a monotonically increasing `sequence`:
 
 ```typescript
-interface IRChatCompletionChunk {
+type IRStreamChunk =
+  | StreamStartChunk
+  | StreamContentChunk
+  | StreamToolUseChunk
+  | StreamMetadataChunk
+  | StreamDoneChunk
+  | StreamErrorChunk;
+
+interface StreamStartChunk {
+  type: 'start';
+  sequence: number;
+  metadata: IRMetadata;
+}
+
+interface StreamContentChunk {
+  type: 'content';
+  sequence: number;
+  delta: string;         // New text in this chunk - always present
+  accumulated?: string;  // Full text so far (accumulated mode only)
+  role?: 'assistant';
+}
+
+interface StreamToolUseChunk {
+  type: 'tool_use';
+  sequence: number;
   id: string;
-  object: 'chat.completion.chunk';
-  created: number;
-  model: string;
-  choices: IRStreamChoice[];
+  name: string;
+  inputDelta?: string;   // Raw partial-JSON fragment of the tool arguments
+  index?: number;
+}
+
+interface StreamDoneChunk {
+  type: 'done';
+  sequence: number;
+  finishReason: FinishReason;
+  usage?: IRUsage;
+  message?: IRMessage;
 }
 ```
 
-**Streaming Flow:**
+`StreamMetadataChunk` (`usage` / `metadata` updates) and `StreamErrorChunk`
+(`error: { code, message, details? }`) complete the union.
+
+### Streaming Modes
+
+**Delta mode (default)** - each chunk carries only the new text:
+
 ```typescript
-// Chunk 1
-{ choices: [{ delta: { content: 'Hello' } }] }
+{ type: 'start',   sequence: 0, metadata }
+{ type: 'content', sequence: 1, delta: 'Hello' }
+{ type: 'content', sequence: 2, delta: ' there' }
+{ type: 'done',    sequence: 3, finishReason: 'stop' }
+```
 
-// Chunk 2
-{ choices: [{ delta: { content: ' there' } }] }
+**Accumulated mode** - each content chunk also carries the full text so far:
 
-// Final Chunk
-{ choices: [{ delta: {}, finish_reason: 'stop' }] }
+```typescript
+{ type: 'content', sequence: 1, delta: 'Hello',  accumulated: 'Hello' }
+{ type: 'content', sequence: 2, delta: ' there', accumulated: 'Hello there' }
+```
+
+**Consuming a stream:**
+```typescript
+for await (const chunk of stream) {
+  switch (chunk.type) {
+    case 'content':
+      process.stdout.write(chunk.delta);
+      break;
+    case 'done':
+      console.log('\nFinished:', chunk.finishReason);
+      break;
+    case 'error':
+      throw new Error(chunk.error.message);
+  }
+}
 ```
 
 ## Tools & Function Calling
 
 ### IRTool Definition
 
+A tool is described directly - there is no `{ type: 'function', function: {...} }`
+wrapper.
+
 ```typescript
 interface IRTool {
-  type: 'function';
-  function: {
-    name: string;
-    description?: string;
-    parameters: {
-      type: 'object';
-      properties: Record<string, unknown>;
-      required?: string[];
-    };
-  };
+  name: string;
+  description: string;
+  parameters: JSONSchema;
+  metadata?: Record<string, unknown>;
 }
 ```
 
 **Example:**
 ```typescript
 {
-  type: 'function',
-  function: {
-    name: 'get_weather',
-    description: 'Get current weather for a location',
-    parameters: {
-      type: 'object',
-      properties: {
-        location: { type: 'string', description: 'City name' },
-        units: { type: 'string', enum: ['celsius', 'fahrenheit'] }
-      },
-      required: ['location']
-    }
+  name: 'get_weather',
+  description: 'Get current weather for a location',
+  parameters: {
+    type: 'object',
+    properties: {
+      location: { type: 'string', description: 'City name' },
+      units: { type: 'string', enum: ['celsius', 'fahrenheit'] }
+    },
+    required: ['location']
   }
 }
 ```
 
+Tool selection is `IRChatRequest.toolChoice`: `'auto'`, `'required'`, `'none'`,
+or `{ name: 'get_weather' }`.
+
 ## Parameters
 
-### Common Parameters
+### IRParameters
 
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `temperature` | number | 0.7 | Randomness (0-2) |
-| `max_tokens` | number | - | Maximum response length |
-| `top_p` | number | 1.0 | Nucleus sampling |
-| `top_k` | number | - | Top-k sampling |
-| `stream` | boolean | false | Enable streaming |
-| `stop` | string[] | - | Stop sequences |
-| `presence_penalty` | number | 0 | Presence penalty (-2 to 2) |
-| `frequency_penalty` | number | 0 | Frequency penalty (-2 to 2) |
+Generation parameters live on `IRChatRequest.parameters` and are camelCase:
+
+```typescript
+interface IRParameters {
+  model?: string;
+  temperature?: number;
+  maxTokens?: number;
+  topP?: number;
+  topK?: number;
+  frequencyPenalty?: number;
+  presencePenalty?: number;
+  stopSequences?: readonly string[];
+  seed?: number;
+  user?: string;
+  custom?: Record<string, unknown>;
+}
+```
+
+| Parameter | Range | Default | Description |
+|-----------|-------|---------|-------------|
+| `temperature` | 0.0 - 2.0 | 0.7 | Sampling randomness (higher = more random) |
+| `maxTokens` | 1 - ∞ | varies | Maximum tokens to generate |
+| `topP` | 0.0 - 1.0 | 1.0 | Nucleus sampling threshold |
+| `topK` | 1 - ∞ | varies | Top-K sampling limit |
+| `frequencyPenalty` | -2.0 - 2.0 | 0.0 | Penalize frequent tokens |
+| `presencePenalty` | -2.0 - 2.0 | 0.0 | Penalize present tokens |
+
+`stream` and `streamMode` are top-level fields on the request, not parameters.
 
 ### Provider Compatibility
 
@@ -258,13 +373,26 @@ Describes what a provider/backend supports:
 ```typescript
 interface IRCapabilities {
   streaming: boolean;
-  tools: boolean;
-  vision: boolean;
-  json_mode: boolean;
-  max_context_length: number;
-  // ...more capabilities
+  multiModal: boolean;
+  systemMessageStrategy: SystemMessageStrategy;
+  supportsMultipleSystemMessages: boolean;
+  tools?: boolean;
+  structuredOutput?: 'native' | 'fallback';
+  maxContextTokens?: number;
+  supportedModels?: readonly string[];
+  supportsTemperature?: boolean;
+  supportsTopP?: boolean;
+  supportsTopK?: boolean;
+  supportsSeed?: boolean;
+  // ...audio/document/video flags, embedding support, penalty flags
 }
 ```
+
+Multi-modal support is `multiModal` (with `supportsAudio`, `supportsDocuments`
+and `supportsVideo` for specific input types), schema-constrained output is
+`structuredOutput`, and the context window is `maxContextTokens`.
+
+An adapter's capabilities are read from `adapter.metadata.capabilities`.
 
 ## Best Practices
 

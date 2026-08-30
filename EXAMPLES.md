@@ -476,7 +476,7 @@ async function main() {
   // Add retry middleware with custom configuration
   bridge.use(
     createRetryMiddleware({
-      maxRetries: 3,
+      maxAttempts: 3,
       initialDelay: 1000,
       maxDelay: 10000,
       backoffMultiplier: 2,
@@ -548,7 +548,7 @@ async function main() {
   bridge.use(
     createCachingMiddleware({
       storage: new InMemoryCacheStorage(),
-      ttl: 3600, // 1 hour
+      ttl: 3_600_000, // 1 hour (milliseconds)
       shouldCache: (request) => !request.stream, // Don't cache streaming requests
     })
   );
@@ -684,7 +684,7 @@ Distribute requests across multiple backends for load balancing.
 **Code:**
 
 ```typescript
-import { Router } from '@johnhenry/aimatey-core';
+import { Bridge, Router } from '@johnhenry/aimatey-core';
 import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend/openai';
 import { AnthropicBackendAdapter } from '@johnhenry/aimatey-backend/anthropic';
 import { OpenAIBackendAdapter } from '@johnhenry/aimatey-backend/openai';
@@ -692,27 +692,29 @@ import { GeminiBackendAdapter } from '@johnhenry/aimatey-backend/gemini';
 
 async function main() {
   // Create router with multiple backends
-  const router = new Router(new OpenAIFrontendAdapter(), {
-    backends: [
-      new AnthropicBackendAdapter({
-        apiKey: process.env.ANTHROPIC_API_KEY || 'sk-ant-...',
-      }),
-      new OpenAIBackendAdapter({
-        apiKey: process.env.OPENAI_API_KEY || 'sk-...',
-      }),
-      new GeminiBackendAdapter({
-        apiKey: process.env.GEMINI_API_KEY || 'AIza...',
-      }),
-    ],
-    strategy: 'round-robin', // Cycle through backends
-    fallbackStrategy: 'next', // Try next backend on failure
+  const router = new Router({
+    routingStrategy: 'round-robin', // Cycle through backends
+    fallbackStrategy: 'sequential', // Try the next backend on failure
   });
+
+  router.register('anthropic', new AnthropicBackendAdapter({
+    apiKey: process.env.ANTHROPIC_API_KEY || 'sk-ant-...',
+  }));
+  router.register('openai', new OpenAIBackendAdapter({
+    apiKey: process.env.OPENAI_API_KEY || 'sk-...',
+  }));
+  router.register('gemini', new GeminiBackendAdapter({
+    apiKey: process.env.GEMINI_API_KEY || 'AIza...',
+  }));
+
+  // A Router is itself a backend adapter, so drive it through a Bridge
+  const bridge = new Bridge(new OpenAIFrontendAdapter(), router);
 
   // Make multiple requests - they'll be distributed across backends
   for (let i = 1; i <= 5; i++) {
     console.log(`\nRequest ${i}:`);
 
-    const response = await router.chat({
+    const response = await bridge.chat({
       model: 'gpt-4',
       messages: [
         {
@@ -746,41 +748,41 @@ Automatic failover to backup backends when primary fails.
 - Fallback strategies
 - Circuit breaker pattern
 - Backend health monitoring
-- Event listening
+- Fallback statistics
 
 **Code:**
 
 ```typescript
-import { Router } from '@johnhenry/aimatey-core';
+import { Bridge, Router } from '@johnhenry/aimatey-core';
 import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend/openai';
 import { AnthropicBackendAdapter } from '@johnhenry/aimatey-backend/anthropic';
 import { OpenAIBackendAdapter } from '@johnhenry/aimatey-backend/openai';
 
 async function main() {
-  const router = new Router(new OpenAIFrontendAdapter(), {
-    backends: [
-      // Primary backend (will fail with invalid key)
-      new AnthropicBackendAdapter({
-        apiKey: 'invalid-key',
-      }),
-      // Fallback backend
-      new OpenAIBackendAdapter({
-        apiKey: process.env.OPENAI_API_KEY || 'sk-...',
-      }),
-    ],
-    strategy: 'priority', // Try first backend first
-    fallbackStrategy: 'next', // Fall back to next on failure
+  const router = new Router({
+    routingStrategy: 'explicit',
+    defaultBackend: 'anthropic', // Try the primary backend first
+    fallbackStrategy: 'sequential', // Fall back down the chain on failure
   });
 
-  // Listen to backend switches
-  router.on('backend:switch', (event) => {
-    console.log('Switched backend:', event.data);
-  });
+  // Primary backend (will fail with invalid key)
+  router.register('anthropic', new AnthropicBackendAdapter({
+    apiKey: 'invalid-key',
+  }));
+  // Fallback backend
+  router.register('openai', new OpenAIBackendAdapter({
+    apiKey: process.env.OPENAI_API_KEY || 'sk-...',
+  }));
+
+  // Order the failover chain
+  router.setFallbackChain(['anthropic', 'openai']);
+
+  const bridge = new Bridge(new OpenAIFrontendAdapter(), router);
 
   console.log('Making request (will automatically fallback)...\n');
 
   try {
-    const response = await router.chat({
+    const response = await bridge.chat({
       model: 'gpt-4',
       messages: [
         {
@@ -796,8 +798,10 @@ async function main() {
     console.error('All backends failed:', error);
   }
 
+  const stats = router.getStats();
   console.log('\nRouter Stats:');
-  console.log(router.getStats());
+  console.log(`Fallbacks used: ${stats.totalFallbacks}`);
+  console.log(stats);
 }
 ```
 
@@ -829,7 +833,16 @@ import { GeminiBackendAdapter } from '@johnhenry/aimatey-backend/gemini';
 
 async function main() {
   // Create router with multiple backends
-  const router = createRouter()
+  const router = createRouter({
+    fallbackStrategy: 'sequential',
+    modelTranslation: {
+      strategy: 'hybrid',  // exact → pattern → default
+      warnOnDefault: true,
+      strictMode: false,
+    },
+  });
+
+  router
     .register('openai', new OpenAIBackendAdapter({
       apiKey: process.env.OPENAI_API_KEY || 'sk-...',
     }))
@@ -838,15 +851,7 @@ async function main() {
     }))
     .register('gemini', new GeminiBackendAdapter({
       apiKey: process.env.GEMINI_API_KEY || 'AIza...',
-    }))
-    .configure({
-      fallbackStrategy: 'sequential',
-      modelTranslation: {
-        strategy: 'hybrid',  // exact → pattern → default
-        warnOnDefault: true,
-        strictMode: false,
-      },
-    });
+    }));
 
   // Set model translation mappings
   router.setModelTranslationMapping({
@@ -949,7 +954,15 @@ import { MistralBackendAdapter } from '@johnhenry/aimatey-backend/mistral';
 
 async function main() {
   // Create router with multiple backends
-  const router = createRouter()
+  const router = createRouter({
+    fallbackStrategy: 'sequential',
+    modelTranslation: {
+      strategy: 'hybrid',
+      warnOnDefault: false,
+    },
+  });
+
+  router
     .register('openai', new OpenAIBackendAdapter({
       apiKey: process.env.OPENAI_API_KEY || 'sk-...',
     }))
@@ -958,14 +971,7 @@ async function main() {
     }))
     .register('mistral', new MistralBackendAdapter({
       apiKey: process.env.MISTRAL_API_KEY || 'sk-...',
-    }))
-    .configure({
-      fallbackStrategy: 'sequential',
-      modelTranslation: {
-        strategy: 'hybrid',
-        warnOnDefault: false,
-      },
-    });
+    }));
 
   // Set global default translation
   router.setModelTranslationMapping({
@@ -1067,13 +1073,13 @@ async function main() {
 
   // Register multiple backends
   router
-    .registerBackend('openai', new OpenAIBackendAdapter({
+    .register('openai', new OpenAIBackendAdapter({
       apiKey: process.env.OPENAI_API_KEY || 'sk-...',
     }))
-    .registerBackend('anthropic', new AnthropicBackendAdapter({
+    .register('anthropic', new AnthropicBackendAdapter({
       apiKey: process.env.ANTHROPIC_API_KEY || 'sk-ant-...',
     }))
-    .registerBackend('gemini', new GeminiBackendAdapter({
+    .register('gemini', new GeminiBackendAdapter({
       apiKey: process.env.GEMINI_API_KEY || 'AIza...',
     }));
 
@@ -1167,13 +1173,13 @@ async function main() {
 
   // Register backends
   router
-    .registerBackend('openai', new OpenAIBackendAdapter({
+    .register('openai', new OpenAIBackendAdapter({
       apiKey: process.env.OPENAI_API_KEY || 'sk-...',
     }))
-    .registerBackend('anthropic', new AnthropicBackendAdapter({
+    .register('anthropic', new AnthropicBackendAdapter({
       apiKey: process.env.ANTHROPIC_API_KEY || 'sk-ant-...',
     }))
-    .registerBackend('gemini', new GeminiBackendAdapter({
+    .register('gemini', new GeminiBackendAdapter({
       apiKey: process.env.GEMINI_API_KEY || 'AIza...',
     }));
 
@@ -1269,13 +1275,13 @@ async function main() {
 
   // Register backends
   router
-    .registerBackend('openai', new OpenAIBackendAdapter({
+    .register('openai', new OpenAIBackendAdapter({
       apiKey: process.env.OPENAI_API_KEY || 'sk-...',
     }))
-    .registerBackend('anthropic', new AnthropicBackendAdapter({
+    .register('anthropic', new AnthropicBackendAdapter({
       apiKey: process.env.ANTHROPIC_API_KEY || 'sk-ant-...',
     }))
-    .registerBackend('gemini', new GeminiBackendAdapter({
+    .register('gemini', new GeminiBackendAdapter({
       apiKey: process.env.GEMINI_API_KEY || 'AIza...',
     }));
 
@@ -1323,11 +1329,9 @@ async function main() {
   console.log(`Requests: ${stats.totalRequests}`);
 
   // Show per-backend latency
-  const backends = router.getAvailableBackends();
   console.log('\nPer-backend stats:');
-  for (const backend of backends) {
-    const backendStats = router.getBackendInfo(backend);
-    console.log(`  ${backend}: avg ${backendStats.averageLatency?.toFixed(0)}ms`);
+  for (const info of router.getBackendInfo()) {
+    console.log(`  ${info.name}: avg ${info.stats.averageLatencyMs.toFixed(0)}ms`);
   }
 }
 
@@ -1379,13 +1383,13 @@ async function main() {
 
   // Register backends
   router
-    .registerBackend('openai', new OpenAIBackendAdapter({
+    .register('openai', new OpenAIBackendAdapter({
       apiKey: process.env.OPENAI_API_KEY || 'sk-...',
     }))
-    .registerBackend('anthropic', new AnthropicBackendAdapter({
+    .register('anthropic', new AnthropicBackendAdapter({
       apiKey: process.env.ANTHROPIC_API_KEY || 'sk-ant-...',
     }))
-    .registerBackend('gemini', new GeminiBackendAdapter({
+    .register('gemini', new GeminiBackendAdapter({
       apiKey: process.env.GEMINI_API_KEY || 'AIza...',
     }));
 
@@ -1849,24 +1853,30 @@ npx tsx examples/model-runner-llamacpp.ts
 ```typescript
 bridge
   .use(createLoggingMiddleware({ level: 'info' }))
-  .use(createRetryMiddleware({ maxRetries: 3 }))
-  .use(createCachingMiddleware({ ttl: 3600 }));
+  .use(createRetryMiddleware({ maxAttempts: 3 }))
+  .use(createCachingMiddleware({ ttl: 3_600_000 })); // 1 hour
 ```
 
 #### Custom Router
 
 ```typescript
-const router = new Router(frontend, {
-  backends: [backend1, backend2, backend3],
-  strategy: 'custom',
-  customRoute: (request) => {
+const router = new Router({
+  routingStrategy: 'custom',
+  // customRouter is async and returns a registered backend *name*
+  customRouter: async (request) => {
     // Your routing logic
-    if (request.model.includes('claude')) {
+    if (request.parameters?.model?.includes('claude')) {
       return 'anthropic-backend';
     }
     return 'openai-backend';
   },
 });
+
+router.register('anthropic-backend', backend1);
+router.register('openai-backend', backend2);
+
+// A Router is a backend adapter - run requests through a Bridge
+const bridge = new Bridge(frontend, router);
 ```
 
 #### Error Handling
@@ -1897,10 +1907,10 @@ try {
 ```typescript
 // ✅ Browser-compatible - HTTP-based backends
 import {
-  OpenAIBackend,
-  AnthropicBackend,
-  GeminiBackend,
-  OllamaBackend,
+  OpenAIBackendAdapter,
+  AnthropicBackendAdapter,
+  GeminiBackendAdapter,
+  OllamaBackendAdapter,
   // ... all HTTP-based backends
 } from '@johnhenry/aimatey-backend';
 ```
@@ -1909,11 +1919,8 @@ import {
 
 ```typescript
 // ⚠️ Node.js only - requires subprocess execution
-import {
-  LlamaCppBackend,
-  GenericModelRunnerBackend,
-  // ... other model runners
-} from '@johnhenry/aimatey-native-node-llamacpp';
+import { NodeLlamaCppBackend } from '@johnhenry/aimatey-native-node-llamacpp';
+import { GenericModelRunnerBackend } from '@johnhenry/aimatey-native-model-runner';
 ```
 
 ### Why This Separation?
@@ -1954,10 +1961,10 @@ import {
 **Solution:**
 ```typescript
 // ❌ Don't do this in browser
-import { LlamaCppBackend } from '@johnhenry/aimatey-native-node-llamacpp';
+import { NodeLlamaCppBackend } from '@johnhenry/aimatey-native-node-llamacpp';
 
 // ✅ Use HTTP backends instead
-import { OllamaBackend } from '@johnhenry/aimatey-backend/ollama';
+import { OllamaBackendAdapter } from '@johnhenry/aimatey-backend/ollama';
 ```
 
 ---

@@ -1,6 +1,6 @@
 # Publishing to npm
 
-This guide covers how to publish ai.matey packages to npm using Changesets.
+This guide covers how to publish @johnhenry/aimatey packages to npm using Changesets.
 
 > **Note:** All packages here now publish under the `@johnhenry` npm scope
 > (see the root [CHANGELOG.md](../CHANGELOG.md) and each package's readme.md for the
@@ -125,7 +125,7 @@ npm run typecheck
 # Should complete without type errors
 
 # 5. Verify package names are available on npm
-for pkg in ai.matey ai.matey.core ai.matey.types ai.matey.errors ai.matey.utils ai.matey.testing ai.matey.backend ai.matey.backend.browser ai.matey.frontend ai.matey.middleware ai.matey.http.core ai.matey.http ai.matey.react.core ai.matey.react.hooks ai.matey.react.nextjs ai.matey.react.stream ai.matey.wrapper ai.matey.native.apple ai.matey.native.model-runner ai.matey.native.node-llamacpp ai.matey.cli; do
+for pkg in @johnhenry/aimatey @johnhenry/aimatey-core @johnhenry/aimatey-types @johnhenry/aimatey-errors @johnhenry/aimatey-utils @johnhenry/aimatey-testing @johnhenry/aimatey-backend @johnhenry/aimatey-backend-browser @johnhenry/aimatey-frontend @johnhenry/aimatey-middleware @johnhenry/aimatey-http-core @johnhenry/aimatey-http @johnhenry/aimatey-react-core @johnhenry/aimatey-react-hooks @johnhenry/aimatey-react-nextjs @johnhenry/aimatey-react-stream @johnhenry/aimatey-wrapper @johnhenry/aimatey-native-apple @johnhenry/aimatey-native-model-runner @johnhenry/aimatey-native-node-llamacpp @johnhenry/aimatey-cli; do
   npm view "$pkg" 2>&1 | grep -q "404" && echo "✅ $pkg available" || echo "⚠️  $pkg already exists"
 done
 
@@ -147,7 +147,7 @@ git branch --show-current
 # - homepage points to correct docs
 
 # 10. Dry-run a publish to catch issues early
-npm publish --dry-run --workspace=ai.matey.core
+npm publish --dry-run --workspace=@johnhenry/aimatey-core
 # Should succeed without errors
 ```
 
@@ -163,7 +163,7 @@ npm publish --dry-run --workspace=ai.matey.core
 
 ```bash
 # Verify internal dependencies use "*" version
-grep -r '"ai.matey' packages/*/package.json | grep -v '"*"' || echo "✅ All internal deps use *"
+grep -r '"@johnhenry/aimatey' packages/*/package.json | grep -v '"*"' || echo "✅ All internal deps use *"
 
 # Check for unintended external dependencies
 for pkg in packages/*/package.json; do
@@ -228,7 +228,7 @@ When publishing many packages for the first time, npm may rate limit you. To avo
 npm run build
 
 # Core packages first (these are dependencies)
-for pkg in ai.matey.types ai.matey.errors ai.matey.utils ai.matey.testing ai.matey.core ai.matey; do
+for pkg in @johnhenry/aimatey-types @johnhenry/aimatey-errors @johnhenry/aimatey-utils @johnhenry/aimatey-testing @johnhenry/aimatey-core @johnhenry/aimatey; do
   npm publish --workspace=$pkg --access public
   sleep 5
 done
@@ -237,7 +237,7 @@ done
 sleep 30
 
 # Backend and Frontend packages
-for pkg in ai.matey.backend ai.matey.backend.browser ai.matey.frontend; do
+for pkg in @johnhenry/aimatey-backend @johnhenry/aimatey-backend-browser @johnhenry/aimatey-frontend; do
   npm publish --workspace=$pkg --access public
   sleep 5
 done
@@ -249,7 +249,7 @@ for pkg in @johnhenry/aimatey-middleware @johnhenry/aimatey-http-core @johnhenry
 done
 
 # Wrappers, React, Native, CLI
-for pkg in ai.matey.wrapper ai.matey.react.core ai.matey.react.hooks ai.matey.react.nextjs ai.matey.react.stream ai.matey.native.apple ai.matey.native.model-runner ai.matey.native.node-llamacpp ai.matey.cli; do
+for pkg in @johnhenry/aimatey-wrapper @johnhenry/aimatey-react-core @johnhenry/aimatey-react-hooks @johnhenry/aimatey-react-nextjs @johnhenry/aimatey-react-stream @johnhenry/aimatey-native-apple @johnhenry/aimatey-native-model-runner @johnhenry/aimatey-native-node-llamacpp @johnhenry/aimatey-cli; do
   npm publish --workspace=$pkg --access public
   sleep 5
 done
@@ -304,8 +304,10 @@ npm run release 2>&1 | tee publish.log
 # Check which packages failed
 grep -i "error" publish.log
 
-# Retry specific packages
-npm publish --workspace=ai.matey.backend/openai --access public
+# Retry specific packages. `--workspace` takes a package name, not a subpath -
+# providers ship as subpath exports of @johnhenry/aimatey-backend, not as
+# packages of their own.
+npm publish --workspace=@johnhenry/aimatey-backend --access public
 ```
 
 **Rate limit tips:**
@@ -365,20 +367,20 @@ The `files` field in `package.json` controls what gets published:
 ### Check if package name is available
 
 ```bash
-npm view ai.matey.core
+npm view @johnhenry/aimatey-core
 # 404 = name is available
 ```
 
 ### Dry run publish
 
 ```bash
-npm publish --dry-run --workspace=ai.matey.core
+npm publish --dry-run --workspace=@johnhenry/aimatey-core
 ```
 
 ### Inspect what will be published
 
 ```bash
-npm pack --workspace=ai.matey.core
+npm pack --workspace=@johnhenry/aimatey-core
 # Creates a tarball you can extract and inspect
 tar -tzf johnhenry-aimatey-core-0.0.0.tgz
 ```
@@ -402,7 +404,7 @@ npm run clean
 npm run build
 
 # Check specific package
-npm run build --workspace=ai.matey.core
+npm run build --workspace=@johnhenry/aimatey-core
 ```
 
 ### Version conflicts
@@ -529,7 +531,7 @@ cat > packages/my-new-package/package.json << 'EOF'
   "homepage": "https://github.com/johnhenry/ai.matey#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/johnhenry/ai.matey.git",
+    "url": "git+https://github.com/johnhenry/@johnhenry/aimatey-git",
     "directory": "packages/my-new-package"
   },
   "engines": {
@@ -660,16 +662,19 @@ git commit -m "Add @johnhenry/aimatey-my-new-package"
 
 ### Package Naming Conventions
 
+All packages are published under the `@johnhenry` scope. Providers and frameworks
+are subpath exports of one package, not packages of their own.
+
 | Type | Naming Pattern | Example |
 |------|----------------|---------|
-| Backend adapter | `ai.matey.backend.<provider>` | `@johnhenry/aimatey-backend/openai` |
-| Frontend adapter | `ai.matey.frontend.<provider>` | `@johnhenry/aimatey-frontend/openai` |
-| Middleware | `ai.matey.middleware.<name>` | `@johnhenry/aimatey-middleware` |
-| HTTP framework | `ai.matey.http.<framework>` | `@johnhenry/aimatey-http/express` |
-| React package | `ai.matey.react.<name>` | `@johnhenry/aimatey-react-hooks` |
-| Wrapper | `ai.matey.wrapper.<sdk>` | `@johnhenry/aimatey-wrapper/openai` |
-| Native | `ai.matey.native.<name>` | `@johnhenry/aimatey-native-model-runner` |
-| Core/Utility | `ai.matey.<name>` | `@johnhenry/aimatey-utils` |
+| Backend adapter | `@johnhenry/aimatey-backend/<provider>` | `@johnhenry/aimatey-backend/openai` |
+| Frontend adapter | `@johnhenry/aimatey-frontend/<provider>` | `@johnhenry/aimatey-frontend/openai` |
+| Middleware | `@johnhenry/aimatey-middleware/<name>` | `@johnhenry/aimatey-middleware/caching` |
+| HTTP framework | `@johnhenry/aimatey-http/<framework>` | `@johnhenry/aimatey-http/express` |
+| React package | `@johnhenry/aimatey-react-<name>` | `@johnhenry/aimatey-react-hooks` |
+| Wrapper | `@johnhenry/aimatey-wrapper/<sdk>` | `@johnhenry/aimatey-wrapper/openai` |
+| Native | `@johnhenry/aimatey-native-<name>` | `@johnhenry/aimatey-native-model-runner` |
+| Core/Utility | `@johnhenry/aimatey-<name>` | `@johnhenry/aimatey-utils` |
 
 ### Internal Dependencies
 
@@ -802,8 +807,8 @@ Inspect what was actually published:
 mkdir -p /tmp/verify-package
 cd /tmp/verify-package
 
-# Example: Verify ai.matey.core
-npm pack ai.matey.core
+# Example: Verify @johnhenry/aimatey-core
+npm pack @johnhenry/aimatey-core
 tar -tzf johnhenry-aimatey-core-*.tgz
 
 # Check for required files
@@ -823,7 +828,7 @@ cat > /tmp/verify-package-structure.sh << 'EOF'
 mkdir -p /tmp/verify-packages
 cd /tmp/verify-packages
 
-packages=(ai.matey.core ai.matey.utils ai.matey.backend ai.matey.frontend)
+packages=(@johnhenry/aimatey-core @johnhenry/aimatey-utils @johnhenry/aimatey-backend @johnhenry/aimatey-frontend)
 
 for pkg in "${packages[@]}"; do
   echo "Checking $pkg..."
@@ -869,10 +874,10 @@ mkdir -p /tmp/test-ai-matey-install
 cd /tmp/test-ai-matey-install
 
 npm init -y
-npm install @johnhenry/aimatey ai.matey.core ai.matey.backend ai.matey.frontend
+npm install @johnhenry/aimatey @johnhenry/aimatey-core @johnhenry/aimatey-backend @johnhenry/aimatey-frontend
 
 # Verify installation succeeded
-if [ -d "node_modules/ai.matey" ]; then
+if [ -d "node_modules/@johnhenry/aimatey" ]; then
   echo "✅ Installation successful"
 else
   echo "❌ Installation failed"
@@ -880,8 +885,8 @@ else
 fi
 
 # Check package structure in node_modules
-ls -la node_modules/ai.matey/dist/
-ls -la node_modules/ai.matey.core/dist/
+ls -la node_modules/@johnhenry/aimatey/dist/
+ls -la node_modules/@johnhenry/aimatey-core/dist/
 
 # Cleanup
 cd -
@@ -894,12 +899,12 @@ Check that internal monorepo dependencies (using `*` version) were correctly rep
 
 ```bash
 # Check that internal deps were replaced
-npm view ai.matey.core dependencies
+npm view @johnhenry/aimatey-core dependencies
 # Should show real versions like "@johnhenry/aimatey-types": "^1.0.0"
 # NOT "@johnhenry/aimatey-types": "*"
 
 # Verify for all core packages
-for pkg in ai.matey.core ai.matey.backend ai.matey.frontend ai.matey.middleware; do
+for pkg in @johnhenry/aimatey-core @johnhenry/aimatey-backend @johnhenry/aimatey-frontend @johnhenry/aimatey-middleware; do
   echo "=== $pkg dependencies ==="
   npm view "$pkg" dependencies 2>/dev/null || echo "No dependencies"
   echo ""
@@ -961,7 +966,7 @@ cd /tmp/test-types
 
 npm init -y
 npm install -D typescript @types/node
-npm install @johnhenry/aimatey-core ai.matey.backend ai.matey.frontend
+npm install @johnhenry/aimatey-core @johnhenry/aimatey-backend @johnhenry/aimatey-frontend
 
 cat > tsconfig.json << 'EOF'
 {
@@ -981,10 +986,10 @@ import { OpenAIBackendAdapter } from '@johnhenry/aimatey-backend';
 import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend';
 
 // Should have full type inference
-const bridge = new Bridge({
-  frontend: new OpenAIFrontendAdapter(),
-  backend: new OpenAIBackendAdapter({ apiKey: 'test' })
-});
+const bridge = new Bridge(
+  new OpenAIFrontendAdapter(),
+  new OpenAIBackendAdapter({ apiKey: 'test' })
+);
 
 console.log('✅ Types loaded successfully');
 EOF
@@ -1004,7 +1009,7 @@ Changesets should create git tags for each published version:
 git tag --sort=-version:refname | head -20
 
 # Verify tag format (should be package@version)
-# Example: ai.matey.core@1.0.0
+# Example: @johnhenry/aimatey-core@1.0.0
 
 # Check that tags were pushed
 git ls-remote --tags origin | tail -20
@@ -1025,20 +1030,18 @@ mkdir -p /tmp/test-real-world
 cd /tmp/test-real-world
 
 npm init -y
-npm install @johnhenry/aimatey
+npm install @johnhenry/aimatey @johnhenry/aimatey-core
 
 cat > example.mjs << 'EOF'
-import { Bridge } from '@johnhenry/aimatey';
+import { VERSION } from '@johnhenry/aimatey';
+import { Bridge } from '@johnhenry/aimatey-core';
 
-console.log('Creating bridge...');
-// This verifies that the main package and its dependencies work
-const bridge = new Bridge({
-  frontend: { normalizeRequest: (r) => r },
-  backend: {
-    chat: async () => ({ content: 'test' }),
-    supportedFeatures: { chat: true }
-  }
-});
+console.log('Creating bridge...', VERSION);
+// This verifies that the published packages resolve and work together
+const bridge = new Bridge(
+  { metadata: { name: 'stub-frontend' }, toIR: (r) => r, fromIR: (r) => r },
+  { metadata: { name: 'stub-backend' }, execute: async () => ({ content: 'test' }) }
+);
 
 console.log('✅ Real-world scenario successful');
 console.log('Bridge created:', typeof bridge);
@@ -1056,7 +1059,7 @@ Check that npm package pages have correct links:
 
 ```bash
 # Check package homepage URLs
-for pkg in ai.matey.core ai.matey.backend ai.matey.frontend; do
+for pkg in @johnhenry/aimatey-core @johnhenry/aimatey-backend @johnhenry/aimatey-frontend; do
   echo "=== $pkg ==="
   npm view "$pkg" homepage
   npm view "$pkg" repository.url
@@ -1075,7 +1078,7 @@ done
 After 24 hours, verify packages are being discovered:
 
 ```bash
-npm view ai.matey.core --json | jq '.time'
+npm view @johnhenry/aimatey-core --json | jq '.time'
 # Shows publish time and version history
 ```
 
@@ -1098,7 +1101,7 @@ echo ""
 
 # 1. Check all packages are published
 echo "1️⃣  Verifying packages on npm..."
-packages=(ai.matey ai.matey.core ai.matey.types ai.matey.errors ai.matey.utils ai.matey.testing ai.matey.backend ai.matey.backend.browser ai.matey.frontend ai.matey.middleware ai.matey.http.core ai.matey.http ai.matey.react.core ai.matey.react.hooks ai.matey.react.nextjs ai.matey.react.stream ai.matey.wrapper ai.matey.native.apple ai.matey.native.model-runner ai.matey.native.node-llamacpp ai.matey.cli)
+packages=(@johnhenry/aimatey @johnhenry/aimatey-core @johnhenry/aimatey-types @johnhenry/aimatey-errors @johnhenry/aimatey-utils @johnhenry/aimatey-testing @johnhenry/aimatey-backend @johnhenry/aimatey-backend-browser @johnhenry/aimatey-frontend @johnhenry/aimatey-middleware @johnhenry/aimatey-http-core @johnhenry/aimatey-http @johnhenry/aimatey-react-core @johnhenry/aimatey-react-hooks @johnhenry/aimatey-react-nextjs @johnhenry/aimatey-react-stream @johnhenry/aimatey-wrapper @johnhenry/aimatey-native-apple @johnhenry/aimatey-native-model-runner @johnhenry/aimatey-native-node-llamacpp @johnhenry/aimatey-cli)
 
 failed=0
 for pkg in "${packages[@]}"; do
@@ -1176,10 +1179,10 @@ If issues are discovered after publishing:
 
 ```bash
 # Deprecate a specific version
-npm deprecate ai.matey.core@1.0.0 "Broken release, use 1.0.1 instead"
+npm deprecate @johnhenry/aimatey-core@1.0.0 "Broken release, use 1.0.1 instead"
 
 # Deprecate all versions (severe issues)
-npm deprecate ai.matey.core "Package has critical issues, do not use"
+npm deprecate @johnhenry/aimatey-core "Package has critical issues, do not use"
 ```
 
 **Option 2: Publish hotfix**
@@ -1199,10 +1202,10 @@ npm run release
 
 ```bash
 # Only possible within 72 hours and if no one depends on it
-npm unpublish ai.matey.core@1.0.0
+npm unpublish @johnhenry/aimatey-core@1.0.0
 
 # Unpublish entire package (use with extreme caution)
-npm unpublish ai.matey.core --force
+npm unpublish @johnhenry/aimatey-core --force
 ```
 
 ### 14. Common Issues and Solutions
@@ -1213,7 +1216,7 @@ npm unpublish ai.matey.core --force
 # npm CDN takes 1-2 minutes to propagate
 # Wait and retry:
 sleep 120
-npm view ai.matey.core
+npm view @johnhenry/aimatey-core
 ```
 
 **Issue: Internal dependencies still show "*"**
@@ -1229,29 +1232,29 @@ npm run version-packages
 
 ```bash
 # Check dist/types exists in published package
-npm pack ai.matey.core
+npm pack @johnhenry/aimatey-core
 tar -tzf johnhenry-aimatey-core-*.tgz | grep types
 
 # Verify package.json exports point to types
-npm view ai.matey.core --json | jq '.exports'
+npm view @johnhenry/aimatey-core --json | jq '.exports'
 ```
 
 **Issue: ESM/CJS not working**
 
 ```bash
 # Check dual-format builds exist
-npm pack ai.matey.core
+npm pack @johnhenry/aimatey-core
 tar -tzf johnhenry-aimatey-core-*.tgz | grep -E "(dist/esm|dist/cjs)"
 
 # Verify package.json exports
-npm view ai.matey.core --json | jq '.exports'
+npm view @johnhenry/aimatey-core --json | jq '.exports'
 ```
 
 **Issue: Git tags not created**
 
 ```bash
 # Manually create and push tags
-git tag ai.matey.core@1.0.0
+git tag @johnhenry/aimatey-core@1.0.0
 git push --tags
 ```
 

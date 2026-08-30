@@ -7,246 +7,305 @@ Complete TypeScript type definitions for ai.matey.
 
 ## Core Types
 
-### IRChatCompletionRequest
+### IRChatRequest
 
-The universal request format (Intermediate Representation).
+The universal request format (Intermediate Representation). Note that sampling
+parameters live under `parameters`, not at the top level, and that `metadata` is
+required.
 
 ```typescript
-interface IRChatCompletionRequest {
-  /** Model identifier */
-  model: string;
-
-  /** Conversation messages */
-  messages: IRMessage[];
-
-  /** Sampling temperature (0-2, default: 1) */
-  temperature?: number;
-
-  /** Maximum tokens to generate */
-  max_tokens?: number;
-
-  /** Top-p sampling (0-1) */
-  top_p?: number;
-
-  /** Top-k sampling */
-  top_k?: number;
-
-  /** Frequency penalty (-2 to 2) */
-  frequency_penalty?: number;
-
-  /** Presence penalty (-2 to 2) */
-  presence_penalty?: number;
-
-  /** Stop sequences */
-  stop?: string | string[];
-
-  /** Enable streaming */
-  stream?: boolean;
-
-  /** Random seed for deterministic output */
-  seed?: number;
-
-  /** Response format */
-  response_format?: {
-    type: 'text' | 'json_object';
-  };
+interface IRChatRequest {
+  /** Conversation messages (at least one) */
+  messages: readonly IRMessage[];
 
   /** Tool/function definitions */
-  tools?: IRTool[];
+  tools?: readonly IRTool[];
 
   /** Tool choice strategy */
-  tool_choice?: 'none' | 'auto' | 'required' | IRToolChoice;
+  toolChoice?: 'auto' | 'required' | 'none' | { name: string };
 
-  /** User identifier for tracking */
-  user?: string;
+  /** JSON-schema-constrained output request */
+  responseFormat?: IRResponseFormat;
 
-  /** Additional provider-specific parameters */
-  [key: string]: any;
+  /** Sampling and model parameters */
+  parameters?: IRParameters;
+
+  /** Request metadata (required) */
+  metadata: IRMetadata;
+
+  /** Enable streaming (default: false) */
+  stream?: boolean;
+
+  /** Preferred streaming mode: 'delta' (default) or 'accumulated' */
+  streamMode?: StreamMode;
 }
 ```
 
 ---
 
-### IRChatCompletionResponse
+### IRParameters
 
-The universal response format.
+Normalized sampling parameters, carried on `IRChatRequest.parameters`.
 
 ```typescript
-interface IRChatCompletionResponse {
-  /** Unique response identifier */
-  id: string;
+interface IRParameters {
+  /** Model identifier */
+  model?: string;
 
-  /** Object type (always 'chat.completion') */
-  object?: string;
+  /** Sampling temperature (0.0-2.0) */
+  temperature?: number;
 
-  /** Creation timestamp */
-  created?: number;
+  /** Maximum tokens to generate */
+  maxTokens?: number;
 
-  /** Model used */
-  model: string;
+  /** Nucleus sampling threshold (0.0-1.0) */
+  topP?: number;
 
-  /** Generated choices */
-  choices: IRChoice[];
+  /** Top-K sampling limit */
+  topK?: number;
+
+  /** Frequency penalty (-2.0 to 2.0) */
+  frequencyPenalty?: number;
+
+  /** Presence penalty (-2.0 to 2.0) */
+  presencePenalty?: number;
+
+  /** Stop sequences */
+  stopSequences?: readonly string[];
+
+  /** Random seed for deterministic generation */
+  seed?: number;
+
+  /** User identifier for abuse monitoring */
+  user?: string;
+
+  /** Provider-specific parameters, passed through untouched */
+  custom?: Record<string, unknown>;
+}
+```
+
+---
+
+### IRMetadata
+
+Request/response metadata. `requestId` and `timestamp` are required.
+
+```typescript
+interface IRMetadata {
+  /** Unique request identifier, stable across retries and fallbacks */
+  requestId: string;
+
+  /** Provider's own response identifier, set by the backend */
+  providerResponseId?: string;
+
+  /** Request timestamp (ms since epoch) */
+  timestamp: number;
+
+  /** Adapter chain provenance */
+  provenance?: IRProvenance;
+
+  /** Semantic drift warnings collected during processing */
+  warnings?: readonly IRWarning[];
+
+  /** Custom metadata fields */
+  custom?: Record<string, unknown>;
+}
+```
+
+---
+
+### IRChatResponse
+
+The universal response format. There is no `choices` array - a response carries
+exactly one assistant `message`.
+
+```typescript
+interface IRChatResponse {
+  /** Generated message from the assistant */
+  message: IRMessage;
+
+  /** Why generation finished */
+  finishReason: FinishReason;
 
   /** Token usage statistics */
   usage?: IRUsage;
 
-  /** System fingerprint */
-  system_fingerprint?: string;
+  /** Response metadata (request metadata plus backend provenance) */
+  metadata: IRMetadata;
+
+  /** Provider-specific raw response data */
+  raw?: Record<string, unknown>;
 }
+
+type FinishReason =
+  | 'stop'
+  | 'length'
+  | 'tool_calls'
+  | 'content_filter'
+  | 'error'
+  | 'cancelled';
 ```
 
 ---
 
-### IRChatCompletionChunk
+### IRStreamChunk
 
-Stream chunk format.
+Stream chunks are a discriminated union keyed on `type`, each carrying a
+monotonically increasing `sequence`.
 
 ```typescript
-interface IRChatCompletionChunk {
-  /** Unique identifier */
-  id: string;
+type IRStreamChunk =
+  | StreamStartChunk
+  | StreamContentChunk
+  | StreamToolUseChunk
+  | StreamMetadataChunk
+  | StreamDoneChunk
+  | StreamErrorChunk;
 
-  /** Object type (always 'chat.completion.chunk') */
-  object?: string;
-
-  /** Creation timestamp */
-  created?: number;
-
-  /** Model used */
-  model: string;
-
-  /** Delta choices */
-  choices: IRChoiceDelta[];
-
-  /** System fingerprint */
-  system_fingerprint?: string;
+interface StreamStartChunk {
+  type: 'start';
+  sequence: number;
+  metadata: IRMetadata;
 }
+
+interface StreamContentChunk {
+  type: 'content';
+  sequence: number;
+  /** New text generated in this chunk - always present */
+  delta: string;
+  /** Full text so far, when the backend is in accumulated mode */
+  accumulated?: string;
+  role?: 'assistant';
+}
+
+interface StreamToolUseChunk {
+  type: 'tool_use';
+  sequence: number;
+  id: string;
+  name: string;
+  /** Raw partial-JSON fragment of the tool arguments */
+  inputDelta?: string;
+  index?: number;
+}
+
+interface StreamMetadataChunk {
+  type: 'metadata';
+  sequence: number;
+  usage?: Partial<IRUsage>;
+  metadata?: Partial<IRMetadata>;
+}
+
+interface StreamDoneChunk {
+  type: 'done';
+  sequence: number;
+  finishReason: FinishReason;
+  usage?: IRUsage;
+  message?: IRMessage;
+}
+
+interface StreamErrorChunk {
+  type: 'error';
+  sequence: number;
+  error: { code: string; message: string; details?: Record<string, unknown> };
+}
+```
+
+`IRChatStream` is the async generator these chunks arrive on:
+
+```typescript
+type IRChatStream = AsyncGenerator<IRStreamChunk, void, undefined>;
 ```
 
 ---
 
 ### IRMessage
 
-A single message in a conversation.
+A single message in a conversation. Tool calls and tool results are content
+blocks, not separate `tool_calls` / `tool_call_id` fields.
 
 ```typescript
 interface IRMessage {
   /** Message role */
   role: 'system' | 'user' | 'assistant' | 'tool';
 
-  /** Message content */
-  content: string | IRContentPart[];
+  /** Message content: plain text or structured content blocks */
+  content: string | readonly MessageContent[];
 
-  /** Message name (optional) */
+  /** Message name/identifier (tool messages, multi-user scenarios) */
   name?: string;
 
-  /** Tool calls (for assistant messages) */
-  tool_calls?: IRToolCall[];
-
-  /** Tool call ID (for tool messages) */
-  tool_call_id?: string;
+  /** Provider-specific metadata */
+  metadata?: Record<string, unknown>;
 }
 ```
 
 ---
 
-### IRContentPart
+### MessageContent
 
-Multi-modal content part (text or image).
+Structured content blocks. (There is no `IRContentPart`.)
 
 ```typescript
-type IRContentPart =
-  | IRTextContentPart
-  | IRImageContentPart;
+type MessageContent =
+  | TextContent
+  | ImageContent
+  | AudioContent
+  | DocumentContent
+  | VideoContent
+  | ToolUseContent
+  | ToolResultContent;
 
-interface IRTextContentPart {
+interface TextContent {
   type: 'text';
   text: string;
 }
 
-interface IRImageContentPart {
-  type: 'image_url';
-  image_url: {
-    url: string;
-    detail?: 'auto' | 'low' | 'high';
-  };
+interface ImageContent {
+  type: 'image';
+  source:
+    | { type: 'url'; url: string }
+    | { type: 'base64'; mediaType: string; data: string };
+}
+
+/** The AI asking to call a tool - replaces the OpenAI-style `tool_calls` array */
+interface ToolUseContent {
+  type: 'tool_use';
+  id: string;
+  name: string;
+  input: Record<string, unknown>;
+}
+
+/** The result of running a tool - replaces `tool_call_id` */
+interface ToolResultContent {
+  type: 'tool_result';
+  toolUseId: string;
+  content: string | TextContent[];
+  isError?: boolean;
 }
 ```
 
----
-
-### IRChoice
-
-A completion choice.
-
-```typescript
-interface IRChoice {
-  /** Choice index */
-  index: number;
-
-  /** Generated message */
-  message: IRMessage;
-
-  /** Finish reason */
-  finish_reason: 'stop' | 'length' | 'tool_calls' | 'content_filter' | null;
-
-  /** Log probabilities */
-  logprobs?: IRLogProbs;
-}
-```
-
----
-
-### IRChoiceDelta
-
-Stream delta choice.
-
-```typescript
-interface IRChoiceDelta {
-  /** Choice index */
-  index: number;
-
-  /** Message delta */
-  delta: IRMessageDelta;
-
-  /** Finish reason (only on last chunk) */
-  finish_reason?: 'stop' | 'length' | 'tool_calls' | 'content_filter' | null;
-}
-
-interface IRMessageDelta {
-  role?: 'assistant';
-  content?: string;
-  tool_calls?: IRToolCallDelta[];
-}
-```
+`AudioContent`, `DocumentContent` and `VideoContent` follow the same
+`{ type, source }` shape as `ImageContent`.
 
 ---
 
 ### IRUsage
 
-Token usage statistics.
+Token usage statistics (camelCase - there are no snake_case variants).
 
 ```typescript
 interface IRUsage {
-  /** Tokens in prompt */
-  prompt_tokens: number;
+  /** Tokens in the prompt */
+  promptTokens: number;
 
-  /** Tokens in completion */
-  completion_tokens: number;
+  /** Tokens in the completion */
+  completionTokens: number;
 
-  /** Total tokens */
-  total_tokens: number;
+  /** Total tokens (prompt + completion) */
+  totalTokens: number;
 
-  /** Prompt tokens details */
-  prompt_tokens_details?: {
-    cached_tokens?: number;
-  };
-
-  /** Completion tokens details */
-  completion_tokens_details?: {
-    reasoning_tokens?: number;
-  };
+  /** Provider-specific usage details */
+  details?: Record<string, unknown>;
 }
 ```
 
@@ -254,74 +313,41 @@ interface IRUsage {
 
 ### IRTool
 
-Tool/function definition.
+Tool/function definition. The tool is described directly - there is no
+`{ type: 'function', function: {...} }` wrapper.
 
 ```typescript
 interface IRTool {
-  type: 'function';
-  function: IRFunction;
-}
-
-interface IRFunction {
-  /** Function name */
+  /** Tool name (must be a valid identifier) */
   name: string;
 
-  /** Function description */
-  description?: string;
+  /** Human-readable description of what the tool does */
+  description: string;
 
-  /** Parameters schema (JSON Schema) */
-  parameters?: {
-    type: 'object';
-    properties: Record<string, any>;
-    required?: string[];
-  };
+  /** JSON Schema for the tool's parameters */
+  parameters: JSONSchema;
+
+  /** Provider-specific tool configuration */
+  metadata?: Record<string, unknown>;
 }
 ```
 
----
-
-### IRToolCall
-
-A tool/function call.
-
-```typescript
-interface IRToolCall {
-  /** Unique identifier */
-  id: string;
-
-  /** Type (always 'function') */
-  type: 'function';
-
-  /** Function details */
-  function: {
-    name: string;
-    arguments: string; // JSON string
-  };
-}
-
-interface IRToolCallDelta {
-  index: number;
-  id?: string;
-  type?: 'function';
-  function?: {
-    name?: string;
-    arguments?: string;
-  };
-}
-```
+To ask for a specific tool, set `IRChatRequest.toolChoice` to `{ name: 'get_weather' }`;
+`'auto'`, `'required'` and `'none'` are the other accepted values. (There is no
+separate `IRToolChoice` type.)
 
 ---
 
-### IRToolChoice
+### IRResponseFormat
 
-Tool choice specification.
+JSON-schema-constrained output request.
 
 ```typescript
-interface IRToolChoice {
-  type: 'function';
-  function: {
-    name: string;
-  };
+interface IRResponseFormat {
+  type: 'json_schema';
+  schema: JSONSchema;
+  /** Reject/retry on schema violation where the backend supports it */
+  strict?: boolean;
 }
 ```
 
@@ -334,23 +360,41 @@ interface IRToolChoice {
 Interface for backend adapters.
 
 ```typescript
-interface BackendAdapter {
-  /** Adapter name */
-  name: string;
+interface BackendAdapter<TRequest = unknown, TResponse = unknown> {
+  /** Identification and capabilities (there is no bare `name` field) */
+  readonly metadata: AdapterMetadata;
+
+  /** Convert an IR request to the provider's request format */
+  fromIR(request: IRChatRequest): TRequest;
+
+  /** Convert a provider response to IR */
+  toIR(response: TResponse, originalRequest: IRChatRequest, latencyMs: number): IRChatResponse;
 
   /** Execute a chat completion */
-  execute(request: IRChatCompletionRequest): Promise<IRChatCompletionResponse>;
+  execute(request: IRChatRequest, signal?: AbortSignal): Promise<IRChatResponse>;
 
-  /** Execute a streaming chat completion */
-  executeStream(request: IRChatCompletionRequest): AsyncIterable<IRChatCompletionChunk>;
+  /** Execute a streaming chat completion - returns the stream, not a Promise */
+  executeStream(request: IRChatRequest, signal?: AbortSignal): IRChatStream;
 
   /** Health check (optional) */
-  checkHealth?(): Promise<boolean>;
+  healthCheck?(): Promise<boolean>;
 
-  /** Get supported capabilities (optional) */
-  getCapabilities?(): BackendCapabilities;
+  /** Estimate request cost in USD (optional) */
+  estimateCost?(request: IRChatRequest): Promise<number | null>;
+
+  /** List available models (optional) */
+  listModels?(options?: ListModelsOptions): Promise<ListModelsResult>;
+
+  /** Generate embeddings (optional) */
+  embed?(request: IREmbedRequest, signal?: AbortSignal): Promise<IREmbedResponse>;
+
+  /** Estimate embedding cost in USD (optional) */
+  estimateEmbedCost?(request: IREmbedRequest): Promise<number | null>;
 }
 ```
+
+Capabilities are read from `adapter.metadata.capabilities` (an
+[`IRCapabilities`](#ircapabilities)); there is no `getCapabilities()` method.
 
 ---
 
@@ -359,52 +403,109 @@ interface BackendAdapter {
 Interface for frontend adapters.
 
 ```typescript
-interface FrontendAdapter {
-  /** Adapter name */
-  name: string;
+interface FrontendAdapter<TRequest = unknown, TResponse = unknown, TStreamChunk = unknown> {
+  /** Identification and capabilities (there is no bare `name` field) */
+  readonly metadata: AdapterMetadata;
 
-  /** Parse input to IR format */
-  parseRequest(input: any): IRChatCompletionRequest;
+  /** Convert a provider-specific request to IR (async) */
+  toIR(request: TRequest): Promise<IRChatRequest>;
 
-  /** Format IR response to output format */
-  formatResponse(response: IRChatCompletionResponse): any;
+  /** Convert an IR response back to the provider's format (async) */
+  fromIR(response: IRChatResponse): Promise<TResponse>;
 
-  /** Format IR stream chunk to output format */
-  formatStreamChunk?(chunk: IRChatCompletionChunk): any;
+  /** Convert an IR stream to the provider's stream format */
+  fromIRStream(
+    stream: IRChatStream,
+    options?: StreamConversionOptions
+  ): AsyncGenerator<TStreamChunk, void, undefined>;
 
-  /** Validate input (optional) */
-  validateInput?(input: any): boolean;
+  /** Validate a provider-specific request before conversion (optional) */
+  validate?(request: TRequest): Promise<void>;
 }
 ```
 
 ---
 
-### BackendCapabilities
+### AdapterMetadata
 
-Backend capabilities descriptor.
+Identification and capability metadata carried by both adapter kinds.
 
 ```typescript
-interface BackendCapabilities {
-  /** Streaming support */
+interface AdapterMetadata {
+  /** Unique adapter identifier (lowercase, no spaces) */
+  readonly name: string;
+
+  /** Semantic version of the adapter implementation */
+  readonly version: string;
+
+  /** Human-readable provider name */
+  readonly provider: string;
+
+  /** Capabilities used for routing decisions */
+  readonly capabilities: IRCapabilities;
+
+  /** Optional adapter-specific configuration */
+  readonly config?: Record<string, unknown>;
+}
+```
+
+---
+
+### IRCapabilities
+
+Capability descriptor. (The name `BackendCapabilities` does not exist.)
+
+```typescript
+interface IRCapabilities {
+  /** Supports streaming responses */
   streaming: boolean;
 
-  /** Tool/function calling support */
-  tools: boolean;
+  /** Supports multi-modal content */
+  multiModal: boolean;
 
-  /** Vision/multimodal support */
-  vision: boolean;
+  /** How system messages are handled */
+  systemMessageStrategy:
+    | 'separate-parameter'
+    | 'in-messages'
+    | 'prepend-user'
+    | 'not-supported';
 
-  /** JSON mode support */
-  jsonMode: boolean;
+  /** Supports more than one system message */
+  supportsMultipleSystemMessages: boolean;
 
-  /** Maximum tokens */
-  maxTokens: number;
+  /** Supports tool/function calling */
+  tools?: boolean;
 
-  /** Context window size */
-  contextWindow: number;
+  /** Audio / document / video input support */
+  supportsAudio?: boolean;
+  supportsDocuments?: boolean;
+  supportsVideo?: boolean;
 
-  /** Supported parameters */
-  supportedParams: string[];
+  /** Whether schema-constrained output is native or emulated */
+  structuredOutput?: 'native' | 'fallback';
+
+  /** Embedding support */
+  embeddings?: boolean;
+  embeddingModels?: readonly string[];
+  maxEmbeddingBatchSize?: number;
+  supportsEmbeddingDimensions?: boolean;
+
+  /** Maximum context window size, in tokens */
+  maxContextTokens?: number;
+
+  /** Supported model identifiers */
+  supportedModels?: readonly string[];
+
+  /** Per-parameter support flags */
+  supportsTemperature?: boolean;
+  supportsTopP?: boolean;
+  supportsTopK?: boolean;
+  supportsSeed?: boolean;
+  supportsFrequencyPenalty?: boolean;
+  supportsPresencePenalty?: boolean;
+
+  /** Maximum number of stop sequences */
+  maxStopSequences?: number;
 }
 ```
 
@@ -414,112 +515,139 @@ interface BackendCapabilities {
 
 ### Middleware
 
-Middleware interface.
+Middleware function type.
 
 ```typescript
-interface Middleware {
-  /** Middleware name */
-  name: string;
+type MiddlewareNext = () => Promise<IRChatResponse>;
 
-  /** Process request before sending */
-  onRequest?(request: IRChatCompletionRequest): Promise<IRChatCompletionRequest>;
+type Middleware = (
+  context: MiddlewareContext,
+  next: MiddlewareNext
+) => Promise<IRChatResponse>;
 
-  /** Process response after receiving */
-  onResponse?(response: IRChatCompletionResponse): Promise<IRChatCompletionResponse>;
+interface MiddlewareContext {
+  /** The IR request being processed - middleware can inspect and modify it */
+  request: IRChatRequest;
 
-  /** Handle errors */
-  onError?(error: Error): Promise<Error | void>;
+  /** Whether this is a streaming request */
+  readonly isStreaming: boolean;
 
-  /** Process stream chunks */
-  onStreamChunk?(chunk: IRChatCompletionChunk): Promise<IRChatCompletionChunk>;
+  /** Backend that will process the request (available after routing) */
+  readonly backend?: BackendAdapter;
 
-  /** Cleanup function */
-  cleanup?(): Promise<void>;
+  /** Backend name/identifier */
+  readonly backendName?: string;
+
+  /** Shared state for passing data between middleware */
+  readonly state: Record<string, unknown>;
+
+  /** Configuration from the bridge */
+  readonly config: Record<string, unknown>;
+
+  /** Abort signal for request cancellation */
+  readonly signal?: AbortSignal;
 }
+```
+
+Stream-native middleware uses the parallel `StreamingMiddleware` type and is
+registered with `bridge.useStreaming()`:
+
+```typescript
+type StreamingMiddlewareNext = () => Promise<IRChatStream>;
+
+type StreamingMiddleware = (
+  context: StreamingMiddlewareContext,
+  next: StreamingMiddlewareNext
+) => Promise<IRChatStream>;
 ```
 
 ---
 
 ## Configuration Types
 
-### BridgeOptions
+### BridgeConfig
 
-Bridge configuration options.
+Bridge configuration options, passed as the third `Bridge` constructor argument.
+(There is no `BridgeOptions`.)
 
 ```typescript
-interface BridgeOptions {
-  /** Request timeout (ms) */
+interface BridgeConfig {
+  /** Enable debug mode with detailed logging (default: false) */
+  debug?: boolean;
+
+  /** Global request timeout in ms (default: 30000) */
   timeout?: number;
 
-  /** Retry attempts */
-  retryCount?: number;
+  /** Maximum retries for transient failures (default: 0) */
+  retries?: number;
 
-  /** Retry delay (ms) */
-  retryDelay?: number;
+  /** Default model when the request does not name one */
+  defaultModel?: string;
 
-  /** Validate request */
-  validateRequest?: boolean;
+  /** Router configuration, when the backend is a Router */
+  routerConfig?: Partial<RouterConfig>;
 
-  /** Validate response */
-  validateResponse?: boolean;
+  /** Add a request ID to metadata if not present (default: true) */
+  autoRequestId?: boolean;
 
-  /** Error handler */
-  onError?: (error: Error) => void;
+  /** Custom configuration options */
+  custom?: Record<string, unknown>;
 }
 ```
 
 ---
 
-### RouterOptions
+### RouterConfig
 
-Router configuration options.
+Router configuration options. (There is no `RouterOptions`, and backends are not
+passed in the config - register them with `router.register(name, adapter)`.)
 
 ```typescript
-interface RouterOptions {
-  /** Backend adapters */
-  backends: BackendAdapter[];
+interface RouterConfig {
+  /** Backend selection strategy (default: 'explicit') */
+  routingStrategy?: RoutingStrategy;
 
-  /** Routing strategy */
-  strategy: RoutingStrategy;
+  /** What to do when a backend fails (default: 'none') */
+  fallbackStrategy?: 'none' | 'sequential' | 'parallel' | 'custom';
 
-  /** Custom strategy function */
-  customStrategy?: CustomStrategyFunction;
+  /** Backend used when the strategy makes no other choice */
+  defaultBackend?: string;
 
-  /** Enable fallback on error */
-  fallbackOnError?: boolean;
+  /** Background health check interval in ms (0 disables) */
+  healthCheckInterval?: number;
 
-  /** Health check config */
-  healthCheck?: HealthCheckOptions;
+  /** Circuit breaker */
+  enableCircuitBreaker?: boolean;
+  circuitBreakerThreshold?: number;
+  circuitBreakerTimeout?: number;
 
-  /** Request timeout (ms) */
-  timeout?: number;
+  /** Statistics collection */
+  trackLatency?: boolean;
+  trackCost?: boolean;
 
-  /** Weights for weighted strategy */
-  weights?: number[];
+  /** Route only to backends whose capabilities fit the request */
+  capabilityBasedRouting?: boolean;
+  capabilityCacheDuration?: number;
+
+  /** Optimization target and weights */
+  optimization?: 'cost' | 'speed' | 'quality' | 'balanced';
+  optimizationWeights?: { cost?: number; speed?: number; quality?: number };
+
+  /** Custom routing / fallback hooks */
+  customRouter?: CustomRoutingFunction;
+  customFallback?: CustomFallbackFunction;
+
+  /** Cross-provider model name translation */
+  modelTranslation?: ModelTranslationConfig;
+
+  /** Called for each semantic-drift warning */
+  onWarning?: (warning: IRWarning) => void;
 }
 ```
 
----
-
-### HealthCheckOptions
-
-Health check configuration.
-
-```typescript
-interface HealthCheckOptions {
-  /** Enable health checks */
-  enabled: boolean;
-
-  /** Check interval (ms) */
-  interval: number;
-
-  /** Check timeout (ms) */
-  timeout: number;
-
-  /** Consecutive failures before marking unhealthy */
-  failureThreshold?: number;
-}
-```
+There is no separate health-check options object: the interval is
+`healthCheckInterval`, and checks can be run on demand with
+`router.checkHealth()`.
 
 ---
 
@@ -529,89 +657,100 @@ Available routing strategies.
 
 ```typescript
 type RoutingStrategy =
+  | 'explicit'
+  | 'model-based'
+  | 'cost-optimized'
+  | 'latency-optimized'
   | 'round-robin'
   | 'random'
-  | 'priority'
-  | 'weighted'
-  | 'least-latency'
-  | 'least-cost'
   | 'custom';
 ```
 
 ---
 
-### CustomStrategyFunction
+### CustomRoutingFunction
 
-Custom routing strategy function.
+Custom routing hook, set as `RouterConfig.customRouter`. It is async and returns
+a backend *name* (or `null` to fall back to the default strategy). There is no
+`CustomStrategyFunction`.
 
 ```typescript
-type CustomStrategyFunction = (
-  request: IRChatCompletionRequest,
-  backends: BackendAdapter[],
-  health: BackendHealthMap
-) => number | Promise<number>;
+type CustomRoutingFunction = (
+  request: IRChatRequest,
+  availableBackends: readonly string[],
+  context: RoutingContext
+) => Promise<string | null>;
 ```
 
 ---
 
-### BackendHealthMap
+### BackendInfo
 
-Backend health status map.
+Per-backend state, returned by `router.getBackendInfo()`. (There is no
+`BackendHealthMap`.)
 
 ```typescript
-interface BackendHealthMap {
-  [backendName: string]: BackendHealth;
-}
+interface BackendInfo {
+  /** Backend identifier */
+  name: string;
 
-interface BackendHealth {
-  /** Is backend healthy */
-  healthy: boolean;
+  /** The registered adapter */
+  adapter: BackendAdapter;
 
-  /** Average latency (ms) */
-  latency: number;
+  /** Adapter metadata */
+  metadata: AdapterMetadata;
 
-  /** Error rate (0-1) */
-  errorRate: number;
+  /** Whether the backend is currently healthy */
+  isHealthy: boolean;
 
-  /** Last health check */
-  lastCheck: Date;
+  /** Timestamp of the last health check */
+  lastHealthCheck?: number;
 
-  /** Consecutive failures */
+  /** Circuit breaker state */
+  circuitBreakerState: 'closed' | 'open' | 'half-open';
+
+  /** Consecutive failures (drives the circuit breaker) */
   consecutiveFailures: number;
+
+  /** Request/latency/cost statistics */
+  stats: BackendStats;
 }
 ```
+
+Health can also be queried directly: `router.checkHealth()` returns
+`Promise<Record<string, boolean>>`, and `router.checkHealth(name)` returns
+`Promise<boolean>`.
 
 ---
 
 ## Event Types
 
-### BridgeEvent
+### BridgeEventType
 
-Events emitted by Bridge.
+The event names accepted by `bridge.on()` / `off()` / `once()`. (`BridgeEvent`
+is an interface describing an event object, not a string union.)
 
 ```typescript
-type BridgeEvent =
-  | 'request'
-  | 'response'
-  | 'error'
+type BridgeEventType =
+  | 'request:start'
+  | 'request:success'
+  | 'request:error'
+  | 'request:cancelled'
   | 'stream:start'
   | 'stream:chunk'
-  | 'stream:end';
-```
-
----
-
-### RouterEvent
-
-Events emitted by Router.
-
-```typescript
-type RouterEvent =
+  | 'stream:complete'
+  | 'stream:error'
   | 'backend:selected'
-  | 'backend:failed'
-  | 'backend:switch'
-  | 'backend:health';
+  | 'backend:failover'
+  | 'middleware:executed';
 ```
+
+Only `request:start`, `request:success`, `request:error`, `stream:start`,
+`stream:complete` and `stream:error` are actually emitted.
+
+`Router` has no event emitter and no `RouterEvent` type - use
+`router.getStats()`, `router.getBackendInfo()` and `router.checkHealth()` to
+observe it.
 
 ---
 
@@ -619,63 +758,23 @@ type RouterEvent =
 
 ### ModelMapping
 
-Model name mapping.
+Model name mapping, used by `router.setModelMapping()`. It is a plain
+source-name to target-name record.
 
 ```typescript
-interface ModelMapping {
-  /** Source model name */
-  from: string;
-
-  /** Target model name */
-  to: string;
-
-  /** Provider name */
-  provider?: string;
-}
+type ModelMapping = Record<string, string>;
 ```
 
 ---
 
-### TokenEstimate
+### Token and cost estimates
 
-Token estimation result.
-
-```typescript
-interface TokenEstimate {
-  /** Estimated prompt tokens */
-  promptTokens: number;
-
-  /** Estimated completion tokens */
-  completionTokens: number;
-
-  /** Total estimated tokens */
-  totalTokens: number;
-}
-```
-
----
-
-### CostEstimate
-
-Cost estimation result.
+There are no `TokenEstimate` or `CostEstimate` types. Token counts come back on
+a response as [`IRUsage`](#irusage), and cost estimation is a single number:
 
 ```typescript
-interface CostEstimate {
-  /** Input cost (USD) */
-  inputCost: number;
-
-  /** Output cost (USD) */
-  outputCost: number;
-
-  /** Total cost (USD) */
-  totalCost: number;
-
-  /** Provider name */
-  provider: string;
-
-  /** Model name */
-  model: string;
-}
+// Optional on BackendAdapter - estimated USD, or null when unavailable
+const usd = await backend.estimateCost?.(request);
 ```
 
 ---
@@ -684,22 +783,22 @@ interface CostEstimate {
 
 ### Type guard utilities
 
+The shipped type guards narrow stream chunks. They live in
+`@johnhenry/aimatey-utils`:
+
 ```typescript
-/** Check if value is IRChatCompletionRequest */
-function isIRChatCompletionRequest(value: any): value is IRChatCompletionRequest;
+import { isContentChunk, isDoneChunk, isErrorChunk } from '@johnhenry/aimatey-utils';
 
-/** Check if value is IRChatCompletionResponse */
-function isIRChatCompletionResponse(value: any): value is IRChatCompletionResponse;
-
-/** Check if value is IRChatCompletionChunk */
-function isIRChatCompletionChunk(value: any): value is IRChatCompletionChunk;
-
-/** Check if adapter is BackendAdapter */
-function isBackendAdapter(adapter: any): adapter is BackendAdapter;
-
-/** Check if adapter is FrontendAdapter */
-function isFrontendAdapter(adapter: any): adapter is FrontendAdapter;
+for await (const chunk of stream) {
+  if (isContentChunk(chunk)) process.stdout.write(chunk.delta);
+  else if (isErrorChunk(chunk)) throw new Error(chunk.error.message);
+  else if (isDoneChunk(chunk)) console.log('\n', chunk.finishReason);
+}
 ```
+
+There are no `isIRChatRequest`, `isIRChatResponse`, `isIRChatCompletionChunk`,
+`isBackendAdapter` or `isFrontendAdapter` guards - `IRStreamChunk` is a
+discriminated union, so a plain `chunk.type === 'content'` check narrows it too.
 
 ---
 
@@ -709,11 +808,13 @@ function isFrontendAdapter(adapter: any): adapter is FrontendAdapter;
 
 ```typescript
 import type {
-  IRChatCompletionRequest,
-  IRChatCompletionResponse,
-  IRChatCompletionChunk,
+  IRChatRequest,
+  IRChatResponse,
+  IRStreamChunk,
+  IRChatStream,
   IRMessage,
-  IRChoice,
+  IRUsage,
+  AdapterMetadata,
   BackendAdapter,
   FrontendAdapter,
   Middleware
@@ -725,28 +826,48 @@ import type {
 ### Using Types
 
 ```typescript
-import type { IRChatCompletionRequest, BackendAdapter } from '@johnhenry/aimatey-types';
+import type {
+  AdapterMetadata,
+  BackendAdapter,
+  IRChatRequest,
+  IRChatResponse
+} from '@johnhenry/aimatey-types';
 
 class MyBackend implements BackendAdapter {
-  name = 'my-backend';
+  readonly metadata: AdapterMetadata = {
+    name: 'my-backend',
+    version: '1.0.0',
+    provider: 'My Provider',
+    capabilities: {
+      streaming: true,
+      multiModal: false,
+      systemMessageStrategy: 'in-messages',
+      supportsMultipleSystemMessages: true
+    }
+  };
 
-  async execute(request: IRChatCompletionRequest) {
-    // Type-safe implementation
-    const { model, messages, temperature } = request;
-    // ...
+  fromIR(request: IRChatRequest): unknown {
+    // Model and sampling parameters live under `parameters`
+    const { messages, parameters } = request;
+    return { model: parameters?.model, messages };
   }
 
-  async *executeStream(request: IRChatCompletionRequest) {
-    // Type-safe streaming
-    yield {
-      id: 'chunk-1',
-      model: request.model,
-      choices: [{
-        index: 0,
-        delta: { content: 'Hello' },
-        finish_reason: null
-      }]
+  toIR(_response: unknown, originalRequest: IRChatRequest): IRChatResponse {
+    return {
+      message: { role: 'assistant', content: 'Hello' },
+      finishReason: 'stop',
+      metadata: originalRequest.metadata
     };
+  }
+
+  async execute(request: IRChatRequest): Promise<IRChatResponse> {
+    return this.toIR(null, request);
+  }
+
+  async *executeStream(request: IRChatRequest) {
+    yield { type: 'start' as const, sequence: 0, metadata: request.metadata };
+    yield { type: 'content' as const, sequence: 1, delta: 'Hello' };
+    yield { type: 'done' as const, sequence: 2, finishReason: 'stop' as const };
   }
 }
 ```

@@ -5,305 +5,300 @@ description: "API reference for the Router class: routing strategies, backend ma
 
 Complete API reference for the `Router` class - intelligent routing across multiple backend providers.
 
+:::note[Router is a backend, not a bridge]
+`Router` implements `BackendAdapter`. It has no frontend adapter and no
+`chat()` / `chatStream()` methods - it speaks IR through `execute()` and
+`executeStream()`. Give it to a `Bridge` as the backend and call the bridge:
+
+```typescript
+const router = new Router({ routingStrategy: 'round-robin' });
+router.register('openai', openaiBackend).register('anthropic', anthropicBackend);
+
+const bridge = new Bridge(new OpenAIFrontendAdapter(), router);
+const response = await bridge.chat({ model: 'gpt-4', messages: [...] });
+```
+
+Middleware belongs to the bridge as well (`bridge.use()`); `Router` has no
+`use()` method, and neither `RouterConfig` nor `BridgeConfig` has a `middleware`
+field.
+:::
+
 ## Constructor
 
-### `new Router(frontendAdapter, options)`
+### `new Router(config?)`
 
-Creates a new Router instance with multiple backend adapters.
+Creates a new Router. Backends are **not** passed to the constructor - register
+them afterwards with [`register()`](#registername-adapter).
 
 **Parameters:**
 
-- `frontendAdapter: FrontendAdapter` - Adapter for parsing input format
-- `options: RouterOptions` - Router configuration
+- `config?: Partial<RouterConfig>` - Router configuration (see [`RouterConfig`](#routerconfig))
 
 **Returns:** `Router` instance
 
 **Example:**
 
 ```typescript
-import { Router } from '@johnhenry/aimatey-core';
+import { Bridge, Router } from '@johnhenry/aimatey-core';
 import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend/openai';
 import { AnthropicBackendAdapter } from '@johnhenry/aimatey-backend/anthropic';
 import { OpenAIBackendAdapter } from '@johnhenry/aimatey-backend/openai';
 
-const router = new Router(
-  new OpenAIFrontendAdapter(),
-  {
-    backends: [
-      new AnthropicBackendAdapter({ apiKey: process.env.ANTHROPIC_API_KEY }),
-      new OpenAIBackendAdapter({ apiKey: process.env.OPENAI_API_KEY })
-    ],
-    strategy: 'round-robin',
-    fallbackOnError: true
-  }
-);
+const router = new Router({
+  routingStrategy: 'round-robin',
+  fallbackStrategy: 'sequential',
+});
+
+router
+  .register('anthropic', new AnthropicBackendAdapter({ apiKey: process.env.ANTHROPIC_API_KEY! }))
+  .register('openai', new OpenAIBackendAdapter({ apiKey: process.env.OPENAI_API_KEY! }));
+
+const bridge = new Bridge(new OpenAIFrontendAdapter(), router);
 ```
+
+There is also a factory function, `createRouter(config?)`, with the same
+signature.
 
 ---
 
 ## Methods
 
-### `chat(request)`
+### `execute(request, signal?)`
 
-Execute a chat completion request with automatic routing.
+Execute an IR request with automatic backend selection and fallback. This is the
+`BackendAdapter` entry point - normally you call `bridge.chat()` and the bridge
+calls this for you.
 
 **Parameters:**
 
-- `request: any` - Request in frontend adapter format
+- `request: IRChatRequest` - Request in Intermediate Representation form
+- `signal?: AbortSignal` - Cancellation signal
 
-**Returns:** `Promise<any>` - Response in frontend adapter format
-
-**Example:**
-
-```typescript
-// Router automatically selects backend based on strategy
-const response = await router.chat({
-  model: 'gpt-4',
-  messages: [{ role: 'user', content: 'Hello!' }]
-});
-```
+**Returns:** `Promise<IRChatResponse>`
 
 ---
 
-### `chatStream(request)`
+### `executeStream(request, signal?)`
 
-Execute a streaming chat completion request with routing.
+Execute a streaming IR request. It is an async generator method, so the stream is
+returned synchronously - there is nothing to `await` before iterating.
 
 **Parameters:**
 
-- `request: any` - Request in frontend adapter format (with `stream: true`)
+- `request: IRChatRequest`
+- `signal?: AbortSignal`
 
-**Returns:** `AsyncIterable<any>` - Stream of chunks
+**Returns:** `IRChatStream` (`AsyncGenerator<IRStreamChunk>`)
 
-**Example:**
-
-```typescript
-const stream = await router.chatStream({
-  model: 'gpt-4',
-  messages: [{ role: 'user', content: 'Count to 10' }],
-  stream: true
-});
-
-for await (const chunk of stream) {
-  process.stdout.write(chunk.choices?.[0]?.delta?.content || '');
-}
-```
+:::caution[Streaming does not fall back]
+If the selected backend fails mid-stream, `executeStream()` yields a single
+`error` chunk and ends. The fallback chain applies to `execute()` only.
+:::
 
 ---
 
-### `use(middleware)`
+### `register(name, adapter)`
 
-Add middleware to all backend adapters.
-
-**Parameters:**
-
-- `middleware: Middleware` - Middleware to add
-
-**Returns:** `this` (for chaining)
-
-**Example:**
-
-```typescript
-import { createLoggingMiddleware } from '@johnhenry/aimatey-middleware';
-
-router.use(createLoggingMiddleware({ level: 'info' }));
-```
-
----
-
-### `addBackend(backend, weight?)`
-
-Add a new backend adapter to the router.
+Register a backend under a name. The name is what you use in fallback chains,
+model mappings, per-request overrides and statistics.
 
 **Parameters:**
 
-- `backend: BackendAdapter` - Backend adapter to add
-- `weight?: number` - Weight for weighted strategy (default: 1)
+- `name: string` - Backend identifier
+- `adapter: BackendAdapter` - Backend adapter instance
 
-**Returns:** `void`
+**Returns:** `Router` (for chaining)
 
 **Example:**
 
 ```typescript
 import { GroqBackendAdapter } from '@johnhenry/aimatey-backend/groq';
 
-router.addBackend(
-  new GroqBackendAdapter({ apiKey: process.env.GROQ_API_KEY }),
-  50 // 50% of traffic if using weighted strategy
-);
+router.register('groq', new GroqBackendAdapter({ apiKey: process.env.GROQ_API_KEY! }));
 ```
 
 ---
 
-### `removeBackend(backendName)`
+### `replace(name, adapter)` / `unregister(name)`
 
-Remove a backend adapter by name.
-
-**Parameters:**
-
-- `backendName: string` - Name of backend to remove
-
-**Returns:** `boolean` - True if removed, false if not found
-
-**Example:**
+Swap a registered backend for another instance, or remove one. Both return the
+router for chaining. Unregistering the backend named by `defaultBackend` clears
+`defaultBackend` and emits a `routing-config-changed` warning through
+`config.onWarning`.
 
 ```typescript
-router.removeBackend('anthropic'); // Returns true if removed
+router.replace('openai', new OpenAIBackendAdapter({ apiKey: rotatedKey }));
+router.unregister('groq');
 ```
 
 ---
 
-### `setStrategy(strategy, customStrategy?)`
+### `get(name)` / `has(name)` / `listBackends()`
 
-Change the routing strategy.
-
-**Parameters:**
-
-- `strategy: RoutingStrategy` - Strategy name
-- `customStrategy?: CustomStrategyFunction` - Custom strategy function (if strategy is 'custom')
-
-**Returns:** `void`
-
-**Example:**
+Inspect the registry.
 
 ```typescript
-// Change to priority strategy
-router.setStrategy('priority');
+router.get('openai');      // BackendAdapter | undefined
+router.has('openai');      // boolean
+router.listBackends();     // readonly string[]
+```
 
-// Or use custom strategy
-router.setStrategy('custom', (request, backends) => {
-  // Return index of backend to use
-  return request.messages.length > 10 ? 0 : 1;
+---
+
+### `setFallbackChain(chain)` / `getFallbackChain()`
+
+Set the order backends are tried in after the primary fails. Every name must
+already be registered, otherwise an `AdapterError` with
+`ErrorCode.ROUTING_FAILED` is thrown. Without a chain, `'sequential'` fallback
+tries every other available backend in registration order.
+
+```typescript
+router.setFallbackChain(['openai', 'groq']);
+router.getFallbackChain(); // readonly string[]
+```
+
+---
+
+### `setModelMapping(mapping)` / `getModelMapping()`
+
+Map model names to backend names, for `routingStrategy: 'model-based'`.
+
+```typescript
+router.setModelMapping({
+  'gpt-4': 'openai',
+  'claude-3-5-sonnet-20241022': 'anthropic',
 });
 ```
 
 ---
 
-### `getBackendHealth()`
+### `selectBackend(request, preferredBackend?)`
 
-Get health status of all backends.
+Run the routing strategy and return the chosen backend name without executing
+anything. Useful in tests.
 
-**Parameters:** None
+**Returns:** `Promise<string>` - throws `ErrorCode.NO_BACKEND_AVAILABLE` if nothing is available.
 
-**Returns:** `Promise<BackendHealthMap>` - Health status for each backend
+---
 
-**Example:**
+### `dispatchParallel(request, options?)`
+
+Send one request to several backends at once.
+
+**Parameters:**
+
+- `request: IRChatRequest`
+- `options?: ParallelDispatchOptions`
+
+**Returns:** `Promise<ParallelDispatchResult>`
 
 ```typescript
-const health = await router.getBackendHealth();
+const result = await router.dispatchParallel(irRequest, {
+  backends: ['openai', 'anthropic'],
+  strategy: 'first',
+});
 
-console.log(health);
-/*
-{
-  anthropic: { healthy: true, latency: 1200, errorRate: 0 },
-  openai: { healthy: true, latency: 1500, errorRate: 0.02 },
-  groq: { healthy: false, latency: 5000, errorRate: 0.5 }
+console.log(result.response, result.successfulBackends, result.totalTimeMs);
+```
+
+---
+
+### `checkHealth(name?)`
+
+Actively probe backends by calling each adapter's `healthCheck()`. An adapter
+that does not implement `healthCheck()` is reported healthy.
+
+**Returns:** `Promise<Record<string, boolean>>`, or `Promise<boolean>` when a name is given.
+
+```typescript
+const health = await router.checkHealth();
+// { anthropic: true, openai: true, groq: false }
+
+const openaiHealthy = await router.checkHealth('openai');
+```
+
+Set `healthCheckInterval` in the config to run this automatically in the
+background.
+
+---
+
+### `getBackendInfo(name?)`
+
+Report the last known state of each backend - health, circuit breaker, and stats -
+without probing.
+
+**Returns:** `BackendInfo[]`, or `BackendInfo | undefined` when a name is given.
+
+```typescript
+for (const info of router.getBackendInfo()) {
+  console.log(
+    info.name,
+    info.isHealthy ? '✅' : '❌',
+    info.circuitBreakerState,
+    `${info.stats.averageLatencyMs}ms`,
+    `${info.stats.successRate}%`
+  );
 }
-*/
 ```
 
 ---
 
-### `on(event, handler)`
-
-Subscribe to router events.
-
-**Parameters:**
-
-- `event: RouterEvent` - Event name
-- `handler: Function` - Event handler
-
-**Returns:** `void`
-
-**Events:**
-
-- `backend:selected` - Fired when a backend is selected
-- `backend:failed` - Fired when a backend fails
-- `backend:switch` - Fired when switching to fallback
-- `backend:health` - Fired on health check
-
-**Example:**
+### Circuit breaker controls
 
 ```typescript
-router.on('backend:selected', ({ backend, strategy }) => {
-  console.log(`Using ${backend} (strategy: ${strategy})`);
-});
-
-router.on('backend:failed', ({ backend, error }) => {
-  console.error(`${backend} failed: ${error.message}`);
-});
-
-router.on('backend:switch', ({ from, to, reason }) => {
-  console.log(`Switched from ${from} to ${to}: ${reason}`);
-});
+router.openCircuitBreaker('openai', 30_000); // force open, optionally with a timeout
+router.closeCircuitBreaker('openai');
+router.resetCircuitBreaker();                // all backends when name is omitted
+router.isCircuitBreakerOpen('openai');       // boolean
 ```
 
 ---
 
-## Properties
+### `getStats()` / `resetStats()` / `getBackendStats(name)`
 
-### `backends`
+```typescript
+const stats = router.getStats();
+console.log(stats.totalRequests, stats.totalFallbacks, stats.backendStats);
 
-**Type:** `BackendAdapter[]`
-
-**Read-only**
-
-Array of registered backend adapters.
-
----
-
-### `strategy`
-
-**Type:** `RoutingStrategy`
-
-**Read-only**
-
-Current routing strategy.
+const openaiStats = router.getBackendStats('openai'); // BackendStats | undefined
+router.resetStats();
+```
 
 ---
 
-### `currentBackendIndex`
+### `clone(config)` / `dispose()`
 
-**Type:** `number`
-
-**Read-only**
-
-Index of the currently selected backend (for stateful strategies).
+`clone()` returns a new router with merged config and the same backends
+registered. `dispose()` stops the background health-check timer and clears the
+registry - call it when tearing down.
 
 ---
 
 ## Types
 
-### `RouterOptions`
+### `RouterConfig`
 
-Configuration options for Router.
+Configuration options for Router. Every field is optional and `readonly`.
 
 ```typescript
-interface RouterOptions {
-  /** Array of backend adapters */
-  backends: BackendAdapter[];
-
-  /** Routing strategy */
-  strategy: RoutingStrategy;
-
-  /** Custom strategy function (required if strategy is 'custom') */
-  customStrategy?: CustomStrategyFunction;
-
-  /** Enable automatic fallback on error (default: false) */
-  fallbackOnError?: boolean;
-
-  /** Health check configuration */
-  healthCheck?: {
-    enabled: boolean;
-    interval: number; // milliseconds
-    timeout: number;  // milliseconds
-  };
-
-  /** Request timeout (default: 30000ms) */
-  timeout?: number;
-
-  /** Weights for weighted routing */
-  weights?: number[];
+interface RouterConfig {
+  routingStrategy?: RoutingStrategy;          // default 'explicit'
+  fallbackStrategy?: FallbackStrategy;        // default 'sequential'
+  defaultBackend?: string;
+  healthCheckInterval?: number;               // ms; 0 disables. default 0
+  enableCircuitBreaker?: boolean;             // default false
+  circuitBreakerThreshold?: number;           // default 5
+  circuitBreakerTimeout?: number;             // ms, default 60000
+  trackLatency?: boolean;                     // default true
+  trackCost?: boolean;                        // default false
+  capabilityBasedRouting?: boolean;           // default false
+  optimization?: 'cost' | 'speed' | 'quality' | 'balanced';  // default 'balanced'
+  optimizationWeights?: { cost: number; speed: number; quality: number };
+  capabilityCacheDuration?: number;           // ms, default 3600000
+  customRouter?: CustomRoutingFunction;
+  customFallback?: CustomFallbackFunction;
+  modelTranslation?: ModelTranslationConfig;
+  onWarning?: (warning: IRWarning) => void;
 }
 ```
 
@@ -311,78 +306,166 @@ interface RouterOptions {
 
 ### `RoutingStrategy`
 
-Available routing strategies.
-
 ```typescript
 type RoutingStrategy =
-  | 'round-robin'   // Distribute evenly
-  | 'random'        // Random selection
-  | 'priority'      // Use in order, fallback on error
-  | 'weighted'      // Weighted distribution
-  | 'least-latency' // Select fastest backend
-  | 'least-cost'    // Select cheapest backend
-  | 'custom';       // Custom function
+  | 'explicit'           // Use the backend named on the request (default)
+  | 'model-based'        // Route by model name via setModelMapping()
+  | 'cost-optimized'     // Lowest observed average cost (needs trackCost)
+  | 'latency-optimized'  // Lowest observed average latency (needs trackLatency)
+  | 'round-robin'        // Distribute evenly
+  | 'random'             // Random selection
+  | 'custom';            // Use config.customRouter
+```
+
+There is no `'priority'`, `'weighted'`, `'least-latency'` or `'least-cost'`
+strategy. Priority-style failover is `'explicit'` + `defaultBackend` +
+`setFallbackChain()`.
+
+---
+
+### `FallbackStrategy`
+
+```typescript
+type FallbackStrategy =
+  | 'none'        // Fail immediately
+  | 'sequential'  // Try backends in order until one succeeds (default)
+  | 'parallel'    // Try all remaining backends at once, take the first success
+  | 'custom';     // Use config.customFallback
 ```
 
 ---
 
-### `CustomStrategyFunction`
-
-Custom strategy function signature.
+### `CustomRoutingFunction`
 
 ```typescript
-type CustomStrategyFunction = (
-  request: IRChatCompletionRequest,
-  backends: BackendAdapter[],
-  health: BackendHealthMap
-) => number | Promise<number>;
+type CustomRoutingFunction = (
+  request: IRChatRequest,
+  availableBackends: readonly string[],
+  context: RoutingContext
+) => Promise<string | null>;
 ```
 
-**Returns:** Index of backend to use
+**Returns:** the **name** of the backend to use, or `null` to fall through to
+`defaultBackend` and then the first available backend. It is async, and it
+receives backend names - not adapters, and not indices.
 
 **Example:**
 
 ```typescript
-const customStrategy: CustomStrategyFunction = (request, backends, health) => {
-  // Route based on message complexity
-  const complexity = analyzeComplexity(request);
+import type { CustomRoutingFunction } from '@johnhenry/aimatey-types';
 
-  if (complexity < 25) return 0;  // Simple → Groq
-  if (complexity < 75) return 1;  // Medium → OpenAI
-  return 2;                       // Complex → Anthropic
+const selectBackend: CustomRoutingFunction = async (request, availableBackends) => {
+  const wordCount = request.messages
+    .map((m) => JSON.stringify(m.content).split(' ').length)
+    .reduce((a, b) => a + b, 0);
+
+  const preferred =
+    wordCount < 10 ? 'groq' : wordCount < 100 ? 'openai' : 'anthropic';
+
+  return availableBackends.includes(preferred) ? preferred : (availableBackends[0] ?? null);
 };
+
+const router = new Router({ routingStrategy: 'custom', customRouter: selectBackend });
 ```
 
 ---
 
-### `BackendHealthMap`
-
-Health status for each backend.
+### `CustomFallbackFunction`
 
 ```typescript
-interface BackendHealthMap {
-  [backendName: string]: {
-    healthy: boolean;
-    latency: number;        // Average latency in ms
-    errorRate: number;      // Error rate (0-1)
-    lastCheck: Date;
-    consecutiveFailures: number;
-  };
+type CustomFallbackFunction = (
+  request: IRChatRequest,
+  failedBackend: string,
+  error: AdapterError,
+  attemptedBackends: readonly string[],
+  availableBackends: readonly string[]
+) => Promise<string | null>;
+```
+
+---
+
+### `RoutingContext`
+
+```typescript
+interface RoutingContext {
+  readonly stats: RouterStats;
+  readonly metadata: Record<string, unknown>;
+  readonly preferredBackend?: string;
 }
 ```
 
 ---
 
-### `RouterEvent`
-
-Event types emitted by Router.
+### `BackendInfo`
 
 ```typescript
-type RouterEvent =
-  | 'backend:selected'
-  | 'backend:failed'
-  | 'backend:switch'
-  | 'backend:health';
+interface BackendInfo {
+  readonly name: string;
+  readonly adapter: BackendAdapter;
+  readonly metadata: AdapterMetadata;
+  readonly isHealthy: boolean;
+  readonly lastHealthCheck?: number;
+  readonly circuitBreakerState: 'closed' | 'open' | 'half-open';
+  readonly consecutiveFailures: number;
+  readonly stats: BackendStats;
+}
+```
+
+---
+
+### `RouterStats` / `BackendStats`
+
+```typescript
+interface RouterStats {
+  readonly totalRequests: number;
+  readonly successfulRequests: number;
+  readonly failedRequests: number;
+  readonly totalFallbacks: number;
+  readonly parallelRequests: number;
+  readonly backendStats: Record<string, BackendStats>;
+  readonly sinceTimestamp: number;
+}
+
+interface BackendStats {
+  readonly totalRequests: number;
+  readonly successfulRequests: number;
+  readonly failedRequests: number;
+  readonly successRate: number;       // 0-100
+  readonly averageLatencyMs: number;
+  readonly p50LatencyMs: number;
+  readonly p95LatencyMs: number;
+  readonly p99LatencyMs: number;
+  readonly totalCost?: number;
+  readonly averageCost?: number;
+}
+```
+
+---
+
+### `ParallelDispatchOptions` / `ParallelDispatchResult`
+
+```typescript
+interface ParallelDispatchOptions {
+  readonly backends?: readonly string[];
+  readonly strategy?: ParallelStrategy;     // default 'first'
+  readonly timeout?: number;
+  readonly cancelOnFirstSuccess?: boolean;  // default true
+  readonly customAggregator?: (
+    responses: Array<{ backend: string; response: IRChatResponse; latencyMs: number }>
+  ) => IRChatResponse;
+}
+
+interface ParallelDispatchResult {
+  readonly response: IRChatResponse;
+  readonly allResponses?: Array<{
+    readonly backend: string;
+    readonly response: IRChatResponse;
+    readonly latencyMs: number;
+  }>;
+  readonly successfulBackends: readonly string[];
+  readonly failedBackends: Array<{ readonly backend: string; readonly error: AdapterError }>;
+  readonly totalTimeMs: number;
+}
 ```
 
 ---
@@ -391,18 +474,19 @@ type RouterEvent =
 
 ### Round-Robin
 
-Distributes requests evenly across all backends.
+Distributes requests evenly across the available backends.
 
 ```typescript
-const router = new Router(frontend, {
-  backends: [backend1, backend2, backend3],
-  strategy: 'round-robin'
-});
+const router = new Router({ routingStrategy: 'round-robin' });
+router
+  .register('backend1', backend1)
+  .register('backend2', backend2)
+  .register('backend3', backend3);
 
-// Request 1 → Backend 1
-// Request 2 → Backend 2
-// Request 3 → Backend 3
-// Request 4 → Backend 1 (cycles)
+// Request 1 → backend1
+// Request 2 → backend2
+// Request 3 → backend3
+// Request 4 → backend1 (cycles)
 ```
 
 **Use case:** Even load distribution, all providers have similar pricing/performance.
@@ -411,64 +495,68 @@ const router = new Router(frontend, {
 
 ### Random
 
-Randomly selects a backend for each request.
+Randomly selects an available backend for each request.
 
 ```typescript
-const router = new Router(frontend, {
-  backends: [backend1, backend2, backend3],
-  strategy: 'random'
-});
+const router = new Router({ routingStrategy: 'random' });
+router.register('backend1', backend1).register('backend2', backend2);
 ```
 
 **Use case:** Simple distribution, A/B testing.
 
 ---
 
-### Priority (Failover)
+### Explicit + Fallback Chain (Failover)
 
-Uses backends in order, falls back if one fails.
+The equivalent of a "priority" strategy: always start at one backend, then walk a
+chain.
 
 ```typescript
-const router = new Router(frontend, {
-  backends: [primaryBackend, secondaryBackend, tertiaryBackend],
-  strategy: 'priority',
-  fallbackOnError: true
+const router = new Router({
+  routingStrategy: 'explicit',
+  defaultBackend: 'primary',
+  fallbackStrategy: 'sequential',
 });
+
+router
+  .register('primary', primaryBackend)
+  .register('secondary', secondaryBackend)
+  .register('tertiary', tertiaryBackend);
+
+router.setFallbackChain(['secondary', 'tertiary']);
 ```
 
 **Use case:** High availability, disaster recovery, primary + fallback providers.
 
 ---
 
-### Weighted
-
-Distributes requests according to weights.
+### Model-Based
 
 ```typescript
-const router = new Router(frontend, {
-  backends: [backend1, backend2, backend3],
-  strategy: 'weighted',
-  weights: [70, 20, 10] // 70%, 20%, 10%
+const router = new Router({ routingStrategy: 'model-based' });
+router.register('openai', openaiBackend).register('anthropic', anthropicBackend);
+
+router.setModelMapping({
+  'gpt-4': 'openai',
+  'gpt-4o-mini': 'openai',
+  'claude-3-5-sonnet-20241022': 'anthropic',
 });
 ```
 
-**Use case:** Canary deployments, gradual provider migration, A/B testing with traffic split.
+**Use case:** One endpoint serving several providers' model catalogues.
 
 ---
 
-### Least-Latency
+### Latency-Optimized
 
-Selects the backend with lowest average latency.
+Selects the backend with the lowest observed average latency. Needs
+`trackLatency` (on by default) and some traffic history to work from.
 
 ```typescript
-const router = new Router(frontend, {
-  backends: [backend1, backend2, backend3],
-  strategy: 'least-latency',
-  healthCheck: {
-    enabled: true,
-    interval: 60000,
-    timeout: 5000
-  }
+const router = new Router({
+  routingStrategy: 'latency-optimized',
+  trackLatency: true,
+  healthCheckInterval: 60_000,
 });
 ```
 
@@ -476,19 +564,14 @@ const router = new Router(frontend, {
 
 ---
 
-### Least-Cost
+### Cost-Optimized
 
-Selects the cheapest backend based on estimated cost.
+Selects the backend with the lowest observed average cost. Requires
+`trackCost: true` and backends that implement `estimateCost()`; without it the
+strategy selects nothing and the router falls through to `defaultBackend`.
 
 ```typescript
-const router = new Router(frontend, {
-  backends: [
-    groqBackend,      // $0.00027 per 1K tokens
-    deepseekBackend,  // $0.0002 per 1K tokens
-    openaiBackend     // $0.0015 per 1K tokens
-  ],
-  strategy: 'least-cost'
-});
+const router = new Router({ routingStrategy: 'cost-optimized', trackCost: true });
 ```
 
 **Use case:** Cost optimization, budget-conscious applications.
@@ -497,25 +580,24 @@ const router = new Router(frontend, {
 
 ### Custom
 
-Use your own routing logic.
-
 ```typescript
-function selectBackend(request, backends, health) {
-  // Analyze request complexity
+import type { CustomRoutingFunction } from '@johnhenry/aimatey-types';
+
+const selectBackend: CustomRoutingFunction = async (request, availableBackends) => {
   const wordCount = request.messages
-    .map(m => m.content.split(' ').length)
+    .map((m) => JSON.stringify(m.content).split(' ').length)
     .reduce((a, b) => a + b, 0);
 
-  if (wordCount < 10) return 0;    // Simple → Fast/cheap
-  if (wordCount < 100) return 1;   // Medium → Balanced
-  return 2;                        // Complex → Powerful
-}
+  if (wordCount < 10) return 'groq';       // Simple → fast/cheap
+  if (wordCount < 100) return 'openai';    // Medium → balanced
+  return 'anthropic';                      // Complex → powerful
+};
 
-const router = new Router(frontend, {
-  backends: [groqBackend, openaiBackend, anthropicBackend],
-  strategy: 'custom',
-  customStrategy: selectBackend
-});
+const router = new Router({ routingStrategy: 'custom', customRouter: selectBackend });
+router
+  .register('groq', groqBackend)
+  .register('openai', openaiBackend)
+  .register('anthropic', anthropicBackend);
 ```
 
 **Use case:** Application-specific logic, multi-factor routing.
@@ -526,36 +608,35 @@ const router = new Router(frontend, {
 
 ### Automatic Health Checks
 
-```typescript
-const router = new Router(frontend, {
-  backends: [backend1, backend2, backend3],
-  strategy: 'priority',
-  fallbackOnError: true,
-  healthCheck: {
-    enabled: true,
-    interval: 60000,  // Check every minute
-    timeout: 5000     // 5s timeout
-  }
-});
+Set `healthCheckInterval` (milliseconds; `0` disables) and the router probes every
+backend in the background, marking failures unhealthy so routing skips them.
 
-// Monitor health status
-router.on('backend:health', ({ backend, healthy, latency }) => {
-  console.log(`${backend}: ${healthy ? '✅' : '❌'} (${latency}ms)`);
+```typescript
+const router = new Router({
+  routingStrategy: 'round-robin',
+  healthCheckInterval: 60_000,
+  enableCircuitBreaker: true,
+  circuitBreakerThreshold: 5,
+  circuitBreakerTimeout: 60_000,
 });
 ```
+
+There is no event emitter on `Router`; poll `getBackendInfo()` to observe state.
 
 ---
 
 ### Manual Health Check
 
 ```typescript
-const health = await router.getBackendHealth();
+const health = await router.checkHealth();
 
-for (const [name, status] of Object.entries(health)) {
-  if (!status.healthy) {
+for (const [name, healthy] of Object.entries(health)) {
+  if (!healthy) {
+    const info = router.getBackendInfo(name);
     console.log(`⚠️  ${name} is unhealthy`);
-    console.log(`  Error rate: ${(status.errorRate * 100).toFixed(1)}%`);
-    console.log(`  Consecutive failures: ${status.consecutiveFailures}`);
+    console.log(`  Success rate: ${info?.stats.successRate.toFixed(1)}%`);
+    console.log(`  Consecutive failures: ${info?.consecutiveFailures}`);
+    console.log(`  Circuit breaker: ${info?.circuitBreakerState}`);
   }
 }
 ```
@@ -564,81 +645,68 @@ for (const [name, status] of Object.entries(health)) {
 
 ## Advanced Examples
 
-### Cost-Optimized Routing
+### Cost-Optimized Routing (per request)
 
 ```typescript
-const PRICING = {
+import type { CustomRoutingFunction } from '@johnhenry/aimatey-types';
+
+const PRICING: Record<string, number> = {
   groq: 0.00027,
   deepseek: 0.0002,
   anthropic: 0.0008,
-  openai: 0.0015
+  openai: 0.0015,
 };
 
-function estimateCost(request, backend) {
-  const tokens = estimateTokens(request);
-  const pricePerToken = PRICING[backend.name];
-  return tokens * pricePerToken / 1000;
-}
+const cheapest: CustomRoutingFunction = async (request, availableBackends) => {
+  const tokens = Math.ceil(JSON.stringify(request.messages).length / 4);
 
-const router = new Router(frontend, {
-  backends: [groqBackend, deepseekBackend, anthropicBackend, openaiBackend],
-  strategy: 'custom',
-  customStrategy: (request, backends) => {
-    let cheapestIndex = 0;
-    let lowestCost = Infinity;
+  let best: string | null = null;
+  let lowestCost = Infinity;
 
-    backends.forEach((backend, index) => {
-      const cost = estimateCost(request, backend);
-      if (cost < lowestCost) {
-        lowestCost = cost;
-        cheapestIndex = index;
-      }
-    });
-
-    return cheapestIndex;
+  for (const name of availableBackends) {
+    const cost = ((PRICING[name] ?? Infinity) * tokens) / 1000;
+    if (cost < lowestCost) {
+      lowestCost = cost;
+      best = name;
+    }
   }
-});
+
+  return best;
+};
+
+const router = new Router({ routingStrategy: 'custom', customRouter: cheapest });
 ```
 
 ---
 
 ### Multi-Factor Routing
 
+`availableBackends` already excludes unhealthy and circuit-open backends, so a
+custom router only has to weigh the factors it cares about.
+
 ```typescript
-function intelligentRouting(request, backends, health) {
-  // Factor 1: Health status
-  const healthyBackends = backends.filter((_, i) =>
-    health[backends[i].name]?.healthy !== false
-  );
+import type { CustomRoutingFunction } from '@johnhenry/aimatey-types';
 
-  if (healthyBackends.length === 0) {
-    return 0; // Fallback to first backend
-  }
+const intelligentRouting: CustomRoutingFunction = async (request, availableBackends, context) => {
+  if (availableBackends.length === 0) return null;
 
-  // Factor 2: Request complexity
   const complexity = analyzeComplexity(request);
-
-  // Factor 3: Time of day (off-peak = cheaper)
   const hour = new Date().getHours();
   const isOffPeak = hour < 6 || hour > 22;
 
-  // Routing logic
-  if (complexity > 80) {
-    return backends.findIndex(b => b.name === 'anthropic'); // Most capable
-  }
+  const pick = (name: string) => (availableBackends.includes(name) ? name : null);
 
-  if (isOffPeak && complexity < 30) {
-    return backends.findIndex(b => b.name === 'groq'); // Cheapest
-  }
+  if (complexity > 80) return pick('anthropic') ?? availableBackends[0]!;
+  if (isOffPeak && complexity < 30) return pick('groq') ?? availableBackends[0]!;
 
-  return backends.findIndex(b => b.name === 'openai'); // Balanced
-}
+  // context.stats carries live per-backend statistics if you want to weigh them
+  return pick('openai') ?? availableBackends[0]!;
+};
 
-const router = new Router(frontend, {
-  backends: [groqBackend, openaiBackend, anthropicBackend],
-  strategy: 'custom',
-  customStrategy: intelligentRouting,
-  healthCheck: { enabled: true, interval: 60000, timeout: 5000 }
+const router = new Router({
+  routingStrategy: 'custom',
+  customRouter: intelligentRouting,
+  healthCheckInterval: 60_000,
 });
 ```
 
@@ -649,40 +717,55 @@ const router = new Router(frontend, {
 ### Automatic Fallback
 
 ```typescript
-const router = new Router(frontend, {
-  backends: [primaryBackend, fallbackBackend],
-  strategy: 'priority',
-  fallbackOnError: true
+const router = new Router({
+  routingStrategy: 'explicit',
+  defaultBackend: 'primary',
+  fallbackStrategy: 'sequential',
 });
 
-router.on('backend:failed', ({ backend, error }) => {
-  console.error(`❌ ${backend} failed: ${error.message}`);
-});
+router.register('primary', primaryBackend).register('fallback', fallbackBackend);
+router.setFallbackChain(['fallback']);
 
-router.on('backend:switch', ({ from, to }) => {
-  console.log(`🔄 Switched from ${from} to ${to}`);
-});
+const bridge = new Bridge(new OpenAIFrontendAdapter(), router);
 
-// If primary fails, automatically uses fallback
-const response = await router.chat({ ... });
+// If primary fails, this automatically uses fallback
+const response = await bridge.chat(request);
+
+// Afterwards, the counters tell you whether a fallback happened
+console.log(router.getStats().totalFallbacks);
 ```
 
 ---
 
 ### Manual Error Handling
 
+Routing failures surface as `AdapterError` with a routing error code. There is no
+`AllBackendsFailedError` class - check `error.code` instead.
+
 ```typescript
+import { AdapterError, ErrorCode } from '@johnhenry/aimatey-errors';
+
 try {
-  const response = await router.chat({ ... });
+  const response = await bridge.chat(request);
 } catch (error) {
-  if (error instanceof AllBackendsFailedError) {
-    console.error('All backends failed!');
-    error.failures.forEach(({ backend, error }) => {
-      console.error(`  ${backend}: ${error.message}`);
-    });
+  if (error instanceof AdapterError) {
+    switch (error.code) {
+      case ErrorCode.ALL_BACKENDS_FAILED:
+        console.error('Every backend in the chain failed');
+        break;
+      case ErrorCode.NO_BACKEND_AVAILABLE:
+        console.error('No healthy backend to route to');
+        break;
+      case ErrorCode.ROUTING_FAILED:
+        console.error('Routing rejected the request (e.g. unknown backend name)');
+        break;
+    }
   }
 }
 ```
+
+`RouterError` (a subclass of `AdapterError`) carries an `attemptedBackends`
+array when it is thrown.
 
 ---
 
