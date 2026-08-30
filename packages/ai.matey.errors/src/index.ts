@@ -433,7 +433,7 @@ export function createErrorFromHttpResponse(
   return new AdapterError({
     code: ErrorCodeEnum.PROVIDER_ERROR,
     message: `HTTP error ${statusCode}: ${statusText}`,
-    isRetryable: statusCode >= 500,
+    isRetryable: isRetryableStatusCode(statusCode),
     provenance,
     details: httpContext as unknown as Record<string, unknown>,
   });
