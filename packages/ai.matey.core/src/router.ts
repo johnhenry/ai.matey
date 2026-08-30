@@ -14,6 +14,8 @@ import type {
   IRChatResponse,
   IRChatStream,
   IRStreamChunk,
+  StreamChunkType,
+  StreamErrorChunk,
 } from '@johnhenry/aimatey-types';
 import type {
   Router as IRouter,
@@ -70,6 +72,31 @@ interface BackendState {
 type MutableRouterConfig = {
   -readonly [K in keyof RouterConfig]: RouterConfig[K];
 };
+
+/**
+ * Chunk types that carry model output, or end the stream, and therefore
+ * commit the router to the backend that produced them.
+ *
+ * Everything else -- `start`, `metadata` -- is preamble that a consumer
+ * cannot render, so it can be held back for as long as failing the stream
+ * over to another backend is still possible.
+ */
+const COMMITTING_CHUNK_TYPES: ReadonlySet<StreamChunkType> = new Set<StreamChunkType>([
+  'content',
+  'tool_use',
+  'done',
+  'error',
+]);
+
+/**
+ * Upper bound on preamble chunks held back while streaming fallback is still
+ * possible.
+ *
+ * A backend that emits more than this before its first token is malformed;
+ * rather than buffer without bound, the router flushes what it has, gives up
+ * the option to fail over, and streams straight through.
+ */
+const MAX_HELD_STREAM_CHUNKS = 32;
 
 // ============================================================================
 // Router Implementation
@@ -710,6 +737,40 @@ export class Router implements IRouter {
 
   /**
    * Execute streaming request with automatic backend selection and fallback.
+   *
+   * ## Fallback is bounded by what the consumer has already seen
+   *
+   * Once model output has reached the consumer, no other backend can take
+   * over: restarting would duplicate or contradict text the user is already
+   * reading. From that point a failure surfaces as an `error` chunk, exactly
+   * as it did before this method had fallback at all.
+   *
+   * *Before* that point nothing is observable, so failing over is both safe
+   * and invisible. Chunks that carry no model output (`start`, `metadata`)
+   * are therefore held back and flushed the instant the first committing
+   * chunk -- `content`, `tool_use` or `done` -- arrives. The buffer never
+   * waits on a timer or a chunk count, so it adds nothing to
+   * time-to-first-token; it only defers chunks the consumer cannot render
+   * anyway. A backend that dies mid-preamble is replaced without the caller
+   * ever learning that it existed. See {@link MAX_HELD_STREAM_CHUNKS} for the
+   * bound on that buffer.
+   *
+   * An `error` chunk that arrives before the stream has committed is treated
+   * exactly like a thrown error: an in-band failure nobody has seen yet is
+   * just as recoverable as an out-of-band one.
+   *
+   * ## Strategy
+   *
+   * Streaming fallback is always *sequential*, including under
+   * `fallbackStrategy: 'parallel'`. Racing streams would start N generations
+   * and abandon N-1 of them -- billable output for no latency gain, given
+   * that a stream can only be moved before its first token anyway.
+   * `'none'` disables fallback, and `'custom'` consults
+   * {@link RouterConfig.customFallback}, both as they do for
+   * {@link Router.execute}.
+   *
+   * An aborted request is never failed over: the caller asked to stop, not
+   * for a different backend.
    */
   async *executeStream(request: IRChatRequest, signal?: AbortSignal): IRChatStream {
     this.stats.totalRequests++;
@@ -717,39 +778,107 @@ export class Router implements IRouter {
     const preferredBackend = request.metadata?.custom?.backend as string | undefined;
     const attemptedBackends: string[] = [];
 
+    let lastError: unknown;
+    /** A backend's own error chunk, preferred over a synthesized one. */
+    let lastErrorChunk: StreamErrorChunk | undefined;
+    let currentBackend: string | null;
+
     try {
-      // Select primary backend
-      const primaryBackend = await this.selectBackend(request, preferredBackend);
-      attemptedBackends.push(primaryBackend);
+      currentBackend = await this.selectBackend(request, preferredBackend);
+    } catch (selectionError) {
+      // execute() falls back when selection itself fails, so this does too.
+      lastError = selectionError;
+      currentBackend = await this.nextStreamFallbackBackend(
+        request,
+        attemptedBackends,
+        selectionError
+      );
+    }
 
-      // Translate model for this backend (attaches substitution warnings)
-      const translatedRequest = this.applyModelTranslation(request, primaryBackend);
+    while (currentBackend !== null) {
+      const backendName = currentBackend;
+      attemptedBackends.push(backendName);
 
-      // Try primary backend streaming
-      const stream = this.executeStreamOnBackend(primaryBackend, translatedRequest, signal);
+      /** Preamble chunks withheld while fallback is still possible. */
+      const held: IRStreamChunk[] = [];
+      /** True once anything has been yielded to the consumer. */
+      let committed = false;
+      /** This attempt's in-band error chunk, if it produced one. */
+      let attemptErrorChunk: StreamErrorChunk | undefined;
 
-      for await (const chunk of stream) {
-        // Check AbortSignal before yielding each chunk
-        if (signal?.aborted) {
+      try {
+        // Translate model for this backend (attaches substitution warnings)
+        const translatedRequest = this.applyModelTranslation(request, backendName);
+        const stream = this.executeStreamOnBackend(backendName, translatedRequest, signal);
+
+        let aborted = false;
+
+        for await (const chunk of stream) {
+          // Check AbortSignal before yielding each chunk
+          if (signal?.aborted) {
+            aborted = true;
+            break;
+          }
+
+          if (chunk.type === 'error' && !committed) {
+            attemptErrorChunk = chunk;
+            throw new AdapterError({
+              code: ErrorCode.PROVIDER_ERROR,
+              message: chunk.error.message,
+              isRetryable: true,
+              provenance: { router: this.metadata.name, backend: backendName },
+            });
+          }
+
+          if (
+            !committed &&
+            !COMMITTING_CHUNK_TYPES.has(chunk.type) &&
+            held.length < MAX_HELD_STREAM_CHUNKS
+          ) {
+            held.push(chunk);
+            continue;
+          }
+
+          if (!committed) {
+            committed = true;
+            for (const heldChunk of held) {
+              yield heldChunk;
+            }
+            held.length = 0;
+          }
+
+          yield chunk;
+        }
+
+        // A stream that produced nothing but preamble still owes the
+        // consumer that preamble.
+        if (!aborted) {
+          for (const heldChunk of held) {
+            yield heldChunk;
+          }
+        }
+
+        if (attemptedBackends.length > 1) {
+          this.stats.totalFallbacks++;
+        }
+        this.stats.successfulRequests++;
+        return;
+      } catch (error) {
+        lastError = error;
+        lastErrorChunk = attemptErrorChunk;
+
+        // A committed stream cannot be moved, and a cancelled request is not
+        // a backend failure. Neither may be failed over.
+        if (committed || signal?.aborted) {
           break;
         }
-        yield chunk;
+
+        currentBackend = await this.nextStreamFallbackBackend(request, attemptedBackends, error);
       }
-
-      this.stats.successfulRequests++;
-    } catch (primaryError) {
-      // For streaming, fallback is more complex - yield error chunk
-      this.stats.failedRequests++;
-
-      yield {
-        type: 'error',
-        sequence: 0,
-        error: {
-          code: primaryError instanceof AdapterError ? primaryError.code : 'UNKNOWN_ERROR',
-          message: primaryError instanceof Error ? primaryError.message : String(primaryError),
-        },
-      } as IRStreamChunk;
     }
+
+    this.stats.failedRequests++;
+    yield lastErrorChunk ?? this.createStreamErrorChunk(lastError);
   }
 
   /**
@@ -1243,53 +1372,87 @@ export class Router implements IRouter {
 
     try {
       const response = await state.adapter.execute(request, signal);
-
-      // Track success
-      state.successfulRequests++;
-      state.consecutiveFailures = 0;
-
-      if (this.config.trackLatency) {
-        const latency = Date.now() - startTime;
-        state.latencies.push(latency);
-        // Keep only last 100 latencies
-        if (state.latencies.length > 100) {
-          state.latencies.shift();
-        }
-      }
-
-      // Track cost
-      if (this.config.trackCost && state.adapter.estimateCost) {
-        const cost = await state.adapter.estimateCost(request);
-        if (cost !== null) {
-          state.totalCost += cost;
-        }
-      }
-
-      // Update circuit breaker
-      if (state.circuitBreakerState === 'half-open') {
-        state.circuitBreakerState = 'closed';
-      }
-
+      await this.recordSuccess(state, request, startTime);
       return response;
     } catch (error) {
-      // Track failure
-      state.failedRequests++;
-      state.consecutiveFailures++;
-
-      // Update circuit breaker
-      if (
-        this.config.enableCircuitBreaker &&
-        state.consecutiveFailures >= (this.config.circuitBreakerThreshold ?? 5)
-      ) {
-        this.openCircuitBreaker(name);
-      }
-
+      this.recordFailure(name, state);
       throw error;
     }
   }
 
   /**
+   * Record a completed backend call that produced no fault.
+   *
+   * Shared by the streaming and non-streaming paths so that both report the
+   * same shape through {@link Router.getBackendStats}: a success counted, the
+   * consecutive-failure run broken, a latency sample taken, cost accrued, and
+   * a half-open circuit closed by the evidence of a working request.
+   *
+   * `startTime` is the moment the request was handed to the adapter, so for a
+   * stream the sample is full-response wall time -- the same quantity
+   * `execute()` measures, which keeps `averageLatencyMs` coherent for a
+   * backend serving both kinds of traffic. (Time-to-first-token is a
+   * different, also useful metric; it would need its own field rather than
+   * being mixed into this one.)
+   */
+  private async recordSuccess(
+    state: BackendState,
+    request: IRChatRequest,
+    startTime: number
+  ): Promise<void> {
+    state.successfulRequests++;
+    state.consecutiveFailures = 0;
+
+    if (this.config.trackLatency) {
+      const latency = Date.now() - startTime;
+      state.latencies.push(latency);
+      // Keep only last 100 latencies
+      if (state.latencies.length > 100) {
+        state.latencies.shift();
+      }
+    }
+
+    // Track cost
+    if (this.config.trackCost && state.adapter.estimateCost) {
+      const cost = await state.adapter.estimateCost(request);
+      if (cost !== null) {
+        state.totalCost += cost;
+      }
+    }
+
+    // Update circuit breaker
+    if (state.circuitBreakerState === 'half-open') {
+      state.circuitBreakerState = 'closed';
+    }
+  }
+
+  /**
+   * Record a failed backend call, tripping the circuit breaker once the
+   * consecutive-failure threshold is reached.
+   *
+   * Shared by the streaming and non-streaming paths, so a backend that only
+   * ever fails streamed requests trips its breaker just like one that fails
+   * unary requests.
+   */
+  private recordFailure(name: string, state: BackendState): void {
+    state.failedRequests++;
+    state.consecutiveFailures++;
+
+    if (
+      this.config.enableCircuitBreaker &&
+      state.consecutiveFailures >= (this.config.circuitBreakerThreshold ?? 5)
+    ) {
+      this.openCircuitBreaker(name);
+    }
+  }
+
+  /**
    * Execute streaming request on specific backend.
+   *
+   * Backend lookup and the circuit-breaker check happen eagerly, before the
+   * returned stream is iterated, so that a rejected backend throws while the
+   * caller can still fail over to another one. Everything else is deferred to
+   * {@link Router.trackStream}.
    */
   private executeStreamOnBackend(
     name: string,
@@ -1306,14 +1469,83 @@ export class Router implements IRouter {
       });
     }
 
-    // Check circuit breaker
+    // Check circuit breaker. Note this runs before totalRequests is counted
+    // (in trackStream), so a request the breaker refuses is never counted as
+    // one this router sent.
     if (this.config.enableCircuitBreaker) {
       this.checkCircuitBreaker(name, state);
     }
 
-    state.totalRequests++;
+    return this.trackStream(name, state, request, signal);
+  }
 
-    return state.adapter.executeStream(request, signal);
+  /**
+   * Wrap a backend stream so its outcome reaches the same per-backend
+   * accounting and circuit breaker as a non-streaming call.
+   *
+   * Three outcomes, all of which count one `totalRequests`:
+   *
+   * - **Success** -- a `done` chunk is seen, or the backend's iterator
+   *   finishes without one. {@link Router.recordSuccess}.
+   * - **Failure** -- the iterator throws, or yields an in-band `error` chunk.
+   *   {@link Router.recordFailure}, which may trip the breaker.
+   * - **Abandoned** -- the consumer stops reading (`break`, `return()`,
+   *   `throw()`, or an aborted request). Counted as a completed request
+   *   without fault, because cancelling a stream must never be able to trip a
+   *   circuit breaker on a backend that did nothing wrong. It contributes no
+   *   latency sample and no cost estimate: neither the elapsed time nor the
+   *   generated output is the backend's, and it deliberately leaves
+   *   `consecutiveFailures` and the breaker state untouched -- a stream the
+   *   consumer walked away from is not evidence that a suspect backend has
+   *   recovered.
+   *
+   * `totalRequests` is counted here rather than in
+   * {@link Router.executeStreamOnBackend} so that a stream which is created
+   * but never iterated is not counted as sent.
+   */
+  private async *trackStream(
+    name: string,
+    state: BackendState,
+    request: IRChatRequest,
+    signal?: AbortSignal
+  ): IRChatStream {
+    state.totalRequests++;
+    const startTime = Date.now();
+
+    let settled = false;
+
+    try {
+      for await (const chunk of state.adapter.executeStream(request, signal)) {
+        if (!settled && chunk.type === 'error') {
+          settled = true;
+          this.recordFailure(name, state);
+        } else if (!settled && chunk.type === 'done') {
+          // Recorded before the chunk is handed over: a consumer that stops
+          // reading at `done` is a normal, complete stream.
+          settled = true;
+          await this.recordSuccess(state, request, startTime);
+        }
+
+        yield chunk;
+      }
+
+      if (!settled) {
+        settled = true;
+        await this.recordSuccess(state, request, startTime);
+      }
+    } catch (error) {
+      if (!settled) {
+        settled = true;
+        this.recordFailure(name, state);
+      }
+      throw error;
+    } finally {
+      if (!settled) {
+        // Reached only when the consumer abandoned the iterator.
+        settled = true;
+        state.successfulRequests++;
+      }
+    }
   }
 
   /**
@@ -1350,6 +1582,72 @@ export class Router implements IRouter {
     }
 
     throw error;
+  }
+
+  /**
+   * Pick the next backend to try for a stream, or `null` to stop.
+   *
+   * The streaming counterpart of {@link Router.executeFallback}. It returns
+   * one candidate at a time instead of driving the attempt itself, because
+   * {@link Router.executeStream} has to interleave attempts with yielding.
+   *
+   * `'sequential'` and `'parallel'` resolve to the same candidate order --
+   * the fallback chain, filtered to what is available, or every available
+   * backend when no chain is configured. Streams are never raced: N parallel
+   * generations of which N-1 are abandoned cost real money and buy no
+   * latency, since a stream can only be moved before its first token anyway.
+   */
+  private async nextStreamFallbackBackend(
+    request: IRChatRequest,
+    attemptedBackends: readonly string[],
+    error: unknown
+  ): Promise<string | null> {
+    const strategy = this.config.fallbackStrategy ?? 'sequential';
+
+    if (strategy === 'none') {
+      return null;
+    }
+
+    const available = this.getAvailableBackends().filter(
+      (name) => !attemptedBackends.includes(name)
+    );
+
+    if (strategy === 'custom') {
+      if (!this.config.customFallback) {
+        return null;
+      }
+
+      const nextBackend = await this.config.customFallback(
+        request,
+        attemptedBackends[attemptedBackends.length - 1] ?? '',
+        this.wrapError(error),
+        [...attemptedBackends],
+        available
+      );
+
+      return nextBackend && !attemptedBackends.includes(nextBackend) ? nextBackend : null;
+    }
+
+    const candidates =
+      this.fallbackChain.length > 0
+        ? this.fallbackChain.filter((name) => available.includes(name))
+        : available;
+
+    return candidates[0] ?? null;
+  }
+
+  /**
+   * Build the terminal `error` chunk for a stream that could not be served.
+   */
+  private createStreamErrorChunk(error: unknown): StreamErrorChunk {
+    return {
+      type: 'error',
+      sequence: 0,
+      error: {
+        code: error instanceof AdapterError ? error.code : 'UNKNOWN_ERROR',
+        message: error instanceof Error ? error.message : String(error),
+      },
+    };
   }
 
   /**
