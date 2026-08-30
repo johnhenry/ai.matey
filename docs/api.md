@@ -1164,6 +1164,24 @@ function schemaToToolDefinition(
 ): ToolDefinition
 ```
 
+Objects, strings, numbers, booleans, arrays, enums, unions and discriminated unions
+(`anyOf`), intersections (`allOf`), records, dates (`string`/`date-time`), literals
+(single-member `enum`), tuples, sets, maps, `null`, `any`/`unknown` and the
+`optional`/`nullable`/`default`/`catch`/`readonly`/`lazy`/`transform` modifiers are all
+converted, at any nesting depth. `.optional()` (and `.nullish()`/`.default()`/`.catch()`)
+drops the key from `required`; `.nullable()` does **not** — the key must still be present,
+it is the value that may be `null`.
+
+Anything with no JSON Schema representation (`z.bigint()`, `z.symbol()`, `z.custom()`, ...)
+becomes `{}` — "any value" — and is reported on `ToolDefinition.warnings` as an `IRWarning`
+with `category: 'content-type-unsupported'`, naming the type and the field path. `z.date()`,
+`z.set()` and `z.map()` are converted *and* warned about, because Zod rejects the JSON that
+comes back (use `z.coerce.date()` for dates). `warnings` is absent when nothing was lost.
+
+`generateObject`/`streamObject` additionally put those warnings on
+`IRChatRequest.metadata.warnings`, and append them to a `Validation failed: ...` error, so a
+lossy schema conversion is never silent.
+
 **Example:**
 ```typescript
 import { schemaToToolDefinition } from '@johnhenry/aimatey-utils';

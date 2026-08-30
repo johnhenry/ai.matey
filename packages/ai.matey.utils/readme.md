@@ -238,6 +238,10 @@ an unrecognized dated snapshot still resolves to its family entry instead of ret
 
 `schemaToToolDefinition`, `validateWithSchema`, and PII/prompt-injection detection helpers
 (`DEFAULT_PII_PATTERNS`, `DEFAULT_INJECTION_PATTERNS`) for building and validating tool schemas.
+The Zod -> JSON Schema conversion covers unions, records, dates, literals, tuples,
+intersections, nullable/optional/default modifiers and nested or recursive objects; a type with
+no JSON Schema representation converts to `{}` and is reported on `ToolDefinition.warnings` as
+an `IRWarning` rather than being silently degraded to `{ type: 'string' }`.
 Note: this is separate from `IRResponseFormat`/`responseFormat` (schema-constrained *model
 output*, defined in `@johnhenry/aimatey-types` and mapped per-backend in `@johnhenry/aimatey-backend` - see
 [`docs/IR-FORMAT.md`](../../docs/IR-FORMAT.md#structured-output)); these utilities are about

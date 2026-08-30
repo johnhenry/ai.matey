@@ -10,14 +10,19 @@
  *
  * **IMPORTANT**: These utilities operate on Zod schemas supplied by the caller.
  * `zod` is an optional peer dependency -- install it with `npm install zod` and
- * pass the schemas you build with it. This module holds no runtime reference to
- * `zod` itself -- its only `zod` import is a type-only one, erased at compile
- * time -- so it stays browser-safe and adds nothing to a bundle for consumers
- * who never touch structured output.
+ * pass the schemas you build with it. This module does not import `zod` at all,
+ * not even for types (#59 removed the last runtime reference; #66 removed the
+ * last type reference), so it stays browser-safe and adds nothing to a bundle
+ * for consumers who never touch structured output.
  */
 
-import type { z } from 'zod';
-import type { IRChatRequest, IRChatResponse, IRChatStream, IRTool } from '@johnhenry/aimatey-types';
+import type {
+  IRChatRequest,
+  IRChatResponse,
+  IRChatStream,
+  IRTool,
+  IRWarning,
+} from '@johnhenry/aimatey-types';
 import { extractToolCalls } from './tools.js';
 
 // ============================================================================
@@ -124,16 +129,41 @@ export interface ToolDefinition {
     description: string;
     parameters: JSONSchema;
   };
+  /**
+   * Semantic drift recorded while converting the Zod schema (issue #66).
+   *
+   * Present only when the conversion actually lost something -- a type with
+   * no JSON Schema representation, a recursive node, a `z.date()` that will
+   * arrive as a string. Absent otherwise, so a clean conversion returns
+   * exactly the shape it always has.
+   */
+  warnings?: IRWarning[];
 }
 
 /**
- * JSON Schema representation (subset used for tool definitions)
+ * JSON Schema representation (the subset used for tool/function parameter
+ * schemas -- i.e. the contract actually sent to the provider).
+ *
+ * `type` is optional: `{}` is the JSON Schema spelling of "any value", which
+ * is what an unconstrained (`z.any()`) or unrepresentable field converts to,
+ * and a node described with `anyOf`/`allOf` has no single `type` either.
+ * Claiming `{ type: 'string' }` for those cases is exactly the bug in #66.
  */
 export interface JSONSchema {
-  type: string;
+  type?: string | string[];
   properties?: Record<string, JSONSchema>;
   items?: JSONSchema;
-  enum?: string[];
+  prefixItems?: JSONSchema[];
+  minItems?: number;
+  maxItems?: number;
+  uniqueItems?: boolean;
+  additionalProperties?: boolean | JSONSchema;
+  anyOf?: JSONSchema[];
+  allOf?: JSONSchema[];
+  enum?: unknown[];
+  const?: unknown;
+  default?: unknown;
+  format?: string;
   required?: string[];
   description?: string;
 }
@@ -190,9 +220,9 @@ export function schemaToToolDefinition(
   // Ensure the caller handed us a real Zod schema
   assertZodSchema(schema);
 
-  const jsonSchema = zodToJsonSchema(schema);
+  const { schema: jsonSchema, warnings } = zodToJsonSchema(schema);
 
-  return {
+  const definition: ToolDefinition = {
     type: 'function',
     function: {
       name,
@@ -200,133 +230,615 @@ export function schemaToToolDefinition(
       parameters: jsonSchema,
     },
   };
+
+  // Attached only when non-empty: a faithful conversion returns the same
+  // shape it always did, so this is additive for every existing caller.
+  if (warnings.length > 0) {
+    definition.warnings = warnings;
+  }
+
+  return definition;
+}
+
+// ============================================================================
+// Zod -> JSON Schema Conversion
+// ============================================================================
+
+/**
+ * Canonical, lowercase tag for one Zod schema node: `'string'`, `'union'`,
+ * `'record'`, ...
+ *
+ * Issue #66: every conversion branch keys off this one function, so it has to
+ * work on both majors of the peer range (`zod@^3 || ^4`) *and* survive a
+ * minifier. The three sources are tried in order of reliability:
+ *
+ * 1. **Zod v3** stores a string constant in `_def.typeName` (`'ZodString'`).
+ * 2. **Zod v4** dropped `typeName`, but stores its own string constant in
+ *    `_def.type` (`'string'`). Both are *data*, not identifiers, so no
+ *    minifier can rewrite them. (The `typeof` guard and the v3-first ordering
+ *    matter: in v3 `_def.type` is the *element schema* of a `ZodArray`, an
+ *    object, not a tag.)
+ * 3. `constructor.name` last. It is what the previous implementation relied
+ *    on for all of v4 -- and it is the one source a name-mangling bundler can
+ *    destroy, which would previously have collapsed *every* branch at once and
+ *    silently converted every schema to `{ type: 'string' }`.
+ *
+ * Anything unrecognized returns `''`, which the converter reports as a
+ * warning rather than guessing.
+ */
+function zodTypeTag(schema: unknown): string {
+  const node = schema as { _def?: Record<string, unknown>; constructor?: { name?: string } } | null;
+  const def: Record<string, unknown> = (node?._def as Record<string, unknown>) ?? {};
+
+  if (typeof def.typeName === 'string' && def.typeName.length > 0) {
+    return canonicalTag(def.typeName);
+  }
+
+  if (typeof def.type === 'string' && def.type.length > 0) {
+    return canonicalTag(def.type);
+  }
+
+  const constructorName = node?.constructor?.name;
+  if (typeof constructorName === 'string' && constructorName.length > 0) {
+    return canonicalTag(constructorName);
+  }
+
+  return '';
 }
 
 /**
- * Convert a Zod schema to JSON Schema format
+ * Fold the v3 spelling, the v4 spelling and the class-name spelling of the
+ * same concept onto one tag, so each conversion branch is written once.
  */
-function zodToJsonSchema(schema: any): JSONSchema {
-  // Get the Zod internal definition
-  const def = schema._def;
+const TAG_ALIASES: Readonly<Record<string, string>> = {
+  // v3 `ZodDiscriminatedUnion` vs v4 `_def.type === 'union'`
+  discriminatedunion: 'union',
+  // v3 `ZodNativeEnum` vs v4 `_def.type === 'enum'`
+  nativeenum: 'enum',
+  // v3 `ZodPipeline` vs v4 `_def.type === 'pipe'`
+  pipeline: 'pipe',
+  // v3 `ZodBranded` vs v4 (`.brand()` returns the schema unchanged)
+  brand: 'branded',
+  // v4 class names, for the constructor-name fallback only
+  numberformat: 'number',
+  stringformat: 'string',
+  templateliteral: 'template_literal',
+};
 
-  // Zod v3+ uses _def.typeName, fallback to constructor name
-  const typeName = def.typeName || schema.constructor.name;
+function canonicalTag(raw: string): string {
+  const bare = (raw.startsWith('Zod') ? raw.slice(3) : raw).toLowerCase();
+  return TAG_ALIASES[bare] ?? bare;
+}
 
-  // Handle ZodObject
-  if (typeName === 'ZodObject') {
-    // In Zod v3, shape is accessed from the schema object itself, not from _def
-    const shape = schema.shape || def.shape || {};
-    const properties: Record<string, JSONSchema> = {};
-    const required: string[] = [];
+/**
+ * Wrappers whose only job is to hold an inner schema. The wire format cares
+ * about the inner type, so the converter unwraps them.
+ */
+function innerSchemaOf(def: Record<string, any>): unknown {
+  // optional / nullable / default / catch / readonly / nonoptional
+  if (def.innerType !== undefined) {
+    return def.innerType;
+  }
+  // v3 ZodEffects (.transform / .refine / .preprocess)
+  if (def.schema !== undefined) {
+    return def.schema;
+  }
+  // v3 ZodPipeline / v4 ZodPipe -- the *input* side is what the model produces
+  if (def.in !== undefined) {
+    return def.in;
+  }
+  // ZodLazy
+  if (typeof def.getter === 'function') {
+    return def.getter();
+  }
+  // v3 ZodBranded / ZodPromise (`_def.type` holds a schema, not a tag)
+  if (def.type !== undefined && typeof def.type !== 'string') {
+    return def.type;
+  }
+  return undefined;
+}
 
-    for (const [key, value] of Object.entries(shape)) {
-      const fieldSchema = value as z.ZodType;
-      const fieldDef = (fieldSchema as any)._def;
+/**
+ * Would Zod accept this field being absent? Governs `required`.
+ *
+ * Structural rather than behavioural (a `safeParse(undefined)` probe would be
+ * shorter but would also call user refinements, and would misread the
+ * duck-typed schemas this module deliberately supports). `nullable` is *not*
+ * in the optional set: `z.string().nullable()` rejects `undefined`, so the
+ * field stays required and gains `null` as an allowed *value* -- the same
+ * split Zod's own `z.toJSONSchema()` makes.
+ */
+function isOptionalField(schema: unknown, depth: number = 0): boolean {
+  if (depth > MAX_CONVERSION_DEPTH) {
+    return false;
+  }
 
-      // Check if field is optional BEFORE converting
-      const isOptional =
-        fieldDef.typeName === 'ZodOptional' || fieldSchema.constructor.name === 'ZodOptional';
+  const def = (schema as { _def?: Record<string, any> } | null)?._def ?? {};
 
-      properties[key] = zodToJsonSchema(fieldSchema);
+  switch (zodTypeTag(schema)) {
+    // Absent input is accepted (`.default()`/`.catch()` even supply a value).
+    case 'optional':
+    case 'default':
+    case 'prefault':
+    case 'catch':
+    case 'undefined':
+    case 'void':
+      return true;
 
-      // Only add to required if not optional
-      if (!isOptional) {
-        required.push(key);
+    // Explicitly re-required.
+    case 'nonoptional':
+      return false;
+
+    // Transparent wrappers: ask the schema underneath.
+    case 'nullable':
+    case 'readonly':
+    case 'branded':
+    case 'lazy':
+    case 'pipe':
+    case 'effects':
+      return isOptionalField(innerSchemaOf(def), depth + 1);
+
+    // `z.union([z.string(), z.undefined()])` accepts an absent field.
+    case 'union':
+      return (
+        Array.isArray(def.options) &&
+        def.options.some((option: unknown) => isOptionalField(option, depth + 1))
+      );
+
+    default:
+      return false;
+  }
+}
+
+/** Guard against pathological (or hostile) `z.lazy()` getters. */
+const MAX_CONVERSION_DEPTH = 32;
+
+/**
+ * Mutable conversion state threaded through the recursion.
+ *
+ * `warnings` is the answer to "where does a lossy conversion go?": the
+ * converter never returns a schema that quietly lies about a type, it records
+ * an `IRWarning` and returns a schema that claims nothing.
+ */
+interface ConversionContext {
+  readonly warnings: IRWarning[];
+  readonly path: string[];
+  /** Schema nodes on the current path, for cycle detection. */
+  readonly active: Set<unknown>;
+}
+
+function currentField(ctx: ConversionContext): string | undefined {
+  return ctx.path.length > 0 ? ctx.path.join('.') : undefined;
+}
+
+function addWarning(
+  ctx: ConversionContext,
+  warning: {
+    message: string;
+    severity?: IRWarning['severity'];
+    originalValue?: unknown;
+    transformedValue?: unknown;
+  }
+): void {
+  ctx.warnings.push({
+    category: 'content-type-unsupported',
+    severity: warning.severity ?? 'warning',
+    message: warning.message,
+    ...(currentField(ctx) !== undefined ? { field: currentField(ctx) } : {}),
+    ...(warning.originalValue !== undefined ? { originalValue: warning.originalValue } : {}),
+    ...(warning.transformedValue !== undefined
+      ? { transformedValue: warning.transformedValue }
+      : {}),
+    source: 'zod-json-schema',
+  });
+}
+
+/** Describe a node for a warning message, without leaking the whole schema. */
+function describeTag(schema: unknown, tag: string): string {
+  if (tag.length > 0) {
+    return tag;
+  }
+  const constructorName = (schema as { constructor?: { name?: string } } | null)?.constructor?.name;
+  return typeof constructorName === 'string' && constructorName.length > 0
+    ? constructorName
+    : 'an unrecognized schema';
+}
+
+/**
+ * Convert a Zod schema to JSON Schema, collecting a warning for every
+ * conversion that loses meaning.
+ *
+ * Kept internal: the warnings reach callers on `ToolDefinition.warnings` and,
+ * for `generateObject`/`streamObject`, on `IRChatRequest.metadata.warnings`.
+ */
+function zodToJsonSchema(schema: unknown): { schema: JSONSchema; warnings: IRWarning[] } {
+  const ctx: ConversionContext = { warnings: [], path: [], active: new Set() };
+  return { schema: convertNode(schema, ctx, 0), warnings: ctx.warnings };
+}
+
+function convertNode(schema: unknown, ctx: ConversionContext, depth: number): JSONSchema {
+  if (depth > MAX_CONVERSION_DEPTH) {
+    addWarning(ctx, {
+      message: `Schema nesting exceeded ${MAX_CONVERSION_DEPTH} levels; the remainder is described as an unconstrained value.`,
+    });
+    return {};
+  }
+
+  if (typeof schema !== 'object' || schema === null) {
+    addWarning(ctx, {
+      message: `Expected a Zod schema but found ${describeValue(schema)}; described as an unconstrained value.`,
+    });
+    return {};
+  }
+
+  // Recursive schema (`z.lazy()`, or an object referencing itself through a
+  // getter). Emitting `{}` keeps the cycle finite without claiming a type.
+  if (ctx.active.has(schema)) {
+    addWarning(ctx, {
+      message:
+        'Recursive schema: the repeated node is described as an unconstrained value, so nested occurrences are not constrained by the tool schema.',
+      severity: 'info',
+    });
+    return {};
+  }
+
+  ctx.active.add(schema);
+  try {
+    return withDescription(schema, convertByTag(schema, ctx, depth));
+  } finally {
+    ctx.active.delete(schema);
+  }
+}
+
+/** Zod stores `.describe()` text on the schema object in both majors. */
+function withDescription(schema: unknown, result: JSONSchema): JSONSchema {
+  const description = (schema as { description?: unknown }).description;
+  if (
+    typeof description === 'string' &&
+    description.length > 0 &&
+    result.description === undefined
+  ) {
+    return { ...result, description };
+  }
+  return result;
+}
+
+function convertByTag(schema: unknown, ctx: ConversionContext, depth: number): JSONSchema {
+  const def = (schema as { _def?: Record<string, any> })._def ?? {};
+  const tag = zodTypeTag(schema);
+  const next = (child: unknown, segment?: string): JSONSchema => {
+    if (segment !== undefined) {
+      ctx.path.push(segment);
+    }
+    try {
+      return convertNode(child, ctx, depth + 1);
+    } finally {
+      if (segment !== undefined) {
+        ctx.path.pop();
       }
     }
+  };
 
-    const result: JSONSchema = {
-      type: 'object',
-      properties,
-    };
+  switch (tag) {
+    // ---- Primitives -------------------------------------------------------
+    case 'string':
+      return { type: 'string' };
+    case 'number':
+      return { type: 'number' };
+    case 'boolean':
+      return { type: 'boolean' };
+    case 'null':
+      return { type: 'null' };
 
-    // Only add required if there are required fields
-    if (required.length > 0) {
-      result.required = required;
+    // `{}` is the JSON Schema spelling of "any value" -- an exact, lossless
+    // rendering of `z.any()`/`z.unknown()`, so no warning.
+    case 'any':
+    case 'unknown':
+      return {};
+
+    // ---- Objects ----------------------------------------------------------
+    case 'object': {
+      const shape = resolveShape(schema, def);
+      const properties: Record<string, JSONSchema> = {};
+      const required: string[] = [];
+
+      for (const [key, field] of Object.entries(shape)) {
+        properties[key] = next(field, key);
+        if (!isOptionalField(field)) {
+          required.push(key);
+        }
+      }
+
+      const result: JSONSchema = { type: 'object', properties };
+      if (required.length > 0) {
+        result.required = required;
+      }
+      return result;
     }
 
-    return result;
-  }
-
-  // Handle ZodOptional
-  if (typeName === 'ZodOptional') {
-    const innerSchema = def.innerType;
-    return zodToJsonSchema(innerSchema);
-  }
-
-  // Handle ZodString
-  if (typeName === 'ZodString') {
-    const result: JSONSchema = { type: 'string' };
-    // Description is stored on the schema object itself
-    const description = schema.description;
-    if (description) {
-      result.description = description;
-    }
-    return result;
-  }
-
-  // Handle ZodNumber
-  if (typeName === 'ZodNumber') {
-    const result: JSONSchema = { type: 'number' };
-    const description = schema.description;
-    if (description) {
-      result.description = description;
-    }
-    return result;
-  }
-
-  // Handle ZodBoolean
-  if (typeName === 'ZodBoolean') {
-    const result: JSONSchema = { type: 'boolean' };
-    const description = schema.description;
-    if (description) {
-      result.description = description;
-    }
-    return result;
-  }
-
-  // Handle ZodArray
-  if (typeName === 'ZodArray') {
-    // Array items are stored in _def.element (not .type)
-    const itemSchema = def.element || def.type;
-    const result: JSONSchema = {
-      type: 'array',
-      items: zodToJsonSchema(itemSchema),
-    };
-    const description = schema.description;
-    if (description) {
-      result.description = description;
-    }
-    return result;
-  }
-
-  // Handle ZodEnum
-  if (typeName === 'ZodEnum') {
-    // In Zod v3+, enum values are stored in _def.entries as an object or _def.values as an array
-    let enumValues: string[] = [];
-
-    if (def.entries) {
-      // _def.entries is an object like { "active": "active", "inactive": "inactive" }
-      enumValues = Object.values(def.entries);
-    } else if (def.values) {
-      enumValues = Array.isArray(def.values) ? def.values : Object.values(def.values);
-    } else if (def.options) {
-      enumValues = Array.isArray(def.options) ? def.options : Object.values(def.options);
+    // A record is an object with unconstrained keys.
+    case 'record': {
+      const result: JSONSchema = { type: 'object' };
+      if (def.valueType !== undefined) {
+        result.additionalProperties = next(def.valueType, '(value)');
+      }
+      return result;
     }
 
-    const result: JSONSchema = {
-      type: 'string',
-      enum: enumValues,
-    };
-    const description = schema.description;
-    if (description) {
-      result.description = description;
+    // ---- Collections ------------------------------------------------------
+    case 'array':
+      // v4 keeps the element in `_def.element`, v3 in `_def.type`.
+      return { type: 'array', items: next(def.element ?? def.type, '[]') };
+
+    case 'tuple': {
+      const items: unknown[] = Array.isArray(def.items) ? def.items : [];
+      const result: JSONSchema = {
+        type: 'array',
+        prefixItems: items.map((item, index) => next(item, `[${index}]`)),
+        minItems: items.length,
+      };
+      if (def.rest !== undefined && def.rest !== null) {
+        result.items = next(def.rest, '[]');
+      } else {
+        result.maxItems = items.length;
+      }
+      return result;
     }
-    return result;
+
+    case 'set': {
+      addWarning(ctx, {
+        message:
+          'z.set() is sent as a JSON array (JSON has no Set). The model returns an array, which z.set() rejects -- wrap it in a preprocess/transform, or use z.array() with a uniqueness refinement.',
+      });
+      return { type: 'array', items: next(def.valueType, '[]'), uniqueItems: true };
+    }
+
+    case 'map': {
+      addWarning(ctx, {
+        message:
+          'z.map() is sent as a JSON array of [key, value] pairs (JSON has no Map). The model returns an array, which z.map() rejects -- wrap it in a preprocess/transform, or use z.record().',
+      });
+      return {
+        type: 'array',
+        items: {
+          type: 'array',
+          prefixItems: [next(def.keyType, '(key)'), next(def.valueType, '(value)')],
+          minItems: 2,
+          maxItems: 2,
+        },
+      };
+    }
+
+    // ---- Enumerations and constants ---------------------------------------
+    case 'enum': {
+      const values = enumValues(def);
+      const result: JSONSchema = { enum: values };
+      const type = commonJsonType(values);
+      if (type !== undefined) {
+        result.type = type;
+      }
+      return result;
+    }
+
+    case 'literal': {
+      // v4 stores an array in `_def.values` (`z.literal(['a', 'b'])`),
+      // v3 a single `_def.value`.
+      const values: unknown[] = Array.isArray(def.values) ? [...def.values] : [def.value];
+      const representable = values.filter(isJsonPrimitive);
+
+      if (representable.length !== values.length) {
+        addWarning(ctx, {
+          message: `Literal value of type ${values
+            .filter((value) => !isJsonPrimitive(value))
+            .map((value) => typeof value)
+            .join(', ')} has no JSON Schema representation; described as an unconstrained value.`,
+          originalValue: values.map((value) => String(value)),
+        });
+        if (representable.length === 0) {
+          return {};
+        }
+      }
+
+      // `enum` with a single member rather than `const`: this schema is a
+      // provider wire format, and `enum` is universally understood by tool
+      // schema validators while `const` support is uneven.
+      const result: JSONSchema = { enum: representable };
+      const type = commonJsonType(representable);
+      if (type !== undefined) {
+        result.type = type;
+      }
+      return result;
+    }
+
+    // ---- Composition ------------------------------------------------------
+    case 'union': {
+      const options: unknown[] = Array.isArray(def.options) ? def.options : [];
+      if (options.length === 0) {
+        addWarning(ctx, { message: 'Union with no options; described as an unconstrained value.' });
+        return {};
+      }
+      // `anyOf` for both plain and discriminated unions: `oneOf` (what Zod
+      // itself emits for discriminated unions) is rejected or ignored by
+      // several providers' tool-schema validators, and `anyOf` is a correct,
+      // weaker statement of the same thing.
+      return {
+        anyOf: options.map((option, index) => next(option, `|${index}`)),
+      };
+    }
+
+    case 'intersection':
+      return { allOf: [next(def.left, '&0'), next(def.right, '&1')] };
+
+    // ---- Modifiers --------------------------------------------------------
+    case 'nullable': {
+      const inner = next(innerSchemaOf(def));
+      // Flatten rather than nesting anyOf inside anyOf.
+      const branches = Array.isArray(inner.anyOf) ? inner.anyOf : [inner];
+      return { anyOf: [...branches, { type: 'null' }] };
+    }
+
+    case 'optional':
+    case 'nonoptional':
+    case 'readonly':
+    case 'branded':
+    case 'lazy':
+    case 'pipe':
+    case 'effects':
+    case 'catch':
+      return next(innerSchemaOf(def));
+
+    case 'default':
+    case 'prefault': {
+      const result = next(innerSchemaOf(def));
+      const defaultValue = resolveDefaultValue(def);
+      return defaultValue === undefined ? result : { ...result, default: defaultValue };
+    }
+
+    // ---- Representable on the wire, but Zod will reject what comes back ----
+    case 'date':
+      addWarning(ctx, {
+        message:
+          'z.date() is sent as an ISO 8601 date-time string (JSON has no date type). The model returns a string, which z.date() rejects -- use z.coerce.date() (or z.iso.datetime()) so the response validates.',
+        transformedValue: { type: 'string', format: 'date-time' },
+      });
+      return { type: 'string', format: 'date-time' };
+
+    // ---- No JSON representation -------------------------------------------
+    default: {
+      addWarning(ctx, {
+        message: `${describeTag(
+          schema,
+          tag
+        )} has no JSON Schema representation; described as an unconstrained value, so the model receives no guidance for this field.`,
+        originalValue: tag.length > 0 ? tag : undefined,
+      });
+      return {};
+    }
+  }
+}
+
+/**
+ * v3 keeps the object shape behind a thunk (`_def.shape()`) exposed as the
+ * `shape` getter; v4 stores it directly on `_def.shape`.
+ */
+function resolveShape(schema: unknown, def: Record<string, any>): Record<string, unknown> {
+  const fromSchema = (schema as { shape?: unknown }).shape;
+  if (typeof fromSchema === 'object' && fromSchema !== null) {
+    return fromSchema as Record<string, unknown>;
+  }
+  if (typeof def.shape === 'function') {
+    try {
+      return (def.shape() ?? {}) as Record<string, unknown>;
+    } catch {
+      return {};
+    }
+  }
+  if (typeof def.shape === 'object' && def.shape !== null) {
+    return def.shape as Record<string, unknown>;
+  }
+  return {};
+}
+
+/**
+ * v4 exposes enum members as `_def.entries` (`{ a: 'a' }`), v3 as
+ * `_def.values`. Numeric TS enums additionally carry a reverse mapping
+ * (`{ A: 1, 1: 'A' }`), which is dropped.
+ */
+function enumValues(def: Record<string, any>): unknown[] {
+  const source = def.entries ?? def.values ?? def.options;
+  if (source === undefined || source === null) {
+    return [];
   }
 
-  // Default fallback
-  return { type: 'string' };
+  if (Array.isArray(source)) {
+    return [...source];
+  }
+
+  const entries = Object.entries(source as Record<string, unknown>);
+  const hasNumericMember = entries.some(([, value]) => typeof value === 'number');
+  const values = hasNumericMember
+    ? entries.filter(([, value]) => typeof value === 'number').map(([, value]) => value)
+    : entries.map(([, value]) => value);
+
+  return [...new Set(values)];
+}
+
+function isJsonPrimitive(value: unknown): boolean {
+  return (
+    value === null ||
+    typeof value === 'string' ||
+    typeof value === 'number' ||
+    typeof value === 'boolean'
+  );
+}
+
+/** The JSON Schema `type` shared by every value, or `undefined` if mixed. */
+function commonJsonType(values: readonly unknown[]): string | undefined {
+  if (values.length === 0) {
+    return undefined;
+  }
+
+  const types = new Set(
+    values.map((value) => {
+      if (value === null) {
+        return 'null';
+      }
+      if (typeof value === 'number') {
+        return 'number';
+      }
+      if (typeof value === 'boolean') {
+        return 'boolean';
+      }
+      if (typeof value === 'string') {
+        return 'string';
+      }
+      return 'unknown';
+    })
+  );
+
+  if (types.size !== 1 || types.has('unknown')) {
+    return undefined;
+  }
+  return [...types][0];
+}
+
+/**
+ * v3 stores the default behind a thunk, v4 stores the value. Only
+ * JSON-serializable defaults are emitted -- the field is an annotation, so a
+ * value that cannot cross the wire is simply omitted.
+ */
+function resolveDefaultValue(def: Record<string, any>): unknown {
+  try {
+    const raw = typeof def.defaultValue === 'function' ? def.defaultValue() : def.defaultValue;
+    if (raw === undefined) {
+      return undefined;
+    }
+    return JSON.parse(JSON.stringify(raw)) as unknown;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Render conversion warnings for an error message, so a validation failure
+ * caused by a lossy schema says so instead of looking like a model error.
+ */
+function describeConversionWarnings(warnings: readonly IRWarning[]): string {
+  if (warnings.length === 0) {
+    return '';
+  }
+
+  const lines = warnings.map((warning) =>
+    warning.field !== undefined
+      ? `  - ${warning.field}: ${warning.message}`
+      : `  - ${warning.message}`
+  );
+
+  return (
+    '\n\nThe JSON Schema sent to the provider is a lossy conversion of the supplied Zod ' +
+    'schema, which may be the reason the response does not validate:\n' +
+    lines.join('\n')
+  );
 }
 
 // ============================================================================
@@ -529,17 +1041,25 @@ export interface StreamObjectOptions<T = any> {
 /**
  * Build the IR tool definition + forced toolChoice shared by
  * generateObject/streamObject.
+ *
+ * Returns the conversion warnings alongside the tool: they travel on the
+ * request's `metadata.warnings` (the IR channel for semantic drift) and are
+ * appended to a validation failure, so a lossy schema conversion is never
+ * silent (#66).
  */
-function buildExtractDataTool(schema: any): IRTool {
+function buildExtractDataTool(schema: any): { tool: IRTool; warnings: IRWarning[] } {
   const toolDef = schemaToToolDefinition(schema, EXTRACT_TOOL_NAME, 'Extract structured data');
   return {
-    name: toolDef.function.name,
-    description: toolDef.function.description,
-    // This module's local JSONSchema type (a hand-rolled subset used for
-    // Zod conversion) is structurally compatible with the IR JSONSchema
-    // type at runtime, but its `type` field is a plain `string` rather
-    // than IR's narrower JSONSchemaType union -- cast through `unknown`.
-    parameters: toolDef.function.parameters as unknown as IRTool['parameters'],
+    tool: {
+      name: toolDef.function.name,
+      description: toolDef.function.description,
+      // This module's local JSONSchema type (a hand-rolled subset used for
+      // Zod conversion) is structurally compatible with the IR JSONSchema
+      // type at runtime, but its `type` field is a plain `string` rather
+      // than IR's narrower JSONSchemaType union -- cast through `unknown`.
+      parameters: toolDef.function.parameters as unknown as IRTool['parameters'],
+    },
+    warnings: toolDef.warnings ?? [],
   };
 }
 
@@ -560,7 +1080,7 @@ export function createGenerateObject(bridge: StructuredOutputBridge) {
     assertZodSchema(schema, 'options.schema');
 
     // Convert schema to an IR tool definition (provider-agnostic)
-    const irTool = buildExtractDataTool(schema);
+    const { tool: irTool, warnings: conversionWarnings } = buildExtractDataTool(schema);
 
     let lastError: Error | undefined;
 
@@ -581,6 +1101,10 @@ export function createGenerateObject(bridge: StructuredOutputBridge) {
                 : `generate-object-${Date.now()}-${attempt}`,
             timestamp: Date.now(),
             provenance: { frontend: bridge.frontend.metadata.name },
+            // Semantic drift from the Zod -> JSON Schema conversion, on the
+            // documented IR channel, so middleware and logs can see that the
+            // tool contract does not fully describe the caller's schema.
+            ...(conversionWarnings.length > 0 ? { warnings: conversionWarnings } : {}),
           },
         };
 
@@ -604,7 +1128,10 @@ export function createGenerateObject(bridge: StructuredOutputBridge) {
 
         if (!validation.success) {
           const errors = 'errors' in validation ? validation.errors : 'unknown error';
-          lastError = new Error(`Validation failed: ${JSON.stringify(errors)}`);
+          lastError = new Error(
+            `Validation failed: ${JSON.stringify(errors)}` +
+              describeConversionWarnings(conversionWarnings)
+          );
           continue; // Retry
         }
 
@@ -650,7 +1177,7 @@ export function createStreamObject(bridge: StructuredOutputBridge) {
     }
 
     // Convert schema to an IR tool definition (provider-agnostic)
-    const irTool = buildExtractDataTool(schema);
+    const { tool: irTool, warnings: conversionWarnings } = buildExtractDataTool(schema);
 
     const request: IRChatRequest = {
       messages: [{ role: 'user', content: prompt }],
@@ -664,6 +1191,8 @@ export function createStreamObject(bridge: StructuredOutputBridge) {
             : `stream-object-${Date.now()}`,
         timestamp: Date.now(),
         provenance: { frontend: bridge.frontend.metadata.name },
+        // See generateObject: lossy schema conversion travels with the request.
+        ...(conversionWarnings.length > 0 ? { warnings: conversionWarnings } : {}),
       },
     };
 
@@ -707,7 +1236,10 @@ export function createStreamObject(bridge: StructuredOutputBridge) {
 
     if (!validation.success) {
       const errors = 'errors' in validation ? validation.errors : 'unknown error';
-      throw new Error(`Validation failed: ${JSON.stringify(errors)}`);
+      throw new Error(
+        `Validation failed: ${JSON.stringify(errors)}` +
+          describeConversionWarnings(conversionWarnings)
+      );
     }
 
     return validation.data;
