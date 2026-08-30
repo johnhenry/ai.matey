@@ -1885,6 +1885,31 @@ interface AdapterError extends Error {
 }
 ```
 
+**Retryability is derived, never asserted.** An error that composes or wraps
+other failures reports what those failures were:
+
+- `RouterError` with `ALL_BACKENDS_FAILED` is retryable only when at least one
+  attempted backend failed retryably, read from the `backendErrors` it carries.
+  A router whose every backend rejected the API key is *not* retryable - the
+  keys are still wrong on the second attempt. With no `backendErrors` there is
+  no evidence either way, and the answer is non-retryable.
+- `MiddlewareError` reports the retryability of its `cause`.
+
+**An unclassified error is not retried.** Both retry implementations -
+`Bridge`'s `config.retries` loop and `createRetryMiddleware`'s
+`defaultShouldRetry` - retry only an error that says `isRetryable: true`. A
+plain `Error` or a thrown non-`Error` is as likely a bug in your own adapter or
+middleware as a transient fault, and retrying re-runs every middleware side
+effect for something that cannot succeed. A backend that wants its failures
+retried should raise a classified `AdapterError`; the HTTP backends in this
+package already wrap `fetch` failures as `NetworkError`.
+
+**HTTP status mapping.** `401`/`403` (auth), `400` (validation) and `429`
+(rate limit) map to their own classes; `5xx` is a retryable `ProviderError`.
+Of the remaining statuses only `408 Request Timeout` and `425 Too Early` are
+retryable - both canonically mean "try again". `404`, `409` and `422` are not:
+an identical retry reproduces them.
+
 ---
 
 ## Utilities

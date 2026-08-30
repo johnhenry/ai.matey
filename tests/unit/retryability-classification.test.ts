@@ -371,3 +371,57 @@ describe('the two retry implementations agree on unclassified errors', () => {
     expect(await attemptsUnderRetryMiddleware(foreign)).toBe(3);
   });
 });
+
+// ============================================================================
+// HTTP status classification
+// ============================================================================
+
+describe('createErrorFromHttpResponse retryability', () => {
+  const classify = (statusCode: number): boolean =>
+    createErrorFromHttpResponse(statusCode, 'Status Text', {}, {}).isRetryable;
+
+  it('treats 408 Request Timeout as retryable', () => {
+    // The one status whose entire meaning is "the server wants another
+    // attempt"; it fell through to `statusCode >= 500` and came back false.
+    expect(classify(408)).toBe(true);
+  });
+
+  it('treats 425 Too Early as retryable', () => {
+    expect(classify(425)).toBe(true);
+  });
+
+  it.each([404, 409, 422, 405, 410])('treats %i as non-retryable', (statusCode) => {
+    // Checked rather than assumed: a missing resource, a state conflict and a
+    // semantically invalid payload all reproduce on an identical retry.
+    expect(classify(statusCode)).toBe(false);
+  });
+
+  it.each([500, 502, 503, 504])('keeps %i retryable', (statusCode) => {
+    expect(classify(statusCode)).toBe(true);
+  });
+
+  it('keeps the classified branches untouched', () => {
+    expect(createErrorFromHttpResponse(401, 'Unauthorized', {}, {}).isRetryable).toBe(false);
+    expect(createErrorFromHttpResponse(403, 'Forbidden', {}, {}).isRetryable).toBe(false);
+    expect(createErrorFromHttpResponse(400, 'Bad Request', {}, {}).isRetryable).toBe(false);
+    expect(createErrorFromHttpResponse(429, 'Too Many Requests', {}, {}).isRetryable).toBe(true);
+  });
+
+  it('makes a 408 actually retry rather than merely report as retryable', async () => {
+    vi.useFakeTimers();
+    try {
+      const backend = createFailingBackend('b', () =>
+        createErrorFromHttpResponse(408, 'Request Timeout', {}, {})
+      );
+      const bridge = new Bridge(createMockFrontend(), backend.adapter, { retries: 2 });
+
+      const settled = bridge.chat(HELLO as never).catch((e: unknown) => e);
+      await vi.runAllTimersAsync();
+      await settled;
+
+      expect(backend.attempts()).toBe(3);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
