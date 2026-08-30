@@ -111,10 +111,11 @@ export interface SecurityConfig {
    * - `'block'` - throw a `ValidationError`
    * - `'ignore'` - do not run injection detection
    *
-   * The default is `'warn'` rather than `'block'` on purpose:
-   * {@link DEFAULT_INJECTION_PATTERNS} is deliberately broad (it matches the
-   * bare word `DAN`, for instance), so blocking by default would reject
-   * innocent prompts. Use `'block'`, or
+   * The default is `'warn'` rather than `'block'` because
+   * {@link DEFAULT_INJECTION_PATTERNS} is a regex heuristic, and a heuristic
+   * that throws is a bad default for a middleware you register once and forget.
+   * It no longer matches bare tokens such as `DAN` (#67), but phrase patterns
+   * like `disregard all` still catch some innocent text. Use `'block'`, or
    * {@link createProductionSecurityMiddleware}, once you have tuned
    * {@link SecurityConfig.injectionPatterns} for your traffic.
    *
