@@ -45,9 +45,11 @@ changing.
 
 `tests/unit/detection-performance.test.ts` now enforces this. It iterates the exported
 pattern records rather than a hard-coded list, so a pattern added later is measured
-automatically, and it asserts the *shape* of the cost curve (4x input must cost under 8x,
-where quadratic is 16x) as well as an absolute budget - a correctness test cannot catch a
-pattern that finds exactly the right answer while taking 1.5 s to do it.
+automatically, and it asserts the *shape* of the cost curve (4x input must cost under 10x,
+where linear is 4x and quadratic is 16x) as well as an absolute budget - a correctness test
+cannot catch a pattern that finds exactly the right answer while taking 1.5 s to do it, and
+the shape assertion additionally catches a quadratic pattern that happens to stay under the
+budget at 60 KB but would not at 600 KB.
 
 Also corrects the TLD class, which was `[A-Z|a-z]`. The `|` was a literal member of the
 character class, so `foo@bar.|a` was reported as an email address.
