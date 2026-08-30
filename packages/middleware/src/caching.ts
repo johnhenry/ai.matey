@@ -22,7 +22,7 @@ import type {
   CacheStorage,
 } from '@johnhenry/aimatey-types';
 import type { IRChatRequest, IRChatResponse } from '@johnhenry/aimatey-types';
-import { createHash } from 'crypto';
+import { stableHash } from './hash.js';
 
 // ============================================================================
 // Types
@@ -114,9 +114,14 @@ function createDefaultKeyGenerator(
       toolChoice: request.toolChoice,
     };
 
-    // Generate hash
+    // Generate hash.
+    //
+    // This is a *cache index*, not a security primitive, so it uses the
+    // pure-JS `stableHash` rather than Node's `crypto.createHash`: the
+    // middleware is consumed from browsers/webviews/Electron renderers where
+    // bundlers externalize `crypto` and `createHash` is undefined at runtime.
     const json = JSON.stringify(cacheableData);
-    return createHash('sha256').update(json).digest('hex');
+    return stableHash(json);
   };
 }
 

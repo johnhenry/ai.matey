@@ -7,7 +7,7 @@
  * @module
  */
 
-import { createHash } from 'crypto';
+import { stableHash } from './hash.js';
 import type { EmbedMiddleware, IREmbedRequest, IREmbedResponse } from '@johnhenry/aimatey-types';
 import { getModelPricingInfo } from '@johnhenry/aimatey-utils';
 
@@ -73,7 +73,8 @@ function createDefaultKeyGenerator(
       dimensions: request.parameters?.dimensions,
       inputType: request.parameters?.inputType,
     });
-    return createHash('sha256').update(payload).digest('hex');
+    // Cache index only -- see `./hash.ts` for why this is not Node crypto.
+    return stableHash(payload);
   };
 }
 
