@@ -51,6 +51,7 @@ export {
   sendText,
   sendNoContent,
   detectProviderFormat,
+  sanitizeErrorMessage,
 } from './response-formatter.js';
 
 // CORS
@@ -82,6 +83,7 @@ export {
   createLoggingErrorHandler,
   createReportingErrorHandler,
   wrapErrorHandler,
+  getHTTPStatusCode,
   isRetryableError,
   isClientError,
   isServerError,
