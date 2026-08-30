@@ -310,7 +310,13 @@ export const DEFAULT_PII_PATTERNS: Record<string, RegExp> = {
 };
 
 /**
- * Default prompt injection patterns
+ * Default prompt injection patterns.
+ *
+ * `preventPromptInjection` defaults to `true` and `injectionAction` to
+ * `'block'`, so anything matched here throws under a bare
+ * `createValidationMiddleware({})`. Patterns therefore have to earn their place
+ * against ordinary text, not just against attacks (#67): the named jailbreaks
+ * below require surrounding context rather than a bare token.
  */
 export const DEFAULT_INJECTION_PATTERNS: RegExp[] = [
   // Ignore previous instructions
@@ -319,8 +325,33 @@ export const DEFAULT_INJECTION_PATTERNS: RegExp[] = [
   // System prompt manipulation
   /system\s*:\s*new\s+(instruction|prompt|role)/i,
 
-  // Jailbreak attempts
-  /\b(jailbreak|DAN|developer\s+mode)\b/i,
+  // Jailbreak, as a bare term. Unlike `DAN` and `developer mode` below, this
+  // word has no high-frequency innocent sense in assistant traffic.
+  /\bjailbreak\b/i,
+
+  // The "DAN" jailbreak.
+  //
+  // `DAN` is matched CASE-SENSITIVELY and only next to jailbreak framing. The
+  // three letters on their own are not a signal at any severity: `Dan` is a
+  // common personal name, so the previous case-insensitive `\bDAN\b`
+  // classified "Hi Dan, can you review this?" as an attack and - with the
+  // default config - threw on it. The real jailbreak is a multi-sentence
+  // roleplay prompt that always writes the acronym in capitals.
+  /\bDAN\b[^\n]{0,40}?\b(?:mode|prompt|jailbreak|persona|enabled?|do\s+anything\s+now)\b/,
+  // `act as DAN` / `you are DAN` / `pretend to be DAN` / `you are now DAN`.
+  // `is` and `called` are left out on purpose - "the DAN report is DAN
+  // certified" should not be an attack.
+  /\b(?:as|are|be|now|become)\s+(?:an?\s+|the\s+)?DAN\b/,
+  // The expansion, but only in a roleplay frame - "I can't do anything now"
+  // is ordinary English, so the phrase by itself is not enough.
+  /\b(?:act(?:ing)?\s+as|pretend(?:ing)?\s+to\s+be|stands?\s+for|known\s+as|roleplay(?:ing)?\s+as|you\s+are(?:\s+now)?)\b[^\n]{0,40}?\bdo\s+anything\s+now\b/i,
+
+  // The "Developer Mode" jailbreak, likewise with context. A bare
+  // `developer\s+mode` flagged "How do I enable developer mode on Android?",
+  // which is an ordinary question for the coding assistants this library is
+  // built for. `enable` is pointedly *not* a context word for that reason.
+  /\bdeveloper\s+mode\s+(?:enabled|output|response)\b/i,
+  /\b(?:act(?:ing)?\s+as|pretend(?:ing)?\s+to\s+be|roleplay(?:ing)?|simulate|you\s+are)\b[^\n]{0,40}?\bdeveloper\s+mode\b/i,
 
   // Role manipulation
   /(you\s+are\s+now|act\s+as\s+if\s+you\s+are)\s+a\s+/i,
