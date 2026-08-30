@@ -20,7 +20,7 @@ import { createHealthCheck, createReadinessCheck, createLivenessCheck } from './
 import { createMetricsHandler } from './metrics.js';
 import { openaiEmbedRequestToIR, irToOpenAIEmbedResponse } from '@johnhenry/aimatey-utils';
 import { normalizeCORSOptions } from './cors.js';
-import { detectProviderFormat } from './response-formatter.js';
+import { detectProviderFormat, sanitizeErrorMessage } from './response-formatter.js';
 
 /**
  * Core HTTP request handler (framework-agnostic)
@@ -481,6 +481,14 @@ export class CoreHTTPHandler {
    * Get HTTP status code from error
    */
   private getErrorStatusCode(error: Error): number {
+    // An error that declares the status it means (see error-handler.ts) is
+    // taken at its word; only undeclared errors fall through to guessing from
+    // the message text.
+    const declared = (error as { details?: Record<string, unknown> }).details?.['httpStatus'];
+    if (typeof declared === 'number' && declared >= 400 && declared <= 599) {
+      return declared;
+    }
+
     // Check for common error patterns
     const message = error.message.toLowerCase();
 
@@ -520,10 +528,12 @@ export class CoreHTTPHandler {
     statusCode: number,
     format: 'openai' | 'anthropic' | 'generic'
   ): any {
+    const message = sanitizeErrorMessage(error, statusCode);
+
     if (format === 'openai') {
       return {
         error: {
-          message: error.message,
+          message,
           type: 'server_error',
           code: statusCode >= 500 ? 'internal_server_error' : 'invalid_request_error',
         },
@@ -535,14 +545,14 @@ export class CoreHTTPHandler {
         type: 'error',
         error: {
           type: statusCode >= 500 ? 'api_error' : 'invalid_request_error',
-          message: error.message,
+          message,
         },
       };
     }
 
     // Generic format
     return {
-      error: error.message,
+      error: message,
       statusCode,
     };
   }

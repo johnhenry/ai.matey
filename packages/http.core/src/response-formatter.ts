@@ -6,7 +6,47 @@
  * @module
  */
 
-import type { ServerResponse } from 'node:http';
+import { STATUS_CODES, type ServerResponse } from 'node:http';
+
+/**
+ * Fragments of an error message that describe the *server*, not the request.
+ *
+ * A client that sent a bad payload benefits from being told what was wrong with
+ * it; it must never learn where our source lives. These patterns strip the
+ * parts of a message that only describe our filesystem or call stack.
+ */
+const INTERNAL_DETAIL_PATTERNS: ReadonlyArray<RegExp> = [
+  // Stack frames: everything from the first "\n    at ..." onwards.
+  /\n\s*at\s[\s\S]*$/,
+  // file:// URLs and bare POSIX/Windows absolute paths, with optional line:col.
+  /\bfile:\/\/\S+/g,
+  /(?:^|[\s(])(?:\/|[A-Za-z]:\\)[\w.\-\\/]+\.(?:ts|js|mjs|cjs|tsx|jsx)(?::\d+)?(?::\d+)?/g,
+];
+
+/**
+ * Reduce an error to something safe to put on the wire.
+ *
+ * 5xx means *we* failed. The client can do nothing with the detail and the
+ * detail is exactly what an attacker wants, so it is replaced wholesale with
+ * the canonical status text. 4xx means the *client* failed, so the message is
+ * kept -- it is the only way they can correct the request -- but scrubbed of
+ * paths and stack frames first.
+ */
+export function sanitizeErrorMessage(error: Error, statusCode: number): string {
+  if (statusCode >= 500) {
+    return STATUS_CODES[statusCode] ?? 'Internal Server Error';
+  }
+
+  let message = typeof error?.message === 'string' ? error.message : '';
+
+  for (const pattern of INTERNAL_DETAIL_PATTERNS) {
+    message = message.replace(pattern, ' ');
+  }
+
+  message = message.replace(/\s{2,}/g, ' ').trim();
+
+  return message || (STATUS_CODES[statusCode] ?? 'Request failed');
+}
 
 /**
  * Send JSON response
@@ -61,7 +101,7 @@ export function sendError(
 function formatOpenAIError(error: Error, statusCode: number): any {
   return {
     error: {
-      message: error.message,
+      message: sanitizeErrorMessage(error, statusCode),
       type: getOpenAIErrorType(statusCode),
       code: statusCode === 429 ? 'rate_limit_exceeded' : null,
     },
@@ -76,7 +116,7 @@ function formatAnthropicError(error: Error, statusCode: number): any {
     type: 'error',
     error: {
       type: getAnthropicErrorType(statusCode),
-      message: error.message,
+      message: sanitizeErrorMessage(error, statusCode),
     },
   };
 }
@@ -87,7 +127,7 @@ function formatAnthropicError(error: Error, statusCode: number): any {
 function formatGenericError(error: Error, statusCode: number): any {
   return {
     error: {
-      message: error.message,
+      message: sanitizeErrorMessage(error, statusCode),
       status: statusCode,
     },
   };

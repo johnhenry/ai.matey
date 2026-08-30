@@ -44,9 +44,43 @@ export const defaultErrorHandler: ErrorHandler = (
 };
 
 /**
- * Get HTTP status code from error
+ * The status an error deliberately declares for the response we are about to
+ * send, if it declares one.
+ *
+ * Read only from `details.httpStatus`, which is set by code raising an error
+ * *for* a response of ours. Deliberately NOT read from `httpContext.statusCode`
+ * -- that records what an *upstream provider* answered, and echoing an upstream
+ * status as our own would turn e.g. a provider's 404 into our 404 rather than
+ * the 502/503 that describes our own failure to serve the request.
+ *
+ * Declaring the status this way lets a raiser ask for e.g. 413 without the
+ * mapping having to infer it from message text, which breaks silently the first
+ * time someone rewords the message.
  */
-function getHTTPStatusCode(error: Error): number {
+function explicitStatusCode(error: Error): number | undefined {
+  const details = (error as AdapterError).details as Record<string, unknown> | undefined;
+  const declared = details?.['httpStatus'];
+
+  if (typeof declared === 'number' && declared >= 400 && declared <= 599) {
+    return declared;
+  }
+
+  return undefined;
+}
+
+/**
+ * Get HTTP status code from error.
+ *
+ * Exported so that every HTTP entry point maps errors to statuses the same way
+ * instead of hardcoding a number at each catch site.
+ */
+export function getHTTPStatusCode(error: Error): number {
+  // An explicit status on the error always wins over inference.
+  const explicit = explicitStatusCode(error);
+  if (explicit !== undefined) {
+    return explicit;
+  }
+
   // Check for adapter errors
   if (error instanceof ValidationError) {
     return 400;
