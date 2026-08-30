@@ -6,8 +6,8 @@
  * @module
  */
 
-import type { IncomingMessage } from 'http';
-import { timingSafeEqual } from 'crypto';
+import type { IncomingMessage } from 'node:http';
+import { timingSafeEqual } from 'node:crypto';
 import type { AuthValidator } from './types.js';
 import { extractBearerToken } from './request-parser.js';
 

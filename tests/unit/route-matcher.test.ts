@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import type { IncomingMessage } from 'http';
+import type { IncomingMessage } from 'node:http';
 import {
   RouteMatcher,
   normalizePath,

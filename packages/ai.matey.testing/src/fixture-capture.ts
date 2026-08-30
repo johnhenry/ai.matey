@@ -2,8 +2,8 @@
  * Fixture capture tool - captures real API calls and saves them as fixtures
  */
 
-import { writeFile, mkdir } from 'fs/promises';
-import { join } from 'path';
+import { writeFile, mkdir } from 'node:fs/promises';
+import { join } from 'node:path';
 import type { IRChatRequest, IRChatResponse, IRStreamChunk } from '@johnhenry/aimatey-types';
 import type { ChatFixture, StreamingFixture, FixtureMetadata } from './fixture-types.js';
 import { FIXTURES_DIR } from './fixture-loader.js';
