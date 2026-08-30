@@ -85,6 +85,15 @@ export class Bridge<
   private _latencies: number[] = [];
   private static readonly MAX_LATENCY_SAMPLES = 1000; // Prevent unbounded memory growth
   private _errorCounts: Record<string, number> = {};
+  /**
+   * Per-backend success counts, keyed by the backend that actually served the request.
+   *
+   * Accumulated as requests succeed rather than derived at read time from
+   * `this.backend.metadata.name`: on a router-backed bridge `this.backend` is the
+   * *router*, so deriving it filed every success under `"router"` and per-backend
+   * usage - the only thing the field exists to report - was unobservable (#68).
+   */
+  private _backendUsage: Record<string, number> = {};
   private _statsResetTimestamp = Date.now();
 
   // Event listeners (stored for future event emission)
@@ -187,6 +196,7 @@ export class Bridge<
 
         // Track success
         this._successfulRequests++;
+        this.recordBackendUsage(enrichedResponse.metadata.provenance?.backend);
         const durationMs = Date.now() - startTime;
         this.recordLatency(durationMs);
 
@@ -318,8 +328,16 @@ export class Bridge<
         )
       );
 
-      // Step 7: Stamp provenance, then convert IR stream to frontend format
-      const frontendStream = this.frontend.fromIRStream(this.enrichStream(irStream));
+      // Step 7: Stamp provenance, then convert IR stream to frontend format.
+      // The usage tap sits *after* enrichStream so it reads the same resolved
+      // provenance `chat()` reads off the enriched response, keeping the two paths
+      // in agreement about who served the request (#68).
+      let servedBy: string | undefined;
+      const frontendStream = this.frontend.fromIRStream(
+        this.captureStreamBackend(this.enrichStream(irStream), (name) => {
+          servedBy = name;
+        })
+      );
 
       // Step 8: Yield chunks to caller
       let chunkSequence = 0;
@@ -334,6 +352,7 @@ export class Bridge<
 
       // Track success (after stream completes)
       this._successfulRequests++;
+      this.recordBackendUsage(servedBy);
       const durationMs = Date.now() - startTime;
       this.recordLatency(durationMs);
 
@@ -597,6 +616,15 @@ export class Bridge<
   /**
    * Get runtime statistics for this bridge.
    *
+   * `backendUsage` is keyed by the backend that actually served each request, so on a
+   * router-backed bridge it breaks down across the registered backends rather than
+   * collapsing onto the router. It counts successes only - a failed request is in
+   * `failedRequests` and `errorBreakdown`, not here - and a backend that has served
+   * nothing since the last reset has no key at all rather than a zero.
+   *
+   * Every other field is bridge-wide by definition: `successRate` and the latency
+   * percentiles describe the bridge, and `errorBreakdown` is keyed by error code.
+   *
    * @returns Bridge statistics including request counts, latencies, and error breakdown
    */
   getStats(): BridgeStats {
@@ -624,9 +652,7 @@ export class Bridge<
       p50LatencyMs: getPercentile(50),
       p95LatencyMs: getPercentile(95),
       p99LatencyMs: getPercentile(99),
-      backendUsage: {
-        [this.backend.metadata.name]: this._successfulRequests,
-      },
+      backendUsage: { ...this._backendUsage },
       errorBreakdown: { ...this._errorCounts },
       sinceTimestamp: this._statsResetTimestamp,
     };
@@ -642,6 +668,7 @@ export class Bridge<
     this._streamingRequests = 0;
     this._latencies = [];
     this._errorCounts = {};
+    this._backendUsage = {};
     this._statsResetTimestamp = Date.now();
   }
 
@@ -1097,6 +1124,39 @@ export class Bridge<
   }
 
   /**
+   * Pass a stream through, reporting the backend named on its `start` chunk.
+   *
+   * `chat()` learns who served it from the enriched response; a stream has no single
+   * response object, so the same answer is read off the `start` chunk - the chunk
+   * backends carry response metadata on - once {@link enrichStream} has applied the
+   * provenance rule to it.
+   *
+   * Distinct from {@link trackContextBackend}, which narrows the *middleware context*
+   * off the raw pre-enrichment stream so middleware sees the value while the stream is
+   * still running. This one runs after enrichment, for statistics only, and so is
+   * deliberately not folded into {@link enrichStream}: that generator is shared with
+   * `executeIRStream()`, which does not participate in bridge statistics.
+   *
+   * A stream with no `start` chunk, or a `start` chunk with no metadata for
+   * {@link enrichStream} to stamp, reports `undefined` and the caller falls back to the
+   * bridge's own backend name.
+   *
+   * @param stream Enriched IR stream to pass through
+   * @param onBackend Called with `provenance.backend` from the start chunk
+   */
+  private async *captureStreamBackend(
+    stream: IRChatStream,
+    onBackend: (backendName: string | undefined) => void
+  ): IRChatStream {
+    for await (const chunk of stream) {
+      if (chunk.type === 'start') {
+        onBackend(chunk.metadata?.provenance?.backend);
+      }
+      yield chunk;
+    }
+  }
+
+  /**
    * Account for a request that died before its execution pipeline ran.
    *
    * `_totalRequests` is incremented the moment a request arrives, but the work that
@@ -1347,6 +1407,24 @@ export class Bridge<
         }
       }
     }
+  }
+
+  /**
+   * Credit one success to the backend that served it.
+   *
+   * The name comes from the response's resolved `provenance.backend`, which #57 made
+   * report the backend that actually answered rather than the bridge's wrapper. The
+   * fallback covers an adapter that reports no provenance at all, and reproduces what
+   * a single-backend bridge has always reported.
+   *
+   * Successes only, matching the field's name and its previous semantics: a failed
+   * request is accounted for in `failedRequests` and `errorBreakdown`.
+   *
+   * @param backendName `provenance.backend` from the response, when one was reported
+   */
+  private recordBackendUsage(backendName: string | undefined): void {
+    const name = backendName ?? this.backend.metadata.name;
+    this._backendUsage[name] = (this._backendUsage[name] ?? 0) + 1;
   }
 
   /**
