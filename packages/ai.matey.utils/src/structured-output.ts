@@ -8,8 +8,12 @@
  * - Type-safe object generation
  * - Streaming with partial objects
  *
- * **IMPORTANT**: This module requires the optional peer dependency `zod` to be installed.
- * Install it with: `npm install zod`
+ * **IMPORTANT**: These utilities operate on Zod schemas supplied by the caller.
+ * `zod` is an optional peer dependency -- install it with `npm install zod` and
+ * pass the schemas you build with it. This module holds no runtime reference to
+ * `zod` itself -- its only `zod` import is a type-only one, erased at compile
+ * time -- so it stays browser-safe and adds nothing to a bundle for consumers
+ * who never touch structured output.
  */
 
 import type { z } from 'zod';
@@ -17,33 +21,93 @@ import type { IRChatRequest, IRChatResponse, IRChatStream, IRTool } from '@johnh
 import { extractToolCalls } from './tools.js';
 
 // ============================================================================
-// Zod Availability Check
+// Zod Schema Detection
 // ============================================================================
 
-let zodModule: typeof z | null = null;
+/**
+ * Structural test for "this value is a usable Zod schema".
+ *
+ * This module never needs the `z` namespace itself -- every entry point is
+ * handed a schema the caller already built, so the schema *is* the injected
+ * Zod instance (the same injectable pattern `@johnhenry/aimatey-mcp` uses for
+ * MCP clients). Checking the value we were given, rather than loading the
+ * `zod` module to prove it exists, keeps this file free of any runtime
+ * reference to `zod`: no `require`, no dynamic `import()`, nothing for a
+ * browser bundler to externalize, and the public API stays synchronous.
+ *
+ * Issue #59: the previous implementation probed availability with a bare
+ * `require('zod')`. `require` is not defined in an ES module, so in the ESM
+ * build every structured-output function threw -- and, because the failure
+ * was swallowed by a `catch`, it threw the *misleading* "Zod is not
+ * installed" error even when Zod was installed and working.
+ *
+ * Recognizes Zod v3 (`ZodType` instances expose `_def`/`parse`/`safeParse`)
+ * and Zod v4 (`_def` is a getter over the internal `_zod.def`; `parse` and
+ * `safeParse` are unchanged), matching the `^3 || ^4` peer range.
+ */
+function isZodSchema(value: unknown): boolean {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+
+  const candidate = value as { _def?: unknown; parse?: unknown; safeParse?: unknown };
+
+  return (
+    typeof candidate.parse === 'function' &&
+    typeof candidate.safeParse === 'function' &&
+    typeof candidate._def === 'object' &&
+    candidate._def !== null
+  );
+}
 
 /**
- * Lazily load Zod module
- * @throws Error if Zod is not installed
+ * Describe a rejected value for the error message, without stringifying
+ * something potentially huge.
  */
-function getZod(): typeof z {
-  if (zodModule) {
-    return zodModule;
+function describeValue(value: unknown): string {
+  if (value === undefined) {
+    return 'undefined';
+  }
+  if (value === null) {
+    return 'null';
+  }
+  if (Array.isArray(value)) {
+    return 'an array';
+  }
+  if (typeof value === 'string') {
+    const shown = value.length > 40 ? `${value.slice(0, 40)}...` : value;
+    return `the string ${JSON.stringify(shown)}`;
+  }
+  if (typeof value === 'number' || typeof value === 'boolean' || typeof value === 'bigint') {
+    return `a ${typeof value} (${value.toString()})`;
+  }
+  if (typeof value === 'object') {
+    // `Object.create(null)` has no `constructor`, hence the optional call.
+    const name: string | undefined = value.constructor?.name;
+    return name !== undefined && name !== 'Object' ? `a ${name} instance` : 'a plain object';
+  }
+  return `a ${typeof value}`;
+}
+
+/**
+ * Assert that `schema` is a Zod schema before it is used.
+ *
+ * Both failure modes -- Zod not installed at all, and Zod installed but
+ * something else passed -- land here, so the message covers both.
+ *
+ * @throws Error if the value is not a Zod schema
+ */
+function assertZodSchema(schema: unknown, parameterName: string = 'schema'): void {
+  if (isZodSchema(schema)) {
+    return;
   }
 
-  try {
-    // Dynamic import for optional dependency
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const loaded = require('zod').z;
-    zodModule = loaded;
-    return loaded;
-  } catch {
-    throw new Error(
-      'Zod is required for structured output features but is not installed. ' +
-        'Install it with: npm install zod\n' +
-        'See: https://github.com/johnhenry/ai.matey#structured-output'
-    );
-  }
+  throw new Error(
+    `Structured output requires a Zod schema, but \`${parameterName}\` was ` +
+      `${describeValue(schema)}. Zod is an optional peer dependency: install it with ` +
+      '`npm install zod` and pass a schema built with it, e.g. z.object({ ... }).\n' +
+      'See: https://github.com/johnhenry/ai.matey#structured-output'
+  );
 }
 
 // ============================================================================
@@ -123,8 +187,8 @@ export function schemaToToolDefinition(
   name: string = 'extract_data',
   description: string = 'Extract structured data from the input'
 ): ToolDefinition {
-  // Ensure Zod is available
-  getZod();
+  // Ensure the caller handed us a real Zod schema
+  assertZodSchema(schema);
 
   const jsonSchema = zodToJsonSchema(schema);
 
@@ -277,8 +341,8 @@ function zodToJsonSchema(schema: any): JSONSchema {
  * @returns Validation result with typed data or errors
  */
 export function validateWithSchema<T = any>(data: unknown, schema: any): ValidationResult<T> {
-  // Ensure Zod is available
-  getZod();
+  // Ensure the caller handed us a real Zod schema
+  assertZodSchema(schema);
 
   const result = schema.safeParse(data);
 
@@ -490,9 +554,10 @@ export function createGenerateObject(bridge: StructuredOutputBridge) {
   return async function generateObject<T = any>(
     options: GenerateObjectOptions
   ): Promise<GenerateObjectResult<T>> {
-    // Ensure Zod is available
-    getZod();
     const { schema, prompt, model, temperature = 0.7, maxRetries = 3, signal } = options;
+
+    // Fail fast, outside the retry loop: a bad schema will never succeed
+    assertZodSchema(schema, 'options.schema');
 
     // Convert schema to an IR tool definition (provider-agnostic)
     const irTool = buildExtractDataTool(schema);
@@ -575,9 +640,10 @@ export function createStreamObject(bridge: StructuredOutputBridge) {
   return async function* streamObject<T = any>(
     options: StreamObjectOptions
   ): AsyncGenerator<Partial<T>, T> {
-    // Ensure Zod is available
-    getZod();
     const { schema, prompt, model, onPartial, signal } = options;
+
+    // Fail fast, before any network call
+    assertZodSchema(schema, 'options.schema');
 
     if (!bridge.executeIRStream) {
       throw new Error('streamObject requires a Bridge with executeIRStream() support');
