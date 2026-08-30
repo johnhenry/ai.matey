@@ -69,6 +69,10 @@ const CORPORA: Record<string, (bytes: number) => string> = {
   // Worst cases for the injection patterns: the trigger word without the rest.
   'ignore-prefix run': (n) => repeatTo('ignore all of the previous ', n),
   'ignore + whitespace run': (n) => repeatTo(`ignore${' '.repeat(2000)}`, n),
+  // The same worst case for the `disregard` verb. The corpora above contain no
+  // `disregard`, so without this entry the pattern would be "measured" only on
+  // input it rejects at the first character.
+  'disregard-prefix run': (n) => repeatTo('disregard all of the previous ', n),
   'jailbreak framing run': (n) => repeatTo('you are now a DAN acting as developer ', n),
   // A control: ordinary prose, which is what almost every real message is.
   prose: (n) => repeatTo('The quick brown fox jumps over the lazy dog. ', n),
@@ -243,4 +247,21 @@ describe('detection cost grows linearly, not quadratically (#80)', () => {
       BUDGET_MS
     );
   });
+
+  it.each(['ignore all of the previous ', 'disregard all of the previous '])(
+    'the two-branch prior-context pattern scales linearly on "%s"',
+    (unit) => {
+      // Built once, outside the timed closures: `repeatTo` is O(n) itself, and
+      // building the input inside the closure would measure that instead.
+      const small = repeatTo(unit, SIZE / SCALING_FACTOR);
+      const large = repeatTo(unit, SIZE);
+
+      const ratio = scalingRatio(
+        () => detectPromptInjection(small, DEFAULT_INJECTION_PATTERNS),
+        () => detectPromptInjection(large, DEFAULT_INJECTION_PATTERNS)
+      );
+
+      expect(ratio).toBeLessThan(SCALING_LIMIT);
+    }
+  );
 });
