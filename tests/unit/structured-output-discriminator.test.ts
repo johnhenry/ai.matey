@@ -32,6 +32,22 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { buildSync } from 'esbuild';
 import { schemaToToolDefinition } from '@johnhenry/aimatey-utils';
 
+const repoRoot = fileURLToPath(new URL('../..', import.meta.url));
+
+/**
+ * Workspace packages reached at *runtime* from the bundled sources.
+ *
+ * The suite runs straight from `src` and `npm test` never builds `dist`, so
+ * node resolution -- which these standalone esbuild bundles use, unlike every
+ * other test, which goes through `vitest.config.ts`'s aliases -- would fail
+ * on the package entry points. `import type` specifiers are erased before
+ * esbuild resolves anything, so only real imports need listing.
+ */
+const WORKSPACE_ALIAS = {
+  '@johnhenry/aimatey-errors': join(repoRoot, 'packages/ai.matey.errors/src/index.ts'),
+  '@johnhenry/aimatey-types': join(repoRoot, 'packages/ai.matey.types/src/index.ts'),
+};
+
 // ============================================================================
 // Hand-built schema shapes: no usable constructor name at all
 // ============================================================================
@@ -145,7 +161,6 @@ describe('zod type discrimination (#66)', () => {
     beforeAll(async () => {
       outDir = mkdtempSync(join(tmpdir(), 'aimatey-minified-'));
 
-      const repoRoot = fileURLToPath(new URL('../..', import.meta.url));
       const outfile = join(outDir, 'bundle.mjs');
 
       // A consumer-shaped entry point: real Zod, real converter, one bundle.
@@ -178,6 +193,7 @@ describe('zod type discrimination (#66)', () => {
         format: 'esm',
         platform: 'node',
         target: 'es2022',
+        alias: WORKSPACE_ALIAS,
         // The aggressive settings: mangle everything that can be mangled and
         // explicitly do *not* preserve function/class names.
         minify: true,
@@ -244,6 +260,7 @@ describe('the minified fixture is actually minified', () => {
       format: 'esm',
       platform: 'node',
       target: 'es2022',
+      alias: WORKSPACE_ALIAS,
       minify: true,
       keepNames: false,
       write: false,
