@@ -69,6 +69,17 @@ export interface ValidationResult {
    * Warnings (non-blocking)
    */
   warnings: string[];
+
+  /**
+   * PII detection results, one entry per message, in message order.
+   *
+   * Present only when {@link ValidationConfig.detectPII} is enabled; entries
+   * are `undefined` for messages that were skipped. Pass this to
+   * {@link sanitizeRequest} so that a custom
+   * {@link ValidationConfig.piiDetector} drives redaction without being run a
+   * second time - which is what {@link createValidationMiddleware} does.
+   */
+  piiResults?: ReadonlyArray<PIIDetectionResult | undefined>;
 }
 
 /**
@@ -175,7 +186,39 @@ export interface ValidationConfig {
   piiPatterns?: Record<string, RegExp>;
 
   /**
-   * Custom PII detector function
+   * Custom PII detector function.
+   *
+   * **Replaces** {@link ValidationConfig.piiPatterns} /
+   * {@link DEFAULT_PII_PATTERNS} - it does not augment them. Nothing else runs
+   * when a detector is supplied, for detection *or* for redaction. That is the
+   * point of the option: it is the escape hatch for callers whose text the
+   * default patterns get wrong, and an augmenting detector could not turn a
+   * default false positive off.
+   *
+   * Applies to every `piiAction`, redaction included. Under
+   * `piiAction: 'redact'` the strings in the returned `matches` array are the
+   * ones replaced with `[REDACTED_<TYPE>]`, so a detector that wants its
+   * findings redacted must report them there; `detected: true` with an empty
+   * `matches` array blocks and warns but redacts nothing.
+   *
+   * An async detector needs an async caller. {@link createValidationMiddleware}
+   * and {@link createSecurityMiddleware} await it; the synchronous
+   * {@link sanitizeRequest} can only use a detector that returns a plain
+   * result, unless it is handed the results from {@link validateRequest}.
+   *
+   * @example Suppressing a false positive the default patterns produce
+   * ```typescript
+   * createValidationMiddleware({
+   *   detectPII: true,
+   *   piiAction: 'redact',
+   *   // Emails only. Commit hashes and version strings pass through.
+   *   piiDetector: (text) => {
+   *     const matches = [...text.matchAll(/\b[\w.%+-]+@[\w.-]+\.\w{2,}\b/g)]
+   *       .map((m) => ({ type: 'email', value: m[0] }));
+   *     return { detected: matches.length > 0, types: matches.length ? ['email'] : [], matches };
+   *   },
+   * });
+   * ```
    */
   piiDetector?: (text: string) => PIIDetectionResult | Promise<PIIDetectionResult>;
 
@@ -512,6 +555,61 @@ export function redactPII(
 }
 
 /**
+ * Escape a string so it can be used as a literal inside a `RegExp`.
+ * @internal
+ */
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
+ * Redact PII using matches that have **already been found**, rather than by
+ * re-running a set of patterns.
+ *
+ * This is how a custom {@link ValidationConfig.piiDetector} participates in
+ * `piiAction: 'redact'`: the detector is the only thing that knows what it
+ * found, so redaction replaces the literal strings it reported. Each
+ * `matches[].value` is replaced with `[REDACTED_<TYPE>]`, longest value first
+ * so that a shorter match nested inside a longer one cannot cut it in half.
+ *
+ * A detector that reports `detected: true` with an empty `matches` array
+ * therefore redacts nothing - there is no way to know which substring to
+ * replace. Return the matched substrings if you want redaction to act on them.
+ *
+ * @param text - Text to redact
+ * @param matches - Matches from a {@link PIIDetectionResult}
+ * @returns The text with every reported match replaced
+ */
+export function redactPIIMatches(
+  text: string,
+  matches: ReadonlyArray<{ type: string; value: string }>
+): string {
+  let redacted = text;
+
+  const sorted = [...matches].sort((a, b) => b.value.length - a.value.length);
+
+  for (const { type, value } of sorted) {
+    if (!value) {
+      continue;
+    }
+    redacted = redacted.replace(
+      new RegExp(escapeRegExp(value), 'g'),
+      `[REDACTED_${type.toUpperCase()}]`
+    );
+  }
+
+  return redacted;
+}
+
+/**
+ * Whether a value is thenable, i.e. an async detector's return value.
+ * @internal
+ */
+function isThenable<T>(value: T | Promise<T>): value is Promise<T> {
+  return typeof (value as Promise<T> | undefined)?.then === 'function';
+}
+
+/**
  * Detect prompt injection attempts
  */
 export function detectPromptInjection(
@@ -568,6 +666,7 @@ export async function validateRequest(
 ): Promise<ValidationResult> {
   const errors: ValidationError[] = [];
   const warnings: string[] = [];
+  const piiResults: Array<PIIDetectionResult | undefined> = [];
 
   // Perform IR format validation first if enabled
   if (config.validateIRFormat) {
@@ -659,6 +758,10 @@ export async function validateRequest(
         ? await config.piiDetector(text)
         : detectPII(text, config.piiPatterns);
 
+      // Recorded for every action, not just the blocking ones: `redact` needs
+      // these so that a custom detector can drive `sanitizeRequest` (#67).
+      piiResults[i] = piiResult;
+
       if (piiResult.detected) {
         const message = `PII detected in message ${i}: ${piiResult.types.join(', ')}`;
 
@@ -749,13 +852,34 @@ export async function validateRequest(
     valid: errors.length === 0,
     errors,
     warnings,
+    ...(config.detectPII ? { piiResults } : {}),
   };
 }
 
 /**
- * Sanitize request
+ * Sanitize a request: apply the text sanitizer, then redact PII when
+ * `piiAction` is `'redact'`.
+ *
+ * Redaction honours {@link ValidationConfig.piiDetector} when one is set,
+ * replacing the strings it reported rather than the ones
+ * {@link ValidationConfig.piiPatterns} would find (#67). Because a detector may
+ * be async and this function is not, pass `piiResults` from
+ * {@link validateRequest} - {@link createValidationMiddleware} does. Without
+ * them a synchronous detector is called here directly; an async one cannot be
+ * awaited, so nothing is redacted for that message and a warning is logged
+ * (suppress it with `logWarnings: false`).
+ *
+ * @param request - Request to sanitize
+ * @param config - Validation configuration
+ * @param piiResults - Per-message detection results from
+ *   {@link ValidationResult.piiResults}, in message order
+ * @returns A new request; the input is not mutated
  */
-export function sanitizeRequest(request: IRChatRequest, config: ValidationConfig): IRChatRequest {
+export function sanitizeRequest(
+  request: IRChatRequest,
+  config: ValidationConfig,
+  piiResults?: ReadonlyArray<PIIDetectionResult | undefined>
+): IRChatRequest {
   if (config.sanitizeMessages === false) {
     return request;
   }
@@ -788,14 +912,49 @@ export function sanitizeRequest(request: IRChatRequest, config: ValidationConfig
   // Redact PII if configured
   if (config.detectPII && config.piiAction === 'redact') {
     const patterns = config.piiPatterns || DEFAULT_PII_PATTERNS;
+    const detector = config.piiDetector;
+
+    // A custom detector replaces the patterns entirely - see
+    // ValidationConfig.piiDetector. Build one redactor per message index so
+    // that already-computed results are used in preference to re-running it.
+    const redactorFor = (index: number): ((text: string) => string) => {
+      if (!detector) {
+        return (text) => redactPII(text, patterns);
+      }
+
+      const precomputed = piiResults?.[index];
+      if (precomputed) {
+        return (text) => redactPIIMatches(text, precomputed.matches);
+      }
+
+      return (text) => {
+        const result = detector(text);
+        if (isThenable(result)) {
+          // Nothing to await into. Swallow the rejection so an async detector
+          // cannot crash the process from here, and say what happened rather
+          // than silently falling back to the patterns the caller replaced.
+          result.catch(() => undefined);
+          if (config.logWarnings !== false) {
+            console.warn(
+              `[${config.logPrefix ?? 'Validation'}] piiDetector returned a Promise but sanitizeRequest is synchronous; ` +
+                'no PII was redacted. Use createValidationMiddleware, or pass validateRequest(...).piiResults.'
+            );
+          }
+          return text;
+        }
+        return redactPIIMatches(text, result.matches);
+      };
+    };
 
     return {
       ...request,
-      messages: sanitizedMessages.map((message) => {
+      messages: sanitizedMessages.map((message, index) => {
+        const redact = redactorFor(index);
+
         if (typeof message.content === 'string') {
           return {
             ...message,
-            content: redactPII(message.content, patterns),
+            content: redact(message.content),
           };
         }
 
@@ -805,7 +964,7 @@ export function sanitizeRequest(request: IRChatRequest, config: ValidationConfig
             if (content.type === 'text') {
               return {
                 ...content,
-                text: redactPII(content.text, patterns),
+                text: redact(content.text),
               };
             }
             return content;
@@ -941,8 +1100,9 @@ export function createValidationMiddleware(config: ValidationConfig = {}): Middl
       console.error(`[${logPrefix}] Errors: ${errorMessage}`);
     }
 
-    // Sanitize request
-    context.request = sanitizeRequest(context.request, config);
+    // Sanitize request. The detection results are handed over so that a custom
+    // `piiDetector` drives redaction and is not run a second time (#67).
+    context.request = sanitizeRequest(context.request, config, validationResult.piiResults);
 
     // Continue to next middleware
     return await next();

@@ -973,6 +973,11 @@ matched again with
 marker, so `version 1.2.3.4` and `v1.2.3.4` survive; a bare `1.2.3.4` with no
 marker is genuinely ambiguous and is still read as an address.
 
+A custom `piiDetector` **replaces** these patterns rather than adding to them,
+for detection and for redaction alike - that is what makes it usable as an
+escape hatch when a default pattern is wrong for your traffic. Under
+`piiAction: 'redact'` the strings it returns in `matches` are the ones replaced.
+
 **Response header policy.** `Content-Security-Policy`,
 `Strict-Transport-Security`, `X-Frame-Options` and friends are *browser response*
 headers; they are meaningless as request headers to a provider API, and ai.matey
