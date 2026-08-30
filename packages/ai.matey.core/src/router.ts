@@ -29,7 +29,7 @@ import type {
   ParallelDispatchOptions,
   ParallelDispatchResult,
 } from '@johnhenry/aimatey-types';
-import { AdapterError, ErrorCode } from '@johnhenry/aimatey-errors';
+import { AdapterError, ErrorCode, RouterError } from '@johnhenry/aimatey-errors';
 import { createWarning, supportsEmbeddings } from '@johnhenry/aimatey-utils';
 import type { IREmbedRequest, IREmbedResponse } from '@johnhenry/aimatey-types';
 import type { TranslationResult } from './model-translation.js';
@@ -973,10 +973,14 @@ export class Router implements IRouter {
         }));
 
       if (successful.length === 0) {
-        throw new AdapterError({
+        // Every leg failed, and each leg's error is right here - so the
+        // composite reports what they actually were rather than asserting
+        // retryable (#70). `RouterError` derives the classification.
+        throw new RouterError({
           code: ErrorCode.ALL_BACKENDS_FAILED,
           message: `All parallel backends failed: ${failed.map((f) => f.backend).join(', ')}`,
-          isRetryable: true,
+          attemptedBackends: failed.map((f) => f.backend),
+          backendErrors: failed.map((f) => f.error),
           provenance: { router: this.metadata.name },
         });
       }
@@ -1411,12 +1415,16 @@ export class Router implements IRouter {
       }
     }
 
+    // Only reached when every candidate was skipped before it was invoked
+    // (circuit open, or the adapter lost embeddings support), so there is no
+    // leaf failure to classify from and nothing was actually attempted.
+    // `RouterError` answers non-retryable for that, which is the value this
+    // site already had - see the same shape in `fallbackSequential` (#70).
     throw (
       lastError ??
-      new AdapterError({
+      new RouterError({
         code: ErrorCode.ALL_BACKENDS_FAILED,
         message: 'All embedding-capable backends failed',
-        isRetryable: false,
         provenance: { router: this.metadata.name },
       })
     );
@@ -1899,12 +1907,16 @@ export class Router implements IRouter {
       }
     }
 
+    // Only reached when `candidates` was empty - every attempt sets
+    // `lastError` and that is thrown as-is - so no backend was invoked and
+    // there is nothing to derive a classification from. Non-retryable, the
+    // value this site already had (#70).
     throw (
       lastError ??
-      new AdapterError({
+      new RouterError({
         code: ErrorCode.ALL_BACKENDS_FAILED,
         message: 'All fallback backends failed',
-        isRetryable: false,
+        attemptedBackends,
         provenance: { router: this.metadata.name },
       })
     );
@@ -1944,15 +1956,20 @@ export class Router implements IRouter {
       // succeeded.
       return await Promise.any(promises);
     } catch (error) {
-      const errors =
-        error instanceof AggregateError
-          ? error.errors.map((e) => (e instanceof Error ? e.message : String(e)))
-          : [error instanceof Error ? error.message : String(error)];
+      // `Promise.any` only rejects once every leg has rejected, and it hands
+      // back every rejection - so the composite is built from the actual
+      // failures rather than asserting retryable (#70). A thrown non-Error
+      // carries no classification, and becomes a non-retryable leaf.
+      const raised = error instanceof AggregateError ? error.errors : [error];
+      const backendErrors = raised.map((e: unknown) =>
+        e instanceof Error ? e : new Error(String(e))
+      );
 
-      throw new AdapterError({
+      throw new RouterError({
         code: ErrorCode.ALL_BACKENDS_FAILED,
-        message: `All parallel fallback backends failed: ${errors.join(', ')}`,
-        isRetryable: true,
+        message: `All parallel fallback backends failed: ${backendErrors.map((e) => e.message).join(', ')}`,
+        attemptedBackends: available,
+        backendErrors,
         provenance: { router: this.metadata.name },
       });
     }

@@ -215,3 +215,91 @@ describe('RouterError derives ALL_BACKENDS_FAILED retryability from its leaves',
     });
   });
 });
+
+// ============================================================================
+// The router's ALL_BACKENDS_FAILED reflects why the backends failed
+// ============================================================================
+
+describe('Router ALL_BACKENDS_FAILED reflects why the backends failed', () => {
+  it('is non-retryable when every parallel backend failed non-retryably', async () => {
+    const router = new Router({ routingStrategy: 'round-robin' });
+    router.register('a', createFailingBackend('a', permanentFailure).adapter);
+    router.register('b', createFailingBackend('b', permanentFailure).adapter);
+
+    const error = (await router
+      .dispatchParallel(createTestRequest(), { strategy: 'all', backends: ['a', 'b'] })
+      .catch((e: unknown) => e)) as AdapterError;
+
+    expect(error.code).toBe(ErrorCode.ALL_BACKENDS_FAILED);
+    expect(error.isRetryable).toBe(false);
+  });
+
+  it('stays retryable when one parallel backend failed retryably', async () => {
+    const router = new Router({ routingStrategy: 'round-robin' });
+    router.register('a', createFailingBackend('a', permanentFailure).adapter);
+    router.register('b', createFailingBackend('b', retryableFailure).adapter);
+
+    const error = (await router
+      .dispatchParallel(createTestRequest(), { strategy: 'all', backends: ['a', 'b'] })
+      .catch((e: unknown) => e)) as AdapterError;
+
+    expect(error.code).toBe(ErrorCode.ALL_BACKENDS_FAILED);
+    expect(error.isRetryable).toBe(true);
+  });
+
+  it('carries the leaf failures on the composite', async () => {
+    const router = new Router({ routingStrategy: 'round-robin' });
+    router.register('a', createFailingBackend('a', permanentFailure).adapter);
+    router.register('b', createFailingBackend('b', permanentFailure).adapter);
+
+    const error = (await router
+      .dispatchParallel(createTestRequest(), { strategy: 'all', backends: ['a', 'b'] })
+      .catch((e: unknown) => e)) as RouterError;
+
+    expect(error).toBeInstanceOf(RouterError);
+    expect(error.attemptedBackends).toEqual(['a', 'b']);
+    expect(error.backendErrors).toHaveLength(2);
+    expect(error.backendErrors?.every((e) => e.name === 'AuthenticationError')).toBe(true);
+  });
+
+  it('is non-retryable when parallel *fallback* exhausts every backend non-retryably', async () => {
+    const router = new Router({ fallbackStrategy: 'parallel' });
+    router.register('a', createFailingBackend('a', permanentFailure).adapter);
+    router.register('b', createFailingBackend('b', permanentFailure).adapter);
+
+    const error = (await router
+      .execute(createTestRequest())
+      .catch((e: unknown) => e)) as AdapterError;
+
+    expect(error.code).toBe(ErrorCode.ALL_BACKENDS_FAILED);
+    expect(error.isRetryable).toBe(false);
+  });
+
+  it('stays retryable when parallel fallback had one retryable leaf', async () => {
+    const router = new Router({ fallbackStrategy: 'parallel' });
+    router.register('a', createFailingBackend('a', permanentFailure).adapter);
+    router.register('b', createFailingBackend('b', retryableFailure).adapter);
+
+    const error = (await router
+      .execute(createTestRequest())
+      .catch((e: unknown) => e)) as AdapterError;
+
+    expect(error.code).toBe(ErrorCode.ALL_BACKENDS_FAILED);
+    expect(error.isRetryable).toBe(true);
+  });
+
+  it('builds every ALL_BACKENDS_FAILED through RouterError, including with no backends', async () => {
+    // Sequential fallback with nothing available: nothing was attempted, so
+    // there is no evidence of a transient fault and the answer is the same
+    // non-retryable one the parallel paths give for all-permanent leaves.
+    const router = new Router({ fallbackStrategy: 'sequential' });
+
+    const error = (await router
+      .execute(createTestRequest())
+      .catch((e: unknown) => e)) as AdapterError;
+
+    expect(error).toBeInstanceOf(RouterError);
+    expect(error.code).toBe(ErrorCode.ALL_BACKENDS_FAILED);
+    expect(error.isRetryable).toBe(false);
+  });
+});
