@@ -3,9 +3,9 @@
  * Generate API documentation using TypeDoc
  */
 
-import { execSync } from 'child_process';
-import * as fs from 'fs';
-import * as path from 'path';
+import { execSync } from 'node:child_process';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 
 const DOCS_DIR = path.join(__dirname, '..');
 const API_OUTPUT_DIR = path.join(DOCS_DIR, 'docs', 'api', 'generated');

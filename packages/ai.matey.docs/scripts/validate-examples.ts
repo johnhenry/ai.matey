@@ -3,8 +3,8 @@
  * Validate example code for correctness
  */
 
-import * as fs from 'fs';
-import * as path from 'path';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 
 const EXAMPLES_DIR = path.join(__dirname, '..', 'examples');
 

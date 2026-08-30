@@ -25,7 +25,7 @@
  *   maximum performance, and full streaming support.
  */
 
-import http from 'http';
+import http from 'node:http';
 import { createNodeHTTPHandler } from '@johnhenry/aimatey-http';
 import { Bridge } from '@johnhenry/aimatey-core';
 import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend/openai';
