@@ -413,22 +413,34 @@ const router = new Router(new OpenAIFrontendAdapter(), {
 
 ### Per-Request Provider Selection
 
-Override routing for specific requests:
+Override routing for specific requests with the `backend` request option. It is the
+*second* argument to `chat()` / `chatStream()`, not a field on the request body, and it
+names the backend as it was registered on the router:
 
 ```typescript
-// Use default routing
-const response1 = await router.chat({
+const router = new Router({ routingStrategy: 'explicit', defaultBackend: 'openai' });
+router.register('openai', new OpenAIBackendAdapter({ apiKey: process.env.OPENAI_API_KEY }));
+router.register('anthropic', new AnthropicBackendAdapter({ apiKey: process.env.ANTHROPIC_API_KEY }));
+
+const bridge = new Bridge(new OpenAIFrontendAdapter(), router);
+
+// Use the router's configured routing
+const response1 = await bridge.chat({
   model: 'gpt-4',
   messages: [{ role: 'user', content: 'Hello' }]
 });
 
-// Force specific backend
-const response2 = await router.chat({
-  model: 'gpt-4',
-  messages: [{ role: 'user', content: 'Hello' }],
-  backend: 'anthropic' // Force Anthropic
-});
+// Force a specific backend for this request only
+const response2 = await bridge.chat(
+  { model: 'gpt-4', messages: [{ role: 'user', content: 'Hello' }] },
+  { backend: 'anthropic' } // Force Anthropic
+);
 ```
+
+A name that is not registered throws an `AdapterError` with
+`ErrorCode.ROUTING_FAILED` rather than quietly routing somewhere else, so a typo
+surfaces immediately. A registered backend that is merely unhealthy or circuit-open
+still falls back as usual.
 
 ## Troubleshooting
 

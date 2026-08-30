@@ -40,13 +40,14 @@ const bridge = new Bridge(
 
 ## Methods
 
-### `chat(request)`
+### `chat(request, options?)`
 
 Execute a chat completion request.
 
 **Parameters:**
 
 - `request: any` - Request in frontend adapter format
+- `options?: RequestOptions` - Per-request overrides (see [RequestOptions](#requestoptions))
 
 **Returns:** `Promise<any>` - Response in frontend adapter format
 
@@ -54,6 +55,7 @@ Execute a chat completion request.
 - `BackendError` - If backend request fails
 - `ValidationError` - If request validation fails
 - `TimeoutError` - If request times out
+- `AdapterError` (`ROUTING_FAILED`) - If `options.backend` names a backend that is not registered
 
 **Example:**
 
@@ -70,19 +72,21 @@ console.log(response.choices[0].message.content);
 
 ---
 
-### `chatStream(request)`
+### `chatStream(request, options?)`
 
 Execute a streaming chat completion request.
 
 **Parameters:**
 
 - `request: any` - Request in frontend adapter format (with `stream: true`)
+- `options?: RequestOptions` - Per-request overrides (see [RequestOptions](#requestoptions))
 
 **Returns:** `AsyncIterable<any>` - Stream of chunks in frontend adapter format
 
 **Throws:**
 - `BackendError` - If backend request fails
 - `ValidationError` - If request validation fails
+- `AdapterError` (`ROUTING_FAILED`) - If `options.backend` names a backend that is not registered
 
 **Example:**
 
@@ -314,6 +318,71 @@ interface BridgeOptions {
   onError?: (error: Error) => void;
 }
 ```
+
+---
+
+### `RequestOptions`
+
+Per-request overrides, passed as the second argument to `chat()` and `chatStream()`.
+
+```typescript
+interface RequestOptions {
+  /** Request timeout in milliseconds */
+  timeout?: number;
+
+  /** AbortSignal for request cancellation */
+  signal?: AbortSignal;
+
+  /** Backend override, by registered name (router only) */
+  backend?: string;
+
+  /** Additional metadata merged into `metadata.custom` */
+  metadata?: Record<string, unknown>;
+
+  /** Skip middleware execution for this request (default: false) */
+  skipMiddleware?: boolean;
+
+  /** Custom request options */
+  custom?: Record<string, unknown>;
+}
+```
+
+#### Per-request backend selection
+
+`backend` picks a specific backend for one request, by the name it was registered
+under. It only applies when the bridge's backend is a `Router` - with a single
+backend adapter there is no routing to override and the option is ignored.
+
+```typescript
+const router = new Router({ routingStrategy: 'explicit', defaultBackend: 'openai' });
+router.register('openai', new OpenAIBackendAdapter({ apiKey: process.env.OPENAI_API_KEY }));
+router.register('anthropic', new AnthropicBackendAdapter({ apiKey: process.env.ANTHROPIC_API_KEY }));
+
+const bridge = new Bridge(new OpenAIFrontendAdapter(), router);
+
+// Routed by the router's configured strategy
+await bridge.chat({ model: 'gpt-4', messages });
+
+// Forced to Anthropic for this request only
+await bridge.chat({ model: 'gpt-4', messages }, { backend: 'anthropic' });
+```
+
+The bridge writes the override onto `metadata.custom.backend`, which is the channel
+the router reads its explicit routing decision from. It is applied last, so it takes
+precedence over a `metadata.custom.backend` already present on the request and over a
+`backend` key passed through `options.metadata`.
+
+A name that is not registered is rejected up front with an `AdapterError` carrying
+`ErrorCode.ROUTING_FAILED`, so a typo cannot be served by a different provider:
+
+```typescript
+await bridge.chat(request, { backend: 'antropic' });
+// AdapterError: Requested backend 'antropic' is not registered.
+//               Registered backends: openai, anthropic
+```
+
+A backend that *is* registered but is currently unhealthy or has an open circuit
+breaker is not an error - the router's normal fallback applies.
 
 ---
 
