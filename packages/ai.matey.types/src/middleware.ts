@@ -31,14 +31,41 @@ export interface MiddlewareContext {
 
   /**
    * Backend that will process (or processed) the request.
-   * Available after routing decision.
+   *
+   * Set by the bridge before the middleware chain runs, so it is available in both
+   * the request phase (before `next()`) and the response phase (after it). Call
+   * `backend.execute()` on it to run an extra turn of your own - an agentic tool
+   * loop, a retry with a modified request, a failover - without having to be handed
+   * an adapter separately.
+   *
+   * **It changes as the routing decision resolves.** Before the request is
+   * dispatched this is whatever the bridge is about to call, which for a
+   * router-backed bridge is the router itself: the specific provider is not yet
+   * chosen, and executing through the router re-routes an extra turn the same way
+   * the original request was routed. Once a response comes back the field is
+   * narrowed to the backend that actually served it, when the router still has it
+   * registered. A middleware that calls `next()` more than once sees the value for
+   * its most recent dispatch.
+   *
+   * So an extra turn taken *before* `next()` is routed like the original request,
+   * and one taken *after* it goes to the backend that just answered - which is
+   * usually what a follow-up turn wants. To re-route deliberately, execute through
+   * `bridge.getRouter()` instead.
+   *
+   * Undefined only when the context was built by hand rather than by a bridge.
    */
-  readonly backend?: BackendAdapter;
+  backend?: BackendAdapter;
 
   /**
-   * Backend name/identifier.
+   * Name of {@link MiddlewareContext.backend}.
+   *
+   * Follows the same before/after rule: the router's name until a response has been
+   * seen, the serving backend's name afterwards. Branching on it in the request
+   * phase of a router-backed bridge therefore tells you about the router, not the
+   * provider - the provider is not decided yet. The backend that served a completed
+   * response is also reported on `response.metadata.provenance.backend`.
    */
-  readonly backendName?: string;
+  backendName?: string;
 
   /**
    * Shared state object for passing data between middleware.

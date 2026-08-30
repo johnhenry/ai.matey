@@ -32,7 +32,7 @@ import type {
 } from '@johnhenry/aimatey-types';
 import type { Router } from '@johnhenry/aimatey-types';
 import { BridgeEventType } from '@johnhenry/aimatey-types';
-import type { Middleware, StreamingMiddleware } from '@johnhenry/aimatey-types';
+import type { Middleware, MiddlewareContext, StreamingMiddleware } from '@johnhenry/aimatey-types';
 import type { ListModelsOptions, ListModelsResult } from '@johnhenry/aimatey-types';
 import {
   MiddlewareStack,
@@ -164,7 +164,8 @@ export class Bridge<
         const context = createMiddlewareContext(
           enrichedRequest,
           this.config as Record<string, unknown>,
-          options?.signal
+          options?.signal,
+          this.backend
         );
 
         // Step 5: Execute middleware stack + backend
@@ -173,7 +174,9 @@ export class Bridge<
         // history prepending - actually reach the backend.
         const irResponse = await this.middlewareStack.execute(context, async () => {
           // Call backend adapter
-          return await this.backend.execute(context.request, options?.signal);
+          const response = await this.backend.execute(context.request, options?.signal);
+          this.narrowContextBackend(context, response.metadata.provenance?.backend);
+          return response;
         });
 
         // Step 6: Enrich response with provenance
@@ -298,7 +301,8 @@ export class Bridge<
       const context = createStreamingMiddlewareContext(
         enrichedRequest,
         this.config as Record<string, unknown>,
-        options?.signal
+        options?.signal,
+        this.backend
       );
 
       // Step 6: Execute middleware stack + backend
@@ -306,7 +310,12 @@ export class Bridge<
       // request rewrites a middleware performed actually reach the backend.
       const irStream = await this.middlewareStack.executeStream(context, () =>
         // Call backend adapter streaming
-        Promise.resolve(this.backend.executeStream(context.request, options?.signal))
+        Promise.resolve(
+          this.trackContextBackend(
+            this.backend.executeStream(context.request, options?.signal),
+            context
+          )
+        )
       );
 
       // Step 7: Stamp provenance, then convert IR stream to frontend format
@@ -726,11 +735,14 @@ export class Bridge<
     const context = createMiddlewareContext(
       enrichedRequest,
       this.config as Record<string, unknown>,
-      options?.signal
+      options?.signal,
+      this.backend
     );
 
     const irResponse = await this.middlewareStack.execute(context, async () => {
-      return await this.backend.execute(context.request, options?.signal);
+      const response = await this.backend.execute(context.request, options?.signal);
+      this.narrowContextBackend(context, response.metadata.provenance?.backend);
+      return response;
     });
 
     return this.enrichResponse(irResponse, enrichedRequest);
@@ -759,11 +771,17 @@ export class Bridge<
     const context = createStreamingMiddlewareContext(
       enrichedRequest,
       this.config as Record<string, unknown>,
-      options?.signal
+      options?.signal,
+      this.backend
     );
 
     const irStream = await this.middlewareStack.executeStream(context, () =>
-      Promise.resolve(this.backend.executeStream(context.request, options?.signal))
+      Promise.resolve(
+        this.trackContextBackend(
+          this.backend.executeStream(context.request, options?.signal),
+          context
+        )
+      )
     );
 
     for await (const chunk of this.enrichStream(irStream)) {
@@ -1022,6 +1040,60 @@ export class Bridge<
       provenance: { frontend: this.frontend.metadata.name },
       details: { requestedBackend: name, registeredBackends: [...registered] },
     });
+  }
+
+  /**
+   * Narrow `context.backend` from "what the bridge is about to call" to "what actually
+   * served this request", once the routing decision has resolved (#64).
+   *
+   * The bridge seeds the context with its own backend before the chain runs, because a
+   * middleware needs something to call for an extra turn from its very first line. For a
+   * router-backed bridge that seed is the router - the provider is genuinely not chosen
+   * yet, and a middleware executing through the router re-routes an extra turn the same
+   * way the original request was routed. The specific provider only becomes knowable when
+   * a response comes back and reports itself, so the field is narrowed then, which is
+   * exactly what "available after routing decision" describes.
+   *
+   * Called from the bridge's innermost dispatch, so a middleware that calls `next()` more
+   * than once sees the value for its most recent dispatch rather than a stale one.
+   *
+   * @param context Context handed to the middleware chain
+   * @param backendName `provenance.backend` from the response, when the backend reported one
+   */
+  private narrowContextBackend(context: MiddlewareContext, backendName: string | undefined): void {
+    if (!backendName || backendName === context.backendName) {
+      return;
+    }
+
+    context.backendName = backendName;
+
+    // Only a router can hand back the adapter behind the name. A plain adapter reporting
+    // some other name keeps `backend` pointing at itself - it is still what ran.
+    const selected = this.getRouter()?.get(backendName);
+    if (selected) {
+      context.backend = selected;
+    }
+  }
+
+  /**
+   * Streaming counterpart to {@link narrowContextBackend}.
+   *
+   * A stream is dispatched before it has produced anything, so the routing decision is
+   * only visible once chunks start arriving. This passes the stream straight through and
+   * narrows the context off the `start` chunk's provenance - early enough that the
+   * response phase of every middleware, which runs once the stream is drained, sees the
+   * backend that served it.
+   */
+  private async *trackContextBackend(
+    stream: IRChatStream,
+    context: MiddlewareContext
+  ): IRChatStream {
+    for await (const chunk of stream) {
+      if (chunk.type === 'start') {
+        this.narrowContextBackend(context, chunk.metadata?.provenance?.backend);
+      }
+      yield chunk;
+    }
   }
 
   /**
