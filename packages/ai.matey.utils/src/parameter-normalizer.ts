@@ -130,6 +130,56 @@ export function normalizePenalty(
 }
 
 /**
+ * Normalize an IR penalty to a *multiplicative* repetition penalty.
+ *
+ * IR's `frequencyPenalty` is **additive** on `-2..2`, neutral at `0`:
+ * positive discourages repetition, negative encourages it.
+ *
+ * Hugging Face's `repetition_penalty` (TGI and `transformers`) is
+ * **multiplicative** and strictly positive, neutral at `1.0`:
+ * - `> 1.0` discourages repetition,
+ * - `1.0` is neutral (TGI's own default when the field is omitted),
+ * - `0.0 < p < 1.0` *encourages* repetition -- lower rewards more strongly.
+ *
+ * The domain is open at zero. TGI rejects the request outright
+ * (`repetition_penalty <= 0.0` -> `ValidationError::RepetitionPenalty`, and its
+ * OpenAPI schema declares `exclusive_minimum = 0.0`), and `transformers`
+ * raises `"`penalty` has to be a strictly positive float"`. So zero and
+ * negative values are not merely degraded, they are hard errors on the wire.
+ *
+ * The two scales therefore agree in *sense* but not in *shape*, and a linear
+ * remap is the wrong tool: {@link normalizePenalty} would send neutral `0` to
+ * the midpoint of the target range rather than to `1.0`, and any target
+ * minimum at or below zero reintroduces the out-of-domain values. This mapping
+ * is instead piecewise and reciprocal-symmetric, so that `f(-x) === 1 / f(x)`
+ * -- penalizing by `x` and rewarding by `x` are exact inverses, which is what
+ * "inverting" a multiplicative penalty means (`transformers` itself inverts
+ * this parameter as `1 / penalty`):
+ *
+ * ```text
+ *   x >= 0  ->  1 + x        in [1, 3]
+ *   x <  0  ->  1 / (1 - x)  in [1/3, 1)
+ * ```
+ *
+ * The map is continuous at `0` (both branches give `1`), monotonically
+ * increasing across the whole IR range, and strictly positive everywhere, so
+ * no clamp to an arbitrary epsilon is needed to stay in domain.
+ *
+ * @param penalty IR penalty value (-2..2); values outside are clamped
+ * @returns Strictly positive multiplicative penalty, or `undefined` if unset
+ */
+export function normalizeRepetitionPenalty(penalty: number | undefined): number | undefined {
+  if (penalty === undefined) {
+    return undefined;
+  }
+
+  // Clamp to the IR range first, mirroring normalizeTemperature.
+  const clamped = Math.max(-2, Math.min(2, penalty));
+
+  return clamped >= 0 ? 1 + clamped : 1 / (1 - clamped);
+}
+
+/**
  * Normalize stop sequences.
  *
  * @param stopSequences Stop sequences array

@@ -5,6 +5,7 @@ import {
   normalizeTopP,
   normalizeTopK,
   normalizePenalty,
+  normalizeRepetitionPenalty,
   normalizeStopSequences,
   filterUnsupportedParameters,
   applyParameterDefaults,
@@ -104,6 +105,48 @@ describe('Parameter Normalizer', () => {
 
     it('should return undefined for undefined input', () => {
       expect(normalizePenalty(undefined)).toBeUndefined();
+    });
+  });
+
+  describe('normalizeRepetitionPenalty', () => {
+    it('should map the neutral IR penalty 0 to the neutral multiplier 1', () => {
+      expect(normalizeRepetitionPenalty(0)).toBe(1);
+    });
+
+    it('should return undefined only for undefined input', () => {
+      expect(normalizeRepetitionPenalty(undefined)).toBeUndefined();
+      expect(normalizeRepetitionPenalty(0)).toBeDefined();
+    });
+
+    it('should map positive penalties through 1 + x', () => {
+      expect(normalizeRepetitionPenalty(0.5)).toBe(1.5);
+      expect(normalizeRepetitionPenalty(1)).toBe(2);
+      expect(normalizeRepetitionPenalty(2)).toBe(3);
+    });
+
+    it('should map negative penalties into (0, 1) rather than out of domain', () => {
+      expect(normalizeRepetitionPenalty(-1)).toBe(0.5);
+      expect(normalizeRepetitionPenalty(-2)).toBeCloseTo(1 / 3, 10);
+    });
+
+    it('should stay strictly positive across the whole IR range', () => {
+      for (let x = -2; x <= 2.0001; x += 0.05) {
+        expect(normalizeRepetitionPenalty(x) as number).toBeGreaterThan(0);
+      }
+    });
+
+    it('should be reciprocal-symmetric: f(-x) === 1 / f(x)', () => {
+      for (const x of [0.25, 0.5, 1, 1.5, 2]) {
+        expect(normalizeRepetitionPenalty(-x) as number).toBeCloseTo(
+          1 / (normalizeRepetitionPenalty(x) as number),
+          10
+        );
+      }
+    });
+
+    it('should clamp out of range values to the IR range', () => {
+      expect(normalizeRepetitionPenalty(3)).toBe(3);
+      expect(normalizeRepetitionPenalty(-3)).toBeCloseTo(1 / 3, 10);
     });
   });
 

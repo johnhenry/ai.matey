@@ -26,6 +26,7 @@ import {
   ErrorCode,
   createErrorFromHttpResponse,
 } from '@johnhenry/aimatey-errors';
+import { normalizeRepetitionPenalty } from '@johnhenry/aimatey-utils';
 import {
   buildStructuredOutputFallbackMessages,
   extractStructuredOutputJSON,
@@ -308,9 +309,7 @@ export class HuggingFaceBackendAdapter implements BackendAdapter<
           max_new_tokens: request.parameters?.maxTokens,
           top_p: request.parameters?.topP,
           top_k: request.parameters?.topK,
-          repetition_penalty: request.parameters?.frequencyPenalty
-            ? 1 + request.parameters.frequencyPenalty
-            : undefined,
+          repetition_penalty: normalizeRepetitionPenalty(request.parameters?.frequencyPenalty),
           do_sample:
             request.parameters?.temperature !== undefined && request.parameters.temperature > 0,
           return_full_text: false,
