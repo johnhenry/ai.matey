@@ -42,7 +42,7 @@ function stubBridge(payloads: Array<Record<string, unknown>>) {
     requests,
     bridge: {
       executeIR: async (request: IRChatRequest): Promise<IRChatResponse> => {
-        const input = payloads[Math.min(requests.length, payloads.length - 1)];
+        const input = payloads[Math.min(requests.length, payloads.length - 1)] ?? {};
         requests.push(request);
         return {
           message: {
