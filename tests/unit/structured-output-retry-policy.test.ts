@@ -362,6 +362,170 @@ describe('generateObject retry policy (#69)', () => {
     });
   });
 
+  // ==========================================================================
+  // Gate A: the request cannot be satisfied as sent
+  // ==========================================================================
+
+  describe('Gate A: contract mismatch', () => {
+    /**
+     * The live #66 case. `z.date()` is sent as
+     * `{type:'string',format:'date-time'}`; the model returns an ISO string,
+     * which is the correct answer to that question; `z.date()` rejects
+     * strings. There is no JSON value that is both a legal `{type:'string'}`
+     * and a JS `Date`, so attempts 2 and 3 were pure waste.
+     */
+    it('stops after one call when a lossy conversion makes the schema unsatisfiable', async () => {
+      const { bridge, requests } = stubBridge([{ when: '2026-01-01T00:00:00.000Z' }]);
+
+      const error = await createGenerateObject(bridge)({
+        schema: z.object({ when: z.date() }),
+        prompt: 'when?',
+        maxRetries: 3,
+      }).catch((e: unknown) => e);
+
+      expect(requests).toHaveLength(1);
+      expect((error as Error).message).toMatch(/cannot satisfy this schema as sent/);
+      // The #66 sentence has to survive: it is what tells the caller the
+      // schema they wrote is not the schema that was sent.
+      expect((error as Error).message).toMatch(/lossy conversion/i);
+      expect((error as Error).message).toMatch(/when/);
+    });
+
+    it('names the failing field in structured details rather than only in prose', async () => {
+      const { bridge } = stubBridge([{ when: '2026-01-01T00:00:00.000Z' }]);
+
+      const error = (await createGenerateObject(bridge)({
+        schema: z.object({ when: z.date() }),
+        prompt: 'when?',
+        maxRetries: 3,
+      }).catch((e: unknown) => e)) as { validationDetails?: Array<{ field?: string }> };
+
+      expect(error.validationDetails?.[0]?.field).toBe('when');
+    });
+
+    it('classifies the failure as not retryable', async () => {
+      const { bridge } = stubBridge([{ when: '2026-01-01T00:00:00.000Z' }]);
+
+      const error = (await createGenerateObject(bridge)({
+        schema: z.object({ when: z.date() }),
+        prompt: 'when?',
+        maxRetries: 3,
+      }).catch((e: unknown) => e)) as { isRetryable?: boolean };
+
+      expect(error.isRetryable).toBe(false);
+    });
+
+    it('fires for a type with no JSON Schema representation at all', async () => {
+      // z.bigint() converts to `{}` -- every value conforms, so no guidance
+      // the model could follow exists.
+      const { bridge, requests } = stubBridge([{ b: '123' }]);
+
+      await expect(
+        createGenerateObject(bridge)({
+          schema: z.object({ b: z.bigint() }),
+          prompt: 'a big number',
+          maxRetries: 3,
+        })
+      ).rejects.toThrow(/cannot satisfy this schema as sent/);
+
+      expect(requests).toHaveLength(1);
+    });
+
+    /**
+     * The trap that makes Gate A look like it works while doing nothing.
+     * The warning field is `events.[].when`; the Zod issue path is
+     * `['events', 0, 'when']`. Compared as strings these never match, so the
+     * gate would fire for top-level fields and silently never fire inside an
+     * array -- passing a casual test suite.
+     */
+    it('fires inside an array, where the warning field and issue path differ', async () => {
+      const { bridge, requests } = stubBridge([
+        { events: [{ when: '2026-01-01T00:00:00.000Z' }] },
+      ]);
+
+      await expect(
+        createGenerateObject(bridge)({
+          schema: z.object({ events: z.array(z.object({ when: z.date() })) }),
+          prompt: 'events',
+          maxRetries: 3,
+        })
+      ).rejects.toThrow(/cannot satisfy this schema as sent/);
+
+      expect(requests).toHaveLength(1);
+    });
+
+    /** The record analogue: warning field `bag.(value)` vs path `['bag','foo']`. */
+    it('fires inside a record, where the warning names the value slot', async () => {
+      const { bridge, requests } = stubBridge([{ bag: { foo: '2026-01-01T00:00:00.000Z' } }]);
+
+      await expect(
+        createGenerateObject(bridge)({
+          schema: z.object({ bag: z.record(z.string(), z.date()) }),
+          prompt: 'a bag',
+          maxRetries: 3,
+        })
+      ).rejects.toThrow(/cannot satisfy this schema as sent/);
+
+      expect(requests).toHaveLength(1);
+    });
+
+    /**
+     * The brief's own admitted weakness, closed by requiring conformance as
+     * well as a warning. `null` does *not* conform to
+     * `{type:'string',format:'date-time'}`, so this is an ordinary model
+     * mistake in a lossily-converted field -- and a retry may well fix it.
+     */
+    it('does not fire when the value fails the sent schema too', async () => {
+      const { bridge, requests } = stubBridge([
+        { when: null },
+        { when: null },
+        { when: null },
+      ]);
+
+      const error = await createGenerateObject(bridge)({
+        schema: z.object({ when: z.date() }),
+        prompt: 'when?',
+        maxRetries: 3,
+        // Gate B would otherwise stop this at 2; isolate Gate A.
+        stopWhenRetryCannotHelp: true,
+      }).catch((e: unknown) => e);
+
+      // Gate B stops it at two identical failures, but Gate A must not have
+      // stopped it at one.
+      expect(requests.length).toBeGreaterThan(1);
+      expect((error as Error).message).not.toMatch(/cannot satisfy this schema as sent/);
+    });
+
+    it('spends the whole budget when the caller opts out', async () => {
+      const { bridge, requests } = stubBridge([{ when: '2026-01-01T00:00:00.000Z' }]);
+
+      await expect(
+        createGenerateObject(bridge)({
+          schema: z.object({ when: z.date() }),
+          prompt: 'when?',
+          maxRetries: 3,
+          stopWhenRetryCannotHelp: false,
+        })
+      ).rejects.toThrow(/did not match the schema/);
+
+      expect(requests).toHaveLength(3);
+    });
+
+    it('leaves a faithful schema entirely alone', async () => {
+      const { bridge, requests } = stubBridge([{ name: 'Alice' }]);
+
+      const result = await createGenerateObject(bridge)({
+        schema: z.object({ name: z.string() }),
+        prompt: 'who?',
+        maxRetries: 3,
+      });
+
+      expect(result.object).toEqual({ name: 'Alice' });
+      expect(requests).toHaveLength(1);
+      expect(requests[0]?.metadata.warnings).toBeUndefined();
+    });
+  });
+
   describe('responses with no tool call', () => {
     it('keeps retrying, since another sample may call the tool', async () => {
       const { bridge, requests } = toolLessBridge(3, { age: 30 });
