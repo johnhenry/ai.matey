@@ -92,12 +92,13 @@ export interface SecurityConfig {
   /**
    * PII patterns used for redaction.
    *
-   * Note that {@link DEFAULT_PII_PATTERNS} errs towards over-matching: its
-   * `apiKey` pattern matches any run of 32+ alphanumeric characters (a git SHA,
-   * a base64 id), and `ipAddress` matches dotted-quad version strings such as
-   * `1.2.3.4`. Supply your own patterns if a false positive would damage
-   * legitimate content, and watch for the `content-redacted` warning to see
-   * when redaction fired.
+   * {@link DEFAULT_PII_PATTERNS} is tuned for precision on developer text
+   * (#67): `apiKey` matches vendor-prefixed credentials rather than any run of
+   * 32+ alphanumerics, so commit hashes, UUIDs and base64 ids survive, and
+   * `ipAddress` skips version-marked quads such as `version 1.2.3.4`. The
+   * residual ambiguity is an unmarked four-segment version - `1.2.3.4` on its
+   * own is read as an address. Supply your own patterns where that matters,
+   * and watch for the `content-redacted` warning to see when redaction fired.
    *
    * @default DEFAULT_PII_PATTERNS
    */
