@@ -87,38 +87,70 @@ function fastest(run: () => void): number {
 }
 
 /**
- * Per-call cost, repeated enough times that one sample is ~10ms rather than a
- * fraction of one, and taken as the best of five samples.
+ * Iterations needed for one sample of `run` to take about `SAMPLE_TARGET_MS`.
  *
- * Both halves matter for the ratio assertions below, and both are the
- * difference between a useful test and a flaky one. A single 0.3ms measurement
- * is mostly timer noise, and a ratio of two noisy measurements is noise
- * squared. Taking the *minimum* is the right estimator here because contention
- * from another process on the machine can only ever inflate a sample, never
- * deflate one - so the best of five is the closest thing to an uncontended
- * reading that a shared runner will give up.
- *
- * The repeat count is derived from a probe rather than fixed, so a fast pattern
- * gets many iterations while a pathological one - which is exactly when this
- * test should fail - still returns in seconds instead of minutes.
+ * Derived from a probe rather than fixed, so a fast pattern gets many
+ * iterations while a pathological one - which is exactly when these tests
+ * should fail - still returns in seconds rather than minutes.
  */
-const SAMPLE_TARGET_MS = 10;
-const SAMPLES = 5;
+const SAMPLE_TARGET_MS = 5;
 
-function perCall(run: () => void): number {
+function iterationsFor(run: () => void): number {
   run();
-  const probeStart = performance.now();
+  const start = performance.now();
   run();
-  const probe = Math.max(performance.now() - probeStart, 0.001);
-  const iterations = Math.max(1, Math.min(2000, Math.ceil(SAMPLE_TARGET_MS / probe)));
+  const probe = Math.max(performance.now() - start, 0.001);
+  return Math.max(1, Math.min(2000, Math.ceil(SAMPLE_TARGET_MS / probe)));
+}
+
+/** Mean cost of one call, over `iterations` back-to-back calls. */
+function sample(run: () => void, iterations: number): number {
+  const start = performance.now();
+  for (let i = 0; i < iterations; i++) {
+    run();
+  }
+  return (performance.now() - start) / iterations;
+}
+
+/**
+ * Cost of `large` relative to `small`, measured as **interleaved pairs**.
+ *
+ * The obvious implementation - time `small`, then time `large`, then divide -
+ * is what makes a scaling test flaky, and it failed here under load with
+ * ratios up to 21x where the true value is 4x. The premise of a ratio
+ * assertion is that a loaded machine slows both measurements by the same
+ * factor, and that premise only holds if the two measurements happen at
+ * roughly the same time. Taken minutes apart in a parallel test run, they see
+ * different amounts of contention and the ratio measures the machine rather
+ * than the pattern.
+ *
+ * So each sample times both sizes back to back and forms its own ratio, and
+ * the result is the smallest ratio observed. Contention spanning a pair
+ * cancels in that pair's division; contention hitting only one half inflates
+ * that pair, and another pair is used instead. Taking the minimum is sound
+ * because interference can only ever make a measurement slower, never faster.
+ */
+const SAMPLES = 7;
+
+function scalingRatio(small: () => void, large: () => void): number {
+  const smallIterations = iterationsFor(small);
+  const largeIterations = iterationsFor(large);
 
   let best = Infinity;
-  for (let sample = 0; sample < SAMPLES; sample++) {
-    const start = performance.now();
-    for (let i = 0; i < iterations; i++) {
-      run();
-    }
-    best = Math.min(best, (performance.now() - start) / iterations);
+  for (let i = 0; i < SAMPLES; i++) {
+    const smallMs = sample(small, smallIterations);
+    const largeMs = sample(large, largeIterations);
+    best = Math.min(best, largeMs / smallMs);
+  }
+  return best;
+}
+
+/** Best-of-five per-call cost, for the absolute-budget assertions. */
+function perCall(run: () => void): number {
+  const iterations = iterationsFor(run);
+  let best = Infinity;
+  for (let i = 0; i < 5; i++) {
+    best = Math.min(best, sample(run, iterations));
   }
   return best;
 }
@@ -165,16 +197,22 @@ describe('default detection patterns stay within budget on adversarial input (#8
 
 /**
  * The sharper test. Asserting the *shape* of the cost curve rather than an
- * absolute time means a slow or loaded CI machine cannot make it fail, because
- * both measurements are slowed by the same factor.
+ * absolute time is what catches a pattern that backtracks but happens to stay
+ * under the budget at 60KB - it would not stay under it at 600KB.
  *
  * The inputs differ by 4x, which is what makes the two hypotheses easy to tell
  * apart: linear costs ~4x, quadratic ~16x. A 2x spread would put the answers at
  * 2 and 4 with nothing but measurement noise in between - that version of this
  * test failed on its first full run at a measured 3.04.
+ *
+ * The limit sits at 10 rather than at the 8 midpoint: measurement error here is
+ * one-sided, since interference can only inflate a ratio, so the headroom is
+ * spent on the side it is actually needed. 10 is still 1.6x below quadratic.
+ * Measured ratios cluster at 3.9-4.1 on an idle machine and stayed under 5
+ * under eight competing CPU-bound processes.
  */
 const SCALING_FACTOR = 4;
-const SCALING_LIMIT = 8;
+const SCALING_LIMIT = 10;
 
 describe('detection cost grows linearly, not quadratically (#80)', () => {
   it.each(Object.keys(CORPORA))('detectPII on %s scales linearly', (corpus) => {
@@ -182,10 +220,12 @@ describe('detection cost grows linearly, not quadratically (#80)', () => {
     const small = make(SIZE / SCALING_FACTOR);
     const large = make(SIZE);
 
-    const smallMs = perCall(() => detectPII(small, DEFAULT_PII_PATTERNS));
-    const largeMs = perCall(() => detectPII(large, DEFAULT_PII_PATTERNS));
+    const ratio = scalingRatio(
+      () => detectPII(small, DEFAULT_PII_PATTERNS),
+      () => detectPII(large, DEFAULT_PII_PATTERNS)
+    );
 
-    expect(largeMs / smallMs).toBeLessThan(SCALING_LIMIT);
+    expect(ratio).toBeLessThan(SCALING_LIMIT);
   });
 
   it('the reported input no longer costs seconds', () => {
