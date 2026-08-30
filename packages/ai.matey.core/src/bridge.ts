@@ -32,7 +32,12 @@ import type {
 } from '@johnhenry/aimatey-types';
 import type { Router } from '@johnhenry/aimatey-types';
 import { BridgeEventType } from '@johnhenry/aimatey-types';
-import type { Middleware, MiddlewareContext, StreamingMiddleware } from '@johnhenry/aimatey-types';
+import type {
+  Middleware,
+  MiddlewareContext,
+  MiddlewareRegistrationOptions,
+  StreamingMiddleware,
+} from '@johnhenry/aimatey-types';
 import type { ListModelsOptions, ListModelsResult } from '@johnhenry/aimatey-types';
 import {
   MiddlewareStack,
@@ -500,11 +505,24 @@ export class Bridge<
    * makes to that response cannot be applied to a stream that has already been
    * delivered - use {@link useStreaming} for chunk-level control.
    *
+   * Pass `{ name }` to say what this middleware is called when it fails - a
+   * failure is reported as `Middleware "<name>" failed: ...`, which is the
+   * only thing that says which of a chain of eight broke (#71). Without it
+   * the name comes from the function's own `.name`, and failing that from its
+   * registration position, `middleware[3]`.
+   *
    * @param middleware Middleware to add
+   * @param options Registration options; `name` identifies it in errors
    * @returns This bridge for chaining
+   *
+   * @example
+   * ```typescript
+   * // A factory's anonymous arrow has no name of its own - give it one.
+   * bridge.use(createRetryMiddleware({ maxAttempts: 3 }), { name: 'retry' });
+   * ```
    */
-  use(middleware: Middleware): Bridge<TFrontend> {
-    this.middlewareStack.use(middleware);
+  use(middleware: Middleware, options?: MiddlewareRegistrationOptions): Bridge<TFrontend> {
+    this.middlewareStack.use(middleware, options);
     return this;
   }
 
@@ -515,18 +533,27 @@ export class Bridge<
    * or transform it chunk by chunk. It runs on `chatStream()` only, interleaved
    * with `use()` middleware in registration order.
    *
+   * Pass `{ name }` to say what this middleware is called when it fails; see
+   * {@link use}.
+   *
    * @param middleware Streaming middleware to add
+   * @param options Registration options; `name` identifies it in errors
    * @returns This bridge for chaining
    *
    * @example
    * ```typescript
    * import { createStreamingCostTrackingMiddleware } from '@johnhenry/aimatey-middleware';
    *
-   * bridge.useStreaming(createStreamingCostTrackingMiddleware({ logCosts: true }));
+   * bridge.useStreaming(createStreamingCostTrackingMiddleware({ logCosts: true }), {
+   *   name: 'cost-tracking',
+   * });
    * ```
    */
-  useStreaming(middleware: StreamingMiddleware): Bridge<TFrontend> {
-    this.middlewareStack.useStreaming(middleware);
+  useStreaming(
+    middleware: StreamingMiddleware,
+    options?: MiddlewareRegistrationOptions
+  ): Bridge<TFrontend> {
+    this.middlewareStack.useStreaming(middleware, options);
     return this;
   }
 
