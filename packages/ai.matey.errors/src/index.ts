@@ -234,23 +234,6 @@ export class StreamError extends AdapterError {
 }
 
 /**
- * Router error (routing issues).
- */
-export class RouterError extends AdapterError {
-  readonly attemptedBackends?: string[];
-
-  constructor(options: RouterErrorOptions) {
-    super({
-      ...options,
-      isRetryable: options.code === ErrorCodeEnum.ALL_BACKENDS_FAILED,
-      details: { attemptedBackends: options.attemptedBackends },
-    });
-    this.name = 'RouterError';
-    this.attemptedBackends = options.attemptedBackends;
-  }
-}
-
-/**
  * Retryability of an error that is about to be wrapped.
  *
  * Duck-typed rather than tested with `instanceof AdapterError`: a cause can
@@ -260,6 +243,66 @@ export class RouterError extends AdapterError {
  */
 function causeIsRetryable(cause: Error | undefined): boolean {
   return (cause as { isRetryable?: unknown } | undefined)?.isRetryable === true;
+}
+
+/**
+ * Whether *any* of the failures a composite error wraps is retryable.
+ *
+ * Retrying a composite helps as soon as one of its legs could succeed on a
+ * second attempt, so this is `some` and not `every`: three backends where two
+ * rejected the API key and one timed out is still worth retrying, because the
+ * one that timed out might answer.
+ */
+function anyCauseIsRetryable(causes: readonly Error[] | undefined): boolean {
+  return causes?.some((cause) => causeIsRetryable(cause)) === true;
+}
+
+/** Serialization-safe view of a wrapped failure, for `toJSON()` and logs. */
+function summarizeCause(cause: Error): Record<string, unknown> {
+  const classified = cause as { code?: unknown; isRetryable?: unknown };
+  return {
+    name: cause.name,
+    message: cause.message,
+    code: classified.code,
+    isRetryable: classified.isRetryable === true,
+  };
+}
+
+/**
+ * Router error (routing issues).
+ *
+ * `ALL_BACKENDS_FAILED` used to be asserted retryable purely from its code, so
+ * a router whose every backend rejected the API key produced a "retryable"
+ * error and the caller burned its whole retry budget on a fault that was
+ * permanent at every leaf. A composite error has no more standing to
+ * reclassify its parts than a wrapper has to reclassify its cause (#65), so
+ * retryability is derived from `backendErrors`: retryable only when at least
+ * one attempted backend failed retryably.
+ *
+ * With no `backendErrors` there is no evidence either way, and an unevidenced
+ * claim of retryability is the bug this fixes - so it stays non-retryable, the
+ * same answer `MiddlewareError` gives for a cause it cannot classify.
+ */
+export class RouterError extends AdapterError {
+  readonly attemptedBackends?: string[];
+  /** The leaf failures this error is composed of, when the router had them. */
+  readonly backendErrors?: readonly Error[];
+
+  constructor(options: RouterErrorOptions) {
+    super({
+      ...options,
+      isRetryable:
+        options.code === ErrorCodeEnum.ALL_BACKENDS_FAILED &&
+        anyCauseIsRetryable(options.backendErrors),
+      details: {
+        attemptedBackends: options.attemptedBackends,
+        backendErrors: options.backendErrors?.map(summarizeCause),
+      },
+    });
+    this.name = 'RouterError';
+    this.attemptedBackends = options.attemptedBackends;
+    this.backendErrors = options.backendErrors;
+  }
 }
 
 /**
@@ -293,6 +336,41 @@ export class MiddlewareError extends AdapterError {
 // ============================================================================
 // Error Factory Functions
 // ============================================================================
+
+/**
+ * 4xx statuses whose canonical meaning is "try again", listed because the
+ * `statusCode >= 500` rule below cannot see them.
+ *
+ * - **408 Request Timeout** - the server gave up waiting for the request and
+ *   says so explicitly; RFC 9110 has the client repeat it. This is what a
+ *   provider returns when *it* wants another attempt, and calling it permanent
+ *   inverted the one instruction it carries.
+ * - **425 Too Early** - the server declined to risk replaying an early-data
+ *   request; RFC 8470 has the client retry it once the handshake completes.
+ *
+ * Every other status that falls through stays non-retryable, and each was
+ * checked rather than assumed:
+ *
+ * - **404 Not Found** - a wrong URL or a model name the provider does not
+ *   have. The second identical request finds it just as absent.
+ * - **409 Conflict** - a state mismatch. Retrying the same request against the
+ *   same state reproduces the same conflict. (Some APIs overload 409 for
+ *   "resource busy", but that is not its canonical meaning, and guessing wrong
+ *   retries a semantic error until the budget runs out.)
+ * - **422 Unprocessable Content** - the payload is syntactically fine and
+ *   semantically wrong. Resending the identical payload fails identically.
+ */
+const RETRYABLE_CLIENT_STATUS_CODES: ReadonlySet<number> = new Set([408, 425]);
+
+/**
+ * Whether an HTTP status is worth another attempt.
+ *
+ * 5xx is the server admitting a fault it may not repeat; the handful of 4xx
+ * codes in {@link RETRYABLE_CLIENT_STATUS_CODES} ask for a retry outright.
+ */
+function isRetryableStatusCode(statusCode: number): boolean {
+  return statusCode >= 500 || RETRYABLE_CLIENT_STATUS_CODES.has(statusCode);
+}
 
 /**
  * Create adapter error from HTTP response.
