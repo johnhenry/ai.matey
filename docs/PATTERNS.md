@@ -68,7 +68,7 @@ const anthropic = new AnthropicBackendAdapter({ apiKey: process.env.ANTHROPIC_AP
 // Router with custom complexity-based routing
 const router = new Router({
   routingStrategy: 'custom',
-  customStrategy: (request) => {
+  customRouter: async (request) => {
     const query = request.messages[request.messages.length - 1]?.content || '';
     const complexity = analyzeComplexity(query.toString());
 
@@ -111,6 +111,7 @@ Execute the same request to multiple providers in parallel and aggregate streami
 
 ```typescript
 import { Bridge } from '@johnhenry/aimatey-core';
+import { GenericFrontendAdapter } from '@johnhenry/aimatey-frontend/generic';
 import { OpenAIBackendAdapter, AnthropicBackendAdapter, GroqBackendAdapter } from '@johnhenry/aimatey-backend';
 import { EventEmitter } from 'events';
 
@@ -120,11 +121,11 @@ class ParallelAggregator extends EventEmitter {
 
     // Execute all backends in parallel
     const promises = backends.map(async (backend, index) => {
-      const bridge = new Bridge({ backend });
+      const bridge = new Bridge(new GenericFrontendAdapter(), backend);
       const providerName = backend.metadata.name;
 
       try {
-        const response = await bridge.execute(request);
+        const response = await bridge.chat(request);
         const duration = Date.now() - startTime;
 
         this.emit('response', {
@@ -195,28 +196,28 @@ Custom middleware that automatically retries failed requests with the next provi
 
 ### Implementation
 
+> This pattern now ships as `createFailoverMiddleware` in
+> `@johnhenry/aimatey-patterns`, with a different config shape
+> (`{ fallbacks: BackendAdapter[] }` rather than a chain of registered names).
+> Prefer the packaged version; the implementation below is kept to show how the
+> pattern works.
+
 ```typescript
-import { Middleware } from '@johnhenry/aimatey-core';
+import type { Middleware } from '@johnhenry/aimatey-types';
 
-class FailoverMiddleware implements Middleware {
-  private fallbackChain: string[];
-  private healthStatus: Map<string, { healthy: boolean; failureCount: number }>;
+function createProviderFailoverMiddleware(config: { chain: string[] }): Middleware {
+  const fallbackChain = config.chain;
 
-  constructor(config: { chain: string[] }) {
-    this.fallbackChain = config.chain;
-    this.healthStatus = new Map();
+  // Initialize health tracking
+  const healthStatus = new Map<string, { healthy: boolean; failureCount: number }>(
+    fallbackChain.map(provider => [provider, { healthy: true, failureCount: 0 }])
+  );
 
-    // Initialize health tracking
-    this.fallbackChain.forEach(provider => {
-      this.healthStatus.set(provider, { healthy: true, failureCount: 0 });
-    });
-  }
-
-  async execute(request: any, next: any) {
+  return async (context, next) => {
     let lastError: Error | null = null;
 
-    for (const provider of this.fallbackChain) {
-      const health = this.healthStatus.get(provider);
+    for (const provider of fallbackChain) {
+      const health = healthStatus.get(provider);
 
       // Skip unhealthy providers
       if (!health?.healthy) {
@@ -227,11 +228,17 @@ class FailoverMiddleware implements Middleware {
       try {
         console.log(`Attempting with ${provider}...`);
 
-        // Set provider for this request
-        request.metadata = request.metadata || {};
-        request.metadata.provider = provider;
+        // Set provider for this attempt. The router's customRouter reads it
+        // back out of `metadata.custom` when it picks a backend.
+        context.request = {
+          ...context.request,
+          metadata: {
+            ...context.request.metadata,
+            custom: { ...context.request.metadata.custom, provider },
+          },
+        };
 
-        const response = await next(request);
+        const response = await next();
 
         // Success! Reset failure count
         health.failureCount = 0;
@@ -248,19 +255,24 @@ class FailoverMiddleware implements Middleware {
           console.log(`${provider} marked as unhealthy (${health.failureCount} failures)`);
         }
 
-        console.log(`Failed with ${provider}: ${error.message}`);
+        console.log(`Failed with ${provider}: ${lastError.message}`);
       }
     }
 
     throw new Error(`All providers failed. Last error: ${lastError?.message}`);
-  }
+  };
 }
 
 // Usage with Router
-import { Router } from '@johnhenry/aimatey-core';
+import { Bridge, Router } from '@johnhenry/aimatey-core';
+import { GenericFrontendAdapter } from '@johnhenry/aimatey-frontend/generic';
 
 const router = new Router({
-  defaultBackend: 'openai'
+  routingStrategy: 'custom',
+  defaultBackend: 'openai',
+  // Honour the provider the middleware picked for this attempt.
+  customRouter: async (_request, _available, routingContext) =>
+    (routingContext.metadata.provider as string | undefined) ?? null,
 });
 
 router.register('openai', openaiBackend);
@@ -268,9 +280,9 @@ router.register('anthropic', anthropicBackend);
 router.register('groq', groqBackend);
 router.register('deepseek', deepseekBackend);
 
-const bridge = new Bridge({ backend: router });
+const bridge = new Bridge(new GenericFrontendAdapter(), router);
 
-bridge.use(new FailoverMiddleware({
+bridge.use(createProviderFailoverMiddleware({
   chain: ['openai', 'anthropic', 'groq', 'deepseek']
 }));
 ```
@@ -378,6 +390,7 @@ WebSocket server with per-client conversation history and real-time streaming de
 ```typescript
 import WebSocket from 'ws';
 import { Bridge } from '@johnhenry/aimatey-core';
+import { GenericFrontendAdapter } from '@johnhenry/aimatey-frontend/generic';
 import { OpenAIBackendAdapter } from '@johnhenry/aimatey-backend';
 
 const wss = new WebSocket.Server({ port: 8080 });
@@ -410,11 +423,11 @@ wss.on('connection', (ws) => {
         apiKey: process.env.OPENAI_API_KEY
       });
 
-      const bridge = new Bridge({ backend });
+      const bridge = new Bridge(new GenericFrontendAdapter(), backend);
 
       try {
         // Stream response
-        for await (const chunk of bridge.stream({
+        for await (const chunk of bridge.chatStream({
           messages: [{ role: 'user', content: message.content }]
         })) {
           if (ws.readyState === WebSocket.OPEN) {
@@ -485,6 +498,9 @@ Queue management with sliding window rate limiting and configurable concurrency.
 ### Implementation
 
 ```typescript
+import { Bridge } from '@johnhenry/aimatey-core';
+import { GenericFrontendAdapter } from '@johnhenry/aimatey-frontend/generic';
+
 class BatchProcessor {
   private queue: any[] = [];
   private processing = 0;
@@ -556,8 +572,8 @@ const requests = Array(15).fill(null).map((_, i) => ({
 }));
 
 const results = await processor.process(requests, async (req) => {
-  const bridge = new Bridge({ backend: openaiBackend });
-  return await bridge.execute(req);
+  const bridge = new Bridge(new GenericFrontendAdapter(), openaiBackend);
+  return await bridge.chat(req);
 });
 
 console.log(`Completed: ${results.filter(r => r.success).length}/${results.length}`);
@@ -590,70 +606,73 @@ Compose multiple middleware in a chain with short-circuiting capabilities.
 ### Implementation
 
 ```typescript
-import { Middleware } from '@johnhenry/aimatey-core';
+import { Bridge } from '@johnhenry/aimatey-core';
+import { GenericFrontendAdapter } from '@johnhenry/aimatey-frontend/generic';
+import type { Middleware } from '@johnhenry/aimatey-types';
 
 // 1. Validation Middleware
-class ValidationMiddleware implements Middleware {
-  async execute(request: any, next: any) {
-    if (!request.model) {
+function createValidationMiddleware(): Middleware {
+  return async (context, next) => {
+    if (!context.request.parameters?.model) {
       throw new Error('Missing required field: model');
     }
-    if (!request.messages || request.messages.length === 0) {
+    if (!context.request.messages || context.request.messages.length === 0) {
       throw new Error('Missing required field: messages');
     }
 
-    return next(request);
-  }
+    return next();
+  };
 }
 
 // 2. Rate Limiting Middleware
-class RateLimitMiddleware implements Middleware {
-  private requests = new Map<string, number[]>();
+function createRateLimitMiddleware(maxPerMinute: number): Middleware {
+  const requests = new Map<string, number[]>();
 
-  constructor(private maxPerMinute: number) {}
-
-  async execute(request: any, next: any) {
-    const userId = request.metadata?.userId || 'default';
+  return async (context, next) => {
+    const userId = (context.request.metadata.custom?.userId as string) ?? 'default';
     const now = Date.now();
 
-    const userRequests = this.requests.get(userId) || [];
+    const userRequests = requests.get(userId) || [];
     const recentRequests = userRequests.filter(t => now - t < 60000);
 
-    if (recentRequests.length >= this.maxPerMinute) {
+    if (recentRequests.length >= maxPerMinute) {
       throw new Error('Rate limit exceeded');
     }
 
     recentRequests.push(now);
-    this.requests.set(userId, recentRequests);
+    requests.set(userId, recentRequests);
 
-    return next(request);
-  }
+    return next();
+  };
 }
 
 // 3. Response Formatting Middleware
-class FormattingMiddleware implements Middleware {
-  async execute(request: any, next: any) {
-    const response = await next(request);
+function createFormattingMiddleware(): Middleware {
+  return async (context, next) => {
+    const response = await next();
 
     // Standardize response format
     return {
       ...response,
       metadata: {
         ...response.metadata,
-        formatted: true,
-        timestamp: new Date().toISOString()
+        custom: {
+          ...response.metadata.custom,
+          formatted: true,
+          formattedAt: new Date().toISOString()
+        }
       }
     };
-  }
+  };
 }
 
 // Compose middleware
-const bridge = new Bridge({ backend: openaiBackend });
+const bridge = new Bridge(new GenericFrontendAdapter(), openaiBackend);
 
 bridge
-  .use(new ValidationMiddleware())
-  .use(new RateLimitMiddleware(10))
-  .use(new FormattingMiddleware());
+  .use(createValidationMiddleware())
+  .use(createRateLimitMiddleware(10))
+  .use(createFormattingMiddleware());
 ```
 
 ### Results
@@ -684,6 +703,9 @@ Periodic health checks with metrics collection, alerting, and real-time dashboar
 ### Implementation
 
 ```typescript
+import { Bridge } from '@johnhenry/aimatey-core';
+import { GenericFrontendAdapter } from '@johnhenry/aimatey-frontend/generic';
+
 class ProviderHealthMonitor {
   private metrics = new Map<string, {
     responseTime: number[];
@@ -698,8 +720,8 @@ class ProviderHealthMonitor {
     const startTime = Date.now();
 
     try {
-      const bridge = new Bridge({ backend });
-      await bridge.execute({
+      const bridge = new Bridge(new GenericFrontendAdapter(), backend);
+      await bridge.chat({
         messages: [{ role: 'user', content: 'Health check' }]
       });
 
@@ -807,14 +829,20 @@ These patterns can be combined for even more powerful solutions:
 
 **High-Availability Production Setup:**
 ```typescript
+import { createFailoverMiddleware, createCostOptimizer } from '@johnhenry/aimatey-patterns';
+import { Bridge } from '@johnhenry/aimatey-core';
+
 // Combine: Failover + Health Monitoring + Cost Optimization
 const healthMonitor = new ProviderHealthMonitor();
-const failoverMiddleware = new FailoverMiddleware({ chain: ['openai', 'anthropic', 'groq'] });
-const costOptimizer = new CostOptimizer();
 
-bridge
-  .use(failoverMiddleware)
-  .use(costOptimizer);
+const { router, middleware: budgetMiddleware } = createCostOptimizer({
+  backends: { openai: openaiBackend, anthropic: anthropicBackend, groq: groqBackend },
+  budget: { limitUSD: 10, windowMs: 3_600_000 },
+});
+
+const bridge = new Bridge(frontend, router)
+  .use(createFailoverMiddleware({ fallbacks: [anthropicBackend, groqBackend] }))
+  .use(budgetMiddleware);
 
 // Run health checks in background
 setInterval(() => healthMonitor.runHealthChecks(), 5000);
@@ -839,17 +867,22 @@ await processor.process(optimizedRequests, executeRequest);
 
 ### Extract as Reusable Components
 
-These patterns are being extracted into reusable utilities:
+Five of these patterns already ship as importable utilities in
+`@johnhenry/aimatey-patterns`:
 
-**Planned for v0.3.0:**
 - `createComplexityRouter()` - Pattern 1
 - `createParallelAggregator()` - Pattern 2
 - `createFailoverMiddleware()` - Pattern 3
 - `createCostOptimizer()` - Pattern 4
 - `createBatchProcessor()` - Pattern 6
 
-**Planned for v0.4.0:**
-- `@johnhenry/aimatey-http/websocket` - Pattern 5
+Their signatures are the packaged ones, which differ in places from the
+illustrative implementations above - check the package's types before porting a
+snippet across.
+
+**Still unextracted:**
+- `@johnhenry/aimatey-http/websocket` - Pattern 5 (the subpath exists; there is
+  no packaged pattern helper around it)
 - Enhanced health monitoring integration - Pattern 8
 
 ### Contributing Patterns

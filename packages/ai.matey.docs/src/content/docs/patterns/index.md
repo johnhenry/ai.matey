@@ -64,20 +64,32 @@ function analyzeComplexity(query: string): number {
   return Math.min(score, 100);
 }
 
-// Router with custom complexity-based routing
-const router = new Router(new OpenAIFrontendAdapter(), {
-  backends: [groq, deepseek, openai, anthropic],
-  strategy: 'custom',
-  customStrategy: (request) => {
+// Router with custom complexity-based routing.
+// customRouter is async and returns a backend NAME (or null to fall through).
+const router = new Router({
+  routingStrategy: 'custom',
+  customRouter: async (request, availableBackends) => {
     const query = request.messages[request.messages.length - 1]?.content;
-    const complexity = analyzeComplexity(query.toString());
+    const complexity = analyzeComplexity(String(query));
 
-    if (complexity < 25) return 0; // Groq: Fast & cheap
-    if (complexity < 50) return 1; // DeepSeek: Cost-effective
-    if (complexity < 80) return 2; // OpenAI: Powerful
-    return 3; // Anthropic: Most capable
-  }
+    const preferred =
+      complexity < 25 ? 'groq'       // Fast & cheap
+      : complexity < 50 ? 'deepseek' // Cost-effective
+      : complexity < 80 ? 'openai'   // Powerful
+      : 'anthropic';                 // Most capable
+
+    return availableBackends.includes(preferred) ? preferred : (availableBackends[0] ?? null);
+  },
 });
+
+router
+  .register('groq', groq)
+  .register('deepseek', deepseek)
+  .register('openai', openai)
+  .register('anthropic', anthropic);
+
+// The router is a BackendAdapter - requests go through a Bridge
+const bridge = new Bridge(new OpenAIFrontendAdapter(), router);
 ```
 
 ### Results
@@ -182,32 +194,38 @@ Custom middleware that automatically retries failed requests with the next provi
 ### Implementation
 
 ```typescript
-import { Router } from '@johnhenry/aimatey-core';
+import { Bridge, Router } from '@johnhenry/aimatey-core';
 
-const router = new Router(new OpenAIFrontendAdapter(), {
-  backends: [
-    openaiBackend,    // Primary
-    anthropicBackend, // Secondary
-    groqBackend,      // Tertiary
-    deepseekBackend   // Last resort
-  ],
-  strategy: 'priority',
-  fallbackOnError: true,
-  healthCheck: {
-    enabled: true,
-    interval: 60000, // Check every minute
-  },
+const router = new Router({
+  routingStrategy: 'explicit',
+  defaultBackend: 'openai',      // Primary
+  fallbackStrategy: 'sequential',
+  healthCheckInterval: 60000,    // Probe every minute (0 disables)
+  enableCircuitBreaker: true,    // Stop hammering a backend that keeps failing
 });
 
-// Health tracking prevents repeated requests to failing providers
-router.on('backend:failed', ({ backend, error }) => {
-  console.log(`${backend} failed: ${error.message}`);
-});
+router
+  .register('openai', openaiBackend)
+  .register('anthropic', anthropicBackend)
+  .register('groq', groqBackend)
+  .register('deepseek', deepseekBackend);
 
-router.on('backend:switch', ({ from, to }) => {
-  console.log(`Switched from ${from} to ${to}`);
-});
+// Order tried after the primary fails
+router.setFallbackChain(['anthropic', 'groq', 'deepseek']);
+
+const bridge = new Bridge(new OpenAIFrontendAdapter(), router);
+
+// Router has no event emitter - poll its stats instead
+const { totalFallbacks } = router.getStats();
+for (const info of router.getBackendInfo()) {
+  console.log(`${info.name}: healthy=${info.isHealthy} circuit=${info.circuitBreakerState}`);
+}
 ```
+
+:::caution
+Fallback applies to `bridge.chat()` only. On the streaming path a failing
+backend yields a single `error` chunk - `Router.executeStream()` does not retry.
+:::
 
 ### Results
 - ✅ Automatic failover between 4 providers

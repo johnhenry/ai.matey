@@ -1,277 +1,237 @@
 ---
 title: "Errors API"
-description: "Error handling reference: the AIMateyError hierarchy, error codes, and handling patterns."
+description: "Error handling reference: the AdapterError hierarchy, error codes, and handling patterns."
 ---
 
 Complete error handling reference for ai.matey.
+
+Every error class, the `ErrorCode` constant and the two error factory functions
+live in a single package with a single entry point:
+
+```typescript
+import { AdapterError, RateLimitError, ErrorCode } from '@johnhenry/aimatey-errors';
+```
+
+The matching `*Options` interfaces, `ErrorCategory` and `ERROR_CODE_CATEGORIES`
+are declared in `@johnhenry/aimatey-types` and re-exported from
+`@johnhenry/aimatey-errors`. Note that `@johnhenry/aimatey-errors` re-exports
+`ErrorCategory` as a **type only** - import it from `@johnhenry/aimatey-types`
+when you need the runtime constant object.
 
 ## Error Hierarchy
 
 ```
 Error
-└── AIMateyError (base)
-    ├── BackendError
-    │   ├── RateLimitError
-    │   ├── AuthenticationError
-    │   ├── InvalidRequestError
-    │   ├── TimeoutError
-    │   └── ServiceUnavailableError
+└── AdapterError (base)
+    ├── AuthenticationError
+    ├── AuthorizationError
+    ├── RateLimitError
     ├── ValidationError
-    ├── AdapterError
-    ├── MiddlewareError
-    ├── RoutingError
-    └── ConfigurationError
+    ├── ProviderError
+    ├── AdapterConversionError
+    ├── NetworkError
+    ├── StreamError
+    ├── RouterError
+    └── MiddlewareError
 ```
+
+The hierarchy is flat: every specialized class extends `AdapterError` directly.
+There is no intermediate "backend error" class, so `error instanceof AdapterError`
+is the one check that matches everything ai.matey throws.
+
+:::note[Errors take an options object]
+Every constructor takes a single options object - there are no positional
+arguments. The `code` is required for most classes; `RateLimitError` and
+`MiddlewareError` set their own code and do not accept one.
+:::
 
 ---
 
 ## Base Error
 
-### `AIMateyError`
+### `AdapterError`
 
-Base class for all ai.matey errors.
-
-```typescript
-class AIMateyError extends Error {
-  /** Error name */
-  name: string;
-
-  /** Error message */
-  message: string;
-
-  /** Error code */
-  code: string;
-
-  /** Original error (if wrapped) */
-  cause?: Error;
-
-  /** Additional context */
-  context?: Record<string, any>;
-
-  /** Stack trace */
-  stack?: string;
-}
-```
-
-**Example:**
+Base class for all ai.matey errors, and the class thrown directly whenever no
+more specific class fits (the `Router`, for example, throws `AdapterError` with
+routing codes).
 
 ```typescript
-try {
-  await bridge.chat({ ... });
-} catch (error) {
-  if (error instanceof AIMateyError) {
-    console.log('AI Matey error:', error.code);
-    console.log('Context:', error.context);
-  }
-}
-```
+class AdapterError extends Error {
+  /** Universal error code */
+  readonly code: ErrorCode;
 
----
+  /** Category derived from the code via ERROR_CODE_CATEGORIES */
+  readonly category: ErrorCategory;
 
-## Backend Errors
+  /** Whether retrying the request could succeed */
+  readonly isRetryable: boolean;
 
-### `BackendError`
+  /** Where in the adapter chain the failure happened */
+  readonly provenance: ErrorProvenance;
 
-Base class for backend-related errors.
+  /** Original error, when this one wraps another */
+  readonly cause?: Error;
 
-```typescript
-class BackendError extends AIMateyError {
-  /** Backend adapter name */
-  backend: string;
-
-  /** HTTP status code (if applicable) */
-  statusCode?: number;
-
-  /** Response body */
-  responseBody?: any;
-
-  /** Request that caused the error */
-  request?: IRChatCompletionRequest;
-}
-```
-
-**Example:**
-
-```typescript
-try {
-  await bridge.chat({ ... });
-} catch (error) {
-  if (error instanceof BackendError) {
-    console.log('Backend:', error.backend);
-    console.log('Status:', error.statusCode);
-    console.log('Response:', error.responseBody);
-  }
-}
-```
-
----
-
-### `RateLimitError`
-
-Thrown when rate limit is exceeded.
-
-```typescript
-class RateLimitError extends BackendError {
-  code = 'RATE_LIMIT_EXCEEDED';
-
-  /** Retry after (seconds) */
-  retryAfter?: number;
-
-  /** Limit details */
-  limit?: {
-    requests: number;
-    period: string;
-    remaining: number;
+  /** Snapshot of the IR request/response involved */
+  readonly irState?: {
+    request?: Partial<IRChatRequest>;
+    response?: Partial<IRChatResponse>;
   };
+
+  /** Class-specific extra context */
+  readonly details?: Record<string, unknown>;
+
+  /** Milliseconds since epoch, set at construction */
+  readonly timestamp: number;
+
+  isCategory(category: ErrorCategory): boolean;
+  toJSON(): Record<string, unknown>;
 }
 ```
+
+**Constructor options (`BaseErrorOptions`):**
+
+| Option | Type | Required | Notes |
+|--------|------|----------|-------|
+| `code` | `ErrorCode` | yes | Sets `category` automatically |
+| `message` | `string` | yes | |
+| `isRetryable` | `boolean` | no | Defaults to `false` |
+| `provenance` | `ErrorProvenance` | no | Defaults to `{}` |
+| `cause` | `Error` | no | |
+| `irState` | `{ request?, response? }` | no | Partial IR snapshots |
+| `details` | `Record<string, unknown>` | no | |
+
+`ErrorProvenance` has four optional string fields: `frontend`, `backend`,
+`middleware` and `router`.
 
 **Example:**
 
 ```typescript
-try {
-  await bridge.chat({ ... });
-} catch (error) {
-  if (error instanceof RateLimitError) {
-    console.log(`Rate limit exceeded. Retry after ${error.retryAfter}s`);
-    console.log(`Limit: ${error.limit.requests} requests per ${error.limit.period}`);
+import { AdapterError, ErrorCode } from '@johnhenry/aimatey-errors';
 
-    // Wait and retry
-    await new Promise(resolve => setTimeout(resolve, error.retryAfter * 1000));
-    await bridge.chat({ ... });
+try {
+  await bridge.chat({ model: 'gpt-4', messages: [{ role: 'user', content: 'Hi' }] });
+} catch (error) {
+  if (error instanceof AdapterError) {
+    console.log('Code:', error.code);
+    console.log('Category:', error.category);
+    console.log('Retryable:', error.isRetryable);
+    console.log('Where:', error.provenance); // { frontend, backend, middleware, router }
   }
 }
 ```
 
+**`isCategory(category)`** compares against `error.category`:
+
+```typescript
+import { ErrorCategory } from '@johnhenry/aimatey-types';
+
+if (error instanceof AdapterError && error.isCategory(ErrorCategory.NETWORK)) {
+  // network / connectivity family
+}
+```
+
+**`toJSON()`** returns a plain object with `name`, `code`, `category`,
+`message`, `isRetryable`, `provenance`, `irState`, `details`, `timestamp`,
+`stack` and a flattened `cause`. It is what `JSON.stringify(error)` produces.
+
 ---
+
+## Authentication and Authorization
 
 ### `AuthenticationError`
 
-Thrown when API key is invalid or missing.
+API key missing, invalid or expired. Always constructed with
+`isRetryable: false`.
 
 ```typescript
-class AuthenticationError extends BackendError {
-  code = 'AUTHENTICATION_FAILED';
-
-  /** Authentication type */
-  authType: 'api_key' | 'bearer_token' | 'oauth';
-}
+new AuthenticationError({
+  code: ErrorCode.INVALID_API_KEY, // or MISSING_API_KEY | EXPIRED_API_KEY
+  message: 'Authentication failed',
+  provenance: { backend: 'openai' },  // optional
+  cause: originalError,               // optional
+});
 ```
 
 **Example:**
 
 ```typescript
+import { AuthenticationError } from '@johnhenry/aimatey-errors';
+
 try {
-  await bridge.chat({ ... });
+  await bridge.chat({ model: 'gpt-4', messages });
 } catch (error) {
   if (error instanceof AuthenticationError) {
-    console.error('Invalid API key for:', error.backend);
-    console.error('Auth type:', error.authType);
-
-    // Prompt for new API key
-    const newKey = await promptForApiKey();
-    bridge.setBackend(new AnthropicBackendAdapter({ apiKey: newKey }));
+    console.error('Auth failed at:', error.provenance.backend);
+    console.error('Code:', error.code); // INVALID_API_KEY | MISSING_API_KEY | EXPIRED_API_KEY
   }
 }
 ```
 
 ---
 
-### `InvalidRequestError`
+### `AuthorizationError`
 
-Thrown when request is malformed or invalid.
-
-```typescript
-class InvalidRequestError extends BackendError {
-  code = 'INVALID_REQUEST';
-
-  /** Validation errors */
-  errors?: Array<{
-    field: string;
-    message: string;
-    code: string;
-  }>;
-}
-```
-
-**Example:**
+Permission or quota problems. Always constructed with `isRetryable: false`.
 
 ```typescript
-try {
-  await bridge.chat({ model: null }); // Invalid
-} catch (error) {
-  if (error instanceof InvalidRequestError) {
-    console.error('Invalid request:', error.message);
-    error.errors?.forEach(err => {
-      console.error(`  ${err.field}: ${err.message}`);
-    });
-  }
-}
+new AuthorizationError({
+  code: ErrorCode.INSUFFICIENT_PERMISSIONS, // or QUOTA_EXCEEDED
+  message: 'Authorization failed',
+  provenance: { backend: 'anthropic' },
+  cause: originalError,
+});
 ```
 
 ---
 
-### `TimeoutError`
+## Rate Limiting
 
-Thrown when request exceeds timeout.
+### `RateLimitError`
+
+Thrown when the provider reports a rate limit. The code is always
+`RATE_LIMIT_EXCEEDED` and `isRetryable` is always `true` - you do not pass
+either.
 
 ```typescript
-class TimeoutError extends BackendError {
-  code = 'TIMEOUT';
+new RateLimitError({
+  message: 'Rate limit exceeded',
+  provenance: { backend: 'openai' },
+  cause: originalError,
+  rateLimitDetails: {
+    retryAfter: 30_000, // milliseconds
+    limit: 3500,
+    remaining: 0,
+    resetAt: '2025-01-01T00:00:30Z',
+  },
+});
+```
 
-  /** Timeout duration (ms) */
-  timeout: number;
+The four `rateLimitDetails` fields are also lifted onto the error itself:
 
-  /** Elapsed time (ms) */
-  elapsed: number;
+```typescript
+class RateLimitError extends AdapterError {
+  readonly retryAfter?: number;  // milliseconds
+  readonly limit?: number;
+  readonly remaining?: number;
+  readonly resetAt?: string;     // ISO timestamp
 }
 ```
 
 **Example:**
 
 ```typescript
-const bridge = new Bridge(frontend, backend, { timeout: 5000 });
+import { RateLimitError } from '@johnhenry/aimatey-errors';
 
 try {
-  await bridge.chat({ ... });
+  await bridge.chat({ model: 'gpt-4', messages });
 } catch (error) {
-  if (error instanceof TimeoutError) {
-    console.error(`Request timed out after ${error.timeout}ms`);
-
-    // Retry with longer timeout
-    bridge.options.timeout = 10000;
-    await bridge.chat({ ... });
-  }
-}
-```
-
----
-
-### `ServiceUnavailableError`
-
-Thrown when backend service is down or unavailable.
-
-```typescript
-class ServiceUnavailableError extends BackendError {
-  code = 'SERVICE_UNAVAILABLE';
-
-  /** Expected recovery time */
-  retryAfter?: number;
-}
-```
-
-**Example:**
-
-```typescript
-try {
-  await bridge.chat({ ... });
-} catch (error) {
-  if (error instanceof ServiceUnavailableError) {
-    console.error(`${error.backend} is unavailable`);
-
-    // Try fallback backend
-    bridge.setBackend(fallbackBackend);
-    await bridge.chat({ ... });
+  if (error instanceof RateLimitError) {
+    // retryAfter is in milliseconds and may be undefined
+    const waitMs = error.retryAfter ?? 1000;
+    console.log(`Rate limited, waiting ${waitMs}ms (${error.remaining ?? '?'} left of ${error.limit ?? '?'})`);
+    await new Promise((resolve) => setTimeout(resolve, waitMs));
+    await bridge.chat({ model: 'gpt-4', messages });
   }
 }
 ```
@@ -282,73 +242,234 @@ try {
 
 ### `ValidationError`
 
-Thrown when request or response validation fails.
+Request validation failures, raised before or instead of hitting a provider.
+Always constructed with `isRetryable: false`.
 
 ```typescript
-class ValidationError extends AIMateyError {
-  code = 'VALIDATION_FAILED';
-
-  /** Field that failed validation */
-  field?: string;
-
-  /** Validation errors */
-  errors: Array<{
-    path: string;
-    message: string;
-    value?: any;
-  }>;
-
-  /** Schema that failed */
-  schema?: any;
-}
+new ValidationError({
+  code: ErrorCode.INVALID_REQUEST,
+  //   | INVALID_MESSAGE_FORMAT | INVALID_PARAMETERS
+  //   | UNSUPPORTED_MODEL | UNSUPPORTED_FEATURE | CONTEXT_LENGTH_EXCEEDED
+  message: 'Request validation failed',
+  validationDetails: [
+    { field: 'messages', value: [], reason: 'must contain at least one message', expected: 'IRMessage[]' },
+  ],
+  provenance: { frontend: 'openai' }, // optional
+  irState: { request: partialRequest }, // optional
+});
 ```
+
+`validationDetails` is required and each entry is a `ValidationErrorDetails`:
+`field` (string), `value` (unknown), `reason` (string) and optional `expected`
+(string). The array is exposed as `error.validationDetails`.
 
 **Example:**
 
 ```typescript
+import { ValidationError } from '@johnhenry/aimatey-errors';
+
 try {
-  await bridge.chat({
-    model: 'gpt-4',
-    messages: [] // Empty messages - invalid
-  });
+  await bridge.chat({ model: 'gpt-4', messages: [] }); // empty messages
 } catch (error) {
   if (error instanceof ValidationError) {
-    console.error('Validation failed:');
-    error.errors.forEach(err => {
-      console.error(`  ${err.path}: ${err.message}`);
-    });
+    for (const detail of error.validationDetails) {
+      console.error(`${detail.field}: ${detail.reason} (expected ${detail.expected ?? 'n/a'})`);
+    }
   }
 }
 ```
 
 ---
 
-## Adapter Errors
+## Provider Errors
 
-### `AdapterError`
+### `ProviderError`
 
-Thrown when adapter encounters an error.
+Upstream API failures. This is the only specialized class that lets you decide
+`isRetryable` yourself (it defaults to `false`).
 
 ```typescript
-class AdapterError extends AIMateyError {
-  code = 'ADAPTER_ERROR';
+new ProviderError({
+  code: ErrorCode.PROVIDER_UNAVAILABLE,
+  //   | PROVIDER_ERROR | PROVIDER_TIMEOUT | PROVIDER_OVERLOADED
+  message: 'Provider is unavailable',
+  isRetryable: true,
+  provenance: { backend: 'anthropic' },
+  cause: originalError,
+  providerDetails: {
+    provider: 'anthropic',        // required within providerDetails
+    providerCode: 'overloaded_error',
+    providerMessage: 'Overloaded',
+    providerData: { requestId: 'req_123' },
+  },
+  httpContext: {
+    statusCode: 503,              // required within httpContext
+    statusText: 'Service Unavailable',
+    headers: { 'retry-after': '5' },
+    responseBody: rawBody,
+  },
+  irState: { request: partialRequest },
+});
+```
 
-  /** Adapter name */
-  adapter: string;
+Both `providerDetails` and `httpContext` are exposed on the error.
 
-  /** Adapter type */
-  adapterType: 'frontend' | 'backend';
+**Example:**
+
+```typescript
+import { ProviderError } from '@johnhenry/aimatey-errors';
+
+try {
+  await bridge.chat({ model: 'claude-3-5-sonnet-20241022', messages });
+} catch (error) {
+  if (error instanceof ProviderError) {
+    console.error('Provider:', error.providerDetails?.provider);
+    console.error('Upstream code:', error.providerDetails?.providerCode);
+    console.error('HTTP status:', error.httpContext?.statusCode);
+  }
 }
+```
+
+---
+
+## Adapter Conversion Errors
+
+### `AdapterConversionError`
+
+Raised by frontend and backend adapters when a request or response cannot be
+translated to or from IR. Always constructed with `isRetryable: false`.
+
+```typescript
+new AdapterConversionError({
+  code: ErrorCode.UNSUPPORTED_CONVERSION,
+  //   | ADAPTER_CONVERSION_ERROR | ADAPTER_VALIDATION_ERROR | SEMANTIC_DRIFT_ERROR
+  message: 'Cannot represent tool_choice in this provider format',
+  provenance: { frontend: 'anthropic', backend: 'gemini' },
+  cause: originalError,
+  irState: { request: partialRequest, response: partialResponse },
+});
 ```
 
 **Example:**
 
 ```typescript
+import { AdapterConversionError } from '@johnhenry/aimatey-errors';
+
 try {
-  await bridge.chat({ ... });
+  await bridge.chat({ model: 'gpt-4', messages });
 } catch (error) {
-  if (error instanceof AdapterError) {
-    console.error(`${error.adapterType} adapter "${error.adapter}" failed`);
+  if (error instanceof AdapterConversionError) {
+    console.error(
+      `Conversion failed between ${error.provenance.frontend} and ${error.provenance.backend}`
+    );
+    console.error('Offending request:', error.irState?.request);
+  }
+}
+```
+
+---
+
+## Network Errors
+
+### `NetworkError`
+
+Connectivity failures below the HTTP response layer. Always constructed with
+`isRetryable: true`.
+
+```typescript
+new NetworkError({
+  code: ErrorCode.CONNECTION_TIMEOUT,
+  //   | NETWORK_ERROR | DNS_RESOLUTION_FAILED
+  message: 'Request timed out',
+  provenance: { backend: 'openai' },
+  cause: originalError,
+});
+```
+
+:::note[There is no `TimeoutError`]
+Timeouts surface as `NetworkError` with `CONNECTION_TIMEOUT` (transport level) or
+as `ProviderError` with `PROVIDER_TIMEOUT` (the provider itself timed out).
+:::
+
+---
+
+## Streaming Errors
+
+### `StreamError`
+
+Failures on the streaming path. `isRetryable` is computed: it is `true` only
+when the code is `STREAM_INTERRUPTED`.
+
+```typescript
+new StreamError({
+  code: ErrorCode.STREAM_INTERRUPTED,
+  //   | STREAM_ERROR | STREAM_PARSE_ERROR | STREAM_CANCELLED
+  message: 'Stream ended before completion',
+  provenance: { backend: 'openai' },
+  cause: originalError,
+  irState: { request: partialRequest },
+});
+```
+
+**Example:**
+
+```typescript
+import { StreamError } from '@johnhenry/aimatey-errors';
+
+try {
+  for await (const chunk of bridge.chatStream({ model: 'gpt-4', messages })) {
+    process.stdout.write(chunk.choices?.[0]?.delta?.content ?? '');
+  }
+} catch (error) {
+  if (error instanceof StreamError) {
+    // Only STREAM_INTERRUPTED is marked retryable
+    console.error(`Stream failed (${error.code}), retryable: ${error.isRetryable}`);
+  }
+}
+```
+
+---
+
+## Routing Errors
+
+### `RouterError`
+
+Routing failures, carrying the backends that were tried. `isRetryable` is
+computed: `true` only when the code is `ALL_BACKENDS_FAILED`.
+
+```typescript
+class RouterError extends AdapterError {
+  readonly attemptedBackends?: string[];
+}
+
+new RouterError({
+  code: ErrorCode.ALL_BACKENDS_FAILED,
+  //   | NO_BACKEND_AVAILABLE | ROUTING_FAILED
+  message: 'All backends failed',
+  attemptedBackends: ['openai', 'anthropic', 'groq'],
+  provenance: { router: 'my-router' },
+  cause: originalError,
+  irState: { request: partialRequest },
+});
+```
+
+:::caution[The shipped `Router` throws `AdapterError`, not `RouterError`]
+`RouterError` is exported and available for your own routers, but the built-in
+`Router` raises plain `AdapterError` instances carrying the routing codes
+(`NO_BACKEND_AVAILABLE`, `ROUTING_FAILED`, `ALL_BACKENDS_FAILED`). Match on
+`error.code` or `error.category` rather than `error instanceof RouterError`.
+:::
+
+**Example:**
+
+```typescript
+import { AdapterError, ErrorCode } from '@johnhenry/aimatey-errors';
+
+try {
+  await bridge.chat({ model: 'gpt-4', messages });
+} catch (error) {
+  if (error instanceof AdapterError && error.code === ErrorCode.ALL_BACKENDS_FAILED) {
+    console.error('Every backend failed:', error.message);
   }
 }
 ```
@@ -359,132 +480,75 @@ try {
 
 ### `MiddlewareError`
 
-Thrown when middleware encounters an error.
+The code is always `MIDDLEWARE_ERROR` and `isRetryable` is always `false` -
+neither is passed.
 
 ```typescript
-class MiddlewareError extends AIMateyError {
-  code = 'MIDDLEWARE_ERROR';
-
-  /** Middleware name */
-  middleware: string;
-
-  /** Phase where error occurred */
-  phase: 'onRequest' | 'onResponse' | 'onError' | 'onStreamChunk';
+class MiddlewareError extends AdapterError {
+  readonly middlewareName?: string;
 }
+
+new MiddlewareError({
+  message: 'Middleware could not complete',
+  middlewareName: 'my-middleware',
+  provenance: { middleware: 'my-middleware' },
+  cause: originalError,
+  irState: { request: partialRequest, response: partialResponse },
+});
 ```
 
-**Example:**
-
-```typescript
-try {
-  await bridge.chat({ ... });
-} catch (error) {
-  if (error instanceof MiddlewareError) {
-    console.error(`Middleware "${error.middleware}" failed in ${error.phase}`);
-  }
-}
-```
+The middleware stack itself throws `MiddlewareError` for stack misuse: adding or
+removing middleware after the stack is locked, or calling `next()` more than once
+on a streaming request. An error thrown *inside* your own middleware is not
+wrapped - it propagates as whatever you threw.
 
 ---
 
-## Routing Errors
+## Error Factories
 
-### `RoutingError`
+Two helpers build the right error class for you. Both are exported from
+`@johnhenry/aimatey-errors`, and the built-in backend adapters use them.
 
-Thrown when router encounters an error.
+### `createErrorFromHttpResponse(statusCode, statusText, responseBody, provenance)`
+
+Maps an HTTP status to a class:
+
+| Status | Returned class | Code |
+|--------|----------------|------|
+| `401` | `AuthenticationError` | `INVALID_API_KEY` |
+| `403` | `AuthorizationError` | `INSUFFICIENT_PERMISSIONS` |
+| `429` | `RateLimitError` | `RATE_LIMIT_EXCEEDED` |
+| `400` | `ValidationError` | `INVALID_REQUEST` |
+| `>= 500` | `ProviderError` (retryable) | `PROVIDER_ERROR` |
+| anything else | `AdapterError` | `PROVIDER_ERROR` |
+
+**Returns:** `AdapterError` (a subclass instance in the mapped cases).
 
 ```typescript
-class RoutingError extends AIMateyError {
-  code = 'ROUTING_ERROR';
+import { createErrorFromHttpResponse } from '@johnhenry/aimatey-errors';
 
-  /** Current strategy */
-  strategy: string;
-
-  /** Available backends */
-  backends: string[];
+const response = await fetch(url, init);
+if (!response.ok) {
+  const body = await response.text();
+  throw createErrorFromHttpResponse(response.status, response.statusText, body, {
+    backend: 'my-backend',
+  });
 }
 ```
 
-**Example:**
+### `createErrorFromProviderError(provider, providerError, provenance)`
+
+Wraps an arbitrary provider error value into a `ProviderError` with code
+`PROVIDER_ERROR`, setting `providerDetails.provider` and stringifying the
+original into `providerDetails.providerMessage`.
 
 ```typescript
+import { createErrorFromProviderError } from '@johnhenry/aimatey-errors';
+
 try {
-  await router.chat({ ... });
-} catch (error) {
-  if (error instanceof RoutingError) {
-    console.error(`Routing failed with strategy: ${error.strategy}`);
-    console.error(`Available backends: ${error.backends.join(', ')}`);
-  }
-}
-```
-
----
-
-### `AllBackendsFailedError`
-
-Thrown when all backends fail.
-
-```typescript
-class AllBackendsFailedError extends RoutingError {
-  code = 'ALL_BACKENDS_FAILED';
-
-  /** Individual backend failures */
-  failures: Array<{
-    backend: string;
-    error: Error;
-  }>;
-}
-```
-
-**Example:**
-
-```typescript
-try {
-  await router.chat({ ... });
-} catch (error) {
-  if (error instanceof AllBackendsFailedError) {
-    console.error('All backends failed:');
-    error.failures.forEach(({ backend, error }) => {
-      console.error(`  ${backend}: ${error.message}`);
-    });
-  }
-}
-```
-
----
-
-## Configuration Errors
-
-### `ConfigurationError`
-
-Thrown when configuration is invalid.
-
-```typescript
-class ConfigurationError extends AIMateyError {
-  code = 'INVALID_CONFIGURATION';
-
-  /** Configuration field */
-  field?: string;
-
-  /** Expected value/type */
-  expected?: string;
-
-  /** Actual value */
-  actual?: any;
-}
-```
-
-**Example:**
-
-```typescript
-try {
-  const bridge = new Bridge(null, backend); // Invalid
-} catch (error) {
-  if (error instanceof ConfigurationError) {
-    console.error(`Invalid config: ${error.field}`);
-    console.error(`Expected: ${error.expected}`);
-    console.error(`Got: ${error.actual}`);
-  }
+  await providerSdk.messages.create(payload);
+} catch (providerError) {
+  throw createErrorFromProviderError('anthropic', providerError, { backend: 'anthropic' });
 }
 ```
 
@@ -497,18 +561,49 @@ try {
 Basic error handling:
 
 ```typescript
+import {
+  AdapterError,
+  AuthenticationError,
+  RateLimitError,
+} from '@johnhenry/aimatey-errors';
+
 try {
-  const response = await bridge.chat({ ... });
+  const response = await bridge.chat({ model: 'gpt-4', messages });
 } catch (error) {
   if (error instanceof RateLimitError) {
-    // Handle rate limit
-    await sleep(error.retryAfter * 1000);
+    await new Promise((resolve) => setTimeout(resolve, error.retryAfter ?? 1000));
   } else if (error instanceof AuthenticationError) {
-    // Handle auth error
-    console.error('Invalid API key');
+    console.error('Invalid API key:', error.code);
+  } else if (error instanceof AdapterError) {
+    console.error(`${error.category}/${error.code}: ${error.message}`);
   } else {
-    // Handle other errors
     console.error('Unexpected error:', error);
+  }
+}
+```
+
+---
+
+### Branch on Category
+
+`category` is derived from `code`, so one check covers a whole family:
+
+```typescript
+import { AdapterError } from '@johnhenry/aimatey-errors';
+import { ErrorCategory } from '@johnhenry/aimatey-types';
+
+function classify(error: unknown): 'retry' | 'reconfigure' | 'fail' {
+  if (!(error instanceof AdapterError)) return 'fail';
+
+  switch (error.category) {
+    case ErrorCategory.RATE_LIMIT:
+    case ErrorCategory.NETWORK:
+      return 'retry';
+    case ErrorCategory.AUTHENTICATION:
+    case ErrorCategory.AUTHORIZATION:
+      return 'reconfigure';
+    default:
+      return error.isRetryable ? 'retry' : 'fail';
   }
 }
 ```
@@ -517,137 +612,182 @@ try {
 
 ### Error Handler Middleware
 
-Global error handling:
+`Middleware` is a function, `(context, next) => Promise<IRChatResponse>`. There
+is no object form and no `onError` hook - wrap the `next()` call in your own
+try/catch. `next()` takes no arguments; the request lives on `context.request`.
 
 ```typescript
-function createErrorHandlerMiddleware() {
-  return {
-    name: 'error-handler',
+import type { Middleware } from '@johnhenry/aimatey-types';
+import { AdapterError, AuthenticationError, RateLimitError } from '@johnhenry/aimatey-errors';
 
-    async onError(error: Error) {
-      if (error instanceof RateLimitError) {
-        console.log('Rate limit exceeded, waiting...');
-        await sleep(error.retryAfter * 1000);
-        return; // Retry
-      }
-
-      if (error instanceof AuthenticationError) {
-        console.error('Auth failed:', error.backend);
-        // Send alert
-        await sendAlert('Authentication failed');
-      }
-
-      // Re-throw to propagate
-      return error;
+const errorHandler: Middleware = async (context, next) => {
+  try {
+    return await next();
+  } catch (error) {
+    if (error instanceof RateLimitError) {
+      console.warn(`Rate limited on ${context.backendName ?? 'unknown backend'}`);
+    } else if (error instanceof AuthenticationError) {
+      await sendAlert(`Authentication failed: ${error.message}`);
+    } else if (error instanceof AdapterError) {
+      console.error(`${error.category}/${error.code} for model ${context.request.parameters?.model}`);
     }
-  };
-}
 
-bridge.use(createErrorHandlerMiddleware());
+    // Re-throw to propagate; returning a value here would swallow the failure.
+    throw error;
+  }
+};
+
+bridge.use(errorHandler);
 ```
 
 ---
 
 ### Bridge Error Events
 
-Listen to error events:
+`bridge.on(event, listener)` subscribes to lifecycle events and returns the
+bridge. Listeners receive a single event object; `request:error` and
+`stream:error` carry the failure in `event.error`.
 
 ```typescript
-bridge.on('error', (error) => {
-  if (error instanceof BackendError) {
-    console.error(`Backend ${error.backend} failed`);
-    console.error(`Status: ${error.statusCode}`);
+import { AdapterError } from '@johnhenry/aimatey-errors';
 
-    // Log to monitoring service
-    logToSentry(error);
+bridge.on('request:error', (event) => {
+  const error = 'error' in event ? event.error : undefined;
+  if (error instanceof AdapterError) {
+    console.error(`[${event.requestId}] ${error.category}/${error.code}: ${error.message}`);
+    console.error('Provenance:', error.provenance);
   }
 });
+
+bridge.on('stream:error', (event) => {
+  console.error('Stream failed:', 'error' in event ? event.error?.message : undefined);
+});
 ```
+
+Use `bridge.off(event, listener)` to unsubscribe, `bridge.once(event, listener)`
+for a one-shot listener, and `'*'` with `on()`/`off()` to receive every event.
+
+:::caution[Only six event types are actually emitted]
+`Bridge` emits `'request:start'`, `'request:success'`, `'request:error'`,
+`'stream:start'`, `'stream:complete'` and `'stream:error'`. The
+`BridgeEventType` union additionally declares `'request:cancelled'`,
+`'stream:chunk'`, `'backend:selected'`, `'backend:failover'` and
+`'middleware:executed'`, but nothing emits them today - subscribing to those
+names is valid TypeScript that never fires.
+:::
 
 ---
 
 ### Router Failover
 
-Automatic failover on errors:
+`Router` is a `BackendAdapter`, not a bridge: it has no `chat()`, no
+`chatStream()` and no event emitter. Its constructor takes only a config object;
+backends are added afterwards with `register()`. Give the router to a `Bridge`
+and call `bridge.chat()`.
 
 ```typescript
-const router = new Router(frontend, {
-  backends: [primaryBackend, fallbackBackend],
-  strategy: 'priority',
-  fallbackOnError: true
+import { Bridge, Router } from '@johnhenry/aimatey-core';
+import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend/openai';
+import { OpenAIBackendAdapter } from '@johnhenry/aimatey-backend/openai';
+import { AnthropicBackendAdapter } from '@johnhenry/aimatey-backend/anthropic';
+import { AdapterError, ErrorCode } from '@johnhenry/aimatey-errors';
+
+const router = new Router({
+  routingStrategy: 'explicit',
+  defaultBackend: 'openai',
+  fallbackStrategy: 'sequential', // 'none' | 'sequential' | 'parallel' | 'custom'
 });
 
-router.on('backend:failed', ({ backend, error }) => {
-  console.error(`❌ ${backend} failed: ${error.message}`);
-});
+router
+  .register('openai', new OpenAIBackendAdapter({ apiKey: process.env.OPENAI_API_KEY! }))
+  .register('anthropic', new AnthropicBackendAdapter({ apiKey: process.env.ANTHROPIC_API_KEY! }));
 
-router.on('backend:switch', ({ from, to, reason }) => {
-  console.log(`🔄 Switched from ${from} to ${to}: ${reason}`);
-});
+// Order the router tries after the primary fails
+router.setFallbackChain(['anthropic']);
 
-// Automatically uses fallback on error
-const response = await router.chat({ ... });
+const bridge = new Bridge(new OpenAIFrontendAdapter(), router);
+
+try {
+  const response = await bridge.chat({ model: 'gpt-4', messages });
+} catch (error) {
+  if (error instanceof AdapterError) {
+    switch (error.code) {
+      case ErrorCode.NO_BACKEND_AVAILABLE:
+        console.error('Nothing registered or healthy to route to');
+        break;
+      case ErrorCode.ALL_BACKENDS_FAILED:
+        console.error('Primary and every fallback failed');
+        break;
+      case ErrorCode.ROUTING_FAILED:
+        console.error('Routing configuration problem:', error.message);
+        break;
+    }
+  }
+}
 ```
+
+Failover applies to `execute()` (that is, `bridge.chat()`). Streaming does not
+fall back: if the selected backend fails mid-stream, the stream ends.
 
 ---
 
 ### Retry Logic
 
-Retry on specific errors:
+`createRetryMiddleware` retries the wrapped call with exponential backoff. By
+default it retries only errors whose `isRetryable` is `true`, which is exactly
+what the error classes compute for you.
 
 ```typescript
 import { createRetryMiddleware } from '@johnhenry/aimatey-middleware';
+import { AuthenticationError, NetworkError, RateLimitError } from '@johnhenry/aimatey-errors';
 
-bridge.use(createRetryMiddleware({
-  maxAttempts: 3,
-  initialDelay: 1000,
-  shouldRetry: (error, attempt) => {
-    // Retry on rate limits and timeouts
-    if (error instanceof RateLimitError) return true;
-    if (error instanceof TimeoutError) return true;
-
-    // Don't retry on auth errors
-    if (error instanceof AuthenticationError) return false;
-
-    // Retry up to 2 times for other errors
-    return attempt < 2;
-  }
-}));
+bridge.use(
+  createRetryMiddleware({
+    maxAttempts: 3,        // total attempts, not extra retries
+    initialDelay: 1000,
+    backoffMultiplier: 2,
+    maxDelay: 30_000,
+    useJitter: true,
+    shouldRetry: (error, attempt) => {
+      if (error instanceof RateLimitError) return true;
+      if (error instanceof NetworkError) return true;
+      if (error instanceof AuthenticationError) return false;
+      return attempt < 2;
+    },
+    onRetry: (error, attempt, delay) => {
+      console.warn(`Attempt ${attempt} failed, retrying in ${delay}ms`);
+    },
+  })
+);
 ```
 
 ---
 
 ### Error Logging
 
-Comprehensive error logging:
+`AdapterError.toJSON()` already produces a structured record, so logging is
+mostly a matter of forwarding it:
 
 ```typescript
-function logError(error: Error) {
-  const logData = {
-    timestamp: new Date().toISOString(),
-    name: error.name,
-    message: error.message,
-    stack: error.stack
-  };
+import { AdapterError } from '@johnhenry/aimatey-errors';
 
-  if (error instanceof AIMateyError) {
-    logData.code = error.code;
-    logData.context = error.context;
-  }
-
-  if (error instanceof BackendError) {
-    logData.backend = error.backend;
-    logData.statusCode = error.statusCode;
-  }
+function logError(error: unknown): void {
+  const logData: Record<string, unknown> =
+    error instanceof AdapterError
+      ? error.toJSON()
+      : {
+          name: error instanceof Error ? error.name : 'UnknownError',
+          message: error instanceof Error ? error.message : String(error),
+          stack: error instanceof Error ? error.stack : undefined,
+          timestamp: Date.now(),
+        };
 
   console.error(JSON.stringify(logData, null, 2));
-
-  // Send to logging service
   sendToLogService(logData);
 }
 
 try {
-  await bridge.chat({ ... });
+  await bridge.chat({ model: 'gpt-4', messages });
 } catch (error) {
   logError(error);
 }
@@ -657,19 +797,51 @@ try {
 
 ## Error Codes Reference
 
-| Code | Error Class | Description |
-|------|------------|-------------|
-| `RATE_LIMIT_EXCEEDED` | RateLimitError | API rate limit exceeded |
-| `AUTHENTICATION_FAILED` | AuthenticationError | Invalid API key or token |
-| `INVALID_REQUEST` | InvalidRequestError | Malformed request |
-| `TIMEOUT` | TimeoutError | Request timeout |
-| `SERVICE_UNAVAILABLE` | ServiceUnavailableError | Backend unavailable |
-| `VALIDATION_FAILED` | ValidationError | Request/response validation failed |
-| `ADAPTER_ERROR` | AdapterError | Adapter failure |
-| `MIDDLEWARE_ERROR` | MiddlewareError | Middleware failure |
-| `ROUTING_ERROR` | RoutingError | Routing failure |
-| `ALL_BACKENDS_FAILED` | AllBackendsFailedError | All backends failed |
-| `INVALID_CONFIGURATION` | ConfigurationError | Invalid configuration |
+`ErrorCode` is a constant object exported from `@johnhenry/aimatey-errors` (the
+type alias is exported separately as `ErrorCodeType`). `ERROR_CODE_CATEGORIES`
+maps every code to its category.
+
+| Code | Category | Raised as |
+|------|----------|-----------|
+| `INVALID_API_KEY` | `authentication` | `AuthenticationError` |
+| `MISSING_API_KEY` | `authentication` | `AuthenticationError` |
+| `EXPIRED_API_KEY` | `authentication` | `AuthenticationError` |
+| `INSUFFICIENT_PERMISSIONS` | `authorization` | `AuthorizationError` |
+| `QUOTA_EXCEEDED` | `authorization` | `AuthorizationError` |
+| `RATE_LIMIT_EXCEEDED` | `rate_limit` | `RateLimitError` |
+| `INVALID_REQUEST` | `validation` | `ValidationError` |
+| `INVALID_MESSAGE_FORMAT` | `validation` | `ValidationError` |
+| `INVALID_PARAMETERS` | `validation` | `ValidationError` |
+| `UNSUPPORTED_MODEL` | `validation` | `ValidationError` |
+| `UNSUPPORTED_FEATURE` | `validation` | `ValidationError` |
+| `CONTEXT_LENGTH_EXCEEDED` | `validation` | `ValidationError` |
+| `MAX_TOOL_ITERATIONS_EXCEEDED` | `validation` | `AdapterError` |
+| `PROVIDER_ERROR` | `provider` | `ProviderError` |
+| `PROVIDER_UNAVAILABLE` | `provider` | `ProviderError` |
+| `PROVIDER_TIMEOUT` | `provider` | `ProviderError` |
+| `PROVIDER_OVERLOADED` | `provider` | `ProviderError` |
+| `ADAPTER_CONVERSION_ERROR` | `adapter` | `AdapterConversionError` |
+| `ADAPTER_VALIDATION_ERROR` | `adapter` | `AdapterConversionError` |
+| `UNSUPPORTED_CONVERSION` | `adapter` | `AdapterConversionError` |
+| `SEMANTIC_DRIFT_ERROR` | `adapter` | `AdapterConversionError` |
+| `NETWORK_ERROR` | `network` | `NetworkError` |
+| `CONNECTION_TIMEOUT` | `network` | `NetworkError` |
+| `DNS_RESOLUTION_FAILED` | `network` | `NetworkError` |
+| `STREAM_ERROR` | `streaming` | `StreamError` |
+| `STREAM_INTERRUPTED` | `streaming` | `StreamError` (retryable) |
+| `STREAM_PARSE_ERROR` | `streaming` | `StreamError` |
+| `STREAM_CANCELLED` | `streaming` | `StreamError` |
+| `NO_BACKEND_AVAILABLE` | `routing` | `AdapterError` / `RouterError` |
+| `ROUTING_FAILED` | `routing` | `AdapterError` / `RouterError` |
+| `ALL_BACKENDS_FAILED` | `routing` | `AdapterError` / `RouterError` (retryable) |
+| `MIDDLEWARE_ERROR` | `middleware` | `MiddlewareError` |
+| `UNKNOWN_ERROR` | `unknown` | `AdapterError` |
+| `INTERNAL_ERROR` | `unknown` | `AdapterError` |
+
+The category constants are `authentication`, `authorization`, `rate_limit`,
+`validation`, `provider`, `adapter`, `network`, `streaming`, `routing`,
+`middleware` and `unknown`, available as `ErrorCategory` from
+`@johnhenry/aimatey-types`.
 
 ---
 
@@ -680,26 +852,28 @@ try {
 ```typescript
 // ✅ Good
 try {
-  const response = await bridge.chat({ ... });
+  const response = await bridge.chat({ model: 'gpt-4', messages });
 } catch (error) {
-  console.error('Error:', error);
+  logError(error);
 }
 
 // ❌ Bad
-const response = await bridge.chat({ ... }); // Unhandled errors
+const response = await bridge.chat({ model: 'gpt-4', messages }); // Unhandled errors
 ```
 
 ---
 
-### 2. Use Specific Error Types
+### 2. Narrow With `AdapterError` First
 
 ```typescript
 // ✅ Good
 catch (error) {
   if (error instanceof RateLimitError) {
-    // Handle rate limit specifically
-  } else if (error instanceof AuthenticationError) {
-    // Handle auth error specifically
+    // handle rate limit specifically
+  } else if (error instanceof AdapterError) {
+    // everything ai.matey throws lands here
+  } else {
+    throw error; // not ours
   }
 }
 
@@ -711,15 +885,16 @@ catch (error) {
 
 ---
 
-### 3. Log Error Context
+### 3. Log the Context the Error Already Carries
 
 ```typescript
 // ✅ Good
 catch (error) {
-  if (error instanceof BackendError) {
-    console.log('Backend:', error.backend);
-    console.log('Status:', error.statusCode);
-    console.log('Request:', error.request);
+  if (error instanceof AdapterError) {
+    console.log('Code:', error.code);
+    console.log('Category:', error.category);
+    console.log('Provenance:', error.provenance);
+    console.log('Details:', error.details);
   }
 }
 
@@ -731,24 +906,39 @@ catch (error) {
 
 ---
 
-### 4. Implement Graceful Degradation
+### 4. Trust `isRetryable` Instead of Re-deriving It
 
 ```typescript
-// ✅ Good
-try {
-  return await primaryService.chat({ ... });
-} catch (error) {
-  if (error instanceof ServiceUnavailableError) {
-    return await fallbackService.chat({ ... });
+// ✅ Good - the subclasses already computed this
+catch (error) {
+  if (error instanceof AdapterError && error.isRetryable) {
+    return await bridge.chat({ model: 'gpt-4', messages });
   }
   throw error;
 }
 
 // ❌ Bad
+catch (error) {
+  return await bridge.chat({ model: 'gpt-4', messages }); // Retries auth failures forever
+}
+```
+
+---
+
+### 5. Let the Router Handle Degradation
+
+```typescript
+// ✅ Good - configure fallback once, at the router
+const router = new Router({ fallbackStrategy: 'sequential' });
+router.register('openai', openaiBackend).register('anthropic', anthropicBackend);
+router.setFallbackChain(['anthropic']);
+const bridge = new Bridge(new OpenAIFrontendAdapter(), router);
+
+// ❌ Bad - hand-rolled fallback in every call site
 try {
-  return await primaryService.chat({ ... });
+  return await primaryBridge.chat({ model: 'gpt-4', messages });
 } catch (error) {
-  throw error; // No fallback
+  return await fallbackBridge.chat({ model: 'gpt-4', messages });
 }
 ```
 

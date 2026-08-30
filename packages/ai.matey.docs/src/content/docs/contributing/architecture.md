@@ -56,41 +56,40 @@ The IR is a provider-agnostic format for representing AI requests and responses.
 ```typescript
 interface IRMessage {
   role: 'system' | 'user' | 'assistant' | 'tool';
-  content: string | IRContent[];
+  content: string | readonly MessageContent[];
   name?: string;
-  tool_calls?: IRToolCall[];
-  tool_call_id?: string;
+  metadata?: Record<string, unknown>;
 }
 ```
+
+Tool calls and tool results are content blocks (`ToolUseContent`,
+`ToolResultContent`) inside `content` - not separate `tool_calls` /
+`tool_call_id` fields.
 
 ### IR Request Format
 
 ```typescript
-interface IRChatCompletionRequest {
-  model: string;
-  messages: IRMessage[];
-  temperature?: number;
-  max_tokens?: number;
-  top_p?: number;
-  top_k?: number;
+interface IRChatRequest {
+  messages: readonly IRMessage[];
+  tools?: readonly IRTool[];
+  toolChoice?: 'auto' | 'required' | 'none' | { name: string };
+  responseFormat?: IRResponseFormat;
+  parameters?: IRParameters;   // model, temperature, maxTokens, topP, topK, ...
+  metadata: IRMetadata;        // required: requestId, timestamp, provenance, ...
   stream?: boolean;
-  stop?: string | string[];
-  tools?: IRTool[];
-  metadata?: Record<string, unknown>;
+  streamMode?: StreamMode;
 }
 ```
 
 ### IR Response Format
 
 ```typescript
-interface IRChatCompletionResponse {
-  id: string;
-  object: 'chat.completion';
-  created: number;
-  model: string;
-  choices: IRChoice[];
-  usage?: IRUsage;
-  metadata?: Record<string, unknown>;
+interface IRChatResponse {
+  message: IRMessage;          // one assistant message - no `choices` array
+  finishReason: FinishReason;
+  usage?: IRUsage;             // promptTokens / completionTokens / totalTokens
+  metadata: IRMetadata;
+  raw?: Record<string, unknown>;
 }
 ```
 
@@ -102,18 +101,23 @@ Frontend adapters translate from a specific API format to IR.
 
 ```typescript
 interface FrontendAdapter {
-  name: string;
+  // Identification and capabilities - there is no bare `name` field
+  readonly metadata: AdapterMetadata;
 
-  // Convert frontend format → IR
-  toIR(request: FrontendRequest): IRChatCompletionRequest;
+  // Convert frontend format → IR (async)
+  toIR(request: FrontendRequest): Promise<IRChatRequest>;
 
-  // Convert IR → frontend format
-  fromIR(response: IRChatCompletionResponse): FrontendResponse;
+  // Convert IR → frontend format (async)
+  fromIR(response: IRChatResponse): Promise<FrontendResponse>;
 
-  // Streaming support (optional)
-  fromIRStream?(
-    stream: AsyncIterable<IRChatCompletionChunk>
-  ): AsyncIterable<FrontendChunk>;
+  // Streaming support (required)
+  fromIRStream(
+    stream: IRChatStream,
+    options?: StreamConversionOptions
+  ): AsyncGenerator<FrontendChunk, void, undefined>;
+
+  // Validate a request before conversion (optional)
+  validate?(request: FrontendRequest): Promise<void>;
 }
 ```
 
@@ -121,37 +125,68 @@ interface FrontendAdapter {
 
 ```typescript
 export class OpenAIFrontendAdapter implements FrontendAdapter {
-  name = 'openai';
+  readonly metadata: AdapterMetadata = {
+    name: 'openai',
+    version: '1.0.0',
+    provider: 'OpenAI',
+    capabilities: {
+      streaming: true,
+      multiModal: true,
+      tools: true,
+      systemMessageStrategy: 'in-messages',
+      supportsMultipleSystemMessages: true
+    }
+  };
 
-  toIR(request: OpenAIChatRequest): IRChatCompletionRequest {
+  async toIR(request: OpenAIRequest): Promise<IRChatRequest> {
     return {
-      model: request.model,
       messages: request.messages.map(msg => ({
         role: msg.role,
         content: msg.content
       })),
-      temperature: request.temperature,
-      max_tokens: request.max_tokens,
-      // ... map all fields
+      parameters: {
+        model: request.model,
+        temperature: request.temperature,
+        maxTokens: request.max_tokens,
+        // ... map remaining sampling parameters
+      },
+      metadata: {
+        requestId: crypto.randomUUID(),
+        timestamp: Date.now(),
+        provenance: { frontend: 'openai' }
+      },
+      stream: request.stream
     };
   }
 
-  fromIR(response: IRChatCompletionResponse): OpenAIChatResponse {
+  async fromIR(response: IRChatResponse): Promise<OpenAIResponse> {
     return {
-      id: response.id,
+      id: response.metadata.providerResponseId ?? response.metadata.requestId,
       object: 'chat.completion',
-      created: response.created,
-      model: response.model,
-      choices: response.choices.map(choice => ({
-        index: choice.index,
+      created: Math.floor(response.metadata.timestamp / 1000),
+      model: response.metadata.custom?.model as string,
+      choices: [{
+        index: 0,
         message: {
-          role: choice.message.role,
-          content: choice.message.content
+          role: 'assistant',
+          content: response.message.content as string
         },
-        finish_reason: choice.finish_reason
-      })),
-      usage: response.usage
+        finish_reason: response.finishReason
+      }],
+      usage: response.usage && {
+        prompt_tokens: response.usage.promptTokens,
+        completion_tokens: response.usage.completionTokens,
+        total_tokens: response.usage.totalTokens
+      }
     };
+  }
+
+  async *fromIRStream(stream: IRChatStream) {
+    for await (const chunk of stream) {
+      if (chunk.type === 'content') {
+        yield { choices: [{ index: 0, delta: { content: chunk.delta } }] };
+      }
+    }
   }
 }
 ```
@@ -164,21 +199,30 @@ Backend adapters translate from IR to provider-specific API calls.
 
 ```typescript
 interface BackendAdapter {
-  name: string;
+  // Identification and capabilities (capabilities live under metadata)
+  readonly metadata: AdapterMetadata;
+
+  // Convert IR → provider format, and provider format → IR
+  fromIR(request: IRChatRequest): ProviderRequest;
+  toIR(
+    response: ProviderResponse,
+    originalRequest: IRChatRequest,
+    latencyMs: number
+  ): IRChatResponse;
 
   // Execute non-streaming request
-  chat(request: IRChatCompletionRequest): Promise<IRChatCompletionResponse>;
+  execute(request: IRChatRequest, signal?: AbortSignal): Promise<IRChatResponse>;
 
-  // Execute streaming request
-  chatStream(
-    request: IRChatCompletionRequest
-  ): AsyncIterable<IRChatCompletionChunk>;
+  // Execute streaming request - returns the stream, not a Promise
+  executeStream(request: IRChatRequest, signal?: AbortSignal): IRChatStream;
 
   // Health check (optional)
   healthCheck?(): Promise<boolean>;
 
-  // Capabilities (optional)
-  capabilities?: IRCapabilities;
+  // Cost estimation, model listing, embeddings (all optional)
+  estimateCost?(request: IRChatRequest): Promise<number | null>;
+  listModels?(options?: ListModelsOptions): Promise<ListModelsResult>;
+  embed?(request: IREmbedRequest, signal?: AbortSignal): Promise<IREmbedResponse>;
 }
 ```
 
@@ -186,45 +230,65 @@ interface BackendAdapter {
 
 ```typescript
 export class AnthropicBackendAdapter implements BackendAdapter {
-  name = 'anthropic';
+  readonly metadata: AdapterMetadata = {
+    name: 'anthropic',
+    version: '1.0.0',
+    provider: 'Anthropic',
+    capabilities: {
+      streaming: true,
+      multiModal: true,
+      tools: true,
+      systemMessageStrategy: 'separate-parameter',
+      supportsMultipleSystemMessages: false
+    }
+  };
+
   private client: Anthropic;
 
-  constructor(options: AnthropicOptions) {
-    this.client = new Anthropic({ apiKey: options.apiKey });
+  constructor(config: BackendAdapterConfig) {
+    this.client = new Anthropic({ apiKey: config.apiKey });
   }
 
-  async chat(request: IRChatCompletionRequest): Promise<IRChatCompletionResponse> {
+  async execute(request: IRChatRequest): Promise<IRChatResponse> {
+    const start = Date.now();
+
     // Convert IR → Anthropic format
-    const anthropicRequest = this.toAnthropicFormat(request);
+    const anthropicRequest = this.fromIR(request);
 
     // Make API call
     const anthropicResponse = await this.client.messages.create(anthropicRequest);
 
     // Convert Anthropic format → IR
-    return this.toIRFormat(anthropicResponse);
+    return this.toIR(anthropicResponse, request, Date.now() - start);
   }
 
-  async *chatStream(request: IRChatCompletionRequest) {
-    const anthropicRequest = this.toAnthropicFormat(request);
+  async *executeStream(request: IRChatRequest) {
+    const anthropicRequest = this.fromIR(request);
 
     const stream = await this.client.messages.create({
       ...anthropicRequest,
       stream: true
     });
 
+    let sequence = 0;
+    yield { type: 'start' as const, sequence: sequence++, metadata: request.metadata };
+
     for await (const chunk of stream) {
-      yield this.chunkToIR(chunk);
+      yield this.chunkToIR(chunk, sequence++);
     }
+
+    yield { type: 'done' as const, sequence: sequence++, finishReason: 'stop' as const };
   }
 
-  private toAnthropicFormat(request: IRChatCompletionRequest): MessageCreateParams {
-    // Extract system message (separate in Anthropic)
+  fromIR(request: IRChatRequest): MessageCreateParams {
+    // Extract system message (a separate parameter in Anthropic)
     const systemMessages = request.messages.filter(m => m.role === 'system');
     const system = systemMessages.map(m => m.content).join('\n');
+    const params = request.parameters ?? {};
 
     return {
-      model: this.mapModel(request.model),
-      max_tokens: request.max_tokens || 1024,
+      model: this.mapModel(params.model),
+      max_tokens: params.maxTokens ?? 1024,
       messages: request.messages
         .filter(m => m.role !== 'system')
         .map(m => ({
@@ -232,31 +296,31 @@ export class AnthropicBackendAdapter implements BackendAdapter {
           content: m.content
         })),
       system: system || undefined,
-      temperature: request.temperature,
-      top_p: request.top_p,
-      stop_sequences: Array.isArray(request.stop) ? request.stop : request.stop ? [request.stop] : undefined
+      temperature: params.temperature,
+      top_p: params.topP,
+      stop_sequences: params.stopSequences ? [...params.stopSequences] : undefined
     };
   }
 
-  private toIRFormat(response: Message): IRChatCompletionResponse {
+  toIR(response: Message, originalRequest: IRChatRequest, latencyMs: number): IRChatResponse {
     return {
-      id: response.id,
-      object: 'chat.completion',
-      created: Date.now(),
-      model: response.model,
-      choices: [{
-        index: 0,
-        message: {
-          role: 'assistant',
-          content: response.content[0].type === 'text' ? response.content[0].text : ''
-        },
-        finish_reason: response.stop_reason === 'end_turn' ? 'stop' : response.stop_reason
-      }],
+      message: {
+        role: 'assistant',
+        content: response.content[0].type === 'text' ? response.content[0].text : ''
+      },
+      finishReason: response.stop_reason === 'end_turn' ? 'stop' : 'length',
       usage: {
-        prompt_tokens: response.usage.input_tokens,
-        completion_tokens: response.usage.output_tokens,
-        total_tokens: response.usage.input_tokens + response.usage.output_tokens
-      }
+        promptTokens: response.usage.input_tokens,
+        completionTokens: response.usage.output_tokens,
+        totalTokens: response.usage.input_tokens + response.usage.output_tokens
+      },
+      metadata: {
+        ...originalRequest.metadata,
+        providerResponseId: response.id,
+        provenance: { ...originalRequest.metadata.provenance, backend: 'anthropic' },
+        custom: { ...originalRequest.metadata.custom, latencyMs }
+      },
+      raw: response as unknown as Record<string, unknown>
     };
   }
 }
@@ -273,110 +337,138 @@ export class Bridge {
   private middleware: Middleware[] = [];
 
   constructor(
-    private frontendAdapter: FrontendAdapter,
-    private backendAdapter: BackendAdapter
+    readonly frontend: FrontendAdapter,
+    readonly backend: BackendAdapter | Router,
+    readonly config: BridgeConfig = {}
   ) {}
 
   async chat(request: any): Promise<any> {
-    // 1. Convert frontend format → IR
-    const irRequest = this.frontendAdapter.toIR(request);
+    // 1. Convert frontend format → IR (toIR is async)
+    const irRequest = await this.frontend.toIR(request);
 
     // 2. Execute middleware chain
     const irResponse = await this.executeMiddleware(irRequest);
 
-    // 3. Convert IR → frontend format
-    return this.frontendAdapter.fromIR(irResponse);
+    // 3. Convert IR → frontend format (fromIR is async)
+    return this.frontend.fromIR(irResponse);
   }
 
   private async executeMiddleware(
-    request: IRChatCompletionRequest
-  ): Promise<IRChatCompletionResponse> {
-    // Build middleware chain
-    const execute = this.middleware.reduceRight(
+    request: IRChatRequest
+  ): Promise<IRChatResponse> {
+    // Shared context - middleware reads and replaces context.request
+    const context: MiddlewareContext = {
+      request,
+      isStreaming: false,
+      state: {},
+      config: {},
+    };
+
+    // Build middleware chain (first registered ends up outermost)
+    const execute = this.middleware.reduceRight<MiddlewareNext>(
       (next, middleware) => {
-        return async (req: IRChatCompletionRequest) => {
-          return middleware.execute(req, next);
-        };
+        return async () => middleware(context, next);
       },
       // Final handler: call backend
-      async (req: IRChatCompletionRequest) => {
-        return this.backendAdapter.chat(req);
+      async () => {
+        return this.backend.execute(context.request);
       }
     );
 
-    return execute(request);
+    return execute();
   }
 
-  use(middleware: Middleware) {
+  use(middleware: Middleware): this {
     this.middleware.push(middleware);
+    return this; // `use()` returns the bridge, for chaining
   }
 }
 ```
 
 ## Router Architecture
 
-The Router extends Bridge to support multiple backends.
+The Router does **not** extend Bridge. It implements `BackendAdapter`, so a
+`Bridge` can be handed a router wherever it would take a single backend. Backends
+are registered by name, and the fallback chain is what gives ordered failover.
 
 ### Core Implementation
 
 ```typescript
-export class Router extends Bridge {
-  private backends: BackendAdapter[];
-  private strategy: RoutingStrategy;
+export class Router implements BackendAdapter {
+  readonly metadata: AdapterMetadata;
+  readonly config: RouterConfig;
+
+  private backends = new Map<string, BackendAdapter>();
+  private fallbackChain: string[] = [];
   private currentIndex = 0;
 
-  constructor(
-    frontendAdapter: FrontendAdapter,
-    options: RouterOptions
-  ) {
-    // Router doesn't have a single backend
-    super(frontendAdapter, options.backends[0]);
-
-    this.backends = options.backends;
-    this.strategy = options.strategy;
+  constructor(config: Partial<RouterConfig> = {}) {
+    this.config = { routingStrategy: 'explicit', fallbackStrategy: 'none', ...config };
+    // ...build metadata from the registered backends' capabilities
   }
 
-  protected async executeBackend(
-    request: IRChatCompletionRequest
-  ): Promise<IRChatCompletionResponse> {
-    // Select backend based on strategy
-    const backendIndex = this.selectBackend(request);
-    const backend = this.backends[backendIndex];
+  register(name: string, adapter: BackendAdapter): Router {
+    this.backends.set(name, adapter);
+    return this;
+  }
 
-    try {
-      return await backend.chat(request);
-    } catch (error) {
-      // Fallback to next backend if configured
-      if (this.options.fallbackOnError && backendIndex < this.backends.length - 1) {
-        this.emit('backend:failed', { backend: backend.name, error });
-        return this.executeBackend(request); // Recursive fallback
+  async execute(request: IRChatRequest, signal?: AbortSignal): Promise<IRChatResponse> {
+    const name = await this.selectBackend(request);
+    const attempted: string[] = [];
+
+    for (const candidate of [name, ...this.fallbackChain.filter(n => n !== name)]) {
+      const backend = this.backends.get(candidate);
+      if (!backend) continue;
+
+      try {
+        return await backend.execute(request, signal);
+      } catch (error) {
+        attempted.push(candidate);
+        if (this.config.fallbackStrategy === 'none') throw error;
       }
-      throw error;
     }
+
+    throw new RouterError({
+      code: ErrorCode.ROUTING_FAILED,
+      message: `All backends failed: ${attempted.join(', ')}`
+    });
   }
 
-  private selectBackend(request: IRChatCompletionRequest): number {
-    switch (this.strategy) {
-      case 'round-robin':
-        const index = this.currentIndex;
-        this.currentIndex = (this.currentIndex + 1) % this.backends.length;
-        return index;
+  async selectBackend(request: IRChatRequest): Promise<string> {
+    const names = [...this.backends.keys()];
 
-      case 'priority':
-        return 0; // Always use first (will fallback if it fails)
+    switch (this.config.routingStrategy) {
+      case 'round-robin': {
+        const index = this.currentIndex;
+        this.currentIndex = (this.currentIndex + 1) % names.length;
+        return names[index];
+      }
 
       case 'random':
-        return Math.floor(Math.random() * this.backends.length);
+        return names[Math.floor(Math.random() * names.length)];
 
-      case 'custom':
-        return this.options.customStrategy(request, this.backends);
+      case 'model-based':
+        return this.modelMapping[request.parameters?.model ?? ''] ?? names[0];
 
+      case 'custom': {
+        const chosen = await this.config.customRouter?.(request, names, this.routingContext());
+        return chosen ?? this.config.defaultBackend ?? names[0];
+      }
+
+      case 'explicit':
       default:
-        return 0;
+        return (
+          (request.metadata.custom?.backend as string) ??
+          this.config.defaultBackend ??
+          names[0]
+        );
     }
   }
 }
 ```
+
+There is no `'priority'` or `'weighted'` strategy, and the router emits no
+events - failures are observable through `getStats()` and `getBackendInfo()`.
 
 ## Middleware System
 
@@ -385,12 +477,19 @@ Middleware intercepts requests/responses using the **Chain of Responsibility** p
 ### Middleware Interface
 
 ```typescript
-interface Middleware {
-  name: string;
-  execute(
-    request: IRChatCompletionRequest,
-    next: (request: IRChatCompletionRequest) => Promise<IRChatCompletionResponse>
-  ): Promise<IRChatCompletionResponse>;
+type Middleware = (
+  context: MiddlewareContext,
+  next: () => Promise<IRChatResponse>
+) => Promise<IRChatResponse>;
+
+interface MiddlewareContext {
+  request: IRChatRequest;                    // inspect and replace to modify
+  readonly isStreaming: boolean;
+  readonly backend?: BackendAdapter;
+  readonly backendName?: string;
+  readonly state: Record<string, unknown>;   // shared between middleware
+  readonly config: Record<string, unknown>;
+  readonly signal?: AbortSignal;
 }
 ```
 
@@ -398,29 +497,26 @@ interface Middleware {
 
 ```typescript
 export function createLoggingMiddleware(options: LoggingOptions): Middleware {
-  return {
-    name: 'logging',
-    async execute(request, next) {
-      const start = Date.now();
+  return async (context, next) => {
+    const start = Date.now();
 
-      console.log('[INFO] Request:', {
-        model: request.model,
-        messages: request.messages.length
+    console.log('[INFO] Request:', {
+      model: context.request.parameters?.model,
+      messages: context.request.messages.length
+    });
+
+    try {
+      const response = await next();
+
+      console.log('[INFO] Response:', {
+        duration: Date.now() - start,
+        tokens: response.usage?.total_tokens
       });
 
-      try {
-        const response = await next(request);
-
-        console.log('[INFO] Response:', {
-          duration: Date.now() - start,
-          tokens: response.usage?.total_tokens
-        });
-
-        return response;
-      } catch (error) {
-        console.error('[ERROR]', error.message);
-        throw error;
-      }
+      return response;
+    } catch (error) {
+      console.error('[ERROR]', error.message);
+      throw error;
     }
   };
 }
@@ -446,7 +542,7 @@ Streaming uses **AsyncIterators** for real-time response delivery.
 ### Streaming Flow
 
 ```typescript
-async *chatStream(request: IRChatCompletionRequest) {
+async *chatStream(request: IRChatRequest) {
   // 1. Convert to provider format
   const providerRequest = this.toProviderFormat(request);
 
@@ -464,7 +560,8 @@ async *chatStream(request: IRChatCompletionRequest) {
 ### Stream Consumption
 
 ```typescript
-const stream = await bridge.chatStream(request);
+// chatStream() is an async generator - the call itself is not awaited
+const stream = bridge.chatStream(request);
 
 for await (const chunk of stream) {
   const content = chunk.choices?.[0]?.delta?.content;
@@ -481,11 +578,11 @@ for await (const chunk of stream) {
 ```typescript
 // Base types
 types/
-├── ir-request.ts       # IRChatCompletionRequest
-├── ir-response.ts      # IRChatCompletionResponse
-├── ir-chunk.ts         # IRChatCompletionChunk
-├── ir-message.ts       # IRMessage, IRContent
-├── ir-tool.ts          # IRTool, IRToolCall
+├── ir-request.ts       # IRChatRequest
+├── ir-response.ts      # IRChatResponse
+├── ir-chunk.ts         # IRStreamChunk
+├── ir-message.ts       # IRMessage, MessageContent
+├── ir-tool.ts          # IRTool
 ├── frontend.ts         # FrontendAdapter interface
 ├── backend.ts          # BackendAdapter interface
 └── middleware.ts       # Middleware interface
@@ -497,12 +594,12 @@ All conversions are type-safe:
 
 ```typescript
 // Frontend adapter
-toIR(request: OpenAIChatRequest): IRChatCompletionRequest {
+async toIR(request: OpenAIRequest): Promise<IRChatRequest> {
   // TypeScript ensures all required IR fields are present
 }
 
 // Backend adapter
-chat(request: IRChatCompletionRequest): Promise<IRChatCompletionResponse> {
+execute(request: IRChatRequest): Promise<IRChatResponse> {
   // TypeScript ensures correct IR types
 }
 ```
@@ -511,42 +608,48 @@ chat(request: IRChatCompletionRequest): Promise<IRChatCompletionResponse> {
 
 ### Error Hierarchy
 
+Every error derives from `AdapterError` - there is no `BridgeError`. The
+hierarchy is flat: each specialized class extends `AdapterError` directly, and
+constructors take a single options object.
+
 ```typescript
-export class BridgeError extends Error {
-  constructor(
-    message: string,
-    public code: string,
-    public details?: unknown
-  ) {
-    super(message);
-    this.name = 'BridgeError';
-  }
+export class AdapterError extends Error {
+  readonly code: ErrorCode;
+  readonly category: ErrorCategory;
+  readonly isRetryable: boolean;
+  readonly provenance: ErrorProvenance;
+  readonly irState?: { request?: Partial<IRChatRequest>; response?: Partial<IRChatResponse> };
+  readonly details?: Record<string, unknown>;
+
+  constructor(options: BaseErrorOptions) { /* ... */ }
 }
 
-// Specific error types
-export class ValidationError extends BridgeError {
-  constructor(message: string, details?: unknown) {
-    super(message, 'VALIDATION_ERROR', details);
-  }
+// Specific error types, all extending AdapterError directly
+export class ValidationError extends AdapterError {
+  readonly validationDetails: ValidationErrorDetails[];
 }
 
-export class NetworkError extends BridgeError {
-  constructor(message: string, details?: unknown) {
-    super(message, 'NETWORK_ERROR', details);
-  }
-}
+export class NetworkError extends AdapterError {}
 ```
+
+The full set is `AuthenticationError`, `AuthorizationError`, `RateLimitError`,
+`ValidationError`, `ProviderError`, `AdapterConversionError`, `NetworkError`,
+`StreamError`, `RouterError` and `MiddlewareError`.
 
 ### Error Propagation
 
 ```typescript
+import { AdapterError, NetworkError, ValidationError } from '@johnhenry/aimatey-errors';
+
 try {
   const response = await bridge.chat(request);
 } catch (error) {
   if (error instanceof ValidationError) {
-    // Handle validation errors
+    // Handle validation errors - error.validationDetails has the per-field detail
   } else if (error instanceof NetworkError) {
     // Handle network errors
+  } else if (error instanceof AdapterError) {
+    // Anything else the library threw - switch on error.code
   } else {
     // Handle unknown errors
   }
@@ -575,18 +678,18 @@ Middleware executes sequentially. Keep middleware fast:
 
 ```typescript
 // ✅ Good - fast synchronous operation
-async execute(request, next) {
+const good: Middleware = async (context, next) => {
   const start = Date.now();
-  const response = await next(request);
+  const response = await next();
   console.log('Duration:', Date.now() - start);
   return response;
-}
+};
 
 // ❌ Bad - slow blocking operation
-async execute(request, next) {
+const bad: Middleware = async (context, next) => {
   await heavyComputation(); // Blocks all requests!
-  return next(request);
-}
+  return next();
+};
 ```
 
 ## Testing Architecture
@@ -602,7 +705,7 @@ export class MockBackendAdapter implements BackendAdapter {
     this.responses.set(key, response);
   }
 
-  async chat(request: IRChatCompletionRequest) {
+  async chat(request: IRChatRequest) {
     const key = JSON.stringify(request.messages);
     return this.responses.get(key) || this.defaultResponse();
   }

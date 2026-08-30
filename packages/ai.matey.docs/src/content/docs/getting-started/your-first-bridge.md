@@ -193,7 +193,7 @@ Add streaming to `src/bridge.ts`:
 ```typescript
 export async function chatStream(message: string) {
   try {
-    const stream = await bridge.chatStream({
+    const stream = bridge.chatStream({
       model: 'gpt-4',
       messages: [{ role: 'user', content: message }],
       temperature: 0.7,
@@ -582,18 +582,22 @@ my-ai-app/
 
 ## Common Enhancements
 
-### Add Rate Limiting
+### Add Request Validation
 
 ```typescript
-import { createRateLimitMiddleware } from '@johnhenry/aimatey-middleware';
+import { createValidationMiddleware } from '@johnhenry/aimatey-middleware';
 
 const middleware = [
-  createRateLimitMiddleware({
-    maxRequests: 10,
-    windowMs: 60000 // 10 requests per minute
+  createValidationMiddleware({
+    maxMessages: 50,
+    maxMessageLength: 10_000,
+    throwOnError: true
   })
 ];
 ```
+
+Rate limiting is not a middleware in this library - it lives at the HTTP layer,
+as `RateLimiter` in `@johnhenry/aimatey-http-core`.
 
 ### Add Cost Tracking
 
@@ -602,8 +606,8 @@ import { createCostTrackingMiddleware } from '@johnhenry/aimatey-middleware';
 
 const middleware = [
   createCostTrackingMiddleware({
-    onCost: (cost, provider) => {
-      console.log(`Request cost: $${cost} (${provider})`);
+    onCost: (cost) => {
+      console.log(`Request cost: $${cost.totalCost.toFixed(4)} (${cost.provider})`);
     }
   })
 ];
@@ -617,7 +621,9 @@ import { OpenAIBackendAdapter } from '@johnhenry/aimatey-backend/openai';
 import { AnthropicBackendAdapter } from '@johnhenry/aimatey-backend/anthropic';
 
 const router = createRouter({
-  routingStrategy: 'fallback'
+  routingStrategy: 'explicit',
+  defaultBackend: 'openai',
+  fallbackStrategy: 'sequential'
 })
   .register('openai', new OpenAIBackendAdapter({ apiKey: openaiKey }))
   .register('anthropic', new AnthropicBackendAdapter({ apiKey: anthropicKey }))

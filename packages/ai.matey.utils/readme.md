@@ -199,19 +199,16 @@ for await (const chunk of stream) {
 }
 ```
 
-## Web Stream Conversion
+## Stream Splitting
 
 ```typescript
-import {
-  asyncGeneratorToReadableStream,
-  readableStreamToAsyncGenerator,
-} from '@johnhenry/aimatey-utils';
+import { splitStream, teeStream } from '@johnhenry/aimatey-utils';
 
-// Convert async generator to Web ReadableStream
-const readable = asyncGeneratorToReadableStream(stream);
+// Fan one stream out to several independent consumers
+const [forDisplay, forLogging] = teeStream(stream);
 
-// Convert back to async generator
-const generator = readableStreamToAsyncGenerator(readable);
+// Or split into an explicit number of consumers
+const consumers = splitStream(stream, 3);
 ```
 
 ## Model Registry

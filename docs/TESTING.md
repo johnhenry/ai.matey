@@ -542,19 +542,30 @@ Located in `packages/ai.matey.testing/`:
 
 ```typescript
 import {
-  createMockBackend,
-  createMockRequest,
-  createMockResponse,
-  mockStreamChunks
+  loadFixture,
+  isChatFixture,
+  createMockFromFixture,
+  createConfigurableMock,
+  buildChatRequest,
+  extractResponse
 } from '@johnhenry/aimatey-testing';
 
-// Create mock backend
-const mockBackend = createMockBackend({
-  responses: [
-    { content: 'Hello!', usage: { total_tokens: 10 } }
-  ]
-});
+// Replay a recorded fixture as a mock backend
+const fixture = await loadFixture('openai', 'basic-chat');
+const fixtureMock = createMockFromFixture(fixture);
+
+const response = await fixtureMock.chat(buildChatRequest('Hello'));
+
+// Or drive a mock by hand - setResponse/setStreamChunks/setError/reset
+const mock = createConfigurableMock('test-backend');
+if (isChatFixture(fixture)) {
+  mock.setResponse(extractResponse(fixture));
+}
+mock.setError(new Error('rate limited')); // next chat() rejects
+mock.reset();
 ```
+
+Fixtures live in the repo-root `fixtures/<provider>/<scenario>.json`; `loadFixture(provider, scenario)` reads one, `findFixtures(query)` searches, and `createMocksFromFixtures(fixtures)` builds a `Map` of mocks keyed by `provider-scenario`.
 
 ---
 
@@ -637,19 +648,38 @@ All critical issues have been resolved:
 
 ```typescript
 // Example unit test
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { Bridge } from '@johnhenry/aimatey-core';
+import { GenericFrontendAdapter } from '@johnhenry/aimatey-frontend/generic';
+import { buildChatRequest, extractTextFromResponse } from '@johnhenry/aimatey-testing';
+import type { BackendAdapter, IRChatRequest } from '@johnhenry/aimatey-types';
+
+// Bridge needs a real BackendAdapter, so stub one locally.
+// (The fixture mocks in @johnhenry/aimatey-testing expose chat()/chatStream(),
+// not the execute()/executeStream() pair a Bridge backend must implement.)
+function createMockBackend(): BackendAdapter {
+  return {
+    metadata: { name: 'mock-backend', version: '1.0.0', provider: 'Mock', capabilities: {} },
+    fromIR: vi.fn((request) => request),
+    toIR: vi.fn((response) => response),
+    execute: vi.fn(async (request: IRChatRequest) => ({
+      message: { role: 'assistant', content: [{ type: 'text', text: 'Hello!' }] },
+      finishReason: 'stop',
+      usage: { promptTokens: 5, completionTokens: 5, totalTokens: 10 },
+      metadata: { requestId: request.metadata.requestId, timestamp: Date.now() },
+    })),
+    executeStream: vi.fn(),
+    healthCheck: vi.fn(async () => true),
+  } as unknown as BackendAdapter;
+}
 
 describe('Bridge', () => {
   it('should execute request successfully', async () => {
-    const backend = createMockBackend();
-    const bridge = new Bridge({ backend });
+    const bridge = new Bridge(new GenericFrontendAdapter(), createMockBackend());
 
-    const response = await bridge.execute({
-      messages: [{ role: 'user', content: 'Hello' }]
-    });
+    const response = await bridge.chat(buildChatRequest('Hello'));
 
-    expect(response.content).toBe('Hello!');
+    expect(extractTextFromResponse(response)).toBe('Hello!');
   });
 });
 ```

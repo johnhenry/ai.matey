@@ -42,7 +42,7 @@ Complete reference for the `Router` class - intelligent multi-backend routing.
 Complete reference for all built-in middleware and the Middleware interface.
 
 - Logging, caching, retry, transform
-- Cost tracking, rate limiting, validation
+- Cost tracking, validation, security
 - OpenTelemetry tracing
 - Creating custom middleware
 - Middleware composition
@@ -55,9 +55,9 @@ Complete reference for all built-in middleware and the Middleware interface.
 
 Complete TypeScript type definitions.
 
-- IR types (IRChatCompletionRequest, IRChatCompletionResponse, etc.)
+- IR types (IRChatRequest, IRChatResponse, etc.)
 - Adapter interfaces (BackendAdapter, FrontendAdapter)
-- Configuration types (BridgeOptions, RouterOptions)
+- Configuration types (BridgeConfig, RouterConfig)
 - Utility types and type guards
 
 [View Types API →](/api/types)
@@ -68,7 +68,7 @@ Complete TypeScript type definitions.
 
 Complete error handling reference.
 
-- Error hierarchy (AIMateyError, BackendError, ValidationError, etc.)
+- Error hierarchy (AdapterError, ProviderError, ValidationError, etc.)
 - Error codes and descriptions
 - Error handling patterns
 - Best practices
@@ -95,12 +95,12 @@ The foundational package containing Bridge, Router, and core functionality.
 TypeScript type definitions for all packages.
 
 **Key Types:**
-- `IRChatCompletionRequest` - Intermediate Representation request format
-- `IRChatCompletionResponse` - IR response format
-- `IRChatCompletionChunk` - Streaming chunk format
+- `IRChatRequest` - Intermediate Representation request format
+- `IRChatResponse` - IR response format
+- `IRStreamChunk` - Streaming chunk format
 - `BackendAdapter` - Backend interface
 - `FrontendAdapter` - Frontend interface
-- `Middleware` - Middleware interface
+- `Middleware` - Middleware function type
 
 [View Full API Documentation →](/api/all-packages)
 
@@ -109,8 +109,9 @@ TypeScript type definitions for all packages.
 Error classes and utilities.
 
 **Key Exports:**
-- `AIMateyError` - Base error class
-- `BackendError` - Backend-specific errors
+- `AdapterError` - Base error class for every adapter error
+- `ProviderError` - Provider API returned an error
+- `NetworkError` - Network request failed
 - `RateLimitError` - Rate limit exceeded
 - `AuthenticationError` - Invalid API key
 - `ValidationError` - Request validation failed
@@ -128,7 +129,7 @@ Parse different input formats into IR.
 - **@johnhenry/aimatey-frontend/gemini** - Google Gemini format
 - **@johnhenry/aimatey-frontend/mistral** - Mistral format
 - **@johnhenry/aimatey-frontend/ollama** - Ollama format
-- **@johnhenry/aimatey-frontend/groq** - Groq format
+- **@johnhenry/aimatey-frontend/chrome-ai** - Chrome built-in AI format
 - **@johnhenry/aimatey-frontend/generic** - Generic IR format
 
 [View Frontend Adapters →](/packages/frontend)
@@ -160,8 +161,7 @@ Built-in middleware for common use cases.
 - `createRetryMiddleware()` - Automatic retry with backoff
 - `createTransformMiddleware()` - Request/response transformation
 - `createCostTrackingMiddleware()` - Track API costs
-- `createOpenTelemetryMiddleware()` - Distributed tracing
-- `createRateLimitMiddleware()` - Rate limiting
+- `createOpenTelemetryMiddleware()` - Distributed tracing (async)
 - `createValidationMiddleware()` - Request validation
 - `createSecurityMiddleware()` - PII redaction, sanitization, prompt-injection detection, HTTP header policy
 - `createConversationHistoryMiddleware()` - Conversation state
@@ -176,7 +176,7 @@ HTTP server integration for Express, Fastify, Hono, and Node.js http.
 
 **Key Exports:**
 - `ExpressMiddleware` - Express.js integration
-- `FastifyPlugin` - Fastify plugin
+- `FastifyHandler` - Fastify handler
 - `HonoMiddleware` - Hono middleware
 - `NodeHTTPListener` - Node.js http integration
 
@@ -206,9 +206,13 @@ HTTP server integration for Express, Fastify, Hono, and Node.js http.
 
 ```typescript
 interface BackendAdapter {
-  execute(request: IRChatCompletionRequest): Promise<IRChatCompletionResponse>;
-  executeStream(request: IRChatCompletionRequest): Promise<AsyncIterable<IRChatCompletionChunk>>;
-  checkHealth?(): Promise<boolean>;
+  readonly metadata: AdapterMetadata;
+  fromIR(request: IRChatRequest): unknown;
+  toIR(response: unknown, originalRequest: IRChatRequest, latencyMs: number): IRChatResponse;
+  execute(request: IRChatRequest, signal?: AbortSignal): Promise<IRChatResponse>;
+  /** Returns the stream itself, not a Promise */
+  executeStream(request: IRChatRequest, signal?: AbortSignal): IRChatStream;
+  healthCheck?(): Promise<boolean>;
 }
 ```
 
@@ -216,19 +220,24 @@ interface BackendAdapter {
 
 ```typescript
 interface FrontendAdapter {
-  parseRequest(input: any): IRChatCompletionRequest;
-  formatResponse(ir: IRChatCompletionResponse): any;
+  readonly metadata: AdapterMetadata;
+  toIR(request: unknown): Promise<IRChatRequest>;
+  fromIR(response: IRChatResponse): Promise<unknown>;
+  fromIRStream(stream: IRChatStream): AsyncGenerator<unknown, void, undefined>;
+  validate?(request: unknown): Promise<void>;
 }
 ```
 
 ### Middleware Interface
 
 ```typescript
-interface Middleware {
-  onRequest?(request: IRChatCompletionRequest): Promise<IRChatCompletionRequest>;
-  onResponse?(response: IRChatCompletionResponse): Promise<IRChatCompletionResponse>;
-  onError?(error: Error): Promise<Error | void>;
-}
+type Middleware = (
+  context: MiddlewareContext,
+  next: () => Promise<IRChatResponse>
+) => Promise<IRChatResponse>;
+
+// context.request is the IR request (readable and replaceable),
+// context.state is a per-request scratch object shared between middleware.
 ```
 
 ## TypeScript Support
@@ -237,9 +246,9 @@ All packages include full TypeScript definitions. Import types:
 
 ```typescript
 import type {
-  IRChatCompletionRequest,
-  IRChatCompletionResponse,
-  IRChatCompletionChunk,
+  IRChatRequest,
+  IRChatResponse,
+  IRStreamChunk,
   BackendAdapter,
   FrontendAdapter,
   Middleware

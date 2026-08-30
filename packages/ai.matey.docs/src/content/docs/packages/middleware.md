@@ -20,7 +20,7 @@ Middleware intercepts requests and responses as they flow through your Bridge or
 - **Retry** failed requests automatically
 - **Track costs** and set budgets
 - **Transform** data on-the-fly
-- **Rate limit** to prevent abuse
+- **Validate** and sanitize requests
 
 ## Quick Start
 
@@ -42,7 +42,7 @@ const bridge = new Bridge(
 // Add middleware (order matters!)
 bridge.use(createLoggingMiddleware({ level: 'info' }));
 bridge.use(createRetryMiddleware({ maxAttempts: 3 }));
-bridge.use(createCachingMiddleware({ ttl: 3600 }));
+bridge.use(createCachingMiddleware({ ttl: 3_600_000 })); // ttl is milliseconds
 
 // All requests now have logging, retry, and caching!
 const response = await bridge.chat({
@@ -70,15 +70,21 @@ bridge.use(
 ### Configuration
 
 ```typescript
-interface LoggingOptions {
-  level: 'debug' | 'info' | 'warn' | 'error';
-  logRequests?: boolean;        // Log outgoing requests (default: true)
-  logResponses?: boolean;       // Log incoming responses (default: true)
-  logErrors?: boolean;          // Log errors (default: true)
-  redactFields?: string[];      // Fields to redact (e.g., ['apiKey'])
-  includeTimestamps?: boolean;  // Add timestamps (default: true)
-  destination?: 'console' | 'file' | Logger; // Where to log
-  format?: 'text' | 'json';     // Output format
+interface LoggingConfig {
+  level?: 'debug' | 'info' | 'warn' | 'error'; // default: 'info'
+  logRequests?: boolean;   // Log request bodies (default: true)
+  logResponses?: boolean;  // Log response bodies (default: true)
+  logErrors?: boolean;     // Log errors (default: true)
+  sanitize?: boolean;      // Redact API keys and tokens (default: true)
+  logger?: Logger;         // Custom logger (default: console)
+  prefix?: string;         // Custom log prefix
+}
+
+interface Logger {
+  debug(message: string, data?: unknown): void;
+  info(message: string, data?: unknown): void;
+  warn(message: string, data?: unknown): void;
+  error(message: string, data?: unknown): void;
 }
 ```
 
@@ -102,44 +108,36 @@ bridge.use(
 
 #### Redact Sensitive Data
 
-```typescript
-bridge.use(
-  createLoggingMiddleware({
-    level: 'info',
-    redactFields: ['apiKey', 'authorization', 'api_key']
-  })
-);
-
-// API keys will be replaced with [REDACTED]
-```
-
-#### JSON Logging
+Redaction is a single on/off switch, not a field list. With `sanitize: true`
+(the default) API keys and tokens are replaced with `[REDACTED]`.
 
 ```typescript
 bridge.use(
   createLoggingMiddleware({
     level: 'info',
-    format: 'json'
+    sanitize: true
   })
 );
-
-// Output:
-// {"level":"info","timestamp":"2024-01-01T00:00:00.000Z","type":"request","model":"gpt-4"}
 ```
 
 #### Custom Logger
+
+There is no `format` or `destination` option - route output by supplying a
+`logger`. Anything with `debug`/`info`/`warn`/`error` methods works, so a
+JSON or file logger is a matter of which logger you pass.
 
 ```typescript
 import winston from 'winston';
 
 const logger = winston.createLogger({
+  format: winston.format.json(),
   transports: [new winston.transports.File({ filename: 'ai.log' })]
 });
 
 bridge.use(
   createLoggingMiddleware({
     level: 'info',
-    destination: logger
+    logger
   })
 );
 ```
@@ -155,7 +153,7 @@ import { createCachingMiddleware } from '@johnhenry/aimatey-middleware';
 
 bridge.use(
   createCachingMiddleware({
-    ttl: 3600 // Cache for 1 hour (in seconds)
+    ttl: 3_600_000 // Cache for 1 hour (ttl is in milliseconds)
   })
 );
 ```
@@ -163,13 +161,21 @@ bridge.use(
 ### Configuration
 
 ```typescript
-interface CachingOptions {
-  ttl: number;                  // Time to live in seconds
+interface CachingConfig {
+  ttl?: number;                 // Time to live in MILLISECONDS (default: 3600000)
   maxSize?: number;             // Max cached items (default: 1000)
-  storage?: 'memory' | 'redis' | 'file' | CacheStorage;
-  keyGenerator?: (request) => string; // Custom cache key
-  shouldCache?: (response) => boolean; // Should this response be cached?
-  connectionString?: string;    // For Redis
+  storage?: CacheStorage;       // Storage object (default: in-memory LRU)
+  keyGenerator?: (request: IRChatRequest) => string; // Custom cache key
+  scopeKey?: string | ((request: IRChatRequest) => string); // Tenant scoping
+  cacheStreaming?: boolean;     // Also cache streaming responses (default: false)
+}
+
+interface CacheStorage {
+  get(key: string): Promise<IRChatResponse | undefined>;
+  set(key: string, value: IRChatResponse, ttl?: number): Promise<void>;
+  has(key: string): Promise<boolean>;
+  delete(key: string): Promise<boolean>;
+  clear(): Promise<void>;
 }
 ```
 
@@ -180,9 +186,9 @@ interface CachingOptions {
 ```typescript
 bridge.use(
   createCachingMiddleware({
-    ttl: 3600,        // 1 hour
-    maxSize: 1000,    // Max 1000 items
-    storage: 'memory'
+    ttl: 3_600_000,   // 1 hour, in milliseconds
+    maxSize: 1000     // Max 1000 items
+    // storage defaults to an in-memory LRU store
   })
 );
 
@@ -201,12 +207,37 @@ const response2 = await bridge.chat({
 
 #### Redis Cache
 
+`storage` takes a `CacheStorage` object, so there is no built-in Redis backend
+and no `connectionString`. Implement the five methods against your own client:
+
 ```typescript
+import type { CacheStorage, IRChatResponse } from '@johnhenry/aimatey-types';
+
+function redisStorage(client): CacheStorage {
+  return {
+    async get(key) {
+      const raw = await client.get(key);
+      return raw ? (JSON.parse(raw) as IRChatResponse) : undefined;
+    },
+    async set(key, value, ttl) {
+      await client.set(key, JSON.stringify(value), { PX: ttl ?? 3_600_000 });
+    },
+    async has(key) {
+      return (await client.exists(key)) === 1;
+    },
+    async delete(key) {
+      return (await client.del(key)) > 0;
+    },
+    async clear() {
+      await client.flushDb();
+    }
+  };
+}
+
 bridge.use(
   createCachingMiddleware({
-    ttl: 3600,
-    storage: 'redis',
-    connectionString: 'redis://localhost:6379'
+    ttl: 3_600_000,
+    storage: redisStorage(redisClient)
   })
 );
 ```
@@ -216,26 +247,26 @@ bridge.use(
 ```typescript
 bridge.use(
   createCachingMiddleware({
-    ttl: 3600,
+    ttl: 3_600_000,
     keyGenerator: (request) => {
       // Only cache based on last message
       const lastMessage = request.messages[request.messages.length - 1];
-      return `chat:${lastMessage.content}`;
+      return `chat:${JSON.stringify(lastMessage.content)}`;
     }
   })
 );
 ```
 
-#### Conditional Caching
+#### Scoping the Cache per Tenant
+
+There is no `shouldCache` hook. To keep tenants from sharing cache entries, pass
+`scopeKey`:
 
 ```typescript
 bridge.use(
   createCachingMiddleware({
-    ttl: 3600,
-    shouldCache: (response) => {
-      // Only cache if response is successful and not too long
-      return response.usage?.total_tokens < 1000;
-    }
+    ttl: 3_600_000,
+    scopeKey: (request) => String(request.metadata.custom?.tenantId ?? 'default')
   })
 );
 ```
@@ -259,14 +290,14 @@ bridge.use(
 ### Configuration
 
 ```typescript
-interface RetryOptions {
-  maxAttempts: number;          // Max retry attempts (default: 3)
+interface RetryConfig {
+  maxAttempts?: number;         // Total attempts, first included (default: 3)
   initialDelay?: number;        // Initial delay in ms (default: 1000)
-  maxDelay?: number;            // Max delay in ms (default: 10000)
+  maxDelay?: number;            // Max delay in ms (default: 30000)
   backoffMultiplier?: number;   // Backoff multiplier (default: 2)
-  jitter?: boolean;             // Add randomness (default: true)
-  retryableErrors?: string[];   // Which errors to retry
-  shouldRetry?: (error) => boolean; // Custom retry logic
+  useJitter?: boolean;          // Add randomness (default: true)
+  shouldRetry?: (error: unknown, attempt: number) => boolean;
+  onRetry?: (error: unknown, attempt: number, delay: number) => void;
 }
 ```
 
@@ -293,16 +324,17 @@ bridge.use(
 
 #### Specific Errors Only
 
+There is no `retryableErrors` list - which errors retry is decided by
+`shouldRetry`. `createRetryPredicate` builds one from the shipped classifiers:
+
 ```typescript
+import { createRetryMiddleware, createRetryPredicate } from '@johnhenry/aimatey-middleware';
+
 bridge.use(
   createRetryMiddleware({
     maxAttempts: 3,
-    retryableErrors: [
-      'RATE_LIMIT_EXCEEDED',
-      'TIMEOUT',
-      'SERVICE_UNAVAILABLE'
-    ]
-    // Don't retry AUTH_ERROR, INVALID_REQUEST, etc.
+    shouldRetry: createRetryPredicate(['rate_limit', 'network', 'server'])
+    // Auth and validation errors are not retried
   })
 );
 ```
@@ -310,17 +342,24 @@ bridge.use(
 #### Custom Retry Logic
 
 ```typescript
+import { AdapterError, ErrorCode } from '@johnhenry/aimatey-errors';
+
 bridge.use(
   createRetryMiddleware({
     maxAttempts: 5,
     shouldRetry: (error, attempt) => {
+      if (!(error instanceof AdapterError)) return false;
+
       // Retry rate limits up to 5 times
-      if (error.code === 'RATE_LIMIT_EXCEEDED') {
+      if (error.code === ErrorCode.RATE_LIMIT_EXCEEDED) {
         return attempt < 5;
       }
 
       // Retry timeouts up to 2 times
-      if (error.code === 'TIMEOUT') {
+      if (
+        error.code === ErrorCode.CONNECTION_TIMEOUT ||
+        error.code === ErrorCode.PROVIDER_TIMEOUT
+      ) {
         return attempt < 2;
       }
 
@@ -337,11 +376,9 @@ bridge.use(
 bridge.use(
   createRetryMiddleware({
     maxAttempts: 3,
-    jitter: true // Adds ±25% randomness to prevent thundering herd
+    useJitter: true // Adds randomness to prevent thundering herd
   })
 );
-
-// Delays: 1s±250ms, 2s±500ms, 4s±1s
 ```
 
 ## Cost Tracking Middleware
@@ -355,7 +392,7 @@ import { createCostTrackingMiddleware } from '@johnhenry/aimatey-middleware';
 
 bridge.use(
   createCostTrackingMiddleware({
-    budgetLimit: 100 // Alert when cost exceeds $100
+    dailyThreshold: 100 // Alert once the day's spend passes $100
   })
 );
 ```
@@ -363,13 +400,24 @@ bridge.use(
 ### Configuration
 
 ```typescript
-interface CostTrackingOptions {
-  budgetLimit?: number;         // Budget limit in dollars
-  alertThreshold?: number;      // Alert at % of budget (default: 0.9)
-  resetInterval?: number;       // Reset period in ms (default: 86400000 = 1 day)
-  onBudgetExceeded?: () => void; // Callback when budget exceeded
-  onThresholdReached?: (used: number, limit: number) => void;
-  pricing?: Record<string, { input: number; output: number }>; // Custom pricing
+interface CostTrackingConfig {
+  storage?: CostStorage;                       // Where costs are recorded
+  providers?: Record<string, ProviderPricing>; // Per-provider pricing overrides
+  models?: ModelPricing[];                     // Per-model pricing overrides
+  requestThreshold?: number;                   // Per-request alert, USD
+  hourlyThreshold?: number;                    // Hourly alert, USD
+  dailyThreshold?: number;                     // Daily alert, USD
+  onCost?: (cost: CostCalculation) => void | Promise<void>;
+  onThresholdExceeded?: (cost: CostCalculation, threshold: number) => void | Promise<void>;
+  logCosts?: boolean;                          // Log each cost (default: false)
+  includeInMetadata?: boolean;                 // Attach cost to metadata (default: true)
+}
+
+interface ProviderPricing {
+  inputCostPer1M: number;   // USD per 1M input tokens
+  outputCostPer1M: number;  // USD per 1M output tokens
+  cachedInputCostPer1M?: number;
+  imageInputCostPer1M?: number;
 }
 ```
 
@@ -377,17 +425,18 @@ interface CostTrackingOptions {
 
 #### Budget Alerts
 
+Thresholds are absolute dollar amounts; a single `onThresholdExceeded` callback
+fires for whichever one was crossed.
+
 ```typescript
 bridge.use(
   createCostTrackingMiddleware({
-    budgetLimit: 100,       // $100 daily budget
-    alertThreshold: 0.9,    // Alert at 90%
-    onBudgetExceeded: () => {
-      console.error('⚠️  Daily budget exceeded!');
-      sendSlackAlert('Budget exceeded!');
-    },
-    onThresholdReached: (used, limit) => {
-      console.warn(`⚠️  ${used}/${limit} budget used (90%)`);
+    dailyThreshold: 100,   // $100 per day
+    hourlyThreshold: 10,   // $10 per hour
+    requestThreshold: 1,   // $1 for any single request
+    onThresholdExceeded: (cost, threshold) => {
+      console.error(`⚠️  Spend passed $${threshold}`);
+      sendSlackAlert(`Last request: $${cost.totalCost.toFixed(4)} on ${cost.model}`);
     }
   })
 );
@@ -395,13 +444,18 @@ bridge.use(
 
 #### Custom Pricing
 
+Pricing is quoted per million tokens. `models` matches a model id or RegExp;
+`providers` sets a per-provider default.
+
 ```typescript
 bridge.use(
   createCostTrackingMiddleware({
-    pricing: {
-      'gpt-4': { input: 0.03, output: 0.06 }, // per 1K tokens
-      'gpt-3.5-turbo': { input: 0.0005, output: 0.0015 },
-      'claude-3-5-sonnet-20241022': { input: 0.003, output: 0.015 }
+    models: [
+      { model: 'gpt-4', pricing: { inputCostPer1M: 30, outputCostPer1M: 60 } },
+      { model: /^claude-3-5-sonnet/, pricing: { inputCostPer1M: 3, outputCostPer1M: 15 } }
+    ],
+    providers: {
+      openai: { inputCostPer1M: 0.5, outputCostPer1M: 1.5 }
     }
   })
 );
@@ -409,16 +463,23 @@ bridge.use(
 
 #### Get Current Cost
 
-```typescript
-const costTracker = createCostTrackingMiddleware({
-  budgetLimit: 100
-});
+The factory returns a plain `Middleware`, so there is no `getCurrentCost()` or
+`getRemainingBudget()`. Read totals back from the storage with `getCostStats`:
 
-bridge.use(costTracker);
+```typescript
+import {
+  createCostTrackingMiddleware,
+  getCostStats,
+  InMemoryCostStorage
+} from '@johnhenry/aimatey-middleware';
+
+const storage = new InMemoryCostStorage();
+bridge.use(createCostTrackingMiddleware({ storage, dailyThreshold: 100 }));
 
 // Later
-console.log('Current cost:', costTracker.getCurrentCost());
-console.log('Remaining budget:', costTracker.getRemainingBudget());
+const stats = await getCostStats(storage, 24);
+console.log('Spent in last 24h:', stats.total);
+console.log('Remaining against a $100 budget:', 100 - stats.total);
 ```
 
 ## Transform Middleware
@@ -433,8 +494,8 @@ import { createTransformMiddleware } from '@johnhenry/aimatey-middleware';
 bridge.use(
   createTransformMiddleware({
     transformRequest: (request) => {
-      // Modify request before sending
-      return { ...request, temperature: 0.7 };
+      // Modify request before sending - sampling options live under `parameters`
+      return { ...request, parameters: { ...request.parameters, temperature: 0.7 } };
     }
   })
 );
@@ -443,9 +504,12 @@ bridge.use(
 ### Configuration
 
 ```typescript
-interface TransformOptions {
-  transformRequest?: (request: IRChatCompletionRequest) => IRChatCompletionRequest;
-  transformResponse?: (response: IRChatCompletionResponse) => IRChatCompletionResponse;
+interface TransformConfig {
+  transformRequest?: (request: IRChatRequest) => IRChatRequest | Promise<IRChatRequest>;
+  transformResponse?: (response: IRChatResponse) => IRChatResponse | Promise<IRChatResponse>;
+  transformMessages?: (
+    messages: readonly IRMessage[]
+  ) => readonly IRMessage[] | Promise<readonly IRMessage[]>;
 }
 ```
 
@@ -474,7 +538,7 @@ bridge.use(
   createTransformMiddleware({
     transformRequest: (request) => ({
       ...request,
-      temperature: 0.7 // Always use 0.7
+      parameters: { ...request.parameters, temperature: 0.7 } // Always use 0.7
     })
   })
 );
@@ -482,18 +546,20 @@ bridge.use(
 
 #### Transform Output
 
+An `IRChatResponse` carries a single `message` - there is no `choices` array.
+
 ```typescript
 bridge.use(
   createTransformMiddleware({
     transformResponse: (response) => ({
       ...response,
-      choices: response.choices.map(choice => ({
-        ...choice,
-        message: {
-          ...choice.message,
-          content: choice.message.content.toUpperCase()
-        }
-      }))
+      message: {
+        ...response.message,
+        content:
+          typeof response.message.content === 'string'
+            ? response.message.content.toUpperCase()
+            : response.message.content
+      }
     })
   })
 );
@@ -501,124 +567,63 @@ bridge.use(
 
 #### Add Metadata
 
+`metadata` is required and already carries `requestId` and `timestamp`, so merge
+into it rather than replacing it, and put your own fields under `custom`.
+
 ```typescript
 bridge.use(
   createTransformMiddleware({
     transformRequest: (request) => ({
       ...request,
       metadata: {
-        user_id: getCurrentUserId(),
-        timestamp: Date.now()
+        ...request.metadata,
+        custom: {
+          ...request.metadata.custom,
+          userId: getCurrentUserId()
+        }
       }
     })
   })
 );
 ```
 
-## Rate Limiting Middleware
+## Rate Limiting and Circuit Breaking
 
-Prevent API abuse with rate limiting.
+Neither is a middleware in this package.
 
-### Basic Usage
-
-```typescript
-import { createRateLimitMiddleware } from '@johnhenry/aimatey-middleware';
-
-bridge.use(
-  createRateLimitMiddleware({
-    maxRequests: 100,  // Max 100 requests
-    windowMs: 60000    // Per minute
-  })
-);
-```
-
-### Configuration
+- **Rate limiting** lives at the HTTP layer: use `RateLimiter` from
+  `@johnhenry/aimatey-http-core`, which limits inbound requests to your server.
+- **Circuit breaking** is a `Router` feature, not middleware. Enable it with
+  `enableCircuitBreaker`, `circuitBreakerThreshold` and `circuitBreakerTimeout`
+  in `RouterConfig`, and drive it manually with `router.openCircuitBreaker()`,
+  `closeCircuitBreaker()` and `resetCircuitBreaker()`.
 
 ```typescript
-interface RateLimitOptions {
-  maxRequests: number;          // Max requests per window
-  windowMs: number;             // Window size in milliseconds
-  strategy?: 'fixed' | 'sliding'; // Window strategy
-  onLimitReached?: () => void;  // Callback when limit reached
-}
+import { Router } from '@johnhenry/aimatey-core';
+
+const router = new Router({
+  enableCircuitBreaker: true,
+  circuitBreakerThreshold: 5,   // open after 5 consecutive failures
+  circuitBreakerTimeout: 60000, // try again after 1 minute
+  fallbackStrategy: 'sequential'
+});
 ```
-
-### Examples
-
-#### Fixed Window
-
-```typescript
-bridge.use(
-  createRateLimitMiddleware({
-    maxRequests: 100,
-    windowMs: 60000,     // 100 requests per minute
-    strategy: 'fixed',
-    onLimitReached: () => {
-      console.warn('Rate limit reached!');
-    }
-  })
-);
-```
-
-#### Sliding Window
-
-```typescript
-bridge.use(
-  createRateLimitMiddleware({
-    maxRequests: 100,
-    windowMs: 60000,
-    strategy: 'sliding' // More accurate
-  })
-);
-```
-
-## Circuit Breaker Middleware
-
-Stop making requests to failing services.
-
-### Basic Usage
-
-```typescript
-import { createCircuitBreakerMiddleware } from '@johnhenry/aimatey-middleware';
-
-bridge.use(
-  createCircuitBreakerMiddleware({
-    threshold: 5,     // Open after 5 failures
-    timeout: 60000    // Try again after 1 minute
-  })
-);
-```
-
-### Configuration
-
-```typescript
-interface CircuitBreakerOptions {
-  threshold: number;            // Failures before opening
-  timeout: number;              // Time before trying again (ms)
-  resetTimeout?: number;        // Time to fully reset (ms)
-}
-```
-
-### States
-
-- **Closed**: Normal operation, requests go through
-- **Open**: Service is failing, requests immediately fail
-- **Half-Open**: Testing if service recovered
 
 ## Middleware Composition
 
 ### Order Matters
 
-Middleware executes in reverse order (last added runs first):
+Middleware executes in registration order (first added runs first, as the
+outermost layer):
 
 ```typescript
-bridge.use(middleware1); // Runs 3rd
+bridge.use(middleware1); // Runs 1st
 bridge.use(middleware2); // Runs 2nd
-bridge.use(middleware3); // Runs 1st
+bridge.use(middleware3); // Runs 3rd
 
 // Request flow:
-// → middleware3 → middleware2 → middleware1 → Backend
-// ← middleware3 ← middleware2 ← middleware1 ← Backend
+// → middleware1 → middleware2 → middleware3 → Backend
+// ← middleware1 ← middleware2 ← middleware3 ← Backend
 ```
 
 ### Recommended Order
@@ -627,22 +632,19 @@ bridge.use(middleware3); // Runs 1st
 // 1. Logging (outermost - sees everything)
 bridge.use(createLoggingMiddleware({ level: 'info' }));
 
-// 2. Rate limiting (protect from abuse)
-bridge.use(createRateLimitMiddleware({ maxRequests: 100, windowMs: 60000 }));
+// 2. Validation (reject bad requests early)
+bridge.use(createValidationMiddleware({ maxMessages: 50 }));
 
-// 3. Circuit breaker (stop requests to failing services)
-bridge.use(createCircuitBreakerMiddleware({ threshold: 5, timeout: 60000 }));
-
-// 4. Retry (retry failed requests)
+// 3. Retry (retry failed requests)
 bridge.use(createRetryMiddleware({ maxAttempts: 3 }));
 
-// 5. Caching (cache successful responses)
-bridge.use(createCachingMiddleware({ ttl: 3600 }));
+// 4. Caching (cache successful responses)
+bridge.use(createCachingMiddleware({ ttl: 3_600_000 }));
 
-// 6. Cost tracking (monitor spending)
-bridge.use(createCostTrackingMiddleware({ budgetLimit: 100 }));
+// 5. Cost tracking (monitor spending)
+bridge.use(createCostTrackingMiddleware({ dailyThreshold: 100 }));
 
-// 7. Transform (modify requests/responses)
+// 6. Transform (modify requests/responses)
 bridge.use(createTransformMiddleware({ transformRequest: (req) => req }));
 ```
 
@@ -651,21 +653,20 @@ bridge.use(createTransformMiddleware({ transformRequest: (req) => req }));
 ### Basic Template
 
 ```typescript
-function createCustomMiddleware(options) {
-  return {
-    name: 'custom',
-    async execute(request, next) {
-      // Before request
-      console.log('Before request');
+import type { Middleware } from '@johnhenry/aimatey-types';
 
-      // Call next middleware/backend
-      const response = await next(request);
+function createCustomMiddleware(options): Middleware {
+  return async (context, next) => {
+    // Before request
+    console.log('Before request');
 
-      // After response
-      console.log('After response');
+    // Call next middleware/backend
+    const response = await next();
 
-      return response;
-    }
+    // After response
+    console.log('After response');
+
+    return response;
   };
 }
 
@@ -678,20 +679,21 @@ bridge.use(createCustomMiddleware());
 function createRequestCounter() {
   let count = 0;
 
+  const middleware: Middleware = async (context, next) => {
+    count++;
+    console.log(`Request #${count}`);
+    return next();
+  };
+
   return {
-    name: 'request-counter',
-    async execute(request, next) {
-      count++;
-      console.log(`Request #${count}`);
-      return next(request);
-    },
+    middleware,
     getCount: () => count,
     reset: () => { count = 0; }
   };
 }
 
 const counter = createRequestCounter();
-bridge.use(counter);
+bridge.use(counter.middleware);
 
 // Later
 console.log('Total requests:', counter.getCount());
@@ -700,34 +702,32 @@ console.log('Total requests:', counter.getCount());
 ### Async Operations
 
 ```typescript
-function createDatabaseLogger() {
-  return {
-    name: 'db-logger',
-    async execute(request, next) {
-      const start = Date.now();
+function createDatabaseLogger(): Middleware {
+  return async (context, next) => {
+    const start = Date.now();
+    const request = context.request;
 
-      try {
-        const response = await next(request);
+    try {
+      const response = await next();
 
-        // Log to database
-        await db.logs.insert({
-          request,
-          response,
-          duration: Date.now() - start,
-          status: 'success'
-        });
+      // Log to database
+      await db.logs.insert({
+        request,
+        response,
+        duration: Date.now() - start,
+        status: 'success'
+      });
 
-        return response;
-      } catch (error) {
-        await db.logs.insert({
-          request,
-          error: error.message,
-          duration: Date.now() - start,
-          status: 'error'
-        });
+      return response;
+    } catch (error) {
+      await db.logs.insert({
+        request,
+        error: error.message,
+        duration: Date.now() - start,
+        status: 'error'
+      });
 
-        throw error;
-      }
+      throw error;
     }
   };
 }
@@ -736,19 +736,16 @@ function createDatabaseLogger() {
 ### Conditional Logic
 
 ```typescript
-function createConditionalCache() {
-  return {
-    name: 'conditional-cache',
-    async execute(request, next) {
-      // Only cache short messages
-      const messageLength = JSON.stringify(request.messages).length;
+function createConditionalCache(): Middleware {
+  return async (context, next) => {
+    // Only cache short messages
+    const messageLength = JSON.stringify(context.request.messages).length;
 
-      if (messageLength < 500) {
-        return cacheMiddleware.execute(request, next);
-      }
-
-      return next(request);
+    if (messageLength < 500) {
+      return cacheMiddleware(context, next);
     }
+
+    return next();
   };
 }
 ```
@@ -760,55 +757,52 @@ Here's a complete production middleware stack:
 ```typescript
 import {
   createLoggingMiddleware,
-  createRateLimitMiddleware,
-  createCircuitBreakerMiddleware,
+  createValidationMiddleware,
   createRetryMiddleware,
   createCachingMiddleware,
-  createCostTrackingMiddleware
+  createCostTrackingMiddleware,
+  InMemoryCostStorage
 } from '@johnhenry/aimatey-middleware';
 
-function createProductionBridge(apiKey) {
+function createProductionBridge(apiKey, fileLogger) {
   const bridge = new Bridge(
     new OpenAIFrontendAdapter(),
     new AnthropicBackendAdapter({ apiKey })
   );
 
+  const costStorage = new InMemoryCostStorage();
+
   // Production middleware stack
   bridge.use(createLoggingMiddleware({
     level: process.env.LOG_LEVEL || 'info',
-    format: 'json',
-    destination: 'file',
-    redactFields: ['apiKey', 'authorization']
+    logger: fileLogger,
+    sanitize: true
   }));
 
-  bridge.use(createRateLimitMiddleware({
-    maxRequests: 1000,
-    windowMs: 60000,
-    strategy: 'sliding'
-  }));
-
-  bridge.use(createCircuitBreakerMiddleware({
-    threshold: 5,
-    timeout: 60000
+  bridge.use(createValidationMiddleware({
+    maxMessages: 100,
+    detectPII: true,
+    piiAction: 'redact',
+    throwOnError: true
   }));
 
   bridge.use(createRetryMiddleware({
     maxAttempts: 3,
     initialDelay: 1000,
     backoffMultiplier: 2,
-    jitter: true
+    useJitter: true
   }));
 
   bridge.use(createCachingMiddleware({
-    ttl: 3600,
-    storage: 'redis',
-    connectionString: process.env.REDIS_URL
+    ttl: 3_600_000,
+    storage: redisStorage(redisClient)
   }));
 
   bridge.use(createCostTrackingMiddleware({
-    budgetLimit: parseFloat(process.env.DAILY_BUDGET || '100'),
-    onBudgetExceeded: async () => {
-      await sendAlert('Budget exceeded!');
+    storage: costStorage,
+    dailyThreshold: parseFloat(process.env.DAILY_BUDGET || '100'),
+    onThresholdExceeded: async (_cost, threshold) => {
+      await sendAlert(`Spend passed $${threshold}`);
     }
   }));
 
@@ -816,13 +810,17 @@ function createProductionBridge(apiKey) {
 }
 ```
 
+Rate limiting sits in front of this, at the HTTP layer
+(`RateLimiter` from `@johnhenry/aimatey-http-core`); circuit breaking is
+configured on a `Router`.
+
 ## Best Practices
 
 1. **Order middleware correctly** - logging first, caching last
 2. **Redact sensitive data** - never log API keys
 3. **Set appropriate TTLs** - balance freshness vs cost
 4. **Monitor costs** - use cost tracking
-5. **Use circuit breakers** - prevent cascading failures
+5. **Use the router's circuit breaker** - prevent cascading failures
 6. **Add jitter to retries** - prevent thundering herd
 
 ## See Also

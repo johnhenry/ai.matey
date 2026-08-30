@@ -7,15 +7,15 @@ Complete API reference for the `Bridge` class - the core component for connectin
 
 ## Constructor
 
-### `new Bridge(frontendAdapter, backendAdapter, options?)`
+### `new Bridge(frontend, backend, config?)`
 
 Creates a new Bridge instance.
 
 **Parameters:**
 
-- `frontendAdapter: FrontendAdapter` - Adapter for parsing input format
-- `backendAdapter: BackendAdapter` - Adapter for executing requests with AI provider
-- `options?: BridgeOptions` - Optional configuration
+- `frontend: FrontendAdapter` - Adapter for parsing input format
+- `backend: BackendAdapter | Router` - Adapter (or router) that executes requests against an AI provider
+- `config?: Partial<BridgeConfig>` - Optional configuration (see [BridgeConfig](#bridgeconfig))
 
 **Returns:** `Bridge` instance
 
@@ -33,7 +33,7 @@ const bridge = new Bridge(
   }),
   {
     timeout: 30000,
-    retryCount: 3
+    retries: 3
   }
 );
 ```
@@ -52,9 +52,10 @@ Execute a chat completion request.
 **Returns:** `Promise<any>` - Response in frontend adapter format
 
 **Throws:**
-- `BackendError` - If backend request fails
+- `ProviderError` - If the provider API returns an error
+- `NetworkError` - If the network request fails
 - `ValidationError` - If request validation fails
-- `TimeoutError` - If request times out
+- `AdapterError` (`CONNECTION_TIMEOUT` / `PROVIDER_TIMEOUT`) - If the request times out
 - `AdapterError` (`ROUTING_FAILED`) - If `options.backend` names a backend that is not registered
 
 **Example:**
@@ -81,17 +82,19 @@ Execute a streaming chat completion request.
 - `request: any` - Request in frontend adapter format (with `stream: true`)
 - `options?: RequestOptions` - Per-request overrides (see [RequestOptions](#requestoptions))
 
-**Returns:** `AsyncIterable<any>` - Stream of chunks in frontend adapter format
+**Returns:** `AsyncGenerator<any>` - Stream of chunks in frontend adapter format. `chatStream()`
+is an async generator, so it returns the stream synchronously - do not `await` the call itself.
 
 **Throws:**
-- `BackendError` - If backend request fails
+- `ProviderError` - If the provider API returns an error
+- `StreamError` - If stream parsing fails
 - `ValidationError` - If request validation fails
 - `AdapterError` (`ROUTING_FAILED`) - If `options.backend` names a backend that is not registered
 
 **Example:**
 
 ```typescript
-const stream = await bridge.chatStream({
+const stream = bridge.chatStream({
   model: 'gpt-4',
   messages: [{ role: 'user', content: 'Count to 10' }],
   stream: true
@@ -115,7 +118,7 @@ Add middleware to the bridge.
 
 - `middleware: Middleware` - Middleware to add to the chain
 
-**Returns:** `this` (for chaining)
+**Returns:** `Bridge` (for chaining)
 
 **Example:**
 
@@ -124,99 +127,99 @@ import { createLoggingMiddleware, createCachingMiddleware } from '@johnhenry/aim
 
 bridge
   .use(createLoggingMiddleware({ level: 'info' }))
-  .use(createCachingMiddleware({ ttl: 3600 }));
+  .use(createCachingMiddleware({ ttl: 3_600_000 })); // ttl is milliseconds
 ```
 
 ---
 
-### `execute(irRequest)`
+### `executeIR(request, options?)`
 
-Execute a request using the IR format directly (bypassing frontend adapter).
+Execute a request using the IR format directly (bypassing the frontend adapter).
 
 **Parameters:**
 
-- `irRequest: IRChatCompletionRequest` - Request in IR format
+- `request: IRChatRequest` - Request in IR format
+- `options?: RequestOptions` - Per-request overrides (see [RequestOptions](#requestoptions))
 
-**Returns:** `Promise<IRChatCompletionResponse>` - Response in IR format
+**Returns:** `Promise<IRChatResponse>` - Response in IR format
 
 **Example:**
 
 ```typescript
-const irResponse = await bridge.execute({
-  model: 'claude-3-5-sonnet-20241022',
+const irResponse = await bridge.executeIR({
   messages: [{ role: 'user', content: 'Hello' }],
-  temperature: 0.7
+  parameters: {
+    model: 'claude-3-5-sonnet-20241022',
+    temperature: 0.7
+  },
+  metadata: {
+    requestId: 'req_1',
+    timestamp: Date.now()
+  }
 });
+
+console.log(irResponse.message.content);
 ```
 
 ---
 
-### `executeStream(irRequest)`
+### `executeIRStream(request, options?)`
 
-Execute a streaming request using IR format directly.
+Execute a streaming request using IR format directly. This is an async generator -
+it returns the stream synchronously, so the call itself is not awaited.
 
 **Parameters:**
 
-- `irRequest: IRChatCompletionRequest` - Request in IR format with streaming enabled
+- `request: IRChatRequest` - Request in IR format with streaming enabled
+- `options?: RequestOptions` - Per-request overrides (see [RequestOptions](#requestoptions))
 
-**Returns:** `AsyncIterable<IRChatCompletionChunk>` - Stream of IR chunks
+**Returns:** `IRChatStream` - `AsyncGenerator<IRStreamChunk>`
 
 **Example:**
 
 ```typescript
-const stream = await bridge.executeStream({
-  model: 'claude-3-5-sonnet-20241022',
+const stream = bridge.executeIRStream({
   messages: [{ role: 'user', content: 'Hello' }],
+  parameters: { model: 'claude-3-5-sonnet-20241022' },
+  metadata: { requestId: 'req_2', timestamp: Date.now() },
   stream: true
 });
 
 for await (const chunk of stream) {
-  console.log(chunk.delta?.content);
+  if (chunk.type === 'content') {
+    process.stdout.write(chunk.delta);
+  }
 }
 ```
 
 ---
 
-### `setBackend(backendAdapter)`
+### `clone(config)`
 
-Replace the backend adapter.
+`frontend` and `backend` are readonly - a bridge cannot be re-pointed at a
+different adapter after construction. To run the same request through another
+provider, build a second bridge; to change only configuration, `clone()` returns
+a new bridge with the same adapters and middleware and a merged config.
 
 **Parameters:**
 
-- `backendAdapter: BackendAdapter` - New backend adapter
+- `config: Partial<BridgeConfig>` - Configuration overrides
 
-**Returns:** `void`
+**Returns:** `Bridge` - A new bridge instance
 
 **Example:**
 
 ```typescript
 import { OpenAIBackendAdapter } from '@johnhenry/aimatey-backend/openai';
 
-// Switch from Anthropic to OpenAI
-bridge.setBackend(new OpenAIBackendAdapter({
-  apiKey: process.env.OPENAI_API_KEY
-}));
-```
+// Same adapters, longer timeout
+const patientBridge = bridge.clone({ timeout: 120000 });
 
----
-
-### `setFrontend(frontendAdapter)`
-
-Replace the frontend adapter.
-
-**Parameters:**
-
-- `frontendAdapter: FrontendAdapter` - New frontend adapter
-
-**Returns:** `void`
-
-**Example:**
-
-```typescript
-import { AnthropicFrontendAdapter } from '@johnhenry/aimatey-frontend/anthropic';
-
-// Switch input format to Anthropic
-bridge.setFrontend(new AnthropicFrontendAdapter());
+// A different backend means a new bridge
+const openaiBridge = new Bridge(
+  bridge.frontend,
+  new OpenAIBackendAdapter({ apiKey: process.env.OPENAI_API_KEY })
+);
 ```
 
 ---
@@ -227,33 +230,39 @@ Subscribe to bridge events.
 
 **Parameters:**
 
-- `event: BridgeEvent` - Event name
-- `handler: Function` - Event handler function
+- `event: BridgeEventType | '*'` - Event name, or `'*'` for every event
+- `handler: BridgeEventListener` - Event handler function
 
-**Returns:** `void`
+**Returns:** `Bridge` (for chaining). `off()` and `once()` have the same shape.
 
 **Events:**
 
-- `request` - Fired before request is sent
-- `response` - Fired after response is received
-- `error` - Fired when an error occurs
+`BridgeEventType` declares eleven event names (see [BridgeEventType](#bridgeeventtype)),
+but only these six are emitted by `Bridge` today:
+
+- `request:start` - Fired before a non-streaming request is sent
+- `request:success` - Fired after a successful non-streaming response
+- `request:error` - Fired when a non-streaming request fails
 - `stream:start` - Fired when streaming starts
-- `stream:chunk` - Fired for each stream chunk
-- `stream:end` - Fired when streaming ends
+- `stream:complete` - Fired when streaming finishes
+- `stream:error` - Fired when a stream fails
+
+The remaining names (`request:cancelled`, `stream:chunk`, `backend:selected`,
+`backend:failover`, `middleware:executed`) are reserved and never fire.
 
 **Example:**
 
 ```typescript
-bridge.on('request', (req) => {
-  console.log('Request:', req.messages);
+bridge.on('request:start', (event) => {
+  console.log('Request:', event.request.messages);
 });
 
-bridge.on('response', (res) => {
-  console.log('Response tokens:', res.usage?.total_tokens);
+bridge.on('request:success', (event) => {
+  console.log('Response tokens:', event.response?.usage?.totalTokens);
 });
 
-bridge.on('error', (err) => {
-  console.error('Error:', err.message);
+bridge.on('request:error', (event) => {
+  console.error('Error:', event.error?.message);
 });
 ```
 
@@ -261,61 +270,76 @@ bridge.on('error', (err) => {
 
 ## Properties
 
-### `frontendAdapter`
+### `frontend`
 
 **Type:** `FrontendAdapter`
 
 **Read-only**
 
-The current frontend adapter instance.
+The frontend adapter instance the bridge was constructed with.
 
 ---
 
-### `backendAdapter`
+### `backend`
 
-**Type:** `BackendAdapter`
+**Type:** `BackendAdapter | Router`
 
 **Read-only**
 
-The current backend adapter instance.
+The backend adapter (or router) the bridge was constructed with.
 
 ---
 
-### `middlewares`
+### `config`
 
-**Type:** `Middleware[]`
+**Type:** `BridgeConfig`
 
 **Read-only**
 
-Array of registered middleware in execution order.
+The resolved bridge configuration.
+
+---
+
+### `getMiddleware()` / `getStreamingMiddleware()`
+
+There is no `middlewares` property. The registered middleware is read back through
+methods instead:
+
+```typescript
+bridge.getMiddleware();          // readonly Middleware[]
+bridge.getStreamingMiddleware(); // readonly StreamingMiddleware[]
+```
 
 ---
 
 ## Types
 
-### `BridgeOptions`
+### `BridgeConfig`
 
-Configuration options for Bridge.
+Configuration options for Bridge, passed as the third constructor argument.
 
 ```typescript
-interface BridgeOptions {
-  /** Request timeout in milliseconds (default: 30000) */
+interface BridgeConfig {
+  /** Enable debug mode with detailed logging (default: false) */
+  debug?: boolean;
+
+  /** Global request timeout in milliseconds (default: 30000) */
   timeout?: number;
 
-  /** Number of retry attempts (default: 0) */
-  retryCount?: number;
+  /** Maximum retries for transient failures (default: 0) */
+  retries?: number;
 
-  /** Delay between retries in ms (default: 1000) */
-  retryDelay?: number;
+  /** Default model to use if the request does not specify one */
+  defaultModel?: string;
 
-  /** Enable request validation (default: true) */
-  validateRequest?: boolean;
+  /** Router configuration, when the backend is a Router */
+  routerConfig?: Partial<RouterConfig>;
 
-  /** Enable response validation (default: true) */
-  validateResponse?: boolean;
+  /** Add a request ID to metadata if not present (default: true) */
+  autoRequestId?: boolean;
 
-  /** Custom error handler */
-  onError?: (error: Error) => void;
+  /** Custom configuration options */
+  custom?: Record<string, unknown>;
 }
 ```
 
@@ -386,19 +410,28 @@ breaker is not an error - the router's normal fallback applies.
 
 ---
 
-### `BridgeEvent`
+### `BridgeEventType`
 
-Event types emitted by Bridge.
+The event names accepted by `on()` / `off()` / `once()`. (`BridgeEvent` is a
+different thing - the interface describing an event object.)
 
 ```typescript
-type BridgeEvent =
-  | 'request'
-  | 'response'
-  | 'error'
+type BridgeEventType =
+  | 'request:start'
+  | 'request:success'
+  | 'request:error'
+  | 'request:cancelled'
   | 'stream:start'
   | 'stream:chunk'
-  | 'stream:end';
+  | 'stream:complete'
+  | 'stream:error'
+  | 'backend:selected'
+  | 'backend:failover'
+  | 'middleware:executed';
 ```
+
+Only `request:start`, `request:success`, `request:error`, `stream:start`,
+`stream:complete` and `stream:error` are actually emitted.
 
 ---
 
@@ -406,47 +439,64 @@ type BridgeEvent =
 
 Bridge can throw the following errors:
 
-### `BackendError`
+Every error thrown by a bridge derives from `AdapterError`, which carries a
+machine-readable `code`, a `category`, and an `isRetryable` flag.
 
-Thrown when the backend adapter fails to execute a request.
+### `ProviderError`
+
+Thrown when the provider API returns an error response.
 
 ```typescript
+import { AdapterError, ProviderError } from '@johnhenry/aimatey-errors';
+
 try {
-  await bridge.chat({ ... });
+  await bridge.chat(request);
 } catch (error) {
-  if (error instanceof BackendError) {
-    console.log('Backend failed:', error.backend);
-    console.log('Status:', error.statusCode);
+  if (error instanceof ProviderError) {
+    console.log('Provider failed:', error.provenance.backend);
+    console.log('Code:', error.code);
     console.log('Message:', error.message);
+  } else if (error instanceof AdapterError) {
+    console.log('Adapter error:', error.code, error.category);
   }
 }
 ```
 
 ### `ValidationError`
 
-Thrown when request or response validation fails.
+Thrown when request validation fails. The per-field detail lives on
+`validationDetails`.
 
 ```typescript
+import { ValidationError } from '@johnhenry/aimatey-errors';
+
 try {
-  await bridge.chat({ model: null }); // Invalid request
+  await bridge.chat(invalidRequest);
 } catch (error) {
   if (error instanceof ValidationError) {
-    console.log('Validation failed:', error.errors);
+    console.log('Validation failed:', error.validationDetails);
   }
 }
 ```
 
-### `TimeoutError`
+### Timeouts
 
-Thrown when a request exceeds the timeout limit.
+There is no `TimeoutError` class. A timeout surfaces as an `AdapterError` whose
+code is `CONNECTION_TIMEOUT` (the network call timed out) or `PROVIDER_TIMEOUT`
+(the provider reported a timeout).
 
 ```typescript
+import { AdapterError, ErrorCode } from '@johnhenry/aimatey-errors';
+
 const bridge = new Bridge(frontend, backend, { timeout: 5000 });
 
 try {
-  await bridge.chat({ ... });
+  await bridge.chat(request);
 } catch (error) {
-  if (error instanceof TimeoutError) {
+  if (
+    error instanceof AdapterError &&
+    (error.code === ErrorCode.CONNECTION_TIMEOUT || error.code === ErrorCode.PROVIDER_TIMEOUT)
+  ) {
     console.log('Request timed out after 5s');
   }
 }
@@ -459,38 +509,47 @@ try {
 ### Custom Backend Adapter
 
 ```typescript
-import { BackendAdapter, IRChatCompletionRequest, IRChatCompletionResponse } from '@johnhenry/aimatey-types';
+import type {
+  BackendAdapter,
+  AdapterMetadata,
+  IRChatRequest,
+  IRChatResponse
+} from '@johnhenry/aimatey-types';
 
 class CustomBackend implements BackendAdapter {
-  name = 'custom';
+  readonly metadata: AdapterMetadata = {
+    name: 'custom',
+    version: '1.0.0',
+    provider: 'Custom',
+    capabilities: {
+      streaming: true,
+      multiModal: false,
+      systemMessageStrategy: 'in-messages',
+      supportsMultipleSystemMessages: true
+    }
+  };
 
-  async execute(request: IRChatCompletionRequest): Promise<IRChatCompletionResponse> {
-    // Custom implementation
+  fromIR(request: IRChatRequest): unknown {
+    return request;
+  }
+
+  toIR(_response: unknown, originalRequest: IRChatRequest): IRChatResponse {
     return {
-      id: 'custom-id',
-      model: request.model,
-      choices: [{
-        index: 0,
-        message: {
-          role: 'assistant',
-          content: 'Custom response'
-        },
-        finish_reason: 'stop'
-      }],
-      usage: { total_tokens: 10, prompt_tokens: 5, completion_tokens: 5 }
+      message: { role: 'assistant', content: 'Custom response' },
+      finishReason: 'stop',
+      usage: { promptTokens: 5, completionTokens: 5, totalTokens: 10 },
+      metadata: originalRequest.metadata
     };
   }
 
-  async *executeStream(request: IRChatCompletionRequest) {
-    yield {
-      id: 'custom-id',
-      model: request.model,
-      choices: [{
-        index: 0,
-        delta: { content: 'Custom' },
-        finish_reason: null
-      }]
-    };
+  async execute(request: IRChatRequest): Promise<IRChatResponse> {
+    return this.toIR(null, request);
+  }
+
+  async *executeStream(request: IRChatRequest) {
+    yield { type: 'start' as const, sequence: 0, metadata: request.metadata };
+    yield { type: 'content' as const, sequence: 1, delta: 'Custom' };
+    yield { type: 'done' as const, sequence: 2, finishReason: 'stop' as const };
   }
 }
 
@@ -518,8 +577,8 @@ const bridge = new Bridge(frontend, backend);
 bridge
   .use(createLoggingMiddleware({ level: 'info' }))
   .use(createRetryMiddleware({ maxAttempts: 3 }))
-  .use(createCachingMiddleware({ ttl: 3600 }))
-  .use(createCostTrackingMiddleware({ budgetLimit: 100 }));
+  .use(createCachingMiddleware({ ttl: 3_600_000 })) // ttl is milliseconds
+  .use(createCostTrackingMiddleware({ dailyThreshold: 100 }));
 ```
 
 ---

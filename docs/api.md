@@ -51,24 +51,32 @@ The `Bridge` connects a frontend adapter (input format) to a backend adapter (ex
 #### Constructor
 
 ```typescript
-new Bridge(frontend: FrontendAdapter, backend: BackendAdapter, config?: BridgeConfig)
+new Bridge(frontend: FrontendAdapter, backend: BackendAdapter, config?: Partial<BridgeConfig>)
 ```
 
 **Parameters:**
 - `frontend` - Frontend adapter that parses incoming requests
-- `backend` - Backend adapter that executes requests on a provider
+- `backend` - Backend adapter that executes requests on a provider (a `Router` is a
+  `BackendAdapter`, so it can be passed here)
 - `config` (optional) - Bridge configuration
 
 **Config Options:**
 ```typescript
 interface BridgeConfig {
-  middleware?: Middleware[];
-  streamingMiddleware?: StreamingMiddleware[];
-  streaming?: StreamingConfig;
-  defaultTimeout?: number;
-  maxRetries?: number;
+  readonly debug?: boolean;                        // default false
+  readonly timeout?: number;                       // ms, default 30000
+  readonly retries?: number;                       // default 0
+  readonly defaultModel?: string;
+  readonly routerConfig?: Partial<RouterConfig>;
+  readonly autoRequestId?: boolean;                // default true
+  readonly custom?: Record<string, unknown>;
 }
 ```
+
+> **Middleware is not configured here.** There is no `middleware` or
+> `streamingMiddleware` field on `BridgeConfig`; passing one is silently ignored
+> and you get a bridge with no middleware. Register middleware with
+> [`bridge.use()`](#usemiddleware) and [`bridge.useStreaming()`](#usestreamingmiddleware).
 
 #### Methods
 
@@ -107,21 +115,23 @@ const response = await bridge.chat({
 Execute a streaming chat completion request.
 
 ```typescript
-async chatStream(
+chatStream(
   request: FrontendRequest,
   options?: RequestOptions
-): Promise<AsyncIterable<FrontendStreamChunk>>
+): AsyncGenerator<FrontendStreamChunk, void, undefined>
 ```
 
 **Parameters:**
 - `request` - Request in frontend adapter's format
 - `options` (optional) - Request-specific options
 
-**Returns:** Async iterable of stream chunks in frontend adapter's format
+**Returns:** An async generator of stream chunks in the frontend adapter's format.
+This is an async generator method, not an `async` method - it returns the generator
+synchronously, so there is nothing to `await` before iterating.
 
 **Example:**
 ```typescript
-const stream = await bridge.chatStream({
+const stream = bridge.chatStream({
   model: 'gpt-4',
   messages: [{ role: 'user', content: 'Hello!' }],
   stream: true
@@ -143,33 +153,41 @@ getStats(): BridgeStats
 **Returns:**
 ```typescript
 interface BridgeStats {
-  totalRequests: number;
-  successfulRequests: number;
-  failedRequests: number;
-  averageLatency: number;
-  lastRequestTime?: number;
+  readonly totalRequests: number;
+  readonly successfulRequests: number;
+  readonly failedRequests: number;
+  readonly successRate: number;              // 0-100
+  readonly streamingRequests: number;
+  readonly averageLatencyMs: number;
+  readonly p50LatencyMs: number;
+  readonly p95LatencyMs: number;
+  readonly p99LatencyMs: number;
+  readonly backendUsage: Record<string, number>;
+  readonly errorBreakdown: Record<string, number>;
+  readonly sinceTimestamp: number;
 }
 ```
 
 ##### `on(event, listener)`
 
-Add event listener.
+Add event listener. Returns the bridge for chaining. Pass `'*'` to listen to every
+event.
 
 ```typescript
-on(event: BridgeEventType, listener: BridgeEventListener): void
+on(event: BridgeEventType | '*', listener: BridgeEventListener): Bridge
 ```
 
-**Event Types:**
+**Event Types currently emitted:**
 - `'request:start'` - Request started
-- `'request:end'` - Request completed
+- `'request:success'` - Request completed successfully
 - `'request:error'` - Request failed
 - `'stream:start'` - Stream started
-- `'stream:chunk'` - Stream chunk received
-- `'stream:end'` - Stream completed
+- `'stream:complete'` - Stream completed
 - `'stream:error'` - Stream failed
-- `'backend:switch'` - Backend switched (router only)
-- `'middleware:before'` - Before middleware execution
-- `'middleware:after'` - After middleware execution
+
+The `BridgeEventType` union also declares `'request:cancelled'`, `'stream:chunk'`,
+`'backend:selected'`, `'backend:failover'` and `'middleware:executed'`. Listeners
+registered for those are accepted but are never invoked - nothing emits them yet.
 
 **Example:**
 ```typescript
@@ -184,10 +202,10 @@ bridge.on('request:error', (event) => {
 
 ##### `off(event, listener)`
 
-Remove event listener.
+Remove event listener. Returns the bridge for chaining.
 
 ```typescript
-off(event: BridgeEventType, listener: BridgeEventListener): void
+off(event: BridgeEventType | '*', listener: BridgeEventListener): Bridge
 ```
 
 ##### `use(middleware, options?)`
@@ -204,7 +222,7 @@ use(middleware: Middleware, options?: { name?: string }): Bridge
 ```typescript
 bridge
   .use(createLoggingMiddleware({ level: 'info' }), { name: 'logging' })
-  .use(createRetryMiddleware({ maxRetries: 3 }), { name: 'retry' })
+  .use(createRetryMiddleware({ maxAttempts: 3 }), { name: 'retry' })
   .use(createCachingMiddleware({ ttl: 3600 }), { name: 'caching' });
 ```
 
@@ -344,77 +362,109 @@ const bridge = createBridge(
 
 ### Router
 
-The `Router` manages multiple backend adapters with routing, fallback, and parallel dispatch.
+The `Router` manages multiple backend adapters with routing, fallback, circuit
+breaking, and parallel dispatch.
+
+**A `Router` is a `BackendAdapter`, not a bridge.** It has no frontend adapter and
+no `chat()` / `chatStream()` methods; it speaks IR (`execute()` / `executeStream()`).
+Pass it to a `Bridge` as the backend and call `bridge.chat()`:
+
+```typescript
+const router = new Router({ routingStrategy: 'round-robin' });
+router.register('anthropic', new AnthropicBackendAdapter({ apiKey: 'sk-ant-...' }));
+router.register('openai', new OpenAIBackendAdapter({ apiKey: 'sk-...' }));
+
+const bridge = new Bridge(new OpenAIFrontendAdapter(), router);
+const response = await bridge.chat({ model: 'gpt-4', messages: [...] });
+```
 
 #### Constructor
 
 ```typescript
-new Router(frontend: FrontendAdapter, config: RouterConfig)
+new Router(config?: Partial<RouterConfig>)
 ```
 
 **Parameters:**
-- `frontend` - Frontend adapter
-- `config` - Router configuration
+- `config` (optional) - Router configuration. Backends are **not** passed here;
+  register them afterwards with `router.register(name, adapter)`.
 
 **Config Options:**
 ```typescript
 interface RouterConfig {
-  backends: BackendAdapter[];
-  strategy?: RoutingStrategy;
-  fallbackStrategy?: FallbackStrategy;
-  customRoute?: CustomRoutingFunction;
-  customFallback?: CustomFallbackFunction;
-  modelMappings?: ModelMapping[];
-  healthCheckInterval?: number;
-  middleware?: Middleware[];
-  streamingMiddleware?: StreamingMiddleware[];
+  readonly routingStrategy?: RoutingStrategy;        // default 'explicit'
+  readonly fallbackStrategy?: FallbackStrategy;      // default 'sequential'
+  readonly defaultBackend?: string;
+  readonly healthCheckInterval?: number;             // ms, 0 disables, default 0
+  readonly enableCircuitBreaker?: boolean;           // default false
+  readonly circuitBreakerThreshold?: number;         // default 5
+  readonly circuitBreakerTimeout?: number;           // ms, default 60000
+  readonly trackLatency?: boolean;                   // default true
+  readonly trackCost?: boolean;                      // default false
+  readonly capabilityBasedRouting?: boolean;         // default false
+  readonly optimization?: 'cost' | 'speed' | 'quality' | 'balanced';
+  readonly optimizationWeights?: { cost: number; speed: number; quality: number };
+  readonly capabilityCacheDuration?: number;         // ms, default 3600000
+  readonly customRouter?: CustomRoutingFunction;
+  readonly customFallback?: CustomFallbackFunction;
+  readonly modelTranslation?: ModelTranslationConfig;
+  readonly onWarning?: (warning: IRWarning) => void;
 }
 ```
 
-**Routing Strategies:**
+> Like `BridgeConfig`, `RouterConfig` has no `middleware` / `streamingMiddleware`
+> field. Middleware belongs to the bridge (`bridge.use()`).
+
+**Routing Strategies** (`routingStrategy`):
+- `'explicit'` - Use the backend named in the request (default)
+- `'model-based'` - Route based on model name
+- `'cost-optimized'` - Route to the least-cost backend
+- `'latency-optimized'` - Route to the fastest backend
 - `'round-robin'` - Cycle through backends
 - `'random'` - Random selection
-- `'priority'` - Use first available backend
-- `'model-based'` - Route based on model name
-- `'custom'` - Custom routing function
+- `'custom'` - Use `customRouter`
 
-**Fallback Strategies:**
-- `'none'` - No fallback, fail on error
-- `'next'` - Try next backend in list
-- `'all'` - Try all backends until success
-- `'custom'` - Custom fallback function
+**Fallback Strategies** (`fallbackStrategy`):
+- `'none'` - No fallback, fail immediately
+- `'sequential'` - Try backends in order until one succeeds (default)
+- `'parallel'` - Try all backends in parallel, return the first success
+- `'custom'` - Use `customFallback`
 
 #### Methods
 
-##### `chat(request, options?)`
+##### `register(name, adapter)` / `replace(name, adapter)` / `unregister(name)`
 
-Execute a chat completion request with routing.
+Manage the backend registry. All three return the router for chaining.
 
 ```typescript
-async chat(
-  request: FrontendRequest,
-  options?: RequestOptions
-): Promise<FrontendResponse>
+register(name: string, adapter: BackendAdapter): Router
+replace(name: string, adapter: BackendAdapter): Router
+unregister(name: string): Router
 ```
 
-##### `chatStream(request, options?)`
+##### `execute(request, signal?)`
 
-Execute a streaming chat completion request with routing.
+Execute an IR request with routing and fallback.
 
 ```typescript
-async chatStream(
-  request: FrontendRequest,
-  options?: RequestOptions
-): Promise<AsyncIterable<FrontendStreamChunk>>
+async execute(request: IRChatRequest, signal?: AbortSignal): Promise<IRChatResponse>
+```
+
+##### `executeStream(request, signal?)`
+
+Execute a streaming IR request with routing and fallback. Returns the stream
+synchronously (it is an async generator method).
+
+```typescript
+executeStream(request: IRChatRequest, signal?: AbortSignal): IRChatStream
 ```
 
 ##### `dispatchParallel(request, options?)`
 
-Dispatch request to multiple backends in parallel.
+Dispatch a request to multiple backends in parallel.
 
 ```typescript
 async dispatchParallel(
-  request: FrontendRequest,
+  request: IRChatRequest,
   options?: ParallelDispatchOptions
 ): Promise<ParallelDispatchResult>
 ```
@@ -422,19 +472,28 @@ async dispatchParallel(
 **Options:**
 ```typescript
 interface ParallelDispatchOptions {
-  backends?: string[];  // Backend IDs to use
-  timeout?: number;
-  aggregate?: 'first' | 'all' | 'fastest';
+  readonly backends?: readonly string[];   // backend names to dispatch to
+  readonly strategy?: ParallelStrategy;    // default 'first'
+  readonly timeout?: number;
+  readonly cancelOnFirstSuccess?: boolean; // default true
+  readonly customAggregator?: (
+    responses: Array<{ backend: string; response: IRChatResponse; latencyMs: number }>
+  ) => IRChatResponse;
 }
 ```
 
 **Returns:**
 ```typescript
 interface ParallelDispatchResult {
-  responses: Map<string, FrontendResponse>;
-  errors: Map<string, Error>;
-  fastest?: string;  // Backend ID of fastest response
-  timing: Map<string, number>;
+  readonly response: IRChatResponse;
+  readonly allResponses?: Array<{
+    readonly backend: string;
+    readonly response: IRChatResponse;
+    readonly latencyMs: number;
+  }>;
+  readonly successfulBackends: readonly string[];
+  readonly failedBackends: Array<{ readonly backend: string; readonly error: AdapterError }>;
+  readonly totalTimeMs: number;
 }
 ```
 
@@ -449,45 +508,52 @@ getStats(): RouterStats
 **Returns:**
 ```typescript
 interface RouterStats {
-  totalRequests: number;
-  backendStats: Map<string, BackendStats>;
-  routingDecisions: Map<string, number>;
-  fallbackCount: number;
+  readonly totalRequests: number;
+  readonly successfulRequests: number;
+  readonly failedRequests: number;
+  readonly totalFallbacks: number;
+  readonly parallelRequests: number;
+  readonly backendStats: Record<string, BackendStats>;
+  readonly sinceTimestamp: number;
 }
 ```
 
-##### `getBackendHealth(backendId?)`
+##### `checkHealth(name?)` / `getBackendInfo(name?)`
 
-Get backend health status.
+Inspect backend health. `checkHealth()` actively probes; `getBackendInfo()` reports
+the last known state, including circuit-breaker status.
 
 ```typescript
-getBackendHealth(backendId?: string): BackendInfo | Map<string, BackendInfo>
+checkHealth(): Promise<Record<string, boolean>>
+checkHealth(name: string): Promise<boolean>
+
+getBackendInfo(): BackendInfo[]
+getBackendInfo(name: string): BackendInfo | undefined
 ```
 
 #### Factory Function
 
 ```typescript
-createRouter(frontend: FrontendAdapter, config: RouterConfig): Router
+createRouter(config?: Partial<RouterConfig>): Router
 ```
 
 **Example:**
 ```typescript
-import { createRouter } from '@johnhenry/aimatey-core';
+import { Bridge, createRouter } from '@johnhenry/aimatey-core';
 import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend/openai';
 import { AnthropicBackendAdapter } from '@johnhenry/aimatey-backend/anthropic';
 import { OpenAIBackendAdapter } from '@johnhenry/aimatey-backend/openai';
 
-const router = createRouter(
-  new OpenAIFrontendAdapter(),
-  {
-    backends: [
-      new AnthropicBackendAdapter({ apiKey: 'sk-ant-...' }),
-      new OpenAIBackendAdapter({ apiKey: 'sk-...' })
-    ],
-    strategy: 'round-robin',
-    fallbackStrategy: 'next'
-  }
-);
+const router = createRouter({
+  routingStrategy: 'round-robin',
+  fallbackStrategy: 'sequential',
+});
+
+router
+  .register('anthropic', new AnthropicBackendAdapter({ apiKey: 'sk-ant-...' }))
+  .register('openai', new OpenAIBackendAdapter({ apiKey: 'sk-...' }));
+
+const bridge = new Bridge(new OpenAIFrontendAdapter(), router);
 ```
 
 ---
@@ -502,17 +568,13 @@ streaming path only. Registration order is preserved across the two.
 
 #### Methods
 
-##### `use(middleware, options?)` / `useStreaming(middleware, options?)`
+##### `use(middleware)` / `useStreaming(middleware)`
 
-Register middleware. `options.name` is what the middleware is called when it
-fails; without it the name is taken from the function's own `.name`, and
-failing that from its registration position (`middleware[3]`). The position is
-the index across *both* `use()` and `useStreaming()`, so the same middleware is
-named the same way on the streaming and the non-streaming path.
+Register middleware.
 
 ```typescript
-use(middleware: Middleware, options?: { name?: string }): void
-useStreaming(middleware: StreamingMiddleware, options?: { name?: string }): void
+use(middleware: Middleware): void
+useStreaming(middleware: StreamingMiddleware): void
 ```
 
 ##### `remove(middleware)` / `removeStreaming(middleware)`
@@ -526,9 +588,7 @@ removeStreaming(middleware: StreamingMiddleware): boolean
 
 ##### `execute(context, finalHandler)`
 
-Execute the non-streaming middleware chain. Only a failure a middleware raised
-itself and left unclassified is wrapped in a `MiddlewareError`; an
-`AdapterError`, and anything `finalHandler` raised, propagates untouched.
+Execute the non-streaming middleware chain.
 
 ```typescript
 async execute(
@@ -722,10 +782,8 @@ const adapter = new OpenAIBackendAdapter({
 
 **Native Backends (Node.js only):**
 ```typescript
-import {
-  NodeLlamaCppBackend,
-  AppleBackend,
-} from '@johnhenry/aimatey-native-node-llamacpp';
+import { NodeLlamaCppBackend } from '@johnhenry/aimatey-native-node-llamacpp';
+import { AppleBackend } from '@johnhenry/aimatey-native-apple';
 ```
 
 ---
@@ -735,7 +793,7 @@ import {
 ### Logging Middleware
 
 ```typescript
-import { createLoggingMiddleware } from '@johnhenry/aimatey';
+import { createLoggingMiddleware } from '@johnhenry/aimatey-middleware';
 
 const middleware = createLoggingMiddleware({
   level?: 'debug' | 'info' | 'warn' | 'error',
@@ -768,7 +826,7 @@ bridge.use(loggingMiddleware);
 ### Telemetry Middleware
 
 ```typescript
-import { createTelemetryMiddleware, ConsoleTelemetrySink, InMemoryTelemetrySink } from '@johnhenry/aimatey';
+import { createTelemetryMiddleware, ConsoleTelemetrySink, InMemoryTelemetrySink } from '@johnhenry/aimatey-middleware';
 
 const middleware = createTelemetryMiddleware({
   sink?: TelemetrySink,
@@ -801,7 +859,7 @@ bridge.use(telemetry);
 ### Caching Middleware
 
 ```typescript
-import { createCachingMiddleware, InMemoryCacheStorage } from '@johnhenry/aimatey';
+import { createCachingMiddleware, InMemoryCacheStorage } from '@johnhenry/aimatey-middleware';
 
 const middleware = createCachingMiddleware({
   storage?: CacheStorage,
@@ -840,29 +898,32 @@ bridge.use(caching);
 ### Retry Middleware
 
 ```typescript
-import { createRetryMiddleware } from '@johnhenry/aimatey';
+import { createRetryMiddleware } from '@johnhenry/aimatey-middleware';
 
 const middleware = createRetryMiddleware({
-  maxRetries?: number,
+  maxAttempts?: number,
   initialDelay?: number,
   maxDelay?: number,
   backoffMultiplier?: number,
-  shouldRetry?: (error: Error, attempt: number) => boolean,
-  onRetry?: (error: Error, attempt: number) => void
+  useJitter?: boolean,
+  shouldRetry?: (error: unknown, attempt: number) => boolean,
+  onRetry?: (error: unknown, attempt: number, delay: number) => void
 });
 ```
 
 **Options:**
-- `maxRetries` - Maximum retry attempts (default: `3`)
+- `maxAttempts` - Maximum retry attempts (default: `3`). Note the name: there is no
+  `maxRetries` option on this middleware.
 - `initialDelay` - Initial delay in ms (default: `1000`)
 - `maxDelay` - Maximum delay in ms (default: `30000`)
 - `backoffMultiplier` - Exponential backoff multiplier (default: `2`)
-- `shouldRetry` - Custom retry predicate
-- `onRetry` - Callback on retry
+- `useJitter` - Add jitter to retry delays (default: `true`)
+- `shouldRetry` - Custom retry predicate (default: retry when `error.isRetryable`)
+- `onRetry` - Callback invoked before each retry
 
 **Built-in Predicates:**
 ```typescript
-import { isRateLimitError, isNetworkError, isServerError, createRetryPredicate } from '@johnhenry/aimatey';
+import { isRateLimitError, isNetworkError, isServerError, createRetryPredicate } from '@johnhenry/aimatey-middleware';
 
 const shouldRetry = createRetryPredicate([
   isRateLimitError,
@@ -874,7 +935,7 @@ const shouldRetry = createRetryPredicate([
 **Example:**
 ```typescript
 const retry = createRetryMiddleware({
-  maxRetries: 3,
+  maxAttempts: 3,
   shouldRetry: (error) => isRateLimitError(error) || isNetworkError(error)
 });
 
@@ -884,7 +945,7 @@ bridge.use(retry);
 ### Transform Middleware
 
 ```typescript
-import { createTransformMiddleware } from '@johnhenry/aimatey';
+import { createTransformMiddleware } from '@johnhenry/aimatey-middleware';
 
 const middleware = createTransformMiddleware({
   transformRequest?: RequestTransformer,
@@ -911,7 +972,7 @@ import {
   createContentSanitizer,
   composeRequestTransformers,
   composeResponseTransformers
-} from '@johnhenry/aimatey';
+} from '@johnhenry/aimatey-middleware';
 ```
 
 **Example:**
@@ -931,25 +992,14 @@ bridge.use(transform);
 
 ### Security Middleware
 
-Protects the outgoing request, and computes an HTTP response header policy for
-a host application to apply.
-
 ```typescript
-import { createSecurityMiddleware, createProductionSecurityMiddleware } from '@johnhenry/aimatey';
+import { createSecurityMiddleware, createProductionSecurityMiddleware } from '@johnhenry/aimatey-middleware';
 
-// Safe by default: sanitizes content, redacts PII, warns on prompt injection.
-bridge.use(createSecurityMiddleware());
-
-// Production preset - same, but blocks prompt-injection attempts.
+// Production preset
 bridge.use(createProductionSecurityMiddleware());
 
 // Custom configuration
 bridge.use(createSecurityMiddleware({
-  redactPII: true,                     // default
-  piiPatterns: { badge: /\bBADGE-\d{4}\b/g },
-  promptInjectionAction: 'block',      // 'warn' (default) | 'log' | 'block' | 'ignore'
-  sanitizeContent: true,               // default
-  // HTTP response header policy (advisory - see below)
   contentSecurityPolicy: "default-src 'self'",
   frameOptions: 'DENY',
   hsts: 'max-age=31536000; includeSubDomains',
@@ -1011,7 +1061,7 @@ want both rule sets.
 ### Cost Tracking Middleware
 
 ```typescript
-import { createCostTrackingMiddleware, getCostStats, InMemoryCostStorage } from '@johnhenry/aimatey';
+import { createCostTrackingMiddleware, getCostStats, InMemoryCostStorage } from '@johnhenry/aimatey-middleware';
 
 const storage = new InMemoryCostStorage();
 
@@ -1037,7 +1087,7 @@ console.log(stats); // { total, byProvider, byModel }
 ### Validation Middleware
 
 ```typescript
-import { createValidationMiddleware } from '@johnhenry/aimatey';
+import { createValidationMiddleware } from '@johnhenry/aimatey-middleware';
 
 bridge.use(createValidationMiddleware({
   // PII Detection & Redaction
@@ -1051,7 +1101,6 @@ bridge.use(createValidationMiddleware({
 
   // Prompt Injection Prevention
   preventPromptInjection: true,
-  injectionAction: 'block', // 'block' (default) | 'warn' | 'log' | 'ignore'
 
   // Token Limits
   maxMessages: 100,
@@ -1133,7 +1182,8 @@ interface GenerateObjectResult<T> {
 ```typescript
 import { z } from 'zod';
 import { Bridge } from '@johnhenry/aimatey-core';
-import { AnthropicFrontendAdapter, AnthropicBackendAdapter } from '@johnhenry/aimatey';
+import { AnthropicFrontendAdapter } from '@johnhenry/aimatey-frontend/anthropic';
+import { AnthropicBackendAdapter } from '@johnhenry/aimatey-backend/anthropic';
 
 const bridge = new Bridge(
   new AnthropicFrontendAdapter(),
@@ -1276,24 +1326,6 @@ function schemaToToolDefinition(
   description?: string
 ): ToolDefinition
 ```
-
-Objects, strings, numbers, booleans, arrays, enums, unions and discriminated unions
-(`anyOf`), intersections (`allOf`), records, dates (`string`/`date-time`), literals
-(single-member `enum`), tuples, sets, maps, `null`, `any`/`unknown` and the
-`optional`/`nullable`/`default`/`catch`/`readonly`/`lazy`/`transform` modifiers are all
-converted, at any nesting depth. `.optional()` (and `.nullish()`/`.default()`/`.catch()`)
-drops the key from `required`; `.nullable()` does **not** — the key must still be present,
-it is the value that may be `null`.
-
-Anything with no JSON Schema representation (`z.bigint()`, `z.symbol()`, `z.custom()`, ...)
-becomes `{}` — "any value" — and is reported on `ToolDefinition.warnings` as an `IRWarning`
-with `category: 'content-type-unsupported'`, naming the type and the field path. `z.date()`,
-`z.set()` and `z.map()` are converted *and* warned about, because Zod rejects the JSON that
-comes back (use `z.coerce.date()` for dates). `warnings` is absent when nothing was lost.
-
-`generateObject`/`streamObject` additionally put those warnings on
-`IRChatRequest.metadata.warnings`, and append them to a `Validation failed: ...` error, so a
-lossy schema conversion is never silent.
 
 **Example:**
 ```typescript
@@ -1462,12 +1494,12 @@ ai.matey provides HTTP server integration for multiple frameworks, allowing you 
 
 | Framework | Import Path | Best For |
 |-----------|-------------|----------|
-| Node.js | `@johnhenry/aimatey/http/node` | Microservices, minimal deps |
-| Express | `@johnhenry/aimatey/http/express` | Traditional web apps, REST APIs |
-| Fastify | `@johnhenry/aimatey/http/fastify` | High-performance production APIs |
-| Koa | `@johnhenry/aimatey/http/koa` | Modern middleware architecture |
-| Hono | `@johnhenry/aimatey/http/hono` | Edge computing, serverless |
-| Deno | `@johnhenry/aimatey/http/deno` | Deno runtime |
+| Node.js | `@johnhenry/aimatey-http/node` | Microservices, minimal deps |
+| Express | `@johnhenry/aimatey-http/express` | Traditional web apps, REST APIs |
+| Fastify | `@johnhenry/aimatey-http/fastify` | High-performance production APIs |
+| Koa | `@johnhenry/aimatey-http/koa` | Modern middleware architecture |
+| Hono | `@johnhenry/aimatey-http/hono` | Edge computing, serverless |
+| Deno | `@johnhenry/aimatey-http/deno` | Deno runtime |
 
 ### HTTP Configuration
 
@@ -1496,10 +1528,12 @@ interface CORSOptions {
 }
 
 interface RateLimitOptions {
-  windowMs?: number;
-  maxRequests?: number;
+  max: number;                          // required
+  windowMs?: number;                    // default 60000
   keyGenerator?: RateLimitKeyGenerator;
   handler?: RateLimitHandler;
+  skip?: (req: IncomingMessage) => boolean | Promise<boolean>;
+  headers?: boolean;
 }
 ```
 
@@ -1510,7 +1544,9 @@ interface RateLimitOptions {
 ```typescript
 import { createServer } from 'http';
 import { NodeHTTPListener } from '@johnhenry/aimatey-http';
-import { Bridge, OpenAIFrontendAdapter, AnthropicBackendAdapter } from '@johnhenry/aimatey';
+import { Bridge } from '@johnhenry/aimatey-core';
+import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend/openai';
+import { AnthropicBackendAdapter } from '@johnhenry/aimatey-backend/anthropic';
 
 const bridge = new Bridge(
   new OpenAIFrontendAdapter(),
@@ -1521,8 +1557,8 @@ const listener = NodeHTTPListener(bridge, {
   cors: true,
   streaming: true,
   rateLimit: {
+    max: 100,
     windowMs: 60000,
-    maxRequests: 100,
   },
 });
 
@@ -1878,7 +1914,7 @@ import {
   StreamError,
   RouterError,
   MiddlewareError
-} from '@johnhenry/aimatey';
+} from '@johnhenry/aimatey-errors';
 ```
 
 **Error Hierarchy:**
@@ -1898,40 +1934,23 @@ AdapterError (base)
 
 **Error Properties:**
 ```typescript
-interface AdapterError extends Error {
-  code: ErrorCode;
-  category: ErrorCategory;
-  statusCode?: number;
-  provenance?: ErrorProvenance;
-  retryable?: boolean;
-  details?: any;
+class AdapterError extends Error {
+  readonly code: ErrorCode;
+  readonly category: ErrorCategory;
+  readonly isRetryable: boolean;
+  readonly provenance: ErrorProvenance;
+  readonly cause?: Error;
+  readonly irState?: {
+    readonly request?: Partial<IRChatRequest>;
+    readonly response?: Partial<IRChatResponse>;
+  };
+  readonly details?: Record<string, unknown>;
+  readonly timestamp: number;
+
+  isCategory(category: ErrorCategory): boolean;
+  toJSON(): Record<string, unknown>;
 }
 ```
-
-**Retryability is derived, never asserted.** An error that composes or wraps
-other failures reports what those failures were:
-
-- `RouterError` with `ALL_BACKENDS_FAILED` is retryable only when at least one
-  attempted backend failed retryably, read from the `backendErrors` it carries.
-  A router whose every backend rejected the API key is *not* retryable - the
-  keys are still wrong on the second attempt. With no `backendErrors` there is
-  no evidence either way, and the answer is non-retryable.
-- `MiddlewareError` reports the retryability of its `cause`.
-
-**An unclassified error is not retried.** Both retry implementations -
-`Bridge`'s `config.retries` loop and `createRetryMiddleware`'s
-`defaultShouldRetry` - retry only an error that says `isRetryable: true`. A
-plain `Error` or a thrown non-`Error` is as likely a bug in your own adapter or
-middleware as a transient fault, and retrying re-runs every middleware side
-effect for something that cannot succeed. A backend that wants its failures
-retried should raise a classified `AdapterError`; the HTTP backends in this
-package already wrap `fetch` failures as `NetworkError`.
-
-**HTTP status mapping.** `401`/`403` (auth), `400` (validation) and `429`
-(rate limit) map to their own classes; `5xx` is a retryable `ProviderError`.
-Of the remaining statuses only `408 Request Timeout` and `425 Too Early` are
-retryable - both canonically mean "try again". `404`, `409` and `422` are not:
-an identical retry reproduces them.
 
 ---
 
@@ -1948,7 +1967,7 @@ import {
   validateTopP,
   validateParameters,
   validateIRChatRequest
-} from '@johnhenry/aimatey';
+} from '@johnhenry/aimatey-utils';
 
 // Throws ValidationError if invalid
 validateIRChatRequest(request);
@@ -1963,7 +1982,7 @@ import {
   normalizeSystemMessages,
   addSystemMessage,
   hasSystemMessages
-} from '@johnhenry/aimatey';
+} from '@johnhenry/aimatey-utils';
 
 const messages = [
   { role: 'system', content: [{ type: 'text', text: 'You are helpful.' }] },
@@ -1984,7 +2003,7 @@ import {
   normalizePenalty,
   normalizeStopSequences,
   sanitizeParameters
-} from '@johnhenry/aimatey';
+} from '@johnhenry/aimatey-utils';
 
 const params = sanitizeParameters({
   temperature: 0.7,
@@ -2006,7 +2025,7 @@ import {
   filterStream,
   mapStream,
   collectStream
-} from '@johnhenry/aimatey';
+} from '@johnhenry/aimatey-utils';
 
 // Accumulate stream into response
 const accumulator = createStreamAccumulator();
@@ -2035,7 +2054,7 @@ import {
   parseRequest,
   extractBearerToken,
   getClientIP
-} from '@johnhenry/aimatey-http';
+} from '@johnhenry/aimatey-http-core';
 
 const parsed = await parseRequest(req);
 const token = extractBearerToken(req);
@@ -2050,7 +2069,7 @@ import {
   sendError,
   sendSSEChunk,
   sendText
-} from '@johnhenry/aimatey-http';
+} from '@johnhenry/aimatey-http-core';
 
 sendJSON(res, { data: 'value' }, 200);
 sendError(res, new Error('Failed'), 500);
@@ -2065,7 +2084,7 @@ import {
   createAPIKeyValidator,
   createBasicAuthValidator,
   combineAuthValidators
-} from '@johnhenry/aimatey-http';
+} from '@johnhenry/aimatey-http-core';
 
 const authValidator = combineAuthValidators([
   createBearerTokenValidator(['token1', 'token2']),
@@ -2081,11 +2100,11 @@ import {
   userIDKeyGenerator,
   tokenKeyGenerator,
   combineKeyGenerators
-} from '@johnhenry/aimatey-http';
+} from '@johnhenry/aimatey-http-core';
 
 const limiter = new RateLimiter({
-  windowMs: 60000,
-  maxRequests: 100
+  max: 100,
+  windowMs: 60000
 });
 
 const keyGen = combineKeyGenerators([
@@ -2098,409 +2117,79 @@ const keyGen = combineKeyGenerators([
 
 ## Complete Export Reference
 
-### Main Package Exports
+### Packages and subpaths
 
-Import from the main package:
+There is no "everything" entry point. `@johnhenry/aimatey` is an umbrella
+placeholder that exports only `VERSION` - import from the specific package
+instead. Every published package is scoped under `@johnhenry/`; the old unscoped
+`ai.matey.*` names were retired when the packages were renamed.
 
-```typescript
-import { Bridge, createBridge, OpenAIBackendAdapter } from '@johnhenry/aimatey';
-```
+| Package | Subpaths |
+|---------|----------|
+| `@johnhenry/aimatey` | `.` (only `VERSION`) |
+| `@johnhenry/aimatey-core` | `.` |
+| `@johnhenry/aimatey-types` | `.` |
+| `@johnhenry/aimatey-errors` | `.` |
+| `@johnhenry/aimatey-utils` | `.` |
+| `@johnhenry/aimatey-testing` | `.` |
+| `@johnhenry/aimatey-frontend` | `.`, `/openai`, `/anthropic`, `/gemini`, `/generic`, `/mistral`, `/ollama`, `/chrome-ai` |
+| `@johnhenry/aimatey-backend` | `.`, `/openai`, `/anthropic`, `/gemini`, `/mistral`, `/cohere`, `/groq`, `/ollama`, `/ai21`, `/anyscale`, `/aws-bedrock`, `/azure-openai`, `/cerebras`, `/cloudflare`, `/deepinfra`, `/deepseek`, `/fireworks`, `/huggingface`, `/lmstudio`, `/nvidia`, `/openrouter`, `/perplexity`, `/replicate`, `/together-ai`, `/xai`, `/inception`, `/moonshot`, `/sambanova`, `/github-models`, `/dashscope`, `/omniroute`, `/shared` |
+| `@johnhenry/aimatey-backend-browser` | `.`, `/chrome-ai`, `/function`, `/mock` |
+| `@johnhenry/aimatey-middleware` | `.`, `/caching`, `/retry`, `/logging`, `/security`, `/validation`, `/conversation-history`, `/cost-tracking`, `/opentelemetry`, `/telemetry`, `/transform`, `/embeddings` |
+| `@johnhenry/aimatey-patterns` | `.` |
+| `@johnhenry/aimatey-mcp` | `.` |
+| `@johnhenry/aimatey-http` | `.`, `/express`, `/fastify`, `/hono`, `/koa`, `/node`, `/deno`, `/websocket` |
+| `@johnhenry/aimatey-http-core` | `.` |
+| `@johnhenry/aimatey-wrapper` | `.`, `/openai`, `/anthropic`, `/ir`, `/chrome-ai`, `/chat`, `/anymethod` |
+| `@johnhenry/aimatey-react-core` | `.` |
+| `@johnhenry/aimatey-react-hooks` | `.` |
+| `@johnhenry/aimatey-react-stream` | `.` |
+| `@johnhenry/aimatey-react-nextjs` | `.`, `/server` |
+| `@johnhenry/aimatey-native-apple` | `.` |
+| `@johnhenry/aimatey-native-node-llamacpp` | `.` |
+| `@johnhenry/aimatey-native-model-runner` | `.` |
+| `@johnhenry/aimatey-cli` | `.` |
 
-#### Core Components
-- `Bridge`, `createBridge`
-- `Router`, `createRouter`
-- `MiddlewareStack`, `createMiddlewareContext`, `createStreamingMiddlewareContext`, `adaptMiddlewareToStreaming`
+Subpaths are import specifiers, not separately installable packages: you install
+`@johnhenry/aimatey-backend` and import `@johnhenry/aimatey-backend/openai` from it.
 
-#### Frontend Adapters
-- `AnthropicFrontendAdapter` - Anthropic Messages API format
-- `OpenAIFrontendAdapter` - OpenAI Chat Completions API format
-- `GeminiFrontendAdapter` - Google Gemini API format
-- `OllamaFrontendAdapter` - Ollama API format
-- `MistralFrontendAdapter` - Mistral API format
-- `ChromeAIFrontendAdapter` - Chrome AI API format
-
-#### Backend Adapters
-
-**Major Providers:**
-- `AnthropicBackendAdapter` - Claude (Anthropic)
-- `OpenAIBackendAdapter` - GPT models (OpenAI)
-- `GeminiBackendAdapter` - Gemini (Google)
-- `MistralBackendAdapter` - Mistral AI
-- `OllamaBackendAdapter` - Ollama (local models)
-- `ChromeAIBackendAdapter` - Chrome AI (Gemini Nano)
-
-**Additional Providers:**
-- `DeepSeekBackendAdapter`, `createDeepSeekAdapter` - DeepSeek AI
-- `GroqBackendAdapter`, `createGroqAdapter` - Groq (ultra-fast inference)
-- `LMStudioBackendAdapter`, `createLMStudioAdapter` - LM Studio (local)
-- `HuggingFaceBackendAdapter`, `createHuggingFaceAdapter` - Hugging Face Inference API
-- `NVIDIABackendAdapter`, `createNVIDIAAdapter` - NVIDIA NIM
-
-**Testing:**
-- `MockBackendAdapter`, `createEchoBackend`, `createErrorBackend`, `createDelayedBackend`
-
-**Native Backends (Node.js only):**
-```typescript
-import { NodeLlamaCppBackend, AppleBackend } from '@johnhenry/aimatey-native-node-llamacpp';
-```
-
-#### Middleware
-
-**Logging:**
-```typescript
-import { createLoggingMiddleware } from '@johnhenry/aimatey-middleware/logging';
-```
-
-**Telemetry:**
-```typescript
-import {
-  createTelemetryMiddleware,
-  ConsoleTelemetrySink,
-  InMemoryTelemetrySink,
-  MetricNames,
-  EventNames,
-} from '@johnhenry/aimatey-middleware/telemetry';
-```
-
-**Caching:**
-```typescript
-import {
-  createCachingMiddleware,
-  InMemoryCacheStorage,
-} from '@johnhenry/aimatey-middleware/caching';
-```
-
-**Retry:**
-```typescript
-import {
-  createRetryMiddleware,
-  isRateLimitError,
-  isNetworkError,
-  isServerError,
-  createRetryPredicate,
-} from '@johnhenry/aimatey-middleware/retry';
-```
-
-**Transform:**
-```typescript
-import {
-  createTransformMiddleware,
-  createPromptRewriter,
-  createParameterModifier,
-  createResponseFilter,
-  createSystemMessageInjector,
-  createMessageFilter,
-  createContentSanitizer,
-  composeRequestTransformers,
-  composeResponseTransformers,
-  composeMessageTransformers,
-} from '@johnhenry/aimatey-middleware/transform';
-```
-
-**Security:**
-```typescript
-import {
-  createSecurityMiddleware,
-  createProductionSecurityMiddleware,
-  createDevelopmentSecurityMiddleware,
-  buildSecurityHeaders,
-  getSecurityHeaders,
-  DEFAULT_SECURITY_CONFIG,
-  SECURITY_HEADERS_METADATA_KEY,
-} from '@johnhenry/aimatey-middleware/security';
-```
-
-**Cost Tracking:**
-```typescript
-import {
-  createCostTrackingMiddleware,
-  createStreamingCostTrackingMiddleware,
-  InMemoryCostStorage,
-  calculateCost,
-  getCostStats,
-  DEFAULT_PRICING,
-} from '@johnhenry/aimatey-middleware/cost-tracking';
-```
-
-**Validation & Sanitization:**
-```typescript
-import {
-  createValidationMiddleware,
-  createProductionValidationMiddleware,
-  createDevelopmentValidationMiddleware,
-  detectPII,
-  redactPII,
-  detectPromptInjection,
-  sanitizeText,
-  validateRequest,
-  sanitizeRequest,
-  ValidationError as MiddlewareValidationError,
-  DEFAULT_PII_PATTERNS,
-  DEFAULT_INJECTION_PATTERNS,
-} from '@johnhenry/aimatey-middleware/validation';
-```
-
-#### Wrappers
-
-**Chrome AI (Current API):**
-```typescript
-import {
-  ChromeAILanguageModel,
-  createChromeAILanguageModel,
-} from '@johnhenry/aimatey';
-```
-
-**Chrome AI (Legacy API):**
-```typescript
-import {
-  LegacyChromeAILanguageModel,
-  createLegacyWindowAI,
-  polyfillLegacyWindowAI,
-} from '@johnhenry/aimatey';
-```
-
-**OpenAI SDK:**
-```typescript
-import {
-  OpenAI,
-  OpenAIClient,
-  Chat,
-  ChatCompletions,
-} from '@johnhenry/aimatey';
-```
-
-**Anthropic SDK:**
-```typescript
-import {
-  Anthropic,
-  AnthropicClient,
-  Messages,
-} from '@johnhenry/aimatey';
-```
-
-#### Utilities
-
-**Validation:**
-```typescript
-import {
-  isValidMessageRole,
-  validateMessageContent,
-  validateMessage,
-  validateMessages,
-  validateTemperature,
-  validateMaxTokens,
-  validateTopP,
-  validateParameters,
-  validateIRChatRequest,
-} from '@johnhenry/aimatey';
-```
-
-**System Messages:**
-```typescript
-import {
-  extractSystemMessages,
-  combineSystemMessages,
-  getFirstSystemMessage,
-  normalizeSystemMessages,
-  addSystemMessage,
-  hasSystemMessages,
-  countSystemMessages,
-} from '@johnhenry/aimatey';
-```
-
-**Parameter Normalization:**
-```typescript
-import {
-  normalizeTemperature,
-  denormalizeTemperature,
-  normalizeTopP,
-  normalizeTopK,
-  normalizePenalty,
-  normalizeStopSequences,
-  filterUnsupportedParameters,
-  applyParameterDefaults,
-  mergeParameters,
-  clampParameter,
-  sanitizeParameters,
-  areParametersValid,
-} from '@johnhenry/aimatey';
-```
-
-**Streaming:**
-```typescript
-import {
-  createStreamAccumulator,
-  accumulateChunk,
-  accumulatorToMessage,
-  accumulatorToResponse,
-  transformStream,
-  filterStream,
-  mapStream,
-  tapStream,
-  collectStream,
-  streamToResponse,
-  streamToText,
-  splitStream,
-  catchStreamErrors,
-  streamWithTimeout,
-  isContentChunk,
-  isDoneChunk,
-  getContentDeltas,
-} from '@johnhenry/aimatey';
-```
-
-#### Error Classes
+### Typical imports
 
 ```typescript
-import {
-  AdapterError,
-  AuthenticationError,
-  AuthorizationError,
-  RateLimitError,
-  ValidationError,
-  ProviderError,
-  AdapterConversionError,
-  NetworkError,
-  StreamError,
-  RouterError,
-  MiddlewareError,
-  createErrorFromHttpResponse,
-  createErrorFromProviderError,
-  ErrorCodeEnum,
-  ErrorCategoryEnum,
-  ERROR_CODE_CATEGORIES,
-} from '@johnhenry/aimatey';
-```
+// Core
+import { Bridge, Router, createBridge, createRouter, MiddlewareStack } from '@johnhenry/aimatey-core';
 
-#### Constants
+// Types and errors
+import type { IRChatRequest, IRChatResponse, Middleware } from '@johnhenry/aimatey-types';
+import { AdapterError, ErrorCode } from '@johnhenry/aimatey-errors';
 
-```typescript
-import {
-  FallbackStrategy,
-  RoutingStrategy,
-  ParallelStrategy,
-  BridgeEventType,
-  DEFAULT_STREAMING_CONFIG,
-} from '@johnhenry/aimatey';
-```
+// Adapters - prefer the subpath, it is the tree-shakeable one
+import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend/openai';
+import { AnthropicBackendAdapter } from '@johnhenry/aimatey-backend/anthropic';
 
-### Subpath Exports
-
-Import from specific subpaths for better tree-shaking and organization:
-
-#### Types Only
-
-```typescript
-import type { IRChatRequest, IRChatResponse } from '@johnhenry/aimatey-types';
-```
-
-#### Errors Only
-
-```typescript
-import { AdapterError, NetworkError } from '@johnhenry/aimatey-errors';
-```
-
-#### Utilities Only
-
-```typescript
-import { validateMessage, normalizeTemperature } from '@johnhenry/aimatey-utils';
-```
-
-#### Middleware Only
-
-```typescript
+// Middleware
 import {
   createLoggingMiddleware,
-  createCostTrackingMiddleware,
+  createCachingMiddleware,
+  createRetryMiddleware,
+  createTransformMiddleware,
+  createSecurityMiddleware,
   createValidationMiddleware,
+  createCostTrackingMiddleware,
+  createTelemetryMiddleware,
+  createConversationHistoryMiddleware,
 } from '@johnhenry/aimatey-middleware';
+
+// HTTP
+import { CoreHTTPHandler } from '@johnhenry/aimatey-http-core';
 ```
 
-#### Wrappers Only
-
-```typescript
-import {
-  ChromeAILanguageModel,
-  LegacyChromeAILanguageModel,
-  OpenAI,
-  Anthropic,
-} from '@johnhenry/aimatey-wrapper';
-```
-
-#### Frontend Adapters Only
-
-```typescript
-import {
-  AnthropicFrontendAdapter,
-  OpenAIFrontendAdapter,
-} from '@johnhenry/aimatey-frontend';
-```
-
-#### Backend Adapters Only
-
-```typescript
-import {
-  AnthropicBackendAdapter,
-  OpenAIBackendAdapter,
-  DeepSeekBackendAdapter,
-  GroqBackendAdapter,
-} from '@johnhenry/aimatey-backend';
-```
-
-#### HTTP Utilities
-
-```typescript
-import { NodeHTTPListener } from '@johnhenry/aimatey-http';
-```
-
-**Framework-Specific:**
-```typescript
-import { ExpressMiddleware } from '@johnhenry/aimatey-http/express';
-import { KoaMiddleware } from '@johnhenry/aimatey-http/koa';
-import { HonoMiddleware } from '@johnhenry/aimatey-http/hono';
-import { FastifyHandler } from '@johnhenry/aimatey-http/fastify';
-import { DenoHandler } from '@johnhenry/aimatey-http/deno';
-```
-
-**HTTP Utilities:**
-```typescript
-import {
-  parseRequest,
-  sendJSON,
-  sendError,
-  handleCORS,
-  RateLimiter,
-  HealthCheck,
-  createHealthCheck,
-} from '@johnhenry/aimatey-http';
-```
-
-### Available Import Paths
-
-```
-ai.matey                      # Main package (everything)
-ai.matey/types                # TypeScript types only
-ai.matey/errors               # Error classes
-ai.matey/utils                # Utility functions
-ai.matey/middleware           # All middleware
-ai.matey/wrappers             # All wrappers
-ai.matey/adapters/frontend    # Frontend adapters
-ai.matey/adapters/backend     # Backend adapters
-ai.matey/adapters/backend-native  # Native backends (Node.js only)
-ai.matey/http                 # HTTP utilities
-ai.matey/http/node            # Node.js HTTP adapter
-ai.matey/http/express         # Express middleware
-ai.matey/http/koa             # Koa middleware
-ai.matey/http/hono            # Hono middleware
-ai.matey/http/fastify         # Fastify handler
-ai.matey/http/deno            # Deno handler
-```
-
----
+The authoritative list of names for any package is its `src/index.ts`; the
+generated API reference on the documentation site is built from it directly.
 
 ## See Also
 
-- [Getting Started Guide](../README.md)
+- [Getting Started Guide](../readme.md)
 - [Feature Guides](./GUIDES.md)
 - [Examples](../examples/)
-- [TypeScript Type Definitions](../src/types/)
+- [TypeScript Type Definitions](../packages/ai.matey.types/src/)

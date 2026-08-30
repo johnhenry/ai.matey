@@ -7,28 +7,54 @@ Complete API reference for all built-in middleware and the Middleware interface.
 
 ## Middleware Interface
 
-All middleware must implement this interface:
+All middleware is a plain async function with this signature:
 
 ```typescript
-interface Middleware {
-  /** Middleware name */
-  name: string;
+type MiddlewareNext = () => Promise<IRChatResponse>;
 
-  /** Called before request is sent to backend */
-  onRequest?(request: IRChatCompletionRequest): Promise<IRChatCompletionRequest>;
+type Middleware = (
+  context: MiddlewareContext,
+  next: MiddlewareNext
+) => Promise<IRChatResponse>;
 
-  /** Called after response is received from backend */
-  onResponse?(response: IRChatCompletionResponse): Promise<IRChatCompletionResponse>;
+interface MiddlewareContext {
+  /** The IR request being processed - middleware can inspect and modify it */
+  request: IRChatRequest;
 
-  /** Called when an error occurs */
-  onError?(error: Error): Promise<Error | void>;
+  /** Whether this is a streaming request */
+  readonly isStreaming: boolean;
 
-  /** Called for each stream chunk */
-  onStreamChunk?(chunk: IRChatCompletionChunk): Promise<IRChatCompletionChunk>;
+  /** Backend that will process the request (available after routing) */
+  readonly backend?: BackendAdapter;
 
-  /** Cleanup function called when middleware is removed */
-  cleanup?(): Promise<void>;
+  /** Backend name/identifier */
+  readonly backendName?: string;
+
+  /** Shared state object for passing data between middleware */
+  readonly state: Record<string, unknown>;
+
+  /** Configuration from the bridge */
+  readonly config: Record<string, unknown>;
+
+  /** Abort signal for request cancellation */
+  readonly signal?: AbortSignal;
 }
+```
+
+Work before `await next()` runs on the way in, work after it runs on the way
+out. `next()` takes no arguments - the request is read and modified through
+`context.request`.
+
+Stream-native middleware is a separate type, `StreamingMiddleware`, registered
+with `bridge.useStreaming()`:
+
+```typescript
+type StreamingMiddlewareNext = () => Promise<IRChatStream>;
+
+type StreamingMiddleware = (
+  context: StreamingMiddlewareContext,
+  next: StreamingMiddlewareNext
+) => Promise<IRChatStream>;
 ```
 
 ---
@@ -37,34 +63,41 @@ interface Middleware {
 
 ### Logging Middleware
 
-#### `createLoggingMiddleware(options)`
+#### `createLoggingMiddleware(config)`
 
 Logs requests and responses for debugging and monitoring.
 
-**Parameters:**
+**Parameters:** `config: LoggingConfig`
 
 ```typescript
-interface LoggingMiddlewareOptions {
-  /** Log level: 'debug' | 'info' | 'warn' | 'error' (default: 'info') */
-  level?: string;
+interface LoggingConfig {
+  /** Minimum log level: 'debug' | 'info' | 'warn' | 'error' (default: 'info') */
+  level?: LogLevel;
 
-  /** Log requests (default: true) */
+  /** Log request bodies (default: true) */
   logRequests?: boolean;
 
-  /** Log responses (default: true) */
+  /** Log response bodies (default: true) */
   logResponses?: boolean;
 
-  /** Log stream chunks (default: false) */
-  logStreamChunks?: boolean;
+  /** Log errors (default: true) */
+  logErrors?: boolean;
 
-  /** Fields to redact from logs (default: ['apiKey', 'authorization']) */
-  redactFields?: string[];
+  /** Redact sensitive data such as API keys and tokens (default: true) */
+  sanitize?: boolean;
 
   /** Custom logger (default: console) */
   logger?: Logger;
 
-  /** Pretty print (default: true) */
-  pretty?: boolean;
+  /** Custom log prefix */
+  prefix?: string;
+}
+
+interface Logger {
+  debug(message: string, data?: unknown): void;
+  info(message: string, data?: unknown): void;
+  warn(message: string, data?: unknown): void;
+  error(message: string, data?: unknown): void;
 }
 ```
 
@@ -79,7 +112,8 @@ const logger = createLoggingMiddleware({
   level: 'info',
   logRequests: true,
   logResponses: true,
-  redactFields: ['apiKey', 'authorization', 'password']
+  sanitize: true,
+  prefix: '[ai.matey]'
 });
 
 bridge.use(logger);
@@ -99,41 +133,45 @@ bridge.use(logger);
 
 ### Caching Middleware
 
-#### `createCachingMiddleware(options)`
+#### `createCachingMiddleware(config)`
 
 Caches responses to reduce API calls and costs.
 
-**Parameters:**
+**Parameters:** `config: CachingConfig`
 
 ```typescript
-interface CachingMiddlewareOptions {
-  /** Time-to-live in seconds (default: 3600) */
+interface CachingConfig {
+  /** Time-to-live in milliseconds (default: 3600000 - one hour) */
   ttl?: number;
 
   /** Maximum cache size (default: 1000) */
   maxSize?: number;
 
-  /** Storage backend: 'memory' | 'redis' | 'file' (default: 'memory') */
-  storage?: string;
-
-  /** Redis configuration (if storage is 'redis') */
-  redis?: {
-    host: string;
-    port: number;
-    password?: string;
-    db?: number;
-  };
-
-  /** File path (if storage is 'file') */
-  filePath?: string;
+  /** Storage implementation (default: an in-memory LRU store) */
+  storage?: CacheStorage;
 
   /** Custom cache key function */
-  keyGenerator?: (request: IRChatCompletionRequest) => string;
+  keyGenerator?: (request: IRChatRequest) => string;
 
-  /** Enable cache statistics (default: false) */
-  stats?: boolean;
+  /** Tenant/user identity mixed into the default cache key */
+  scopeKey?: string | ((request: IRChatRequest) => string);
+
+  /** Cache streaming responses too (default: false) */
+  cacheStreaming?: boolean;
+}
+
+interface CacheStorage {
+  get(key: string): Promise<IRChatResponse | undefined>;
+  set(key: string, value: IRChatResponse, ttl?: number): Promise<void>;
+  has(key: string): Promise<boolean>;
+  delete(key: string): Promise<boolean>;
+  clear(): Promise<void>;
 }
 ```
+
+`storage` is an object implementing `CacheStorage`, never a string - there is no
+built-in Redis or file backend. To cache in Redis, implement the five methods
+above against your own client.
 
 **Returns:** `Middleware`
 
@@ -143,91 +181,97 @@ interface CachingMiddlewareOptions {
 import { createCachingMiddleware } from '@johnhenry/aimatey-middleware';
 
 const cache = createCachingMiddleware({
-  ttl: 3600,           // Cache for 1 hour
+  ttl: 3_600_000,      // one hour, in milliseconds
   maxSize: 1000,       // Max 1000 items
-  storage: 'memory',
-  stats: true
+  scopeKey: (request) => String(request.metadata.custom?.tenantId ?? 'default')
 });
 
 bridge.use(cache);
 
 // First request - cache miss
-await bridge.chat({ model: 'gpt-4', messages: [...] }); // ~1200ms
+await bridge.chat({ model: 'gpt-4', messages }); // ~1200ms
 
 // Second identical request - cache hit
-await bridge.chat({ model: 'gpt-4', messages: [...] }); // ~0.5ms ⚡
+await bridge.chat({ model: 'gpt-4', messages }); // ~0.5ms ⚡
 ```
 
-**Cache Statistics:**
+**Cache statistics:** the factory returns a bare `Middleware` function, so there
+is no `cache.getStats()`. Track hits yourself by wrapping a `CacheStorage`:
 
 ```typescript
-// Get cache stats
-const stats = cache.getStats();
-console.log(stats);
-/*
-{
-  hits: 45,
-  misses: 12,
-  hitRate: 0.789,
-  size: 12,
-  memoryUsage: 2048
-}
-*/
+let hits = 0;
+let misses = 0;
+
+const counting: CacheStorage = {
+  async get(key) {
+    const value = await inner.get(key);
+    value === undefined ? misses++ : hits++;
+    return value;
+  },
+  set: (key, value, ttl) => inner.set(key, value, ttl),
+  has: (key) => inner.has(key),
+  delete: (key) => inner.delete(key),
+  clear: () => inner.clear()
+};
+
+bridge.use(createCachingMiddleware({ storage: counting }));
 ```
 
 ---
 
 ### Retry Middleware
 
-#### `createRetryMiddleware(options)`
+#### `createRetryMiddleware(config)`
 
 Automatically retries failed requests with exponential backoff.
 
-**Parameters:**
+**Parameters:** `config: RetryConfig`
 
 ```typescript
-interface RetryMiddlewareOptions {
-  /** Maximum retry attempts (default: 3) */
+interface RetryConfig {
+  /** Maximum attempts, including the first (default: 3) */
   maxAttempts?: number;
 
   /** Initial delay in ms (default: 1000) */
   initialDelay?: number;
 
-  /** Maximum delay in ms (default: 10000) */
+  /** Maximum delay in ms (default: 30000) */
   maxDelay?: number;
 
   /** Backoff multiplier (default: 2) */
   backoffMultiplier?: number;
 
-  /** Errors to retry */
-  retryableErrors?: string[];
+  /** Add random jitter to the delay (default: true) */
+  useJitter?: boolean;
 
-  /** HTTP status codes to retry */
-  retryableStatusCodes?: number[];
-
-  /** Custom retry condition */
-  shouldRetry?: (error: Error, attempt: number) => boolean;
+  /** Which errors to retry (default: retryable adapter errors) */
+  shouldRetry?: (error: unknown, attempt: number) => boolean;
 
   /** Called before each retry */
-  onRetry?: (error: Error, attempt: number, delay: number) => void;
+  onRetry?: (error: unknown, attempt: number, delay: number) => void;
 }
 ```
+
+Retryability is decided by `shouldRetry`, not by lists of error names or status
+codes. `createRetryPredicate(['rate_limit', 'network', 'server'])` builds one
+from the shipped `isRateLimitError` / `isNetworkError` / `isServerError` helpers.
 
 **Returns:** `Middleware`
 
 **Example:**
 
 ```typescript
-import { createRetryMiddleware } from '@johnhenry/aimatey-middleware';
+import { createRetryMiddleware, createRetryPredicate } from '@johnhenry/aimatey-middleware';
 
 const retry = createRetryMiddleware({
   maxAttempts: 3,
   initialDelay: 1000,
   maxDelay: 10000,
   backoffMultiplier: 2,
-  retryableErrors: ['RATE_LIMIT_EXCEEDED', 'TIMEOUT', 'SERVICE_UNAVAILABLE'],
+  useJitter: true,
+  shouldRetry: createRetryPredicate(['rate_limit', 'network', 'server']),
   onRetry: (error, attempt, delay) => {
-    console.log(`Retry ${attempt}/3 after ${delay}ms: ${error.message}`);
+    console.log(`Retry ${attempt}/3 after ${delay}ms: ${(error as Error).message}`);
   }
 });
 
@@ -247,24 +291,29 @@ bridge.use(retry);
 
 ### Transform Middleware
 
-#### `createTransformMiddleware(options)`
+#### `createTransformMiddleware(config)`
 
 Transforms requests and responses on-the-fly.
 
-**Parameters:**
+**Parameters:** `config: TransformConfig`
 
 ```typescript
-interface TransformMiddlewareOptions {
-  /** Transform request before sending */
-  transformRequest?: (request: IRChatCompletionRequest) => IRChatCompletionRequest | Promise<IRChatCompletionRequest>;
+interface TransformConfig {
+  /** Transform the request before sending */
+  transformRequest?: (request: IRChatRequest) => IRChatRequest | Promise<IRChatRequest>;
 
-  /** Transform response after receiving */
-  transformResponse?: (response: IRChatCompletionResponse) => IRChatCompletionResponse | Promise<IRChatCompletionResponse>;
+  /** Transform the response after receiving */
+  transformResponse?: (response: IRChatResponse) => IRChatResponse | Promise<IRChatResponse>;
 
-  /** Transform stream chunks */
-  transformChunk?: (chunk: IRChatCompletionChunk) => IRChatCompletionChunk | Promise<IRChatCompletionChunk>;
+  /** Transform the message array before sending */
+  transformMessages?: (
+    messages: readonly IRMessage[]
+  ) => readonly IRMessage[] | Promise<readonly IRMessage[]>;
 }
 ```
+
+There is no `transformChunk` - this middleware runs on the non-streaming path.
+Use `bridge.useStreaming()` with a `StreamingMiddleware` to rewrite chunks.
 
 **Returns:** `Middleware`
 
@@ -285,16 +334,14 @@ const transform = createTransformMiddleware({
     };
   },
   transformResponse: (response) => {
-    // Convert to uppercase
+    // Uppercase the assistant's reply
+    const { content } = response.message;
     return {
       ...response,
-      choices: response.choices.map(choice => ({
-        ...choice,
-        message: {
-          ...choice.message,
-          content: choice.message.content.toUpperCase()
-        }
-      }))
+      message: {
+        ...response.message,
+        content: typeof content === 'string' ? content.toUpperCase() : content
+      }
     };
   }
 });
@@ -306,36 +353,46 @@ bridge.use(transform);
 
 ### Cost Tracking Middleware
 
-#### `createCostTrackingMiddleware(options)`
+#### `createCostTrackingMiddleware(config)`
 
-Tracks API costs and enforces budgets.
+Tracks API costs and fires callbacks when spending thresholds are crossed.
 
-**Parameters:**
+**Parameters:** `config: CostTrackingConfig`
 
 ```typescript
-interface CostTrackingMiddlewareOptions {
-  /** Budget limit in USD (default: Infinity) */
-  budgetLimit?: number;
+interface CostTrackingConfig {
+  /** Where cost records are written (default: a new InMemoryCostStorage) */
+  storage?: CostStorage;
 
-  /** Alert threshold (0-1, default: 0.9) */
-  alertThreshold?: number;
+  /** Per-provider pricing overrides */
+  providers?: Record<string, ProviderPricing>;
 
-  /** Pricing per provider */
-  pricing?: {
-    [provider: string]: {
-      inputTokens: number;   // $ per 1K tokens
-      outputTokens: number;  // $ per 1K tokens
-    };
-  };
+  /** Per-model pricing overrides (model id or RegExp) */
+  models?: ModelPricing[];
 
-  /** Called when budget exceeded */
-  onBudgetExceeded?: (current: number, limit: number) => void;
+  /** Called for every calculated cost */
+  onCost?: (cost: CostCalculation) => void | Promise<void>;
 
-  /** Called when threshold reached */
-  onThresholdReached?: (current: number, limit: number) => void;
+  /** Called when a threshold below is crossed */
+  onThresholdExceeded?: (cost: CostCalculation, threshold: number) => void | Promise<void>;
 
-  /** Reset interval in ms (default: null - never reset) */
-  resetInterval?: number;
+  /** Thresholds in USD */
+  requestThreshold?: number;
+  hourlyThreshold?: number;
+  dailyThreshold?: number;
+
+  /** Log each cost to the console (default: false) */
+  logCosts?: boolean;
+
+  /** Attach the cost to response metadata (default: true) */
+  includeInMetadata?: boolean;
+}
+
+interface ProviderPricing {
+  inputCostPer1M: number;   // USD per 1M input tokens
+  outputCostPer1M: number;  // USD per 1M output tokens
+  cachedInputCostPer1M?: number;
+  imageInputCostPer1M?: number;
 }
 ```
 
@@ -344,72 +401,89 @@ interface CostTrackingMiddlewareOptions {
 **Example:**
 
 ```typescript
-import { createCostTrackingMiddleware } from '@johnhenry/aimatey-middleware';
+import {
+  createCostTrackingMiddleware,
+  getCostStats,
+  InMemoryCostStorage
+} from '@johnhenry/aimatey-middleware';
+
+const storage = new InMemoryCostStorage();
 
 const costTracker = createCostTrackingMiddleware({
-  budgetLimit: 100,      // $100 budget
-  alertThreshold: 0.9,   // Alert at 90%
-  onBudgetExceeded: (current, limit) => {
-    console.error(`Budget exceeded! $${current.toFixed(2)} / $${limit}`);
-    // Send alert email, Slack message, etc.
-  },
-  onThresholdReached: (current, limit) => {
-    console.warn(`Budget warning: $${current.toFixed(2)} / $${limit}`);
+  storage,
+  dailyThreshold: 100,   // warn once $100/day is passed
+  hourlyThreshold: 10,
+  onThresholdExceeded: (cost, threshold) => {
+    console.error(`Spending passed $${threshold} (last request $${cost.totalCost.toFixed(4)})`);
   }
 });
 
 bridge.use(costTracker);
 
-// Get current cost
-const stats = costTracker.getStats();
-console.log(`Current cost: $${stats.totalCost.toFixed(2)}`);
-console.log(`Requests: ${stats.requestCount}`);
-console.log(`Average cost per request: $${stats.avgCostPerRequest.toFixed(4)}`);
+// Statistics come from the storage, not from the middleware
+const stats = await getCostStats(storage, 24);
+console.log(`Total (24h): $${stats.total.toFixed(2)}`);
+console.log('By provider:', stats.byProvider);
+console.log('By model:', stats.byModel);
 ```
 
 ---
 
 ### OpenTelemetry Middleware
 
-#### `createOpenTelemetryMiddleware(options)`
+#### `createOpenTelemetryMiddleware(config)`
 
-Adds distributed tracing with OpenTelemetry.
+Adds distributed tracing with OpenTelemetry. This factory is **async** - it
+resolves the optional `@opentelemetry/*` packages at call time and throws if they
+are not installed, so it must be awaited.
 
-**Parameters:**
+**Parameters:** `config: OpenTelemetryConfig`
 
 ```typescript
-interface OpenTelemetryMiddlewareOptions {
-  /** Service name (default: '@johnhenry/aimatey') */
+interface OpenTelemetryConfig {
+  /** Service name reported on spans (default: 'ai-matey') */
   serviceName?: string;
 
-  /** Tracer provider */
-  tracerProvider?: TracerProvider;
+  /** Service version reported on spans */
+  serviceVersion?: string;
 
-  /** Span attributes to include */
-  attributes?: Record<string, any>;
+  /** Tracer name (default: 'ai-matey-tracer') */
+  tracerName?: string;
 
-  /** Record request/response bodies (default: false) */
-  recordBodies?: boolean;
+  /** OTLP/HTTP traces endpoint */
+  endpoint?: string;
 
-  /** Record token usage (default: true) */
-  recordUsage?: boolean;
+  /** Extra headers sent to the exporter */
+  headers?: Record<string, string>;
+
+  /** Extra resource attributes */
+  resourceAttributes?: Record<string, string>;
+
+  /** Sampling rate, 0-1 (default: 1.0) */
+  samplingRate?: number;
+
+  /** Export spans, rather than only creating them (default: true) */
+  exportSpans?: boolean;
+
+  /** Exporter timeout in ms */
+  exporterTimeoutMillis?: number;
+
+  /** Batch span processor tuning */
+  batchSpanProcessorConfig?: BatchSpanProcessorConfig;
 }
 ```
 
-**Returns:** `Middleware`
+**Returns:** `Promise<Middleware>`
 
 **Example:**
 
 ```typescript
 import { createOpenTelemetryMiddleware } from '@johnhenry/aimatey-middleware';
-import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
 
-const provider = new NodeTracerProvider();
-
-const tracing = createOpenTelemetryMiddleware({
+const tracing = await createOpenTelemetryMiddleware({
   serviceName: 'my-ai-service',
-  tracerProvider: provider,
-  recordUsage: true
+  endpoint: 'http://localhost:4318/v1/traces',
+  samplingRate: 1.0
 });
 
 bridge.use(tracing);
@@ -417,72 +491,55 @@ bridge.use(tracing);
 
 ---
 
-### Rate Limit Middleware
+### Rate limiting
 
-#### `createRateLimitMiddleware(options)`
-
-Enforces rate limits on requests.
-
-**Parameters:**
-
-```typescript
-interface RateLimitMiddlewareOptions {
-  /** Maximum requests per window */
-  maxRequests: number;
-
-  /** Time window in ms */
-  windowMs: number;
-
-  /** Strategy: 'fixed-window' | 'sliding-window' | 'token-bucket' */
-  strategy?: string;
-
-  /** Called when rate limit exceeded */
-  onRateLimitExceeded?: (retryAfter: number) => void;
-}
-```
-
-**Returns:** `Middleware`
-
-**Example:**
-
-```typescript
-import { createRateLimitMiddleware } from '@johnhenry/aimatey-middleware';
-
-const rateLimit = createRateLimitMiddleware({
-  maxRequests: 60,       // 60 requests
-  windowMs: 60000,       // per minute
-  strategy: 'sliding-window',
-  onRateLimitExceeded: (retryAfter) => {
-    console.log(`Rate limit exceeded. Retry after ${retryAfter}ms`);
-  }
-});
-
-bridge.use(rateLimit);
-```
+`@johnhenry/aimatey-middleware` does not ship a rate-limit middleware. Rate
+limiting is applied at the HTTP layer instead, with `RateLimiter` from
+`@johnhenry/aimatey-http-core`.
 
 ---
 
 ### Validation Middleware
 
-#### `createValidationMiddleware(options)`
+#### `createValidationMiddleware(config)`
 
-Validates requests and responses against schemas.
+Validates and optionally sanitizes IR requests. Validation is expressed as
+limits and flags, not JSON Schema.
 
-**Parameters:**
+**Parameters:** `config: ValidationConfig`
 
 ```typescript
-interface ValidationMiddlewareOptions {
-  /** Request schema (JSON Schema) */
-  requestSchema?: object;
+interface ValidationConfig {
+  /** Check that the request is structurally valid IR (default: true) */
+  validateIRFormat?: boolean;
 
-  /** Response schema (JSON Schema) */
-  responseSchema?: object;
+  /** Size limits */
+  maxMessages?: number;
+  maxMessageLength?: number;
+  maxTotalTokens?: number;
 
-  /** Throw error on validation failure (default: true) */
-  strict?: boolean;
+  /** Allow-lists */
+  allowedModels?: string[];
+  allowedRoles?: Array<'user' | 'assistant' | 'system'>;
 
-  /** Custom validator function */
-  customValidator?: (data: any, schema: any) => boolean;
+  /** Accepted temperature range, e.g. [0, 2] */
+  temperatureRange?: [number, number];
+
+  /** Strip control characters and normalize whitespace */
+  sanitizeMessages?: boolean;
+
+  /** PII detection */
+  detectPII?: boolean;
+  piiAction?: 'block' | 'redact' | 'warn' | 'log';
+
+  /** Reject known prompt-injection patterns */
+  preventPromptInjection?: boolean;
+
+  /** Throw on validation failure rather than warn (default: true) */
+  throwOnError?: boolean;
+
+  /** Extra application-specific checks */
+  customValidator?: (request: IRChatRequest) => ValidationError[] | Promise<ValidationError[]>;
 }
 ```
 
@@ -494,61 +551,58 @@ interface ValidationMiddlewareOptions {
 import { createValidationMiddleware } from '@johnhenry/aimatey-middleware';
 
 const validation = createValidationMiddleware({
-  requestSchema: {
-    type: 'object',
-    properties: {
-      model: { type: 'string', minLength: 1 },
-      messages: {
-        type: 'array',
-        minItems: 1,
-        items: {
-          type: 'object',
-          required: ['role', 'content'],
-          properties: {
-            role: { enum: ['system', 'user', 'assistant'] },
-            content: { type: 'string', minLength: 1 }
-          }
-        }
-      }
-    },
-    required: ['model', 'messages']
-  },
-  strict: true
+  validateIRFormat: true,
+  maxMessages: 50,
+  maxMessageLength: 10_000,
+  allowedModels: ['gpt-4', 'gpt-4o'],
+  allowedRoles: ['system', 'user', 'assistant'],
+  temperatureRange: [0, 2],
+  detectPII: true,
+  piiAction: 'redact',
+  throwOnError: true
 });
 
 bridge.use(validation);
 ```
 
+`createProductionValidationMiddleware()` and
+`createDevelopmentValidationMiddleware()` are preconfigured variants.
+
 ---
 
 ### Conversation History Middleware
 
-#### `createConversationHistoryMiddleware(options)`
+#### `createConversationHistoryMiddleware(config)`
 
-Maintains conversation state across requests.
+Maintains a single in-process conversation history across requests.
 
-**Parameters:**
+**Parameters:** `config: ConversationHistoryConfig`
 
 ```typescript
-interface ConversationHistoryMiddlewareOptions {
-  /** Maximum messages to keep (default: 100) */
-  maxMessages?: number;
+interface ConversationHistoryConfig {
+  /** Maximum messages to keep (default: 20) */
+  maxHistorySize?: number;
 
-  /** Storage: 'memory' | 'redis' | 'database' (default: 'memory') */
-  storage?: string;
+  /** Trim strategy: 'fifo' | 'smart' (default: 'smart') */
+  strategy?: TrimStrategy;
 
-  /** Session TTL in seconds (default: 3600) */
-  sessionTtl?: number;
+  /** Prepend the history to each request (default: true) */
+  prependHistory?: boolean;
 
-  /** Auto-summarize long conversations (default: false) */
-  autoSummarize?: boolean;
+  /** Append assistant responses to the history (default: true) */
+  trackResponses?: boolean;
 
-  /** Summarization threshold (default: 50 messages) */
-  summarizeThreshold?: number;
+  /** Messages the history starts with */
+  initialHistory?: IRMessage[];
+
+  /** Decide which messages are kept */
+  messageFilter?: (message: IRMessage) => boolean;
 }
 ```
 
-**Returns:** `Middleware`
+**Returns:** `{ middleware: Middleware; manager: ConversationHistoryManager }` -
+register `result.middleware`, and use `result.manager` to read, seed or clear the
+history.
 
 **Example:**
 
@@ -556,29 +610,33 @@ interface ConversationHistoryMiddlewareOptions {
 import { createConversationHistoryMiddleware } from '@johnhenry/aimatey-middleware';
 
 const history = createConversationHistoryMiddleware({
-  maxMessages: 100,
-  storage: 'memory',
-  sessionTtl: 3600,
-  autoSummarize: true,
-  summarizeThreshold: 50
+  maxHistorySize: 20,
+  strategy: 'smart',
+  prependHistory: true,
+  trackResponses: true
 });
 
-bridge.use(history);
+bridge.use(history.middleware);
 
 // Messages are automatically maintained across requests
 await bridge.chat({
   model: 'gpt-4',
-  messages: [{ role: 'user', content: 'Hello' }],
-  sessionId: 'user-123'
+  messages: [{ role: 'user', content: 'Hello' }]
 });
 
 await bridge.chat({
   model: 'gpt-4',
-  messages: [{ role: 'user', content: 'What did I just say?' }],
-  sessionId: 'user-123'
+  messages: [{ role: 'user', content: 'What did I just say?' }]
 });
 // Previous message is automatically included
+
+console.log(history.manager.getHistory());
+history.manager.clear();
 ```
+
+The history is per-middleware-instance, not per-session: there is no `sessionId`
+field on a request. To keep separate conversations, build one bridge (or one
+history middleware) per conversation.
 
 ---
 
@@ -587,45 +645,37 @@ await bridge.chat({
 ### Creating Custom Middleware
 
 ```typescript
-import { Middleware, IRChatCompletionRequest, IRChatCompletionResponse } from '@johnhenry/aimatey-types';
+import type { Middleware } from '@johnhenry/aimatey-types';
 
 function createCustomMiddleware(options: CustomOptions): Middleware {
-  return {
-    name: 'custom-middleware',
+  return async (context, next) => {
+    // Modify request before sending
+    console.log('Before request:', context.request.parameters?.model);
 
-    async onRequest(request: IRChatCompletionRequest) {
-      // Modify request before sending
-      console.log('Before request:', request.model);
+    // Replace the request on the context to change it
+    context.request = {
+      ...context.request,
+      parameters: {
+        ...context.request.parameters,
+        temperature: Math.min(context.request.parameters?.temperature ?? 0.7, 0.9)
+      }
+    };
 
-      // Can modify and return request
-      return {
-        ...request,
-        temperature: Math.min(request.temperature || 0.7, 0.9)
-      };
-    },
+    try {
+      const response = await next();
 
-    async onResponse(response: IRChatCompletionResponse) {
       // Process response after receiving
       console.log('After response:', response.usage);
 
       return response;
-    },
-
-    async onError(error: Error) {
+    } catch (error) {
       // Handle errors
-      console.error('Error occurred:', error.message);
+      console.error('Error occurred:', (error as Error).message);
 
-      // Can modify error or return void
-      return error;
-    },
-
-    async onStreamChunk(chunk: IRChatCompletionChunk) {
-      // Process each stream chunk
-      return chunk;
-    },
-
-    async cleanup() {
-      // Cleanup when middleware is removed
+      // Re-throw, or recover by returning a response
+      throw error;
+    } finally {
+      // Cleanup after the request completes
       console.log('Cleaning up...');
     }
   };
@@ -641,14 +691,14 @@ function createStatefulMiddleware() {
   let requestCount = 0;
   const startTime = Date.now();
 
-  return {
-    name: 'request-counter',
+  const middleware: Middleware = async (context, next) => {
+    requestCount++;
+    console.log(`Request #${requestCount}`);
+    return next();
+  };
 
-    async onRequest(request) {
-      requestCount++;
-      console.log(`Request #${requestCount}`);
-      return request;
-    },
+  return {
+    middleware,
 
     getStats() {
       return {
@@ -661,7 +711,7 @@ function createStatefulMiddleware() {
 }
 
 const counter = createStatefulMiddleware();
-bridge.use(counter);
+bridge.use(counter.middleware);
 
 // Later
 console.log(counter.getStats());
@@ -672,33 +722,29 @@ console.log(counter.getStats());
 ### Async Middleware
 
 ```typescript
-function createAsyncMiddleware() {
-  return {
-    name: 'async-middleware',
+function createAsyncMiddleware(): Middleware {
+  return async (context, next) => {
+    // Async operations
+    const userContext = await fetchUserContext(context.request.metadata.requestId);
 
-    async onRequest(request) {
-      // Async operations
-      const userContext = await fetchUserContext(request.userId);
+    context.request = {
+      ...context.request,
+      messages: [
+        { role: 'system', content: `User context: ${userContext}` },
+        ...context.request.messages
+      ]
+    };
 
-      return {
-        ...request,
-        messages: [
-          { role: 'system', content: `User context: ${userContext}` },
-          ...request.messages
-        ]
-      };
-    },
+    const response = await next();
 
-    async onResponse(response) {
-      // Async logging
-      await logToDatabase({
-        request: response.id,
-        tokens: response.usage?.total_tokens,
-        timestamp: new Date()
-      });
+    // Async logging
+    await logToDatabase({
+      requestId: response.metadata.requestId,
+      tokens: response.usage?.totalTokens,
+      timestamp: new Date()
+    });
 
-      return response;
-    }
+    return response;
   };
 }
 ```
@@ -707,13 +753,15 @@ function createAsyncMiddleware() {
 
 ## Middleware Order
 
-**Order matters!** Middleware is executed in the order added:
+**Order matters!** Middleware runs in registration order - the first middleware
+added is the outermost layer, so it runs first on the way in and last on the way
+out:
 
 ```typescript
 // ❌ Wrong order
-bridge.use(createCachingMiddleware());  // Runs 3rd
+bridge.use(createCachingMiddleware());  // Runs 1st (cache hits skip logging)
 bridge.use(createRetryMiddleware());    // Runs 2nd
-bridge.use(createLoggingMiddleware());  // Runs 1st
+bridge.use(createLoggingMiddleware());  // Runs 3rd
 
 // ✅ Correct order
 bridge.use(createLoggingMiddleware());  // Runs 1st (logs everything)
@@ -753,10 +801,10 @@ const bridge = new Bridge(frontend, backend);
 // Production middleware stack
 bridge
   .use(createLoggingMiddleware({ level: 'info' }))
-  .use(createValidationMiddleware({ strict: true }))
+  .use(createValidationMiddleware({ throwOnError: true }))
   .use(createRetryMiddleware({ maxAttempts: 3 }))
-  .use(createCachingMiddleware({ ttl: 3600 }))
-  .use(createCostTrackingMiddleware({ budgetLimit: 100 }));
+  .use(createCachingMiddleware({ ttl: 3_600_000 }))
+  .use(createCostTrackingMiddleware({ dailyThreshold: 100 }));
 ```
 
 ---

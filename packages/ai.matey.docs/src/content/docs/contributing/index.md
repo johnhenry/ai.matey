@@ -258,14 +258,14 @@ npm start  # Start dev server
 
 2. Implement `BackendAdapter` interface:
    ```typescript
-   import type { BackendAdapter, IRChatCompletionRequest } from '@johnhenry/aimatey-types';
+   import type { BackendAdapter, IRChatRequest } from '@johnhenry/aimatey-types';
 
    export class NewProviderBackendAdapter implements BackendAdapter {
      name = 'newprovider';
 
      constructor(private options: NewProviderOptions) {}
 
-     async chat(request: IRChatCompletionRequest) {
+     async chat(request: IRChatRequest) {
        // Convert IR to provider format
        const providerRequest = this.toProviderFormat(request);
 
@@ -276,7 +276,7 @@ npm start  # Start dev server
        return this.toIRFormat(providerResponse);
      }
 
-     async *chatStream(request: IRChatCompletionRequest) {
+     async *chatStream(request: IRChatRequest) {
        // Implement streaming
      }
    }
@@ -295,7 +295,7 @@ npm start  # Start dev server
 
 5. Add documentation:
    ```
-   packages/ai.matey.docs/docs/packages/backend.md
+   packages/ai.matey.docs/src/content/docs/packages/backend.md
    ```
 
 6. Create example:
@@ -322,20 +322,17 @@ npm start  # Start dev server
    export function createNewMiddleware(
      options: NewMiddlewareOptions
    ): Middleware {
-     return {
-       name: 'new-middleware',
-       async execute(request, next) {
-         // Before request
-         console.log('Before:', request);
+     return async (context, next) => {
+       // Before request
+       console.log('Before:', context.request);
 
-         // Process
-         const response = await next(request);
+       // Process
+       const response = await next();
 
-         // After response
-         console.log('After:', response);
+       // After response
+       console.log('After:', response);
 
-         return response;
-       }
+       return response;
      };
    }
    ```

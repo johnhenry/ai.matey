@@ -36,14 +36,13 @@ Test individual components in isolation with mocked dependencies.
 
 ```typescript
 import { Bridge } from '@johnhenry/aimatey-core';
-import { MockBackendAdapter } from '../test-utils';
+import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend/openai';
+import { MockBackendAdapter } from '@johnhenry/aimatey-backend-browser/mock';
 
 describe('Bridge', () => {
   it('should process chat requests', async () => {
     const mockBackend = new MockBackendAdapter({
-      response: {
-        choices: [{ message: { content: 'Mock response' } }]
-      }
+      defaultResponse: 'Mock response',
     });
 
     const bridge = new Bridge(
@@ -114,36 +113,35 @@ describe('HTTP API E2E', () => {
 
 ## Mock Backend Adapter
 
-Create deterministic tests with a mock adapter:
+Use the packaged `MockBackendAdapter` for deterministic tests - it implements the
+real `BackendAdapter` interface, so a `Bridge` drives it exactly like a live
+provider. (A hand-rolled mock with `chat()` / `chatStream()` methods will never be
+called: the bridge invokes `execute()` / `executeStream()`.)
 
 ```typescript
-class MockBackendAdapter {
-  private responses: Map<string, any> = new Map();
+import { MockBackendAdapter } from '@johnhenry/aimatey-backend-browser/mock';
 
-  setResponse(key: string, response: any) {
-    this.responses.set(key, response);
-  }
+const backend = new MockBackendAdapter({
+  defaultResponse: 'Default mock response',
+  modelResponses: {
+    'gpt-4': 'A response only gpt-4 gets',
+  },
+  simulateStreaming: true,
+  streamChunkDelay: 0,
+});
+```
 
-  async chat(request: any): Promise<any> {
-    const key = JSON.stringify(request.messages);
-    const response = this.responses.get(key);
+Per-request control goes through `responseGenerator`, which sees the IR request:
 
-    return response || {
-      id: 'mock-123',
-      choices: [{ message: { content: 'Default mock response' } }]
-    };
-  }
-
-  async *chatStream(request: any): AsyncGenerator<any> {
-    const chunks = ['Mock', ' ', 'streaming', ' ', 'response'];
-
-    for (const chunk of chunks) {
-      yield {
-        choices: [{ delta: { content: chunk } }]
-      };
-    }
-  }
-}
+```typescript
+const backend = new MockBackendAdapter({
+  responseGenerator: (request) => {
+    const lastMessage = request.messages[request.messages.length - 1];
+    return JSON.stringify(lastMessage?.content).includes('weather')
+      ? 'It is sunny.'
+      : 'I do not know.';
+  },
+});
 ```
 
 ## Testing Patterns
@@ -152,7 +150,7 @@ class MockBackendAdapter {
 
 ```typescript
 it('should handle streaming responses', async () => {
-  const stream = await bridge.chatStream({
+  const stream = bridge.chatStream({
     model: 'gpt-4',
     messages: [{ role: 'user', content: 'Count to 5' }],
     stream: true
@@ -171,10 +169,14 @@ it('should handle streaming responses', async () => {
 
 ### Testing Error Handling
 
+A `MockResponse` may carry an `error`, which the adapter throws instead of
+responding:
+
 ```typescript
 it('should handle backend errors gracefully', async () => {
-  const failingBackend = new MockBackendAdapter();
-  failingBackend.setError(new Error('API Error'));
+  const failingBackend = new MockBackendAdapter({
+    defaultResponse: { error: new Error('API Error') },
+  });
 
   const bridge = new Bridge(
     new OpenAIFrontendAdapter(),
@@ -196,24 +198,18 @@ it('should handle backend errors gracefully', async () => {
 it('should execute middleware in order', async () => {
   const order: string[] = [];
 
-  const middleware1 = {
-    name: 'middleware-1',
-    async execute(request, next) {
-      order.push('before-1');
-      const response = await next(request);
-      order.push('after-1');
-      return response;
-    }
+  const middleware1: Middleware = async (context, next) => {
+    order.push('before-1');
+    const response = await next();
+    order.push('after-1');
+    return response;
   };
 
-  const middleware2 = {
-    name: 'middleware-2',
-    async execute(request, next) {
-      order.push('before-2');
-      const response = await next(request);
-      order.push('after-2');
-      return response;
-    }
+  const middleware2: Middleware = async (context, next) => {
+    order.push('before-2');
+    const response = await next();
+    order.push('after-2');
+    return response;
   };
 
   bridge.use(middleware1);
@@ -232,26 +228,45 @@ it('should execute middleware in order', async () => {
 
 ### Testing Router Failover
 
+A `Router` takes only a config object - backends are added with `register()`, and
+requests still go through a `Bridge`, since the router is itself a backend
+adapter and has no `chat()` of its own. Ordered failover is a fallback chain plus
+`fallbackStrategy: 'sequential'`; there is no `'priority'` strategy.
+
 ```typescript
+import { Bridge, Router } from '@johnhenry/aimatey-core';
+import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend/openai';
+import { MockBackendAdapter } from '@johnhenry/aimatey-backend-browser/mock';
+
 it('should failover to secondary backend', async () => {
-  const primary = new MockBackendAdapter();
-  primary.setError(new Error('Primary failed'));
-
-  const secondary = new MockBackendAdapter();
-  secondary.setResponse('*', { content: 'Fallback response' });
-
-  const router = new Router(new OpenAIFrontendAdapter(), {
-    backends: [primary, secondary],
-    strategy: 'priority',
-    fallbackOnError: true
+  const primary = new MockBackendAdapter({
+    responseGenerator: () => {
+      throw new Error('Primary failed');
+    }
   });
 
-  const response = await router.chat({
+  const secondary = new MockBackendAdapter({
+    defaultResponse: 'Fallback response'
+  });
+
+  const router = new Router({
+    routingStrategy: 'explicit',
+    defaultBackend: 'primary',
+    fallbackStrategy: 'sequential'
+  });
+
+  router.register('primary', primary);
+  router.register('secondary', secondary);
+  router.setFallbackChain(['primary', 'secondary']);
+
+  const bridge = new Bridge(new OpenAIFrontendAdapter(), router);
+
+  const response = await bridge.chat({
     model: 'gpt-4',
     messages: [{ role: 'user', content: 'Test' }]
   });
 
-  expect(response.content).toBe('Fallback response');
+  expect(response.choices[0].message.content).toBe('Fallback response');
 });
 ```
 

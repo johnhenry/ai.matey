@@ -185,7 +185,7 @@ app.post('/v1/chat/completions', async (req, res) => {
       res.setHeader('Cache-Control', 'no-cache');
       res.setHeader('Connection', 'keep-alive');
 
-      const stream = await bridge.chatStream(req.body);
+      const stream = bridge.chatStream(req.body);
 
       for await (const chunk of stream) {
         // Send chunk as SSE
@@ -402,18 +402,18 @@ import {
 // Add middleware to bridge
 bridge.use(createLoggingMiddleware({
   level: 'info',
-  redactFields: ['apiKey', 'authorization']
+  sanitize: true   // redacts API keys and tokens
 }));
 
 bridge.use(createCachingMiddleware({
-  ttl: 3600,
+  ttl: 3_600_000,  // ttl is milliseconds
   maxSize: 1000
 }));
 
 bridge.use(createCostTrackingMiddleware({
-  budgetLimit: 100,
-  onBudgetExceeded: () => {
-    console.error('⚠️  Daily budget exceeded!');
+  dailyThreshold: 100,
+  onThresholdExceeded: (cost, threshold) => {
+    console.error(`⚠️  Spend passed $${threshold} (last request $${cost.totalCost.toFixed(4)})`);
   }
 }));
 ```
@@ -422,30 +422,37 @@ bridge.use(createCostTrackingMiddleware({
 
 Use Router for high availability:
 
+A `Router` is a backend adapter, not a bridge: it takes only a config object,
+backends are added with `register()`, and requests still go through a `Bridge`.
+
 ```typescript
-import { Router } from '@johnhenry/aimatey-core';
+import { Bridge, Router } from '@johnhenry/aimatey-core';
 import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend/openai';
 import { AnthropicBackendAdapter } from '@johnhenry/aimatey-backend/anthropic';
 import { OpenAIBackendAdapter } from '@johnhenry/aimatey-backend/openai';
 
-const router = new Router(new OpenAIFrontendAdapter(), {
-  backends: [
-    new AnthropicBackendAdapter({
-      apiKey: process.env.ANTHROPIC_API_KEY
-    }),
-    new OpenAIBackendAdapter({
-      apiKey: process.env.OPENAI_API_KEY
-    })
-  ],
-  strategy: 'priority',
-  fallbackOnError: true
+const router = new Router({
+  routingStrategy: 'explicit',
+  defaultBackend: 'anthropic',
+  fallbackStrategy: 'sequential'
 });
 
-// Use router instead of bridge
+router.register('anthropic', new AnthropicBackendAdapter({
+  apiKey: process.env.ANTHROPIC_API_KEY
+}));
+router.register('openai', new OpenAIBackendAdapter({
+  apiKey: process.env.OPENAI_API_KEY
+}));
+
+router.setFallbackChain(['anthropic', 'openai']);
+
+// The bridge stays the entry point - it just talks to the router now
+const bridge = new Bridge(new OpenAIFrontendAdapter(), router);
+
 app.post('/v1/chat/completions', async (req, res) => {
   const response = req.body.stream
-    ? await router.chatStream(req.body)
-    : await router.chat(req.body);
+    ? bridge.chatStream(req.body)
+    : await bridge.chat(req.body);
   // ... handle response
 });
 ```
@@ -460,7 +467,7 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import rateLimit from 'express-rate-limit';
-import { Router } from '@johnhenry/aimatey-core';
+import { Bridge, Router } from '@johnhenry/aimatey-core';
 import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend/openai';
 import { AnthropicBackendAdapter } from '@johnhenry/aimatey-backend/anthropic';
 import { OpenAIBackendAdapter } from '@johnhenry/aimatey-backend/openai';
@@ -486,20 +493,24 @@ const limiter = rateLimit({
 app.use('/v1/', limiter);
 
 // Create router
-const router = new Router(new OpenAIFrontendAdapter(), {
-  backends: [
-    new AnthropicBackendAdapter({ apiKey: process.env.ANTHROPIC_API_KEY }),
-    new OpenAIBackendAdapter({ apiKey: process.env.OPENAI_API_KEY })
-  ],
-  strategy: 'priority',
-  fallbackOnError: true,
-  healthCheck: { enabled: true, interval: 60000 }
+const router = new Router({
+  routingStrategy: 'explicit',
+  defaultBackend: 'anthropic',
+  fallbackStrategy: 'sequential',
+  healthCheckInterval: 60000
 });
 
-// Add ai.matey middleware
-router.use(createLoggingMiddleware({ level: 'info', redactFields: ['apiKey'] }));
-router.use(createRetryMiddleware({ maxAttempts: 3 }));
-router.use(createCachingMiddleware({ ttl: 3600 }));
+router.register('anthropic', new AnthropicBackendAdapter({ apiKey: process.env.ANTHROPIC_API_KEY }));
+router.register('openai', new OpenAIBackendAdapter({ apiKey: process.env.OPENAI_API_KEY }));
+router.setFallbackChain(['anthropic', 'openai']);
+
+// The router is the bridge's backend
+const bridge = new Bridge(new OpenAIFrontendAdapter(), router);
+
+// Add ai.matey middleware - the middleware stack lives on the bridge
+bridge.use(createLoggingMiddleware({ level: 'info', sanitize: true }));
+bridge.use(createRetryMiddleware({ maxAttempts: 3 }));
+bridge.use(createCachingMiddleware({ ttl: 3_600_000 }));
 
 // Validation middleware
 function validateChatRequest(req, res, next) {
@@ -526,7 +537,7 @@ app.post('/v1/chat/completions', validateChatRequest, async (req, res) => {
       res.setHeader('Cache-Control', 'no-cache');
       res.setHeader('Connection', 'keep-alive');
 
-      const stream = await router.chatStream(req.body);
+      const stream = bridge.chatStream(req.body);
 
       for await (const chunk of stream) {
         res.write(`data: ${JSON.stringify(chunk)}\n\n`);
@@ -535,7 +546,7 @@ app.post('/v1/chat/completions', validateChatRequest, async (req, res) => {
       res.write('data: [DONE]\n\n');
       res.end();
     } else {
-      const response = await router.chat(req.body);
+      const response = await bridge.chat(req.body);
       res.json(response);
     }
   } catch (error) {

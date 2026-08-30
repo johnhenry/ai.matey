@@ -304,14 +304,14 @@ const openaiFormat = await toOpenAI(irResponse);
 #### Quick Start
 
 ```typescript
-import { toOpenAI, toAnthropic, toGemini, toOllama, toMistral } from '@johnhenry/aimatey-utils/conversion';
+import { toOpenAI, toAnthropic, toGemini, toOllama, toMistral } from '@johnhenry/aimatey-cli';
 
 // Convert to specific format
 const openaiResponse = await toOpenAI(irResponse);
 const anthropicResponse = await toAnthropic(irResponse);
 
 // Convert to multiple formats for comparison
-import { toMultipleFormats } from '@johnhenry/aimatey-utils/conversion';
+import { toMultipleFormats } from '@johnhenry/aimatey-cli';
 const allFormats = await toMultipleFormats(irResponse, ['openai', 'anthropic', 'gemini']);
 ```
 
@@ -450,7 +450,7 @@ curl https://api.example.com/ir-response | \
 #### Compare Request Formats
 
 ```typescript
-import { toMultipleRequestFormats } from '@johnhenry/aimatey-utils/conversion';
+import { toMultipleRequestFormats } from '@johnhenry/aimatey-cli';
 
 const allReqFormats = toMultipleRequestFormats(irRequest, [
   'openai',
@@ -466,7 +466,7 @@ console.log('Gemini:', allReqFormats.gemini);
 #### Compare Response Formats
 
 ```typescript
-import { toMultipleFormats } from '@johnhenry/aimatey-utils/conversion';
+import { toMultipleFormats } from '@johnhenry/aimatey-cli';
 
 const allFormats = await toMultipleFormats(irResponse, [
   'openai',
@@ -525,9 +525,9 @@ Create a backend module for use with the CLI:
 
 ```javascript
 // backend.mjs
-import { OpenAIBackend } from '@johnhenry/aimatey-backend/openai';
+import { OpenAIBackendAdapter } from '@johnhenry/aimatey-backend/openai';
 
-const backend = new OpenAIBackend({
+const backend = new OpenAIBackendAdapter({
   apiKey: process.env.OPENAI_API_KEY,
   defaultModel: 'gpt-4o',
 });
@@ -539,16 +539,15 @@ Or with model runner:
 
 ```javascript
 // llamacpp-backend.mjs
-import { LlamaCppBackend } from '@johnhenry/aimatey-native-node-llamacpp';
+import { NodeLlamaCppBackend } from '@johnhenry/aimatey-native-node-llamacpp';
 
-const backend = new LlamaCppBackend({
-  model: './models/llama-3.1-8b.gguf',
-  process: { command: '/usr/local/bin/llama-server' },
-  communication: { type: 'http', baseURL: 'http://localhost:{port}' },
-  runtime: { contextSize: 4096, gpuLayers: 35 },
+const backend = new NodeLlamaCppBackend({
+  modelPath: './models/llama-3.1-8b.gguf',
+  contextSize: 4096,
+  gpuLayers: 35,
 });
 
-await backend.start();
+await backend.initialize();
 export default backend;
 ```
 
@@ -626,22 +625,32 @@ When using non-Ollama backends, model names are translated:
 
 ```javascript
 // backend-with-mapping.mjs
-import { OpenAIBackend } from '@johnhenry/aimatey-backend';
+import { OpenAIBackendAdapter } from '@johnhenry/aimatey-backend';
 
-const backend = new OpenAIBackend({
+export default new OpenAIBackendAdapter({
   apiKey: process.env.OPENAI_API_KEY,
   defaultModel: 'gpt-4o',
 });
-
-// Attach model mapping
-backend.modelMapping = {
-  'llama3.1': 'gpt-4o',
-  'llama3.1:8b': 'gpt-4o-mini',
-  'codellama': 'gpt-4o',
-};
-
-export default backend;
 ```
+
+Supply the translation table as a JSON file (`model-map.json`) and point `--model-map` at it:
+
+```json
+{
+  "llama3.1": "gpt-4o",
+  "llama3.1:8b": "gpt-4o-mini",
+  "codellama": "gpt-4o"
+}
+```
+
+```bash
+ai-matey emulate-ollama \
+  --backend ./backend-with-mapping.mjs \
+  --model-map ./model-map.json \
+  run llama3.1
+```
+
+Any model name with no entry in the map falls back to the backend's `defaultModel`.
 
 #### Example Workflows
 
@@ -649,13 +658,12 @@ export default backend;
 ```bash
 # Use local model for development
 cat > local-backend.mjs << 'EOF'
-import { LlamaCppBackend } from '@johnhenry/aimatey-native-node-llamacpp';
-const backend = new LlamaCppBackend({
-  model: './models/llama-3.1-8b.gguf',
-  process: { command: 'llama-server' },
-  communication: { type: 'http', baseURL: 'http://localhost:8080' },
+import { NodeLlamaCppBackend } from '@johnhenry/aimatey-native-node-llamacpp';
+const backend = new NodeLlamaCppBackend({
+  modelPath: './models/llama-3.1-8b.gguf',
+  contextSize: 4096,
 });
-await backend.start();
+await backend.initialize();
 export default backend;
 EOF
 
@@ -667,8 +675,8 @@ ollama run llama3.1 "Test prompt"
 ```bash
 # Use OpenAI in production
 cat > prod-backend.mjs << 'EOF'
-import { OpenAIBackend } from '@johnhenry/aimatey-backend/openai';
-export default new OpenAIBackend({
+import { OpenAIBackendAdapter } from '@johnhenry/aimatey-backend/openai';
+export default new OpenAIBackendAdapter({
   apiKey: process.env.OPENAI_API_KEY,
   defaultModel: 'gpt-4o',
 });

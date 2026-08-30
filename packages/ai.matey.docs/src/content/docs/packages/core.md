@@ -42,14 +42,16 @@ const response = await bridge.chat({
 
 ```typescript
 constructor(
-  frontendAdapter: FrontendAdapter,
-  backendAdapter: BackendAdapter
+  frontend: FrontendAdapter,
+  backend: BackendAdapter | Router,
+  config?: Partial<BridgeConfig>
 )
 ```
 
 **Parameters:**
-- `frontendAdapter`: Adapter that defines the input format (OpenAI, Anthropic, etc.)
-- `backendAdapter`: Adapter that defines the AI provider (OpenAI, Anthropic, Gemini, etc.)
+- `frontend`: Adapter that defines the input format (OpenAI, Anthropic, etc.)
+- `backend`: Adapter that defines the AI provider (OpenAI, Anthropic, Gemini, etc.), or a `Router`
+- `config`: Optional `BridgeConfig` - `debug`, `timeout`, `retries`, `defaultModel`, `routerConfig`, `autoRequestId`, `custom`
 
 ### Methods
 
@@ -58,11 +60,16 @@ constructor(
 Execute a non-streaming chat completion:
 
 ```typescript
-async chat(request: IRChatCompletionRequest): Promise<IRChatCompletionResponse>
+async chat(request, options?): Promise<Response>
 ```
+
+The request and response types come from the frontend adapter - with
+`OpenAIFrontendAdapter` they are OpenAI-shaped. To work in IR directly, use
+`executeIR()` / `executeIRStream()`.
 
 **Parameters:**
 - `request`: Chat completion request in the frontend adapter's format
+- `options`: Optional `RequestOptions` (`timeout`, `signal`, `backend`, `metadata`, ...)
 
 **Returns:**
 - Promise resolving to the response in the frontend adapter's format
@@ -87,18 +94,19 @@ console.log(response.choices[0].message.content); // "4"
 Execute a streaming chat completion:
 
 ```typescript
-async chatStream(request: IRChatCompletionRequest): Promise<AsyncIterable<IRChatCompletionChunk>>
+async *chatStream(request, options?): AsyncGenerator<StreamChunk, void, undefined>
 ```
 
 **Parameters:**
 - `request`: Chat completion request with `stream: true`
 
 **Returns:**
-- Promise resolving to an async iterable of response chunks
+- An async generator of response chunks in the frontend adapter's format.
+  `chatStream()` is an async generator, so the call itself is not awaited.
 
 **Example:**
 ```typescript
-const stream = await bridge.chatStream({
+const stream = bridge.chatStream({
   model: 'gpt-4',
   messages: [{ role: 'user', content: 'Count to 5' }],
   stream: true
@@ -117,127 +125,150 @@ for await (const chunk of stream) {
 Add middleware to the request/response pipeline:
 
 ```typescript
-use(middleware: Middleware): void
+use(middleware: Middleware): Bridge
 ```
 
 **Parameters:**
-- `middleware`: Middleware function or object
+- `middleware`: Middleware function
+
+**Returns:**
+- The bridge, so calls can be chained
 
 **Example:**
 ```typescript
-import { createLoggingMiddleware } from '@johnhenry/aimatey-middleware';
+import { createLoggingMiddleware, createCachingMiddleware } from '@johnhenry/aimatey-middleware';
 
-bridge.use(createLoggingMiddleware({ level: 'info' }));
-bridge.use(createCachingMiddleware({ ttl: 3600 }));
+bridge
+  .use(createLoggingMiddleware({ level: 'info' }))
+  .use(createCachingMiddleware({ ttl: 3_600_000 })); // ttl is milliseconds
 ```
 
 ### Properties
 
-#### frontendAdapter
+#### frontend
 
 The frontend adapter instance (read-only):
 
 ```typescript
-readonly frontendAdapter: FrontendAdapter
+readonly frontend: FrontendAdapter
 ```
 
-#### backendAdapter
+#### backend
 
-The backend adapter instance (read-only):
+The backend adapter or router instance (read-only):
 
 ```typescript
-readonly backendAdapter: BackendAdapter
+readonly backend: BackendAdapter | Router
 ```
+
+Both are readonly - to change adapters, construct a new `Bridge`. `clone(config)`
+returns a new bridge with the same adapters and a merged configuration.
 
 ## Router
 
-The Router extends Bridge functionality to support multiple backend adapters with intelligent routing strategies.
+`Router` is itself a `BackendAdapter`: it spreads requests over several registered
+backends and is handed to a `Bridge` in place of a single backend adapter. It has
+no frontend adapter of its own, and no `chat()`, `chatStream()`, `use()` or `on()`.
 
 ### Basic Usage
 
 ```typescript
-import { Router } from '@johnhenry/aimatey-core';
+import { Bridge, Router } from '@johnhenry/aimatey-core';
 import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend/openai';
 import { AnthropicBackendAdapter } from '@johnhenry/aimatey-backend/anthropic';
 import { OpenAIBackendAdapter } from '@johnhenry/aimatey-backend/openai';
 
-const router = new Router(new OpenAIFrontendAdapter(), {
-  backends: [
-    new AnthropicBackendAdapter({ apiKey: process.env.ANTHROPIC_API_KEY }),
-    new OpenAIBackendAdapter({ apiKey: process.env.OPENAI_API_KEY })
-  ],
-  strategy: 'round-robin'
+const router = new Router({ routingStrategy: 'round-robin' });
+
+router.register('anthropic', new AnthropicBackendAdapter({ apiKey: process.env.ANTHROPIC_API_KEY }));
+router.register('openai', new OpenAIBackendAdapter({ apiKey: process.env.OPENAI_API_KEY }));
+
+// Requests are made through a Bridge, with the router as its backend
+const bridge = new Bridge(new OpenAIFrontendAdapter(), router);
+
+const response = await bridge.chat({
+  model: 'gpt-4',
+  messages: [{ role: 'user', content: 'Hello!' }]
 });
 ```
 
 ### Constructor
 
 ```typescript
-constructor(
-  frontendAdapter: FrontendAdapter,
-  options: RouterOptions
-)
+constructor(config?: Partial<RouterConfig>)
 ```
 
 **Parameters:**
-- `frontendAdapter`: Frontend adapter instance
-- `options`: Router configuration
+- `config`: Router configuration. Backends are not passed here - register them
+  afterwards with `router.register(name, adapter)`.
 
-### RouterOptions
+### RouterConfig
 
 ```typescript
-interface RouterOptions {
-  backends: BackendAdapter[];
-  strategy: 'round-robin' | 'priority' | 'random' | 'weighted' | 'custom';
-  customStrategy?: (request: IRChatCompletionRequest, backends: BackendAdapter[]) => number;
-  fallbackOnError?: boolean;
-  healthCheck?: {
-    enabled: boolean;
-    interval: number;
-    timeout?: number;
-  };
+interface RouterConfig {
+  routingStrategy?: RoutingStrategy;
+  fallbackStrategy?: 'none' | 'sequential' | 'parallel' | 'custom';
+  defaultBackend?: string;
+  healthCheckInterval?: number;
+  enableCircuitBreaker?: boolean;
+  circuitBreakerThreshold?: number;
+  circuitBreakerTimeout?: number;
+  trackLatency?: boolean;
+  trackCost?: boolean;
+  capabilityBasedRouting?: boolean;
+  optimization?: 'cost' | 'speed' | 'quality' | 'balanced';
+  customRouter?: CustomRoutingFunction;
+  customFallback?: CustomFallbackFunction;
 }
 ```
 
 **Fields:**
-- `backends`: Array of backend adapter instances
-- `strategy`: Routing strategy to use
-- `customStrategy`: Custom routing function (required if strategy is 'custom')
-- `fallbackOnError`: Automatically try next backend on failure (default: false)
-- `healthCheck`: Health check configuration (optional)
+- `routingStrategy`: How a backend is chosen (default: `'explicit'`)
+- `fallbackStrategy`: What happens when the chosen backend fails (default: `'none'`)
+- `defaultBackend`: Backend used when the strategy makes no other choice
+- `healthCheckInterval`: Background health check period in ms (`0` disables)
+- `enableCircuitBreaker` / `circuitBreakerThreshold` / `circuitBreakerTimeout`: circuit breaker
+- `customRouter`: Async function returning a backend *name* (used with `'custom'`)
 
 ### Routing Strategies
 
-#### Round-Robin
+`RoutingStrategy` is one of `'explicit'`, `'model-based'`, `'cost-optimized'`,
+`'latency-optimized'`, `'round-robin'`, `'random'` or `'custom'`. There is no
+`'priority'` or `'weighted'` strategy.
 
-Distributes requests evenly across all backends:
+#### Explicit
+
+Uses `defaultBackend`, or the backend named per request via
+`bridge.chat(request, { backend: 'anthropic' })`:
 
 ```typescript
-const router = new Router(new OpenAIFrontendAdapter(), {
-  backends: [backend1, backend2, backend3],
-  strategy: 'round-robin'
-});
-
-// Request 1 → backend1
-// Request 2 → backend2
-// Request 3 → backend3
-// Request 4 → backend1 (cycles)
+const router = new Router({ routingStrategy: 'explicit', defaultBackend: 'openai' });
 ```
 
-#### Priority
+#### Model-based
 
-Uses backends in order, falling back on failure:
+Routes on the requested model name, using the router's model mapping:
 
 ```typescript
-const router = new Router(new OpenAIFrontendAdapter(), {
-  backends: [primaryBackend, secondaryBackend, tertiaryBackend],
-  strategy: 'priority',
-  fallbackOnError: true
+const router = new Router({ routingStrategy: 'model-based' });
+router.setModelMapping({
+  'gpt-4': 'openai',
+  'claude-3-5-sonnet-20241022': 'anthropic'
 });
+```
 
-// Always tries primaryBackend first
-// Falls back to secondaryBackend if primary fails
-// Falls back to tertiaryBackend if secondary fails
+#### Round-Robin
+
+Distributes requests evenly across registered backends:
+
+```typescript
+const router = new Router({ routingStrategy: 'round-robin' });
+router.register('openai', backend1);
+router.register('anthropic', backend2);
+
+// Request 1 → openai
+// Request 2 → anthropic
+// Request 3 → openai (cycles)
 ```
 
 #### Random
@@ -245,90 +276,138 @@ const router = new Router(new OpenAIFrontendAdapter(), {
 Randomly selects a backend for each request:
 
 ```typescript
-const router = new Router(new OpenAIFrontendAdapter(), {
-  backends: [backend1, backend2, backend3],
-  strategy: 'random'
-});
+const router = new Router({ routingStrategy: 'random' });
 ```
 
-#### Weighted
+#### Cost- and latency-optimized
 
-Distributes requests based on weights:
+Picks the cheapest or fastest healthy backend, using the statistics the router
+collects:
 
 ```typescript
-const router = new Router(new OpenAIFrontendAdapter(), {
-  backends: [
-    { backend: backend1, weight: 70 }, // 70% of traffic
-    { backend: backend2, weight: 20 }, // 20% of traffic
-    { backend: backend3, weight: 10 }  // 10% of traffic
-  ],
-  strategy: 'weighted'
+const router = new Router({ routingStrategy: 'cost-optimized', trackCost: true });
+const fast = new Router({ routingStrategy: 'latency-optimized', trackLatency: true });
+```
+
+#### Fallback ordering
+
+Ordered failover replaces the old "priority" strategy: set a fallback chain and a
+sequential fallback strategy.
+
+```typescript
+const router = new Router({
+  routingStrategy: 'explicit',
+  defaultBackend: 'primary',
+  fallbackStrategy: 'sequential'
 });
+
+router.register('primary', primaryBackend);
+router.register('secondary', secondaryBackend);
+router.register('tertiary', tertiaryBackend);
+
+router.setFallbackChain(['primary', 'secondary', 'tertiary']);
 ```
 
 #### Custom
 
-Implement your own routing logic:
+Implement your own routing logic. The function is async and returns the *name* of
+a backend (or `null` to fall through to the default strategy):
 
 ```typescript
-const router = new Router(new OpenAIFrontendAdapter(), {
-  backends: [cheapBackend, fastBackend, powerfulBackend],
-  strategy: 'custom',
-  customStrategy: (request, backends) => {
-    // Route based on message length
+const router = new Router({
+  routingStrategy: 'custom',
+  customRouter: async (request, availableBackends) => {
     const messageLength = JSON.stringify(request.messages).length;
 
-    if (messageLength < 100) return 0;  // Cheap
-    if (messageLength < 500) return 1;  // Fast
-    return 2;                            // Powerful
+    if (messageLength < 100) return 'cheap';
+    if (messageLength < 500) return 'fast';
+    return availableBackends.includes('powerful') ? 'powerful' : null;
   }
 });
+
+router.register('cheap', cheapBackend);
+router.register('fast', fastBackend);
+router.register('powerful', powerfulBackend);
 ```
 
 ### Methods
 
-Router inherits all Bridge methods (`chat()`, `chatStream()`, `use()`) plus:
+Because `Router` is a `BackendAdapter`, it exposes `execute()` and
+`executeStream()` rather than `chat()` / `chatStream()`, and it has no middleware
+stack or event emitter of its own - register middleware on the `Bridge` that owns
+it. Beyond the adapter interface it adds:
 
-#### getBackendHealth()
+- `register(name, adapter)` / `replace(name, adapter)` / `unregister(name)`
+- `get(name)`, `has(name)`, `listBackends()`
+- `getBackendInfo()` / `getBackendInfo(name)`
+- `setFallbackChain(chain)` / `getFallbackChain()`
+- `setModelMapping(mapping)` / `setModelPatterns(patterns)`
+- `selectBackend(request, preferredBackend?)`
+- `dispatchParallel(request, options?)`
+- `checkHealth()` / `checkHealth(name)`
+- `openCircuitBreaker(name, timeoutMs?)` / `closeCircuitBreaker(name)` / `resetCircuitBreaker(name?)`
+- `getStats()` / `getBackendStats(name)` / `resetStats()`
 
-Get health status of all backends:
+#### checkHealth()
+
+Check the health of every backend, or one by name:
 
 ```typescript
-async getBackendHealth(): Promise<Record<string, BackendHealth>>
+async checkHealth(): Promise<Record<string, boolean>>
+async checkHealth(name: string): Promise<boolean>
 ```
-
-**Returns:**
-- Object mapping backend names to health metrics
 
 **Example:**
 ```typescript
-const health = await router.getBackendHealth();
+const health = await router.checkHealth();
 console.log(health);
 /*
 {
-  anthropic: { healthy: true, latency: 1200, errorRate: 0 },
-  openai: { healthy: true, latency: 1500, errorRate: 0.02 },
-  groq: { healthy: false, latency: 5000, errorRate: 0.5 }
+  anthropic: true,
+  openai: true,
+  groq: false
 }
 */
+
+// Richer per-backend state, including latency and circuit breaker
+for (const info of router.getBackendInfo()) {
+  console.log(info.name, info.isHealthy, info.circuitBreakerState, info.stats.averageLatencyMs);
+}
 ```
 
-### Events
+#### dispatchParallel()
 
-Router emits events for monitoring:
+Send one request to several backends at once:
 
 ```typescript
-router.on('backend:failed', ({ backend, error }) => {
-  console.log(`Backend ${backend} failed: ${error.message}`);
+const result = await router.dispatchParallel(request, {
+  backends: ['openai', 'anthropic'],
+  strategy: 'first'
 });
 
-router.on('backend:switch', ({ from, to }) => {
-  console.log(`Switched from ${from} to ${to}`);
-});
+console.log(result.response.message.content);
+console.log('Answered by:', result.successfulBackends);
+```
 
-router.on('backend:health', ({ backend, healthy }) => {
-  console.log(`${backend}: ${healthy ? 'Healthy' : 'Unhealthy'}`);
-});
+### Monitoring
+
+`Router` has no event emitter - there is no `router.on(...)`. Observe it by
+polling instead:
+
+```typescript
+// Health, on demand or after a failure
+const health = await router.checkHealth();
+
+// Per-backend request counts, latencies, failures and circuit breaker state
+for (const info of router.getBackendInfo()) {
+  if (!info.isHealthy) {
+    console.log(`${info.name} unhealthy: ${info.consecutiveFailures} consecutive failures`);
+  }
+}
+
+// Aggregate counters, including fallbacks
+const stats = router.getStats();
+console.log(`${stats.totalFallbacks} fallbacks out of ${stats.totalRequests} requests`);
 ```
 
 ## Middleware System
@@ -338,30 +417,36 @@ Both Bridge and Router support middleware for intercepting and transforming requ
 ### Middleware Interface
 
 ```typescript
-interface Middleware {
-  name: string;
-  execute(
-    request: IRChatCompletionRequest,
-    next: (request: IRChatCompletionRequest) => Promise<IRChatCompletionResponse>
-  ): Promise<IRChatCompletionResponse>;
+type Middleware = (
+  context: MiddlewareContext,
+  next: () => Promise<IRChatResponse>
+) => Promise<IRChatResponse>;
+
+interface MiddlewareContext {
+  request: IRChatRequest;                    // inspect and replace to modify
+  readonly isStreaming: boolean;
+  readonly backend?: BackendAdapter;
+  readonly backendName?: string;
+  readonly state: Record<string, unknown>;   // scratch space shared between middleware
+  readonly config: Record<string, unknown>;
+  readonly signal?: AbortSignal;
 }
 ```
 
 ### Creating Custom Middleware
 
 ```typescript
-function createTimingMiddleware() {
-  return {
-    name: 'timing',
-    async execute(request, next) {
-      const start = Date.now();
-      const response = await next(request);
-      const duration = Date.now() - start;
+import type { Middleware } from '@johnhenry/aimatey-types';
 
-      console.log(`Request took ${duration}ms`);
+function createTimingMiddleware(): Middleware {
+  return async (context, next) => {
+    const start = Date.now();
+    const response = await next();
+    const duration = Date.now() - start;
 
-      return response;
-    }
+    console.log(`Request took ${duration}ms`);
+
+    return response;
   };
 }
 
@@ -370,15 +455,16 @@ bridge.use(createTimingMiddleware());
 
 ### Middleware Order
 
-Middleware executes in reverse order (last added runs first):
+Middleware executes in registration order (first added runs first, as the
+outermost layer):
 
 ```typescript
-bridge.use(middleware1); // Runs 3rd
+bridge.use(middleware1); // Runs 1st
 bridge.use(middleware2); // Runs 2nd
-bridge.use(middleware3); // Runs 1st
+bridge.use(middleware3); // Runs 3rd
 
-// Request → middleware3 → middleware2 → middleware1 → Backend
-// Response ← middleware3 ← middleware2 ← middleware1 ← Backend
+// Request → middleware1 → middleware2 → middleware3 → Backend
+// Response ← middleware1 ← middleware2 ← middleware3 ← Backend
 ```
 
 **Best practice order:**
@@ -391,39 +477,41 @@ bridge.use(middleware3); // Runs 1st
 
 ### Error Types
 
-```typescript
-class BridgeError extends Error {
-  constructor(message: string, public code: string) {
-    super(message);
-    this.name = 'BridgeError';
-  }
-}
-```
+There is no `BridgeError`. Every error thrown by a bridge or router derives from
+`AdapterError` in `@johnhenry/aimatey-errors`, which carries a `code`, a
+`category` and an `isRetryable` flag. The specialized subclasses are
+`AuthenticationError`, `AuthorizationError`, `RateLimitError`, `ValidationError`,
+`ProviderError`, `AdapterConversionError`, `NetworkError`, `StreamError`,
+`RouterError` and `MiddlewareError`.
 
-**Error codes:**
-- `ADAPTER_ERROR`: Frontend/backend adapter error
-- `VALIDATION_ERROR`: Invalid request format
-- `NETWORK_ERROR`: Network/connection error
-- `RATE_LIMIT_ERROR`: Rate limit exceeded
-- `TIMEOUT_ERROR`: Request timeout
-- `AUTH_ERROR`: Authentication failed
+**Common error codes:**
+- `INVALID_API_KEY`: Authentication failed
+- `RATE_LIMIT_EXCEEDED`: Rate limit exceeded
+- `PROVIDER_ERROR`: The provider API returned an error
+- `CONNECTION_TIMEOUT` / `PROVIDER_TIMEOUT`: Request timed out
+- `ROUTING_FAILED`: No backend could serve the request
 
 ### Handling Errors
 
 ```typescript
+import { AdapterError, ErrorCode, RateLimitError } from '@johnhenry/aimatey-errors';
+
 try {
   const response = await bridge.chat(request);
 } catch (error) {
-  if (error instanceof BridgeError) {
+  if (error instanceof RateLimitError) {
+    console.log('Rate limited, retrying...');
+  } else if (error instanceof AdapterError) {
     switch (error.code) {
-      case 'RATE_LIMIT_ERROR':
-        console.log('Rate limited, retrying...');
-        break;
-      case 'AUTH_ERROR':
+      case ErrorCode.INVALID_API_KEY:
         console.log('Invalid API key');
         break;
+      case ErrorCode.CONNECTION_TIMEOUT:
+      case ErrorCode.PROVIDER_TIMEOUT:
+        console.log('Request timed out');
+        break;
       default:
-        console.log('Unknown error:', error.message);
+        console.log('Adapter error:', error.code, error.message);
     }
   }
 }
@@ -434,43 +522,41 @@ try {
 ### Key Interfaces
 
 ```typescript
-// Request
-interface IRChatCompletionRequest {
-  model: string;
-  messages: IRMessage[];
-  temperature?: number;
-  max_tokens?: number;
-  top_p?: number;
+// Request - model and sampling options live under `parameters`, metadata is required
+interface IRChatRequest {
+  messages: readonly IRMessage[];
+  parameters?: IRParameters;   // { model, temperature, maxTokens, topP, ... }
+  metadata: IRMetadata;        // { requestId, timestamp, ... }
+  tools?: readonly IRTool[];
   stream?: boolean;
-  tools?: IRTool[];
-  // ... more parameters
+  // ... toolChoice, responseFormat, streamMode
 }
 
-// Response
-interface IRChatCompletionResponse {
-  id: string;
-  object: 'chat.completion';
-  created: number;
-  model: string;
-  choices: IRChoice[];
-  usage?: IRUsage;
+// Response - one message, no `choices` array
+interface IRChatResponse {
+  message: IRMessage;
+  finishReason: FinishReason;
+  usage?: IRUsage;             // { promptTokens, completionTokens, totalTokens }
+  metadata: IRMetadata;
+  raw?: Record<string, unknown>;
 }
 
 // Message
 interface IRMessage {
   role: 'system' | 'user' | 'assistant' | 'tool';
-  content: string | IRContent[];
+  content: string | readonly MessageContent[];
   name?: string;
+  metadata?: Record<string, unknown>;
 }
 
-// Streaming chunk
-interface IRChatCompletionChunk {
-  id: string;
-  object: 'chat.completion.chunk';
-  created: number;
-  model: string;
-  choices: IRStreamChoice[];
-}
+// Streaming chunk - a discriminated union on `type`
+type IRStreamChunk =
+  | StreamStartChunk
+  | StreamContentChunk
+  | StreamToolUseChunk
+  | StreamMetadataChunk
+  | StreamDoneChunk
+  | StreamErrorChunk;
 ```
 
 See [IR Format Documentation](/guides/architecture/ir-format) for complete type definitions.
@@ -501,9 +587,9 @@ async function chat(message) {
 Take advantage of full type safety:
 
 ```typescript
-import type { IRChatCompletionRequest, IRChatCompletionResponse } from '@johnhenry/aimatey-types';
+import type { IRChatRequest, IRChatResponse } from '@johnhenry/aimatey-types';
 
-async function chat(request: IRChatCompletionRequest): Promise<IRChatCompletionResponse> {
+async function chat(request: IRChatRequest): Promise<IRChatResponse> {
   return await bridge.chat(request);
 }
 ```
@@ -515,7 +601,7 @@ Always wrap calls in try-catch:
 ```typescript
 try {
   const response = await bridge.chat(request);
-  return response.choices[0].message.content;
+  return response.choices[0].message.content; // OpenAI-shaped, from the OpenAI frontend
 } catch (error) {
   console.error('Chat failed:', error);
   throw error;
@@ -531,7 +617,7 @@ import { createLoggingMiddleware, createRetryMiddleware, createCachingMiddleware
 
 bridge.use(createLoggingMiddleware({ level: 'info' }));
 bridge.use(createRetryMiddleware({ maxAttempts: 3 }));
-bridge.use(createCachingMiddleware({ ttl: 3600 }));
+bridge.use(createCachingMiddleware({ ttl: 3_600_000 })); // ttl is milliseconds
 ```
 
 ## See Also

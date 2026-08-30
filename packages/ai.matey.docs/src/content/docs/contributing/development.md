@@ -354,12 +354,12 @@ export class MockBackendAdapter implements BackendAdapter {
     this.error = error;
   }
 
-  async chat(request: IRChatCompletionRequest) {
+  async chat(request: IRChatRequest) {
     if (this.error) throw this.error;
     return this.response || { choices: [{ message: { content: 'Mock' } }] };
   }
 
-  async *chatStream(request: IRChatCompletionRequest) {
+  async *chatStream(request: IRChatRequest) {
     if (this.error) throw this.error;
     yield { choices: [{ delta: { content: 'Mock' } }] };
   }
@@ -478,13 +478,12 @@ npx turbo run build --force
 
 2. **Implement:**
    ```typescript
-   export function createNewMiddleware(options) {
-     return {
-       name: 'new-middleware',
-       async execute(request, next) {
-         // Implementation
-         return await next(request);
-       }
+   import type { Middleware } from '@johnhenry/aimatey-types';
+
+   export function createNewMiddleware(options): Middleware {
+     return async (context, next) => {
+       // Implementation
+       return await next();
      };
    }
    ```

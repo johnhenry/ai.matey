@@ -23,16 +23,25 @@ A Router that:
 
 ## What is a Router?
 
-A **Router** is like a Bridge, but it can work with **multiple backend providers** simultaneously. It decides which provider to use for each request based on a **routing strategy**.
+A **Router** holds several backend adapters and decides which one executes each
+request, according to a **routing strategy**.
+
+The important thing to internalise up front: **a Router is itself a backend
+adapter, not a bridge.** It has no frontend adapter, and it has no `chat()`
+method. It speaks the Intermediate Representation directly (`execute()` /
+`executeStream()`), which is exactly the interface a `Bridge` expects from a
+backend. So you build a Router, register backends on it, and then hand it to a
+`Bridge`:
 
 ```
-Your Request
+Your Request (OpenAI format)
      ↓
-   Router
+   Bridge  ← frontend adapter, middleware, chat()/chatStream()
+     ↓
+   Router  ← a BackendAdapter: strategy, fallback, circuit breaker
   /  |  \
  /   |   \
 Backend Backend Backend
-  1      2      3
 OpenAI Anthropic Groq
 ```
 
@@ -41,7 +50,7 @@ OpenAI Anthropic Groq
 1. **Load Balancing**: Distribute load evenly across providers
 2. **High Availability**: Auto-failover if a provider fails
 3. **Cost Optimization**: Route to cheaper providers
-4. **Performance**: Use fastest provider for each request
+4. **Performance**: Use the fastest provider for each request
 5. **Testing**: A/B test different providers
 
 ## Step 1: Install Packages
@@ -54,133 +63,176 @@ npm install @johnhenry/aimatey-backend
 
 ## Step 2: Create a Basic Router
 
-Create a Router with multiple backends:
+The `Router` constructor takes **only a config object**. Backends are added
+afterwards with `register(name, adapter)`, and the name you give here is the name
+you use everywhere else (fallback chains, per-request overrides, stats).
 
 ```typescript
-import { Router } from '@johnhenry/aimatey-core';
+import { Bridge, Router } from '@johnhenry/aimatey-core';
 import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend/openai';
 import { AnthropicBackendAdapter } from '@johnhenry/aimatey-backend/anthropic';
 import { OpenAIBackendAdapter } from '@johnhenry/aimatey-backend/openai';
 
-const router = new Router(
-  new OpenAIFrontendAdapter(),
-  {
-    backends: [
-      new AnthropicBackendAdapter({
-        apiKey: process.env.ANTHROPIC_API_KEY
-      }),
-      new OpenAIBackendAdapter({
-        apiKey: process.env.OPENAI_API_KEY
-      })
-    ],
-    strategy: 'round-robin' // Alternate between providers
-  }
-);
-
-// First request → Anthropic
-const response1 = await router.chat({
-  model: 'gpt-4',
-  messages: [{ role: 'user', content: 'Hello' }]
+const router = new Router({
+  routingStrategy: 'round-robin', // Alternate between providers
 });
 
-// Second request → OpenAI
-const response2 = await router.chat({
+router
+  .register('anthropic', new AnthropicBackendAdapter({
+    apiKey: process.env.ANTHROPIC_API_KEY!,
+  }))
+  .register('openai', new OpenAIBackendAdapter({
+    apiKey: process.env.OPENAI_API_KEY!,
+  }));
+
+// The router is the bridge's backend. You call the *bridge*.
+const bridge = new Bridge(new OpenAIFrontendAdapter(), router);
+
+// First request → anthropic
+const response1 = await bridge.chat({
   model: 'gpt-4',
-  messages: [{ role: 'user', content: 'Hi' }]
+  messages: [{ role: 'user', content: 'Hello' }],
 });
 
-// Third request → Anthropic (cycles back)
-const response3 = await router.chat({
+// Second request → openai
+const response2 = await bridge.chat({
   model: 'gpt-4',
-  messages: [{ role: 'user', content: 'Hey' }]
+  messages: [{ role: 'user', content: 'Hi' }],
+});
+
+// Third request → anthropic (cycles back)
+const response3 = await bridge.chat({
+  model: 'gpt-4',
+  messages: [{ role: 'user', content: 'Hey' }],
 });
 ```
 
 ## Routing Strategies
 
+The strategy is set with `routingStrategy` in the config. The full set is
+`'explicit'` (the default), `'model-based'`, `'cost-optimized'`,
+`'latency-optimized'`, `'round-robin'`, `'random'` and `'custom'`.
+
 ### 1. Round-Robin (Load Balancing)
 
-Distributes requests evenly:
+Distributes requests evenly across the healthy backends:
 
 ```typescript
-const router = new Router(new OpenAIFrontendAdapter(), {
-  backends: [backend1, backend2, backend3],
-  strategy: 'round-robin'
-});
+const router = new Router({ routingStrategy: 'round-robin' });
+router
+  .register('backend1', backend1)
+  .register('backend2', backend2)
+  .register('backend3', backend3);
 
-// Request 1 → Backend 1
-// Request 2 → Backend 2
-// Request 3 → Backend 3
-// Request 4 → Backend 1 (cycles)
+// Request 1 → backend1
+// Request 2 → backend2
+// Request 3 → backend3
+// Request 4 → backend1 (cycles)
 ```
 
 **Use case**: Even load distribution, all providers have similar pricing/performance.
 
-### 2. Priority (Failover)
+### 2. Explicit + Fallback Chain (Failover)
 
-Uses providers in order, falls back if one fails:
+There is no `'priority'` strategy. To get "always try this one, fall back in this
+order", pin a `defaultBackend` and set an explicit fallback chain:
 
 ```typescript
-const router = new Router(new OpenAIFrontendAdapter(), {
-  backends: [
-    primaryBackend,   // Try this first
-    secondaryBackend, // Fallback if primary fails
-    tertiaryBackend   // Last resort
-  ],
-  strategy: 'priority',
-  fallbackOnError: true
+const router = new Router({
+  routingStrategy: 'explicit',
+  defaultBackend: 'primary',
+  fallbackStrategy: 'sequential', // this is the default
 });
+
+router
+  .register('primary', primaryBackend)
+  .register('secondary', secondaryBackend)
+  .register('tertiary', tertiaryBackend);
+
+// Order tried after 'primary' fails
+router.setFallbackChain(['secondary', 'tertiary']);
 ```
+
+Without a fallback chain, `'sequential'` simply tries every other available
+backend in registration order.
 
 **Use case**: High availability, redundancy, disaster recovery.
 
 ### 3. Random
 
-Selects a random backend for each request:
+Selects a random healthy backend for each request:
 
 ```typescript
-const router = new Router(new OpenAIFrontendAdapter(), {
-  backends: [backend1, backend2, backend3],
-  strategy: 'random'
-});
+const router = new Router({ routingStrategy: 'random' });
+router
+  .register('backend1', backend1)
+  .register('backend2', backend2)
+  .register('backend3', backend3);
 ```
 
 **Use case**: Simple distribution, testing.
 
-### 4. Weighted
+### 4. Model-Based
 
-Some providers get more traffic:
+Route by the model name on the request. The mapping is model → backend name:
 
 ```typescript
-const router = new Router(new OpenAIFrontendAdapter(), {
-  backends: [
-    { backend: backend1, weight: 70 }, // 70% of traffic
-    { backend: backend2, weight: 20 }, // 20% of traffic
-    { backend: backend3, weight: 10 }  // 10% of traffic
-  ],
-  strategy: 'weighted'
+const router = new Router({ routingStrategy: 'model-based' });
+
+router
+  .register('openai', new OpenAIBackendAdapter({ apiKey: process.env.OPENAI_API_KEY! }))
+  .register('anthropic', new AnthropicBackendAdapter({ apiKey: process.env.ANTHROPIC_API_KEY! }));
+
+router.setModelMapping({
+  'gpt-4': 'openai',
+  'gpt-4o-mini': 'openai',
+  'claude-3-5-sonnet-20241022': 'anthropic',
 });
 ```
 
-**Use case**: A/B testing, gradual provider migration, canary deployments.
+**Use case**: One endpoint that serves several providers' model catalogues.
 
-### 5. Custom Strategy
+### 5. Latency- and Cost-Optimized
 
-Write your own routing logic:
+Both pick a backend from statistics the router has already collected, so they
+only start doing something useful once traffic has flowed:
 
 ```typescript
-const router = new Router(new OpenAIFrontendAdapter(), {
-  backends: [cheapBackend, fastBackend, powerfulBackend],
-  strategy: 'custom',
-  customStrategy: (request) => {
-    // Route based on your logic
-    const isComplex = request.messages.length > 10;
-    const needsSpeed = request.max_tokens < 100;
+// Route to whichever backend has the lowest observed average latency.
+// Requires trackLatency (on by default).
+const fastest = new Router({ routingStrategy: 'latency-optimized' });
 
-    if (needsSpeed) return 1;      // Fast backend
-    if (isComplex) return 2;       // Powerful backend
-    return 0;                      // Cheap backend
-  }
+// Route to whichever backend has the lowest observed average cost.
+// Requires trackCost, and backends that implement estimateCost().
+const cheapest = new Router({ routingStrategy: 'cost-optimized', trackCost: true });
+```
+
+With `routingStrategy: 'cost-optimized'` and `trackCost` left off, cost routing
+returns nothing and the router falls through to `defaultBackend`, then to the
+first available backend.
+
+### 6. Custom Strategy
+
+Write your own routing logic. `customRouter` is **async**, receives the IR
+request plus the list of currently-available backend *names*, and returns a
+backend name (or `null` to fall through to the default):
+
+```typescript
+import type { CustomRoutingFunction } from '@johnhenry/aimatey-types';
+
+const chooseBackend: CustomRoutingFunction = async (request, availableBackends) => {
+  const messages = request.messages ?? [];
+  const isComplex = messages.length > 10;
+  const needsSpeed = (request.parameters?.maxTokens ?? 0) < 100;
+
+  if (needsSpeed && availableBackends.includes('groq')) return 'groq';
+  if (isComplex && availableBackends.includes('anthropic')) return 'anthropic';
+  return availableBackends[0] ?? null;
+};
+
+const router = new Router({
+  routingStrategy: 'custom',
+  customRouter: chooseBackend,
 });
 ```
 
@@ -188,113 +240,126 @@ const router = new Router(new OpenAIFrontendAdapter(), {
 
 ## Step 3: Automatic Failover
 
-Handle provider failures gracefully:
+Handle provider failures gracefully. Failover is controlled by
+`fallbackStrategy`, and unhealthy backends are taken out of rotation by the
+health checker and the circuit breaker:
 
 ```typescript
-import { Router } from '@johnhenry/aimatey-core';
+import { Bridge, Router } from '@johnhenry/aimatey-core';
 import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend/openai';
 import { AnthropicBackendAdapter } from '@johnhenry/aimatey-backend/anthropic';
 import { OpenAIBackendAdapter } from '@johnhenry/aimatey-backend/openai';
 import { GroqBackendAdapter } from '@johnhenry/aimatey-backend/groq';
 
-const router = new Router(new OpenAIFrontendAdapter(), {
-  backends: [
-    new AnthropicBackendAdapter({ apiKey: process.env.ANTHROPIC_API_KEY }),
-    new OpenAIBackendAdapter({ apiKey: process.env.OPENAI_API_KEY }),
-    new GroqBackendAdapter({ apiKey: process.env.GROQ_API_KEY })
-  ],
-  strategy: 'priority',
-  fallbackOnError: true,
-  healthCheck: {
-    enabled: true,
-    interval: 60000, // Check every minute
-    timeout: 5000
-  }
+const router = new Router({
+  routingStrategy: 'explicit',
+  defaultBackend: 'anthropic',
+  fallbackStrategy: 'sequential',
+  healthCheckInterval: 60_000,   // probe backends every minute (0 disables)
+  enableCircuitBreaker: true,
+  circuitBreakerThreshold: 5,    // open after 5 consecutive failures
+  circuitBreakerTimeout: 60_000, // then half-open after a minute
 });
 
-// Listen for failover events
-router.on('backend:failed', ({ backend, error }) => {
-  console.log(`❌ ${backend} failed: ${error.message}`);
-});
+router
+  .register('anthropic', new AnthropicBackendAdapter({ apiKey: process.env.ANTHROPIC_API_KEY! }))
+  .register('openai', new OpenAIBackendAdapter({ apiKey: process.env.OPENAI_API_KEY! }))
+  .register('groq', new GroqBackendAdapter({ apiKey: process.env.GROQ_API_KEY! }));
 
-router.on('backend:switch', ({ from, to }) => {
-  console.log(`🔄 Switched from ${from} to ${to}`);
-});
+router.setFallbackChain(['openai', 'groq']);
 
-// If Anthropic is down, automatically uses OpenAI
-const response = await router.chat({
+const bridge = new Bridge(new OpenAIFrontendAdapter(), router);
+
+// If Anthropic is down, this automatically uses OpenAI, then Groq
+const response = await bridge.chat({
   model: 'gpt-4',
-  messages: [{ role: 'user', content: 'Hello' }]
+  messages: [{ role: 'user', content: 'Hello' }],
 });
 ```
 
-**Console output (if Anthropic is down):**
-```
-❌ anthropic failed: Connection timeout
-🔄 Switched from anthropic to openai
+:::caution[Fallback is non-streaming only]
+`Router.executeStream()` does **not** fall back. If the selected backend fails,
+the stream yields a single `error` chunk and ends. Only `execute()` (that is,
+`bridge.chat()`) walks the fallback chain.
+:::
+
+To see which backend served a request, read the router's stats or the per-backend
+info rather than subscribing to events — the `Router` class does not expose an
+event emitter:
+
+```typescript
+console.log(router.getStats().backendStats);
+console.log(router.getBackendInfo('anthropic')?.circuitBreakerState);
 ```
 
 ## Step 4: Cost-Based Routing
 
-Route to the cheapest provider that meets quality requirements:
+The built-in `'cost-optimized'` strategy uses observed averages. If you want to
+decide up front, from the request itself, use a custom router:
 
 ```typescript
+import type { CustomRoutingFunction } from '@johnhenry/aimatey-types';
+
 // Provider pricing (per 1K tokens)
-const PRICING = {
+const PRICING: Record<string, number> = {
   groq: 0.00027,
   deepseek: 0.0002,
   anthropic: 0.0008,
-  openai: 0.0015
+  openai: 0.0015,
 };
 
-function selectCheapestProvider(request, backends) {
+const selectCheapestProvider: CustomRoutingFunction = async (request, availableBackends) => {
   // Estimate tokens
   const estimatedTokens = Math.ceil(
     (JSON.stringify(request.messages).length + 200) / 4
   );
 
-  // Find cheapest
-  let cheapestIndex = 0;
+  let cheapest: string | null = null;
   let lowestCost = Infinity;
 
-  backends.forEach((backend, index) => {
-    const cost = PRICING[backend.name] * estimatedTokens / 1000;
+  for (const name of availableBackends) {
+    const cost = ((PRICING[name] ?? Infinity) * estimatedTokens) / 1000;
     if (cost < lowestCost) {
       lowestCost = cost;
-      cheapestIndex = index;
+      cheapest = name;
     }
-  });
+  }
 
-  return cheapestIndex;
-}
+  return cheapest;
+};
 
-const router = new Router(new OpenAIFrontendAdapter(), {
-  backends: [
-    new GroqBackendAdapter({ apiKey: process.env.GROQ_API_KEY }),
-    new DeepSeekBackendAdapter({ apiKey: process.env.DEEPSEEK_API_KEY }),
-    new AnthropicBackendAdapter({ apiKey: process.env.ANTHROPIC_API_KEY }),
-    new OpenAIBackendAdapter({ apiKey: process.env.OPENAI_API_KEY })
-  ],
-  strategy: 'custom',
-  customStrategy: selectCheapestProvider
+const router = new Router({
+  routingStrategy: 'custom',
+  customRouter: selectCheapestProvider,
 });
 
-// Always routes to cheapest provider
-const response = await router.chat({
+router
+  .register('groq', new GroqBackendAdapter({ apiKey: process.env.GROQ_API_KEY! }))
+  .register('deepseek', new DeepSeekBackendAdapter({ apiKey: process.env.DEEPSEEK_API_KEY! }))
+  .register('anthropic', new AnthropicBackendAdapter({ apiKey: process.env.ANTHROPIC_API_KEY! }))
+  .register('openai', new OpenAIBackendAdapter({ apiKey: process.env.OPENAI_API_KEY! }));
+
+const bridge = new Bridge(new OpenAIFrontendAdapter(), router);
+
+// Always routes to cheapest available provider
+const response = await bridge.chat({
   model: 'gpt-4',
-  messages: [{ role: 'user', content: 'Short query' }]
+  messages: [{ role: 'user', content: 'Short query' }],
 });
-// → Uses Groq or DeepSeek (cheapest)
+// → Uses deepseek or groq (cheapest)
 ```
 
 ## Step 5: Complexity-Based Routing
 
-Route simple queries to cheap models, complex ones to powerful models:
+Route simple queries to cheap models, complex ones to powerful models. The custom
+router sees the **IR** request, so message content is on `request.messages`:
 
 ```typescript
-function analyzeComplexity(request) {
+import type { CustomRoutingFunction, IRChatRequest } from '@johnhenry/aimatey-types';
+
+function analyzeComplexity(request: IRChatRequest): number {
   const lastMessage = request.messages[request.messages.length - 1];
-  const content = lastMessage.content.toString();
+  const content = JSON.stringify(lastMessage?.content ?? '');
 
   let score = 0;
 
@@ -304,7 +369,7 @@ function analyzeComplexity(request) {
 
   // Complexity keywords
   const complexKeywords = ['analyze', 'explain', 'compare', 'evaluate', 'why'];
-  if (complexKeywords.some(kw => content.toLowerCase().includes(kw))) {
+  if (complexKeywords.some((kw) => content.toLowerCase().includes(kw))) {
     score += 20;
   }
 
@@ -315,76 +380,88 @@ function analyzeComplexity(request) {
   return Math.min(score, 100);
 }
 
-const router = new Router(new OpenAIFrontendAdapter(), {
-  backends: [
-    new GroqBackendAdapter({ apiKey: process.env.GROQ_API_KEY }),        // Fast, cheap
-    new DeepSeekBackendAdapter({ apiKey: process.env.DEEPSEEK_API_KEY }), // Cost-effective
-    new OpenAIBackendAdapter({ apiKey: process.env.OPENAI_API_KEY }),    // Powerful
-    new AnthropicBackendAdapter({ apiKey: process.env.ANTHROPIC_API_KEY }) // Most capable
-  ],
-  strategy: 'custom',
-  customStrategy: (request) => {
-    const complexity = analyzeComplexity(request);
+const byComplexity: CustomRoutingFunction = async (request, availableBackends) => {
+  const complexity = analyzeComplexity(request);
 
-    if (complexity < 25) return 0; // Groq: Simple queries
-    if (complexity < 50) return 1; // DeepSeek: Moderate
-    if (complexity < 80) return 2; // OpenAI: Complex
-    return 3; // Anthropic: Very complex
-  }
-});
+  const preferred =
+    complexity < 25 ? 'groq'        // Simple queries: fast, cheap
+    : complexity < 50 ? 'deepseek'  // Moderate: cost-effective
+    : complexity < 80 ? 'openai'    // Complex: powerful
+    : 'anthropic';                  // Very complex: most capable
 
-// Simple query → Groq
-await router.chat({
+  return availableBackends.includes(preferred) ? preferred : (availableBackends[0] ?? null);
+};
+
+const router = new Router({ routingStrategy: 'custom', customRouter: byComplexity });
+
+router
+  .register('groq', new GroqBackendAdapter({ apiKey: process.env.GROQ_API_KEY! }))
+  .register('deepseek', new DeepSeekBackendAdapter({ apiKey: process.env.DEEPSEEK_API_KEY! }))
+  .register('openai', new OpenAIBackendAdapter({ apiKey: process.env.OPENAI_API_KEY! }))
+  .register('anthropic', new AnthropicBackendAdapter({ apiKey: process.env.ANTHROPIC_API_KEY! }));
+
+const bridge = new Bridge(new OpenAIFrontendAdapter(), router);
+
+// Simple query → groq
+await bridge.chat({
   model: 'gpt-4',
-  messages: [{ role: 'user', content: 'What is 2+2?' }]
+  messages: [{ role: 'user', content: 'What is 2+2?' }],
 });
 
-// Complex query → Anthropic
-await router.chat({
+// Complex query → anthropic
+await bridge.chat({
   model: 'gpt-4',
   messages: [{
     role: 'user',
-    content: 'Analyze the philosophical implications of AI consciousness and compare different theories'
-  }]
+    content: 'Analyze the philosophical implications of AI consciousness and compare different theories',
+  }],
 });
 ```
 
 ## Middleware with Router
 
-You can add middleware to Routers just like Bridges:
+Middleware lives on the **bridge**, not on the router — `Router` has no `use()`
+method. Because the router sits underneath the middleware stack, every
+middleware runs once per request regardless of which backend is chosen:
 
 ```typescript
-import { createLoggingMiddleware } from '@johnhenry/aimatey-middleware';
+import { createLoggingMiddleware, createRetryMiddleware, createCachingMiddleware }
+  from '@johnhenry/aimatey-middleware';
 
-const router = new Router(new OpenAIFrontendAdapter(), {
-  backends: [backend1, backend2],
-  strategy: 'round-robin'
-});
+const router = new Router({ routingStrategy: 'round-robin' });
+router.register('backend1', backend1).register('backend2', backend2);
 
-router.use(createLoggingMiddleware({ level: 'info' }));
-router.use(createRetryMiddleware({ maxAttempts: 3 }));
-router.use(createCachingMiddleware({ ttl: 3600 }));
+const bridge = new Bridge(new OpenAIFrontendAdapter(), router);
+
+bridge
+  .use(createLoggingMiddleware({ level: 'info' }))
+  .use(createRetryMiddleware({ maxAttempts: 3 }))
+  .use(createCachingMiddleware({ ttl: 3600 }));
 ```
 
 ## Monitoring Router Health
 
-Track which backends are healthy:
+`checkHealth()` probes backends on demand; `getBackendInfo()` reports the last
+known state including the circuit breaker:
 
 ```typescript
-router.on('backend:health', ({ backend, healthy }) => {
-  console.log(`${backend}: ${healthy ? '✅ Healthy' : '❌ Unhealthy'}`);
-});
-
-// Get current health status
-const health = await router.getBackendHealth();
+// Probe every backend
+const health = await router.checkHealth();
 console.log(health);
-/*
-{
-  anthropic: { healthy: true, latency: 1200, errorRate: 0 },
-  openai: { healthy: true, latency: 1500, errorRate: 0.02 },
-  groq: { healthy: false, latency: 5000, errorRate: 0.5 }
+// { anthropic: true, openai: true, groq: false }
+
+// Probe one
+const openaiHealthy = await router.checkHealth('openai');
+
+// Last known state, with stats and circuit-breaker status
+for (const info of router.getBackendInfo()) {
+  console.log(
+    info.name,
+    info.isHealthy ? '✅ Healthy' : '❌ Unhealthy',
+    info.circuitBreakerState,
+    `${info.stats.averageLatencyMs}ms`
+  );
 }
-*/
 ```
 
 ## Advanced Patterns
@@ -394,21 +471,25 @@ console.log(health);
 Use different providers for dev/staging/prod:
 
 ```typescript
-const backends =
-  process.env.NODE_ENV === 'production'
-    ? [
-        new AnthropicBackendAdapter({ apiKey: process.env.ANTHROPIC_API_KEY }),
-        new OpenAIBackendAdapter({ apiKey: process.env.OPENAI_API_KEY })
-      ]
-    : [
-        new OllamaBackendAdapter({ baseURL: 'http://localhost:11434' })
-      ];
-
-const router = new Router(new OpenAIFrontendAdapter(), {
-  backends,
-  strategy: 'priority',
-  fallbackOnError: true
+const router = new Router({
+  routingStrategy: 'explicit',
+  fallbackStrategy: 'sequential',
 });
+
+if (process.env.NODE_ENV === 'production') {
+  router
+    .register('anthropic', new AnthropicBackendAdapter({ apiKey: process.env.ANTHROPIC_API_KEY! }))
+    .register('openai', new OpenAIBackendAdapter({ apiKey: process.env.OPENAI_API_KEY! }));
+  router.setFallbackChain(['openai']);
+} else {
+  // apiKey is required by BackendAdapterConfig even where a local server ignores it
+  router.register('ollama', new OllamaBackendAdapter({
+    apiKey: '',
+    baseURL: 'http://localhost:11434',
+  }));
+}
+
+const bridge = new Bridge(new OpenAIFrontendAdapter(), router);
 ```
 
 ### Per-Request Provider Selection
@@ -444,58 +525,56 @@ still falls back as usual.
 
 ## Troubleshooting
 
-### "All backends failed"
+### "No available backend for routing"
 
-Make sure at least one backend has a valid API key:
+Register at least one backend before sending a request — the constructor takes no
+backends:
 
 ```typescript
-// ✅ Good - at least one working backend
-const router = new Router(new OpenAIFrontendAdapter(), {
-  backends: [
-    new OpenAIBackendAdapter({ apiKey: validKey }),
-    new AnthropicBackendAdapter({ apiKey: invalidKey }) // This can fail
-  ],
-  fallbackOnError: true
-});
+// ❌ Bad - no backends registered
+const router = new Router({ routingStrategy: 'round-robin' });
 
-// ❌ Bad - all backends will fail
-const router = new Router(new OpenAIFrontendAdapter(), {
-  backends: [
-    new OpenAIBackendAdapter({ apiKey: null }),
-    new AnthropicBackendAdapter({ apiKey: null })
-  ]
-});
+// ✅ Good
+const router = new Router({ routingStrategy: 'round-robin' });
+router.register('openai', new OpenAIBackendAdapter({ apiKey: process.env.OPENAI_API_KEY! }));
 ```
 
 ### "Router not falling back"
 
-Enable `fallbackOnError`:
+`fallbackStrategy: 'none'` disables failover. The default is `'sequential'`:
 
 ```typescript
-const router = new Router(new OpenAIFrontendAdapter(), {
-  backends: [backend1, backend2],
-  strategy: 'priority',
-  fallbackOnError: true // Don't forget this!
+const router = new Router({
+  fallbackStrategy: 'sequential', // 'none' would rethrow the first error
 });
 ```
 
+Also remember fallback applies to `bridge.chat()` only — a failing stream yields
+an error chunk instead of retrying.
+
 ### "Routing is inconsistent"
 
-For round-robin, make sure you're reusing the same Router instance:
+For round-robin, make sure you're reusing the same Router instance — the cursor,
+the stats and the circuit-breaker state all live on it:
 
 ```typescript
 // ✅ Correct - reuse instance
-const router = new Router(...);
-await router.chat(...); // Backend 1
-await router.chat(...); // Backend 2
-await router.chat(...); // Backend 3
+const bridge = new Bridge(new OpenAIFrontendAdapter(), router);
+await bridge.chat(request); // backend 1
+await bridge.chat(request); // backend 2
+await bridge.chat(request); // backend 3
 
-// ❌ Wrong - creates new router each time
-async function chat() {
-  const router = new Router(...); // Fresh state!
-  return await router.chat(...);
+// ❌ Wrong - creates a new router each time
+async function chat(request) {
+  const router = new Router({ routingStrategy: 'round-robin' }); // Fresh state!
+  return await new Bridge(new OpenAIFrontendAdapter(), router).chat(request);
 }
 ```
+
+### "My `middleware` config option does nothing"
+
+There is no `middleware` field on `RouterConfig` or `BridgeConfig`. Register
+middleware with `bridge.use()` / `bridge.useStreaming()`.
 
 ## Next Steps
 
@@ -509,59 +588,56 @@ Excellent! You now know how to use multi-provider routing.
 ## Complete Example
 
 ```typescript
-// multi-provider-router.js
+// multi-provider-router.ts
 import 'dotenv/config';
-import { Router } from '@johnhenry/aimatey-core';
+import { Bridge, Router } from '@johnhenry/aimatey-core';
 import { OpenAIFrontendAdapter } from '@johnhenry/aimatey-frontend/openai';
 import { AnthropicBackendAdapter } from '@johnhenry/aimatey-backend/anthropic';
 import { OpenAIBackendAdapter } from '@johnhenry/aimatey-backend/openai';
 import { GroqBackendAdapter } from '@johnhenry/aimatey-backend/groq';
 import { createLoggingMiddleware } from '@johnhenry/aimatey-middleware';
 
-// Create router with multiple backends
-const router = new Router(new OpenAIFrontendAdapter(), {
-  backends: [
-    new AnthropicBackendAdapter({
-      apiKey: process.env.ANTHROPIC_API_KEY
-    }),
-    new OpenAIBackendAdapter({
-      apiKey: process.env.OPENAI_API_KEY
-    }),
-    new GroqBackendAdapter({
-      apiKey: process.env.GROQ_API_KEY
-    })
-  ],
-  strategy: 'priority',
-  fallbackOnError: true,
-  healthCheck: {
-    enabled: true,
-    interval: 60000
-  }
+// Create the router and register backends by name
+const router = new Router({
+  routingStrategy: 'explicit',
+  defaultBackend: 'anthropic',
+  fallbackStrategy: 'sequential',
+  healthCheckInterval: 60_000,
+  enableCircuitBreaker: true,
 });
 
-// Add logging
-router.use(createLoggingMiddleware({ level: 'info' }));
+router
+  .register('anthropic', new AnthropicBackendAdapter({ apiKey: process.env.ANTHROPIC_API_KEY! }))
+  .register('openai', new OpenAIBackendAdapter({ apiKey: process.env.OPENAI_API_KEY! }))
+  .register('groq', new GroqBackendAdapter({ apiKey: process.env.GROQ_API_KEY! }));
 
-// Event handlers
-router.on('backend:failed', ({ backend, error }) => {
-  console.error(`❌ ${backend} failed: ${error.message}`);
-});
+router.setFallbackChain(['openai', 'groq']);
 
-router.on('backend:switch', ({ from, to }) => {
-  console.log(`🔄 Switched from ${from} to ${to}`);
-});
+// The router is the bridge's backend; middleware goes on the bridge
+const bridge = new Bridge(new OpenAIFrontendAdapter(), router);
+bridge.use(createLoggingMiddleware({ level: 'info' }));
 
 // Use it
-async function chat(message) {
-  const response = await router.chat({
+async function chat(message: string) {
+  const response = await bridge.chat({
     model: 'gpt-4',
-    messages: [{ role: 'user', content: message }]
+    messages: [{ role: 'user', content: message }],
   });
   return response.choices[0].message.content;
 }
 
+// Inspect what happened
+async function report() {
+  const stats = router.getStats();
+  console.log(`${stats.totalRequests} requests, ${stats.totalFallbacks} fallbacks`);
+  for (const info of router.getBackendInfo()) {
+    console.log(`  ${info.name}: healthy=${info.isHealthy} circuit=${info.circuitBreakerState}`);
+  }
+}
+
 // Test
 console.log(await chat('What is ai.matey?'));
+await report();
 ```
 
 ---

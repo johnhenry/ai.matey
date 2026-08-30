@@ -192,13 +192,13 @@ const response = await bridge.chat({
 
 ## Middleware Order Matters!
 
-Middleware is executed in the order you add it. The **last middleware added runs first** (like an onion):
+Middleware is executed in the order you add it. The **first middleware added runs first** - it is the outermost layer of the onion, so it also runs last on the way back out:
 
 ```typescript
 // ❌ Wrong order
-bridge.use(createCachingMiddleware({ ttl: 3600 }));  // Runs 3rd
+bridge.use(createCachingMiddleware({ ttl: 3600 }));  // Runs 1st (cache hits skip logging)
 bridge.use(createRetryMiddleware({ maxAttempts: 3 })); // Runs 2nd
-bridge.use(createLoggingMiddleware({ level: 'info' })); // Runs 1st
+bridge.use(createLoggingMiddleware({ level: 'info' })); // Runs 3rd
 
 // ✅ Correct order
 bridge.use(createLoggingMiddleware({ level: 'info' })); // Runs 1st (logs everything)
@@ -334,19 +334,18 @@ bridge.use(
 You can create your own middleware:
 
 ```typescript
-function createTimingMiddleware() {
-  return {
-    name: 'timing',
-    async execute(request, next) {
-      const start = Date.now();
+import type { Middleware } from '@johnhenry/aimatey-types';
 
-      const response = await next(request);
+function createTimingMiddleware(): Middleware {
+  return async (context, next) => {
+    const start = Date.now();
 
-      const duration = Date.now() - start;
-      console.log(`Request took ${duration}ms`);
+    const response = await next();
 
-      return response;
-    }
+    const duration = Date.now() - start;
+    console.log(`Request took ${duration}ms`);
+
+    return response;
   };
 }
 
@@ -355,16 +354,17 @@ bridge.use(createTimingMiddleware());
 
 ### Middleware Interface
 
-All middleware must implement:
+All middleware is a function with this signature:
 
 ```typescript
-interface Middleware {
-  name: string;
-  execute(request: any, next: Function): Promise<any>;
-}
+type Middleware = (
+  context: MiddlewareContext,
+  next: () => Promise<IRChatResponse>
+) => Promise<IRChatResponse>;
 ```
 
-The `next` function calls the next middleware in the chain.
+The `next` function calls the next middleware in the chain. It takes no
+arguments - read and modify the request through `context.request` instead.
 
 ## Advanced Patterns
 
@@ -373,15 +373,12 @@ The `next` function calls the next middleware in the chain.
 Only apply middleware for certain requests:
 
 ```typescript
-bridge.use({
-  name: 'conditional-cache',
-  async execute(request, next) {
-    // Only cache if model is gpt-3.5-turbo
-    if (request.model === 'gpt-3.5-turbo') {
-      return cacheMiddleware.execute(request, next);
-    }
-    return next(request);
+bridge.use(async (context, next) => {
+  // Only cache if model is gpt-3.5-turbo
+  if (context.request.parameters?.model === 'gpt-3.5-turbo') {
+    return cacheMiddleware(context, next);
   }
+  return next();
 });
 ```
 
@@ -393,20 +390,21 @@ Create middleware that maintains state:
 function createRequestCounterMiddleware() {
   let count = 0;
 
+  const middleware: Middleware = async (context, next) => {
+    count++;
+    console.log(`Request #${count}`);
+    return next();
+  };
+
   return {
-    name: 'request-counter',
-    async execute(request, next) {
-      count++;
-      console.log(`Request #${count}`);
-      return next(request);
-    },
+    middleware,
     getCount: () => count,
     reset: () => { count = 0; }
   };
 }
 
 const counter = createRequestCounterMiddleware();
-bridge.use(counter);
+bridge.use(counter.middleware);
 
 // Later
 console.log('Total requests:', counter.getCount());

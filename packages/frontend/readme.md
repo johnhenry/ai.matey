@@ -39,10 +39,7 @@ const openAIFrontend = new OpenAIFrontendAdapter();
 const anthropicFrontend = new AnthropicFrontendAdapter();
 
 // Create a bridge that accepts OpenAI format
-const bridge = new Bridge({
-  frontend: openAIFrontend,
-  backend: yourBackend,
-});
+const bridge = new Bridge(openAIFrontend, yourBackend);
 ```
 
 ## Generic Adapter

@@ -94,13 +94,23 @@ const backend = new AnthropicBackendAdapter({
   apiKey: process.env.ANTHROPIC_API_KEY
 });
 
-// Execute using Intermediate Representation (IR) format
+// Execute using Intermediate Representation (IR) format.
+// In IR the model lives under `parameters`, and `metadata` is required.
 const response = await backend.execute({
-  model: 'claude-3-5-sonnet-20241022',
   messages: [
     { role: 'user', content: 'Hello!' }
-  ]
+  ],
+  parameters: {
+    model: 'claude-3-5-sonnet-20241022'
+  },
+  metadata: {
+    requestId: crypto.randomUUID(),
+    timestamp: Date.now()
+  }
 });
+
+// An IR response has a single `message` - there is no `choices` array
+console.log(response.message.content);
 ```
 
 ### Pattern 2: Streaming
@@ -108,7 +118,7 @@ const response = await backend.execute({
 Stream responses in real-time:
 
 ```typescript
-const stream = await bridge.chatStream({
+const stream = bridge.chatStream({
   model: 'gpt-4',
   messages: [
     { role: 'user', content: 'Write a haiku about TypeScript' }

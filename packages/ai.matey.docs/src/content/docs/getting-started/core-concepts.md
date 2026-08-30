@@ -69,16 +69,24 @@ The **IR** is a universal format that all providers can convert to and from. It'
 ### IR Structure
 
 ```typescript
-interface IRChatCompletionRequest {
-  model: string;
-  messages: Array<{
-    role: 'system' | 'user' | 'assistant';
-    content: string;
-  }>;
-  temperature?: number;
-  max_tokens?: number;
+interface IRChatRequest {
+  messages: readonly IRMessage[];
+  // Model and sampling options live under `parameters`
+  parameters?: {
+    model?: string;
+    temperature?: number;
+    maxTokens?: number;
+    topP?: number;
+    // ... topK, seed, stopSequences, penalties, user, custom
+  };
+  // `metadata` is required
+  metadata: {
+    requestId: string;
+    timestamp: number;
+    // ... provenance, warnings, custom
+  };
   stream?: boolean;
-  // ... other standard fields
+  // ... tools, toolChoice, responseFormat, streamMode
 }
 ```
 
@@ -101,16 +109,23 @@ const backend = new AnthropicBackendAdapter({
 
 // IR format request
 const irRequest = {
-  model: 'claude-3-5-sonnet-20241022',
   messages: [
     { role: 'user', content: 'Hello!' }
   ],
-  temperature: 0.7,
-  max_tokens: 100
+  parameters: {
+    model: 'claude-3-5-sonnet-20241022',
+    temperature: 0.7,
+    maxTokens: 100
+  },
+  metadata: {
+    requestId: crypto.randomUUID(),
+    timestamp: Date.now()
+  }
 };
 
 // Execute with IR
 const response = await backend.execute(irRequest);
+console.log(response.message.content);
 ```
 
 ## 2. Bridge
@@ -226,11 +241,16 @@ const router = createRouter({
 
 Route based on custom logic:
 
+Set `routingStrategy: 'custom'` and supply `customRouter`, an async function
+returning the *name* of a registered backend (or `null` to fall through):
+
 ```typescript
 const router = createRouter({
-  routingStrategy: (request) => {
+  routingStrategy: 'custom',
+  customRouter: async (request) => {
     // Route expensive queries to powerful models
-    const isComplex = request.messages[0].content.length > 1000;
+    const first = request.messages[0].content;
+    const isComplex = typeof first === 'string' && first.length > 1000;
     return isComplex ? 'openai' : 'anthropic';
   }
 });
@@ -253,26 +273,38 @@ router.setFallbackChain(['openai', 'anthropic', 'groq']);
 Query multiple backends simultaneously:
 
 ```typescript
-const results = await router.parallelDispatch(request, {
+const result = await router.dispatchParallel(request, {
   backends: ['openai', 'anthropic', 'gemini'],
   strategy: 'all' // or 'first' or 'fastest'
 });
 
 // Get responses from all 3 providers for comparison
+console.log(result.successfulBackends);
+for (const entry of result.allResponses ?? []) {
+  console.log(entry.backend, entry.response.message.content);
+}
 ```
 
 #### Health Checking
 
 Monitor backend health:
 
-```typescript
-router.on('health-check', (backend, healthy) => {
-  console.log(`${backend} is ${healthy ? 'healthy' : 'unhealthy'}`);
-});
+The router has no event emitter - check health on demand instead:
 
+```typescript
 const health = await router.checkHealth();
 // { openai: true, anthropic: true, groq: false }
+
+for (const [backend, healthy] of Object.entries(health)) {
+  console.log(`${backend} is ${healthy ? 'healthy' : 'unhealthy'}`);
+}
+
+// One backend at a time
+const openaiHealthy = await router.checkHealth('openai'); // boolean
 ```
+
+Set `healthCheckInterval` in `RouterConfig` to have the router poll in the
+background as well.
 
 ## 4. Middleware
 
@@ -367,8 +399,8 @@ Track API costs:
 
 ```typescript
 createCostTrackingMiddleware({
-  onCost: (cost, provider) => {
-    console.log(`${provider}: $${cost}`);
+  onCost: (cost) => {
+    console.log(`${cost.provider}/${cost.model}: $${cost.totalCost.toFixed(4)}`);
   }
 })
 ```
@@ -377,11 +409,16 @@ createCostTrackingMiddleware({
 
 Add distributed tracing:
 
+`createOpenTelemetryMiddleware` is async - it loads the optional
+`@opentelemetry/*` packages at call time, so it must be awaited.
+
 ```typescript
-createOpenTelemetryMiddleware({
+const tracing = await createOpenTelemetryMiddleware({
   serviceName: 'my-ai-service',
-  endpoint: 'http://localhost:4318'
-})
+  endpoint: 'http://localhost:4318/v1/traces'
+});
+
+bridge.use(tracing);
 ```
 
 ### Custom Middleware
@@ -389,22 +426,20 @@ createOpenTelemetryMiddleware({
 Create your own:
 
 ```typescript
-interface Middleware {
-  onRequest?: (request: IRRequest) => IRRequest | Promise<IRRequest>;
-  onResponse?: (response: IRResponse) => IRResponse | Promise<IRResponse>;
-  onError?: (error: Error) => Error | Promise<Error>;
-}
+import type { Middleware } from '@johnhenry/aimatey-types';
 
-const customMiddleware: Middleware = {
-  onRequest: async (request) => {
-    console.log('Request:', request);
-    return request;
-  },
-  onResponse: async (response) => {
-    console.log('Response:', response);
-    return response;
-  }
+// Middleware is a function: everything before `await next()` runs on the way
+// in, everything after it runs on the way out.
+const customMiddleware: Middleware = async (context, next) => {
+  console.log('Request:', context.request);
+
+  const response = await next();
+
+  console.log('Response:', response);
+  return response;
 };
+
+bridge.use(customMiddleware);
 ```
 
 ### Middleware Order
