@@ -214,8 +214,30 @@ export class Bridge<
       } catch (error) {
         lastError = error instanceof Error ? error : new Error(String(error));
 
-        // Don't retry on non-retryable errors or if this is the last attempt
-        const isRetryable = error instanceof AdapterError ? error.isRetryable : true;
+        // Don't retry on non-retryable errors or if this is the last attempt.
+        //
+        // An error that carries no classification is *not* retried (#70). The
+        // two in-tree retry implementations used to disagree here - this loop
+        // retried an unclassified error and `defaultShouldRetry` in
+        // `createRetryMiddleware` did not - so the same fault was transient or
+        // permanent depending on which retry a caller happened to configure.
+        //
+        // Non-retryable is the answer both now give, for three reasons: an
+        // unclassified throwable is as likely a bug in the caller's own
+        // adapter or middleware as a transient fault, and re-running it re-runs
+        // every middleware side effect for something that cannot succeed;
+        // `Router.wrapError` already classifies an unknown error non-retryable;
+        // and this loop already wraps such an error as a non-retryable
+        // `INTERNAL_ERROR` on the way out, so retrying it contradicted the
+        // very classification it then handed the caller. A backend that wants
+        // its failures retried should raise a classified `AdapterError` - the
+        // in-tree HTTP backends already wrap fetch failures as `NetworkError`.
+        //
+        // Read duck-typed rather than through `instanceof AdapterError`: a
+        // second copy of the errors package across the ESM/CJS boundary makes
+        // `instanceof` quietly false, and silently losing retries to a
+        // packaging artifact is the failure this whole issue is about.
+        const isRetryable = (error as { isRetryable?: unknown } | undefined)?.isRetryable === true;
         if (!isRetryable || attempt >= maxAttempts) {
           break;
         }

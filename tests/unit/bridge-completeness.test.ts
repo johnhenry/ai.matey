@@ -7,6 +7,7 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Bridge } from '@johnhenry/aimatey-core';
+import { ErrorCode, NetworkError } from '@johnhenry/aimatey-errors';
 import { BridgeEventType } from '@johnhenry/aimatey-types';
 import type {
   FrontendAdapter,
@@ -55,13 +56,31 @@ function createMockFrontend(): FrontendAdapter {
   } as unknown as FrontendAdapter;
 }
 
+/**
+ * A retryable failure, as a classified `AdapterError`.
+ *
+ * `Bridge`'s retry loop keys off `isRetryable` and no longer retries an
+ * unclassified throwable (#70), so a backend that means "transient" has to say
+ * so - exactly as the in-tree HTTP backends do when `fetch` rejects.
+ */
+function transientFailure(): NetworkError {
+  return new NetworkError({
+    code: ErrorCode.NETWORK_ERROR,
+    message: 'Backend execution failed: connection reset',
+    provenance: {},
+  });
+}
+
 function createMockBackend(options?: {
   healthCheck?: () => Promise<boolean>;
   shouldFail?: boolean;
   failCount?: number;
+  /** What the backend throws when it fails. Defaults to a retryable error. */
+  error?: () => unknown;
 }): BackendAdapter {
   let callCount = 0;
   const failCount = options?.failCount ?? 0;
+  const makeError = options?.error ?? transientFailure;
 
   return {
     metadata: {
@@ -81,7 +100,7 @@ function createMockBackend(options?: {
     execute: vi.fn(async (request: IRChatRequest) => {
       callCount++;
       if (options?.shouldFail || (failCount > 0 && callCount <= failCount)) {
-        throw new Error('Backend execution failed');
+        throw makeError();
       }
       return {
         message: { role: 'assistant', content: 'Hello!' },
@@ -409,6 +428,24 @@ describe('Bridge Retry Logic', () => {
       bridge.chat({ messages: [{ role: 'user', content: 'Hello' }] } as any)
     ).rejects.toThrow();
 
+    expect(backend.execute).toHaveBeenCalledTimes(1);
+  });
+
+  it('should not retry an error that carries no classification', async () => {
+    const frontend = createMockFrontend();
+    const backend = createMockBackend({
+      shouldFail: true,
+      error: () => new Error('unclassified failure'),
+    });
+    const bridge = new Bridge(frontend, backend, { retries: 3 });
+
+    await expect(
+      bridge.chat({ messages: [{ role: 'user', content: 'Hello' }] } as any)
+    ).rejects.toThrow();
+
+    // #70: an unclassified throwable is as likely a bug in the caller's own
+    // code as a transient fault, and `defaultShouldRetry` in the retry
+    // middleware has always declined to retry it. One attempt, no retries.
     expect(backend.execute).toHaveBeenCalledTimes(1);
   });
 });
