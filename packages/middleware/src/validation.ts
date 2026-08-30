@@ -492,6 +492,32 @@ export const DEFAULT_PII_PATTERNS: Record<string, RegExp> = {
 };
 
 /**
+ * Vocabulary for the "ignore what came before" injection pattern (#81).
+ *
+ * Split into named pieces because the interesting part is not the regex, it is
+ * which words are in which list and why. `INJECTION_PRIOR` is the actual
+ * signal: an attack asks the model to discard *the context so far*. A scope
+ * word on its own ("ignore all whitespace", "ignore every rule in the style
+ * guide") is ordinary developer text and is not enough.
+ * @internal
+ */
+const INJECTION_SCOPE = '(?:all|any|every)';
+/** Words that refer to the conversation so far - the actual attack signal. @internal */
+const INJECTION_PRIOR = '(?:previous|prior|earlier|above|preceding|foregoing)';
+/** Determiners an attacker may stack in ("all of *the* previous"). @internal */
+const INJECTION_DET = '(?:the|these|those|your|my|our)';
+/** What is being discarded. @internal */
+const INJECTION_TARGET = '(?:instructions?|prompts?|commands?|rules?|directives?|guidelines?)';
+/**
+ * The noun set the pre-#81 pattern accepted after a bare `all`, kept verbatim
+ * so that broadening the rest of the pattern cannot narrow this. `rules` and
+ * `guidelines` are deliberately *not* here: "make eslint ignore all rules in
+ * one file" is a question this library exists to be asked.
+ * @internal
+ */
+const INJECTION_LEGACY_TARGET = '(?:instructions|prompts?|commands?)';
+
+/**
  * Default prompt injection patterns.
  *
  * `preventPromptInjection` defaults to `true` and `injectionAction` to
@@ -501,8 +527,47 @@ export const DEFAULT_PII_PATTERNS: Record<string, RegExp> = {
  * below require surrounding context rather than a bare token.
  */
 export const DEFAULT_INJECTION_PATTERNS: RegExp[] = [
-  // Ignore previous instructions
-  /ignore\s+(previous|above|all)\s+(instructions|prompts?|commands?)/i,
+  // "Ignore what came before."
+  //
+  // The previous pattern was `ignore\s+(previous|above|all)\s+(noun)`, which
+  // accepted **exactly one** modifier and then required the noun immediately.
+  // So it caught the variants an attacker is less likely to use and missed
+  // "ignore all previous instructions" - the phrasing that appears in
+  // essentially every published injection example - because that one stacks
+  // two of them (#81).
+  //
+  // Two branches, on purpose:
+  //
+  // 1. Prior-context branch. Requires a word referring to the conversation so
+  //    far, with any stack of scope words and determiners in front of it, and
+  //    the widened noun set behind it. This is where the recall #81 asked for
+  //    comes from: `all previous`, `any previous`, `the previous`, `all
+  //    prior`, `earlier`, `all of the previous`, and the `rules` noun.
+  //
+  // 2. Legacy scope-only branch, byte-for-byte the noun set the old pattern
+  //    accepted after a bare `all`. Broadening the first branch must not
+  //    narrow what already worked, and keeping this separate means the new
+  //    vocabulary does not inherit the scope-only bar. `ignore all rules` and
+  //    `ignore every prompt token` are ordinary developer sentences; they stay
+  //    undetected because `rules` is not in the legacy noun set and `every` is
+  //    not in the legacy branch at all.
+  //
+  // `\bignore` rather than `ignore` so `gitignore all previous artifacts` is
+  // not an attack.
+  //
+  // Precision here has a floor that no regex clears: "you can ignore the
+  // previous instructions I gave you, I was wrong" is a genuine user and is
+  // matched. That is an argument for the `'warn'` default `createSecurityMiddleware`
+  // already chose (#55), not for a cleverer pattern; both verdicts are pinned in
+  // tests/unit/detection-false-positives.test.ts.
+  new RegExp(
+    `\\bignore\\s+(?:` +
+      `(?:${INJECTION_DET}\\s+)?(?:${INJECTION_SCOPE}\\s+(?:of\\s+)?(?:${INJECTION_DET}\\s+)?)?` +
+      `${INJECTION_PRIOR}\\s+(?:${INJECTION_DET}\\s+)?${INJECTION_TARGET}` +
+      `|all\\s+${INJECTION_LEGACY_TARGET}` +
+      `)\\b`,
+    'i'
+  ),
 
   // System prompt manipulation
   /system\s*:\s*new\s+(instruction|prompt|role)/i,
