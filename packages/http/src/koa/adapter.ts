@@ -101,7 +101,7 @@ export class KoaResponseAdapter implements GenericResponse {
   }
 
   send(data: any): void {
-    if (!this.isWritable()) {
+    if (!this.canStartResponse()) {
       return;
     }
 
@@ -119,7 +119,7 @@ export class KoaResponseAdapter implements GenericResponse {
   }
 
   async stream(generator: AsyncGenerator<any, void, undefined>): Promise<void> {
-    if (!this.isWritable()) {
+    if (!this.canStartResponse()) {
       return;
     }
 
@@ -158,8 +158,33 @@ export class KoaResponseAdapter implements GenericResponse {
     }
   }
 
+  /**
+   * Whether a *new* response can still be started on this socket.
+   *
+   * `headerSent` is a pre-flight concern: once the status line is out it can
+   * no longer be changed, so a fresh response cannot begin. It says nothing
+   * about whether the socket will take another write -- see isWritable().
+   */
+  private canStartResponse(): boolean {
+    return !this.ctx.response.headerSent && this.isWritable();
+  }
+
+  /**
+   * Whether the socket can still accept a write.
+   *
+   * Deliberately does NOT consult `headerSent`. stream() calls
+   * sendSSEHeaders(), which flushes the headers before the first chunk, so
+   * during a stream `headerSent` is the expected state rather than a reason
+   * to stop. Folding it in here made the per-chunk guard in stream() false on
+   * its very first iteration -- the same defect reported against the Node
+   * adapter in #89, which this adapter shares because it drives the same
+   * ServerResponse through the same SSE helpers.
+   *
+   * `ctx.writable` is Koa's own liveness getter: false once the underlying
+   * response has ended or its socket is gone.
+   */
   isWritable(): boolean {
-    return !this.ctx.response.headerSent && this.ctx.writable;
+    return this.ctx.writable;
   }
 
   /**
