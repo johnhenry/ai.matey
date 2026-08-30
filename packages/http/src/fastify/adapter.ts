@@ -100,7 +100,7 @@ export class FastifyResponseAdapter implements GenericResponse {
   }
 
   send(data: any): void {
-    if (!this.isWritable()) {
+    if (!this.canStartResponse()) {
       return;
     }
 
@@ -117,7 +117,7 @@ export class FastifyResponseAdapter implements GenericResponse {
   }
 
   async stream(generator: AsyncGenerator<any, void, undefined>): Promise<void> {
-    if (!this.isWritable()) {
+    if (!this.canStartResponse()) {
       return;
     }
 
@@ -153,8 +153,31 @@ export class FastifyResponseAdapter implements GenericResponse {
     }
   }
 
+  /**
+   * Whether a *new* response can still be started.
+   *
+   * Committing to a response is a pre-flight concern: once Fastify has sent a
+   * reply, or once this adapter has flushed SSE headers, a fresh response can
+   * no longer begin. That says nothing about whether the socket will take
+   * another write -- see isWritable().
+   */
+  private canStartResponse(): boolean {
+    return !this.reply.sent && !this._headersSent && this.isWritable();
+  }
+
+  /**
+   * Whether the socket can still accept a write.
+   *
+   * Deliberately does NOT consult `_headersSent`. stream() sets that flag and
+   * flushes SSE headers before the first chunk, so during a stream it is the
+   * expected state rather than a reason to stop. Folding it in here made the
+   * per-chunk guard in stream() false on its very first iteration -- the same
+   * defect reported against the Node adapter in #89, which this adapter shares
+   * because it drives reply.raw through the same SSE helpers.
+   */
   isWritable(): boolean {
-    return !this.reply.sent && !this._headersSent;
+    const raw = this.reply.raw;
+    return raw.writable && !raw.writableEnded && !raw.destroyed;
   }
 
   /**

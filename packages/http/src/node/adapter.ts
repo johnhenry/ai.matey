@@ -139,7 +139,7 @@ export class NodeResponseAdapter implements GenericResponse {
   }
 
   send(data: any): void {
-    if (!this.isWritable()) {
+    if (!this.canStartResponse()) {
       return;
     }
 
@@ -155,7 +155,7 @@ export class NodeResponseAdapter implements GenericResponse {
   }
 
   async stream(generator: AsyncGenerator<any, void, undefined>): Promise<void> {
-    if (!this.isWritable()) {
+    if (!this.canStartResponse()) {
       return;
     }
 
@@ -188,8 +188,33 @@ export class NodeResponseAdapter implements GenericResponse {
     }
   }
 
+  /**
+   * Whether a *new* response can still be started on this socket.
+   *
+   * `headersSent` belongs here and only here: once the status line is on the
+   * wire it can no longer be changed, so a fresh response cannot begin. It is
+   * a pre-flight concern, not a per-write one -- see isWritable().
+   *
+   * Mirrors canStillRespond() in ./listener.ts, which asks the same question
+   * of the same socket from the outer error path.
+   */
+  private canStartResponse(): boolean {
+    return this.isWritable() && !this.res.headersSent;
+  }
+
+  /**
+   * Whether the socket can still accept a write.
+   *
+   * Deliberately does NOT consult `headersSent`. stream() calls
+   * sendSSEHeaders(), which flushes the headers before the first chunk, so
+   * during a stream `headersSent` is the expected state rather than a reason
+   * to stop. Folding it in here made the per-chunk guard in stream() false on
+   * its very first iteration: the loop broke before writing anything, and the
+   * break skipped the tail, so res.end() was never reached and the connection
+   * hung open (#89).
+   */
   isWritable(): boolean {
-    return this.res.writable && !this.res.headersSent;
+    return this.res.writable && !this.res.writableEnded && !this.res.destroyed;
   }
 
   /**
