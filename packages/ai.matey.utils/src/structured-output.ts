@@ -1025,7 +1025,8 @@ export interface GenerateObjectOptions<T = any> {
    *   actually sent**, and a lossy schema conversion explains the Zod
    *   failure. The model answered the question correctly; the question was
    *   wrong. No sample can validate.
-   * - An attempt reproduced the **identical error set** as the one before it.
+   * - The provider returned the **identical payload** on two successive
+   *   attempts, so resampling is not producing anything new.
    *
    * Set to `false` to spend the whole `maxRetries` budget regardless, as
    * before this issue.
@@ -1438,6 +1439,48 @@ function warningsExplaining(
 }
 
 /**
+ * A stable identity for a returned payload, for the repetition check.
+ *
+ * Object keys are sorted, so the same data in a different key order counts as
+ * the same answer rather than as progress. `bigint` and cycles are handled
+ * for the same reason `safeJsonStringify` exists: this walks provider-authored
+ * data.
+ *
+ * Keyed on the **payload** rather than on the error set, which is the
+ * difference between a working gate and a regression. Zod issues carry no
+ * input value, so a model that returns `'x'` and then `'y'` against
+ * `z.number()` produces two byte-identical error sets while genuinely
+ * resampling. Keying on errors would stop that model on attempt 2 -- and
+ * `temperature` defaults to 0.7, so its third sample may well be the `30`
+ * that validates. An identical payload is the signal that resampling is not
+ * moving.
+ */
+function payloadKey(value: unknown): string {
+  const seen = new WeakSet<object>();
+  const walk = (node: unknown): unknown => {
+    if (typeof node === 'bigint') {
+      return `${node}`;
+    }
+    if (node === null || typeof node !== 'object') {
+      return node;
+    }
+    if (seen.has(node)) {
+      return '[circular]';
+    }
+    seen.add(node);
+    if (Array.isArray(node)) {
+      return node.map(walk);
+    }
+    const sorted: Record<string, unknown> = {};
+    for (const key of Object.keys(node as Record<string, unknown>).sort()) {
+      sorted[key] = walk((node as Record<string, unknown>)[key]);
+    }
+    return sorted;
+  };
+  return safeJsonStringify(walk(value));
+}
+
+/**
  * The failure thrown when the response did not match the schema.
  *
  * `ValidationError` rather than a bare `Error`: it hard-codes
@@ -1447,7 +1490,7 @@ function warningsExplaining(
  * `.message` and `toThrow(/.../)` all keep working.
  */
 function schemaValidationError(args: {
-  reason: 'unsatisfiable-schema' | 'retries-exhausted';
+  reason: 'unsatisfiable-schema' | 'repeated-failure' | 'retries-exhausted';
   errors: readonly unknown[];
   attempts: number;
   conversionWarnings: readonly IRWarning[];
@@ -1461,7 +1504,10 @@ function schemaValidationError(args: {
           .join(', ')}. The provider returned a value that does conform to the ` +
         `JSON Schema it was given, so no further attempt can validate. Stopped after ` +
         `${args.attempts} attempt(s).`
-      : `The response did not match the schema after ${args.attempts} attempt(s).`;
+      : args.reason === 'repeated-failure'
+        ? `The provider returned an identical response on two successive attempts, so ` +
+          `resampling is not producing anything new. Stopped after ${args.attempts} attempts.`
+        : `The response did not match the schema after ${args.attempts} attempt(s).`;
 
   return new ValidationError({
     code: ErrorCodeEnum.INVALID_REQUEST,
@@ -1512,6 +1558,7 @@ export function createGenerateObject(bridge: StructuredOutputBridge) {
     } = buildExtractDataTool(schema);
 
     let lastError: Error | undefined;
+    let previousPayloadKey: string | undefined;
 
     for (let attempt = 0; attempt < maxRetries; attempt++) {
       throwIfAborted(signal);
@@ -1625,6 +1672,29 @@ export function createGenerateObject(bridge: StructuredOutputBridge) {
           });
         }
       }
+
+      // GATE B -- the provider returned the same thing twice running.
+      //
+      // Keyed on the returned payload, not on the attempt number and not on
+      // the error set: a response that keeps *changing* keeps its whole
+      // budget, because the model is resampling and another draw may land.
+      // Only an identical answer says the distribution is not moving.
+      //
+      // Validation is deterministic, so an identical payload necessarily
+      // produces identical errors; the converse is emphatically not true,
+      // which is why the payload is what gets compared.
+      const key = payloadKey(data);
+      if (stopWhenRetryCannotHelp && key === previousPayloadKey) {
+        throw schemaValidationError({
+          reason: 'repeated-failure',
+          errors,
+          attempts,
+          conversionWarnings,
+          blocking: [],
+          frontend: bridge.frontend.metadata.name,
+        });
+      }
+      previousPayloadKey = key;
 
       lastError = schemaValidationError({
         reason: 'retries-exhausted',
