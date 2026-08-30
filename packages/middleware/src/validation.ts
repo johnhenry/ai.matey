@@ -518,6 +518,47 @@ const INJECTION_TARGET = '(?:instructions?|prompts?|commands?|rules?|directives?
 const INJECTION_LEGACY_TARGET = '(?:instructions|prompts?|commands?)';
 
 /**
+ * The "discard what came before" pattern, for one verb.
+ *
+ * `ignore` and `disregard` are the same attack written two ways, so they get
+ * the same regex rather than two hand-written ones that drift apart - which is
+ * exactly what had happened: #81 rebuilt `ignore` around the vocabulary above
+ * while `disregard` was left as `disregard\s+(all|any|previous|above)`, a
+ * pattern with **no target noun at all**. "disregard all warnings from the
+ * linter" and "you can disregard any files under vendor/" were both attacks
+ * under a bare `createValidationMiddleware({})`, which blocks by default.
+ *
+ * Two branches, both inherited from #81:
+ *
+ * 1. Prior-context branch. A word referring to the conversation so far, with
+ *    any stack of scope words and determiners in front of it and the widened
+ *    noun set behind it. The noun is what the old `disregard` pattern was
+ *    missing, and requiring it is the whole fix.
+ *
+ * 2. Scope-only branch, restricted to `all` plus the legacy noun set, so that
+ *    the bare "ignore all instructions" shape still lands.
+ *
+ * `\b${verb}` rather than `${verb}` so `gitignore all previous artifacts` is
+ * not an attack. `verb` is a literal supplied at this call site, never input.
+ *
+ * Precision here has a floor that no regex clears: "you can ignore the
+ * previous instructions I gave you, I was wrong" is a genuine user and is
+ * matched. That is an argument for the `'warn'` default
+ * `createSecurityMiddleware` already chose (#55), not for a cleverer pattern;
+ * both verdicts are pinned in tests/unit/detection-false-positives.test.ts.
+ * @internal
+ */
+const discardPriorContextPattern = (verb: string): RegExp =>
+  new RegExp(
+    `\\b${verb}\\s+(?:` +
+      `(?:${INJECTION_DET}\\s+)?(?:${INJECTION_SCOPE}\\s+(?:of\\s+)?(?:${INJECTION_DET}\\s+)?)?` +
+      `${INJECTION_PRIOR}\\s+(?:${INJECTION_DET}\\s+)?${INJECTION_TARGET}` +
+      `|all\\s+${INJECTION_LEGACY_TARGET}` +
+      `)\\b`,
+    'i'
+  );
+
+/**
  * Default prompt injection patterns.
  *
  * `preventPromptInjection` defaults to `true` and `injectionAction` to
@@ -552,22 +593,9 @@ export const DEFAULT_INJECTION_PATTERNS: RegExp[] = [
   //    undetected because `rules` is not in the legacy noun set and `every` is
   //    not in the legacy branch at all.
   //
-  // `\bignore` rather than `ignore` so `gitignore all previous artifacts` is
-  // not an attack.
-  //
-  // Precision here has a floor that no regex clears: "you can ignore the
-  // previous instructions I gave you, I was wrong" is a genuine user and is
-  // matched. That is an argument for the `'warn'` default `createSecurityMiddleware`
-  // already chose (#55), not for a cleverer pattern; both verdicts are pinned in
-  // tests/unit/detection-false-positives.test.ts.
-  new RegExp(
-    `\\bignore\\s+(?:` +
-      `(?:${INJECTION_DET}\\s+)?(?:${INJECTION_SCOPE}\\s+(?:of\\s+)?(?:${INJECTION_DET}\\s+)?)?` +
-      `${INJECTION_PRIOR}\\s+(?:${INJECTION_DET}\\s+)?${INJECTION_TARGET}` +
-      `|all\\s+${INJECTION_LEGACY_TARGET}` +
-      `)\\b`,
-    'i'
-  ),
+  // The branches, the word-boundary guard and the residual false positive are
+  // all documented on `discardPriorContextPattern` above.
+  discardPriorContextPattern('ignore'),
 
   // System prompt manipulation
   /system\s*:\s*new\s+(instruction|prompt|role)/i,
@@ -603,8 +631,24 @@ export const DEFAULT_INJECTION_PATTERNS: RegExp[] = [
   // Role manipulation
   /(you\s+are\s+now|act\s+as\s+if\s+you\s+are)\s+a\s+/i,
 
-  // Instruction override
-  /disregard\s+(all|any|previous|above)/i,
+  // Instruction override - the same attack as `ignore` above, so the same
+  // pattern. The version this replaced required no object at all, which made
+  // it the loosest pattern in this record: the verb plus one modifier was
+  // enough, so ordinary sentences like "disregard all of that, I mislabelled
+  // the ticket" threw under the default config.
+  //
+  // Two deliberate differences from what that pattern accepted, both of them
+  // the point rather than collateral:
+  //
+  // - A target noun is now required. `disregard all warnings`, `disregard any
+  //   files`, `disregard all of that` are ordinary developer text and stop
+  //   being attacks.
+  // - `any` no longer reaches the scope-only branch, which is restricted to
+  //   `all` exactly as it is for `ignore`. "the parser should disregard any
+  //   instructions it does not recognise" is a real sentence, and `any` still
+  //   reaches the prior-context branch, so `disregard any previous
+  //   instructions` - the shape an attacker actually writes - is still caught.
+  discardPriorContextPattern('disregard'),
 ];
 
 /**
