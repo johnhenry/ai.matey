@@ -131,6 +131,15 @@ export interface EmbedOptions {
   /** Extra metadata merged into the request's custom metadata. */
   readonly metadata?: Record<string, unknown>;
 
+  /**
+   * Caller this request is made on behalf of; becomes
+   * `metadata.principal` on the IR request.
+   *
+   * Required for embedding requests to be cacheable when a deployment
+   * serves more than one user or tenant -- see {@link IRMetadata.principal}.
+   */
+  readonly principal?: string;
+
   /** Provider-specific passthrough parameters. */
   readonly custom?: Record<string, unknown>;
 }

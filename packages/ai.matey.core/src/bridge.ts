@@ -945,6 +945,7 @@ export class Bridge<
         requestId: this.generateRequestId(),
         timestamp: Date.now(),
         provenance: { frontend: this.frontend.metadata.name },
+        principal: options.principal,
         custom: options.metadata,
       },
     };
@@ -1086,6 +1087,11 @@ export class Bridge<
           ...request.metadata?.provenance,
           frontend: this.frontend.metadata.name,
         },
+        // Caller identity. The typed option wins over whatever the frontend
+        // adapter put on the request, so the server that knows who is calling
+        // has the last word; middleware that scopes shared state (caching)
+        // reads it from here.
+        ...(options?.principal !== undefined && { principal: options.principal }),
         custom: {
           ...request.metadata?.custom,
           ...options?.metadata,

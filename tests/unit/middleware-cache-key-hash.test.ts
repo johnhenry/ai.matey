@@ -98,10 +98,13 @@ const UNICODE_SAMPLES: Record<string, string> = {
   'looks-like-json': '{"a":1}',
 };
 
+// These fixtures carry a `principal`, because a request without one is not
+// cached at all (#44) and there would be no round-trip left to test. Caller
+// scoping itself is covered in `cache-caller-scoping.test.ts`.
 function makeRequest(overrides: Partial<IRChatRequest> = {}): IRChatRequest {
   return {
     messages: [{ role: 'user', content: 'Hello' }],
-    metadata: { requestId: 'req-1', timestamp: 1_700_000_000_000 },
+    metadata: { requestId: 'req-1', timestamp: 1_700_000_000_000, principal: 'caller-1' },
     ...overrides,
   } as IRChatRequest;
 }
@@ -283,7 +286,10 @@ describe('createCachingMiddleware cache-key round-trip', () => {
       return makeResponse(`response ${calls}`);
     };
 
-    await middleware(makeContext(makeRequest({ messages: [{ role: 'user', content: 'Hello' }] })), next);
+    await middleware(
+      makeContext(makeRequest({ messages: [{ role: 'user', content: 'Hello' }] })),
+      next
+    );
     const second = await middleware(
       makeContext(makeRequest({ messages: [{ role: 'user', content: 'Goodbye' }] })),
       next
@@ -355,7 +361,7 @@ describe('createEmbeddingCachingMiddleware cache-key round-trip', () => {
     ({
       input,
       parameters: { model: 'text-embedding-3-small' },
-      metadata: { requestId: 'req-1', timestamp: 1_700_000_000_000 },
+      metadata: { requestId: 'req-1', timestamp: 1_700_000_000_000, principal: 'caller-1' },
     }) as unknown as IREmbedRequest;
 
   it('caches repeated inputs and separates different ones, including Unicode', async () => {

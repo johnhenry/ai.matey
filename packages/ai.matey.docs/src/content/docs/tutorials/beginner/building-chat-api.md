@@ -418,6 +418,18 @@ bridge.use(createCostTrackingMiddleware({
 }));
 ```
 
+An API server answers for many people out of one process, so cache entries are
+scoped to a caller. Pass the caller's identity with each request:
+
+```typescript
+const response = await bridge.chat(req.body, { principal: req.user.id });
+```
+
+Without it the response is simply not cached - the middleware will not risk
+handing it to the next person who asks the same question. If your server really
+does serve a single audience, say so once with
+`createCachingMiddleware({ unidentified: 'share' })`.
+
 ## Step 9: Add Multi-Provider Support
 
 Use Router for high availability:

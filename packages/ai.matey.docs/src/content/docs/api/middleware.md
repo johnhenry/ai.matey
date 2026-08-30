@@ -150,11 +150,14 @@ interface CachingConfig {
   /** Storage implementation (default: an in-memory LRU store) */
   storage?: CacheStorage;
 
-  /** Custom cache key function */
+  /** Custom cache key function; takes over caller scoping entirely */
   keyGenerator?: (request: IRChatRequest) => string;
 
-  /** Tenant/user identity mixed into the default cache key */
-  scopeKey?: string | ((request: IRChatRequest) => string);
+  /** Caller identity mixed into the default cache key, overriding metadata.principal */
+  scopeKey?: string | ((request: IRChatRequest) => string | undefined);
+
+  /** What to do with a request that has no caller identity (default: 'bypass') */
+  unidentified?: 'bypass' | 'share';
 
   /** Cache streaming responses too (default: false) */
   cacheStreaming?: boolean;
@@ -182,17 +185,33 @@ import { createCachingMiddleware } from '@johnhenry/aimatey-middleware';
 
 const cache = createCachingMiddleware({
   ttl: 3_600_000,      // one hour, in milliseconds
-  maxSize: 1000,       // Max 1000 items
-  scopeKey: (request) => String(request.metadata.custom?.tenantId ?? 'default')
+  maxSize: 1000        // Max 1000 items
 });
 
 bridge.use(cache);
 
 // First request - cache miss
-await bridge.chat({ model: 'gpt-4', messages }); // ~1200ms
+await bridge.chat({ model: 'gpt-4', messages }, { principal: userId }); // ~1200ms
 
-// Second identical request - cache hit
-await bridge.chat({ model: 'gpt-4', messages }); // ~0.5ms ⚡
+// Same prompt, same caller - cache hit
+await bridge.chat({ model: 'gpt-4', messages }, { principal: userId }); // ~0.5ms ⚡
+
+// Same prompt, different caller - cache miss, and rightly so
+await bridge.chat({ model: 'gpt-4', messages }, { principal: otherUserId });
+```
+
+**Cache entries belong to a caller.** The key mixes in a scope taken from
+`scopeKey`, or failing that from the request's `metadata.principal` (set per
+request with `bridge.chat(request, { principal })`). A request with neither is
+**not cached at all**: it is passed through with a `cache-bypassed` warning on
+`metadata.warnings`, so a shared cache can never hand one user's completion to
+another.
+
+A single-tenant deployment - one process, one audience, where sharing every
+entry is the reason caching was switched on - opts back into unscoped sharing:
+
+```typescript
+bridge.use(createCachingMiddleware({ ttl: 3_600_000, unidentified: 'share' }));
 ```
 
 **Cache statistics:** the factory returns a bare `Middleware` function, so there

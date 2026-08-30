@@ -17,10 +17,16 @@ async function main() {
     })
   );
 
-  // Add caching middleware
+  // Add caching middleware.
+  //
+  // `unidentified: 'share'` because this script is a single-user demo: every
+  // request comes from the same person, so one shared cache is correct. A
+  // server answering for many users passes each caller's identity instead
+  // (`bridge.chat(request, { principal: userId })`) and leaves this off.
   bridge.use(
     createCachingMiddleware({
       storage: new InMemoryCacheStorage(),
+      unidentified: 'share',
       ttl: 3600, // 1 hour
       shouldCache: (request) => !request.stream, // Don't cache streaming requests
     })

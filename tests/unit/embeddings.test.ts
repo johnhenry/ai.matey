@@ -329,28 +329,56 @@ describe('OpenAI backend embed', () => {
 // ============================================================================
 
 describe('embedding middleware', () => {
-  it('caches identical requests', async () => {
+  it('caches identical requests from the same caller', async () => {
     const backend = makeEmbedBackend({});
     const bridge = makeBridge(backend).useEmbed(createEmbeddingCachingMiddleware());
 
-    await bridge.embed('same input');
-    await bridge.embed('same input');
-    await bridge.embed('different input');
+    await bridge.embed('same input', { principal: 'user-a' });
+    await bridge.embed('same input', { principal: 'user-a' });
+    await bridge.embed('different input', { principal: 'user-a' });
 
     expect(backend.embedCalls).toHaveLength(2);
   });
 
-  it('without scopeKey, two different callers embedding the same input collide on one cache entry', async () => {
-    // Documents the default (unscoped) multi-tenant cache-collision risk:
-    // a single shared cache backing two "callers" sees only one embed call
-    // for the second caller's identical input.
+  it('does not serve one caller the embedding cached for another (#44)', async () => {
+    // A single shared middleware instance -- i.e. one process serving two
+    // users. Identical input, different principal: the second caller must
+    // reach the backend rather than be handed the first caller's vector.
     const backend = makeEmbedBackend({});
     const bridge = makeBridge(backend).useEmbed(createEmbeddingCachingMiddleware());
 
-    await bridge.embed('same input'); // caller A
-    await bridge.embed('same input'); // caller B -- would-be collision
+    await bridge.embed('same input', { principal: 'user-a' });
+    await bridge.embed('same input', { principal: 'user-b' });
+
+    expect(backend.embedCalls).toHaveLength(2);
+  });
+
+  it('does not cache at all when the request carries no caller identity (#44)', async () => {
+    // The safe default: with nothing to scope on, an entry written now
+    // could only be read later by somebody unknown, so none is written.
+    const backend = makeEmbedBackend({});
+    const bridge = makeBridge(backend).useEmbed(createEmbeddingCachingMiddleware());
+
+    await bridge.embed('same input');
+    const second = await bridge.embed('same input');
+
+    expect(backend.embedCalls).toHaveLength(2);
+    expect(second.metadata.warnings?.map((w) => w.category)).toContain('cache-bypassed');
+  });
+
+  it("unidentified: 'share' keeps the single-tenant shared cache working", async () => {
+    // One process, one audience: sharing every entry is the reason caching
+    // was switched on, and saying so restores the pre-#44 behaviour.
+    const backend = makeEmbedBackend({});
+    const bridge = makeBridge(backend).useEmbed(
+      createEmbeddingCachingMiddleware({ unidentified: 'share' })
+    );
+
+    await bridge.embed('same input');
+    const second = await bridge.embed('same input');
 
     expect(backend.embedCalls).toHaveLength(1);
+    expect(second.metadata.warnings?.map((w) => w.category) ?? []).not.toContain('cache-bypassed');
   });
 
   it('scopeKey prevents cross-tenant cache collisions for identical input on a shared cache', async () => {

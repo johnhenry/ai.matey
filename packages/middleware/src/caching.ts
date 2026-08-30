@@ -3,14 +3,26 @@
  *
  * Caches responses with TTL-based expiration and LRU eviction.
  *
- * **Multi-tenant warning**: the default cache key is derived only from
- * model/messages/parameters -- it has no notion of caller identity. If this
- * middleware's cache is shared across multiple users or tenants, two
- * different callers sending the same prompt will collide and one can
- * receive the other's cached response. In a multi-tenant deployment, either
- * pass `scopeKey` (a tenant/user ID, or a function deriving one from the
- * request) or supply your own fully custom `keyGenerator` that mixes in
- * caller identity.
+ * **Cache entries are scoped to a caller, and a request with no caller is
+ * not cached at all.** A cache keyed only on model/messages/parameters
+ * serves whoever asks first: in a deployment where one process answers for
+ * several users, the second user to send a prompt receives the first user's
+ * completion (#44). So the default key mixes in a *scope* taken from, in
+ * order:
+ *
+ * 1. `scopeKey` from this middleware's config, if set;
+ * 2. `request.metadata.principal` -- the IR's first-class caller identity,
+ *    settable per request via `bridge.chat(request, { principal })`.
+ *
+ * If neither is present the request is **not cached**: the response is
+ * passed straight through with a `cache-bypassed` warning on
+ * `metadata.warnings`. Nothing is written, so nothing can later be read by
+ * the wrong caller.
+ *
+ * A genuinely single-tenant deployment -- one process, one audience, where
+ * sharing every entry is exactly why caching was switched on -- says so with
+ * `unidentified: 'share'`, which restores unscoped sharing for requests
+ * that carry no identity.
  *
  * @module
  */
@@ -21,7 +33,7 @@ import type {
   MiddlewareNext,
   CacheStorage,
 } from '@johnhenry/aimatey-types';
-import type { IRChatRequest, IRChatResponse } from '@johnhenry/aimatey-types';
+import type { IRChatRequest, IRChatResponse, IRWarning } from '@johnhenry/aimatey-types';
 import { stableHash } from './hash.js';
 
 // ============================================================================
@@ -35,25 +47,54 @@ export interface CachingConfig {
   /**
    * Cache key generator function.
    *
-   * **Multi-tenant warning**: if you supply a custom generator, it MUST
-   * itself mix in caller/tenant identity when the cache is shared across
-   * users -- this option entirely replaces `scopeKey` below.
+   * Supplying one takes over key derivation completely: `scopeKey`,
+   * `metadata.principal` and `unidentified` are all bypassed, and the
+   * generator MUST itself mix in caller identity if the cache is shared
+   * across users. Prefer `scopeKey` unless the key really has to change
+   * shape.
    *
-   * @default Default implementation based on request hash (+ `scopeKey`, if set)
+   * @default Default implementation based on request hash + caller scope
    */
   keyGenerator?: (request: IRChatRequest) => string;
 
   /**
    * A tenant/user/session identifier (or a function deriving one from the
-   * request) mixed into the *default* cache key generator.
+   * request) mixed into the *default* cache key, taking precedence over
+   * `request.metadata.principal`.
    *
-   * **Multi-tenant deployments sharing a single cache MUST set this** (or
-   * supply a fully custom `keyGenerator` that itself scopes by identity) --
-   * otherwise two different callers sending the same prompt collide on the
-   * same cache key and one can receive the other's cached response.
+   * Use it when identity lives somewhere the IR does not reach -- an
+   * ambient async-local store, a per-tenant middleware instance. When the
+   * caller already sets `metadata.principal`, leave this unset.
+   *
+   * Returning `undefined` or `''` from the function form means "this
+   * request has no identity", and `unidentified` then decides what happens.
    * Ignored when a custom `keyGenerator` is supplied.
    */
-  scopeKey?: string | ((request: IRChatRequest) => string);
+  scopeKey?: string | ((request: IRChatRequest) => string | undefined);
+
+  /**
+   * What to do with a request that carries no caller identity -- no
+   * `scopeKey`, no `metadata.principal`.
+   *
+   * - `'bypass'` (default): do not cache it. The request goes to the
+   *   backend, the response is returned with a `cache-bypassed` warning,
+   *   and nothing is stored. An unidentified request can then never be
+   *   answered from another caller's entry, whatever the deployment looks
+   *   like.
+   * - `'share'`: cache it in one unscoped bucket shared by every
+   *   unidentified caller. This is the pre-#44 behaviour and the right
+   *   answer for a single-tenant deployment, where sharing every entry is
+   *   the point. It is the wrong answer anywhere a cache outlives a single
+   *   user's session.
+   *
+   * The default is `'bypass'` because the failure mode of guessing wrong is
+   * asymmetric: guessing `'share'` in a multi-tenant deployment discloses
+   * one user's completion to another, while guessing `'bypass'` in a
+   * single-tenant one only costs cache hits until someone sets one option.
+   *
+   * @default 'bypass'
+   */
+  unidentified?: 'bypass' | 'share';
 
   /**
    * Cache TTL in milliseconds.
@@ -85,44 +126,60 @@ export interface CachingConfig {
 // ============================================================================
 
 /**
- * Build the default cache key generator, optionally scoped by `scopeKey`.
+ * Resolve the caller scope a request's cache entry belongs to.
  *
- * Generates cache key from model, messages, and parameters (plus `scope`,
- * if `scopeKey` is set). Excludes metadata and streaming flag.
- *
- * **Multi-tenant warning**: without `scopeKey`, this hashes only
- * model/messages/parameters -- it has no notion of caller identity, so a
- * shared cache will serve one caller's response to a different caller who
- * sends the same prompt. Pass `scopeKey` (or a custom `keyGenerator`) to
- * scope the cache by tenant/user/session.
+ * `scopeKey` (this middleware's own config) wins over the request's
+ * `metadata.principal`, so a deployment that derives identity out of band
+ * can override what the request claims. `undefined` means the request
+ * carries no identity at all.
  */
-function createDefaultKeyGenerator(
-  scopeKey?: string | ((request: IRChatRequest) => string)
-): (request: IRChatRequest) => string {
-  return (request: IRChatRequest): string => {
-    // Create a stable cache key from request
-    const cacheableData = {
-      scope: typeof scopeKey === 'function' ? scopeKey(request) : scopeKey,
-      model: request.parameters?.model,
-      messages: request.messages,
-      temperature: request.parameters?.temperature,
-      maxTokens: request.parameters?.maxTokens,
-      topP: request.parameters?.topP,
-      topK: request.parameters?.topK,
-      stopSequences: request.parameters?.stopSequences,
-      tools: request.tools,
-      toolChoice: request.toolChoice,
-    };
+function resolveCacheScope(
+  request: IRChatRequest,
+  scopeKey?: string | ((request: IRChatRequest) => string | undefined)
+): string | undefined {
+  const explicit = typeof scopeKey === 'function' ? scopeKey(request) : scopeKey;
+  if (explicit !== undefined && explicit !== '') {
+    return explicit;
+  }
 
-    // Generate hash.
-    //
-    // This is a *cache index*, not a security primitive, so it uses the
-    // pure-JS `stableHash` rather than Node's `crypto.createHash`: the
-    // middleware is consumed from browsers/webviews/Electron renderers where
-    // bundlers externalize `crypto` and `createHash` is undefined at runtime.
-    const json = JSON.stringify(cacheableData);
-    return stableHash(json);
+  const principal = request.metadata?.principal;
+  return principal !== undefined && principal !== '' ? principal : undefined;
+}
+
+/**
+ * The default cache key for a request within a resolved caller `scope`.
+ *
+ * Derived from the scope, model, messages and parameters. Excludes metadata
+ * and the streaming flag.
+ *
+ * `scope` is dropped from the hashed payload when undefined, so an
+ * explicitly shared (`unidentified: 'share'`) cache produces exactly the
+ * keys it produced before caller scoping existed -- upgrading does not
+ * invalidate an existing single-tenant cache.
+ */
+function defaultCacheKey(request: IRChatRequest, scope: string | undefined): string {
+  // Create a stable cache key from request
+  const cacheableData = {
+    scope,
+    model: request.parameters?.model,
+    messages: request.messages,
+    temperature: request.parameters?.temperature,
+    maxTokens: request.parameters?.maxTokens,
+    topP: request.parameters?.topP,
+    topK: request.parameters?.topK,
+    stopSequences: request.parameters?.stopSequences,
+    tools: request.tools,
+    toolChoice: request.toolChoice,
   };
+
+  // Generate hash.
+  //
+  // This is a *cache index*, not a security primitive, so it uses the
+  // pure-JS `stableHash` rather than Node's `crypto.createHash`: the
+  // middleware is consumed from browsers/webviews/Electron renderers where
+  // bundlers externalize `crypto` and `createHash` is undefined at runtime.
+  const json = JSON.stringify(cacheableData);
+  return stableHash(json);
 }
 
 // ============================================================================
@@ -286,31 +343,75 @@ export class InMemoryCacheStorage implements CacheStorage {
 // ============================================================================
 
 /**
+ * The warning attached to a response that was not cached because the request
+ * carried no caller identity.
+ */
+const CACHE_BYPASSED_WARNING: IRWarning = {
+  category: 'cache-bypassed',
+  severity: 'warning',
+  message:
+    'Response was not cached: the request carries no caller identity, and caching it ' +
+    'could serve it to a different caller. Set metadata.principal on the request ' +
+    "(bridge.chat(request, { principal })), pass scopeKey, or set unidentified: 'share' " +
+    'if this deployment serves a single tenant.',
+  field: 'metadata.principal',
+  source: 'caching-middleware',
+};
+
+/**
+ * Pass a response through uncached, recording why.
+ *
+ * The bypass is deliberately noisy: a cache that silently stops working is
+ * as hard to notice as one that silently leaks, so the reason travels on the
+ * response rather than only in this module's documentation.
+ */
+function withBypassWarning(response: IRChatResponse): IRChatResponse {
+  return {
+    ...response,
+    metadata: {
+      ...response.metadata,
+      warnings: [...(response.metadata.warnings ?? []), CACHE_BYPASSED_WARNING],
+      custom: {
+        ...response.metadata.custom,
+        cacheHit: false,
+        cacheBypassed: true,
+      },
+    },
+  };
+}
+
+/**
  * Create caching middleware.
  *
  * Caches responses with TTL-based expiration and LRU eviction.
  *
+ * Entries are scoped to a caller: a request with no `scopeKey` and no
+ * `metadata.principal` is not cached at all unless the deployment declares
+ * itself single-tenant with `unidentified: 'share'`.
+ *
  * @param config Caching configuration
  * @returns Caching middleware
  *
- * @example
+ * @example Multi-tenant: identity travels with the request
  * ```typescript
- * const caching = createCachingMiddleware({
- *   ttl: 3600000, // 1 hour
- *   maxSize: 1000,
- *   cacheStreaming: false
- * });
+ * bridge.use(createCachingMiddleware({ ttl: 3600000 }));
  *
- * bridge.use(caching);
+ * await bridge.chat(request, { principal: `tenant-${tenantId}:user-${userId}` });
+ * ```
+ *
+ * @example Single-tenant: one audience, one shared cache
+ * ```typescript
+ * bridge.use(createCachingMiddleware({ ttl: 3600000, unidentified: 'share' }));
  * ```
  */
 export function createCachingMiddleware(config: CachingConfig = {}): Middleware {
   const {
-    keyGenerator = createDefaultKeyGenerator(config.scopeKey),
+    keyGenerator,
     ttl = 3600000, // 1 hour
     maxSize = 1000,
     storage = new InMemoryCacheStorage(maxSize),
     cacheStreaming = false,
+    unidentified = 'bypass',
   } = config;
 
   return async (context: MiddlewareContext, next: MiddlewareNext): Promise<IRChatResponse> => {
@@ -319,8 +420,21 @@ export function createCachingMiddleware(config: CachingConfig = {}): Middleware 
       return next();
     }
 
-    // Generate cache key
-    const cacheKey = keyGenerator(context.request);
+    // Generate cache key. A custom generator owns scoping entirely; the
+    // default one refuses to build a key for a request whose caller cannot
+    // be identified, unless the deployment has declared itself single-tenant.
+    let cacheKey: string;
+    if (keyGenerator) {
+      cacheKey = keyGenerator(context.request);
+    } else {
+      const scope = resolveCacheScope(context.request, config.scopeKey);
+
+      if (scope === undefined && unidentified === 'bypass') {
+        return withBypassWarning(await next());
+      }
+
+      cacheKey = defaultCacheKey(context.request, scope);
+    }
 
     // Check cache
     const cachedResponse = await storage.get(cacheKey);
