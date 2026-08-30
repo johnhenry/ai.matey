@@ -963,10 +963,15 @@ backend**, on both `chat()` and `chatStream()`. Each match is replaced with
 `request.metadata.warnings`, so the rewrite is recorded rather than silent. Pass
 `redactPII: false` to opt out.
 
-`DEFAULT_PII_PATTERNS` errs towards over-matching - its `apiKey` pattern matches
-any run of 32+ alphanumeric characters (a git SHA, a base64 id) and `ipAddress`
-matches dotted-quad version strings like `1.2.3.4`. Supply `piiPatterns` of your
-own if a false positive would damage legitimate content.
+`DEFAULT_PII_PATTERNS` is tuned for precision on developer text. `apiKey`
+matches credentials by **vendor prefix** (`sk-`, `ghp_`, `AKIA`, `xox`,
+`glpat-`, `AIza`, ...) rather than by length, so commit hashes, UUIDs and base64
+ids are left alone; unprefixed vendor keys are the cost of that, and can be
+matched again with
+`piiPatterns: { ...DEFAULT_PII_PATTERNS, longToken: /\b[A-Za-z0-9]{32,}\b/g }`.
+`ipAddress` validates octet ranges and skips quads introduced by a version
+marker, so `version 1.2.3.4` and `v1.2.3.4` survive; a bare `1.2.3.4` with no
+marker is genuinely ambiguous and is still read as an address.
 
 **Response header policy.** `Content-Security-Policy`,
 `Strict-Transport-Security`, `X-Frame-Options` and friends are *browser response*

@@ -287,7 +287,110 @@ export interface ValidationConfig {
 }
 
 /**
- * Default PII patterns
+ * Vendor-issued credential shapes, as alternation sources for
+ * {@link DEFAULT_PII_PATTERNS}`.apiKey`.
+ *
+ * Every entry is anchored on a literal prefix the issuing vendor puts there
+ * precisely so that a leaked credential can be recognised. Length alone is not
+ * a signal and is not used: a 40-character run of hex is a git SHA far more
+ * often than it is a secret, and no entropy test can separate the two - they
+ * have the same entropy. See {@link DEFAULT_PII_PATTERNS}.
+ *
+ * Ordering matters. More specific prefixes come before the generic ones that
+ * would otherwise shadow them (`sk-ant-api03-` before `sk-`), because
+ * alternation takes the first branch that matches at a given position.
+ *
+ * @internal
+ */
+const API_KEY_SOURCES: readonly string[] = [
+  // AWS access key ids: a four-character type prefix + 16 uppercase alphanumerics.
+  'A(?:KIA|SIA|BIA|CCA|ROA|IDA|IPA|NPA|NVA|GPA)[A-Z0-9]{16,}',
+
+  // Google / Firebase / Gemini API keys.
+  'AIza[A-Za-z0-9_-]{35,}',
+
+  // GitHub: classic PATs and OAuth/app tokens, plus fine-grained PATs.
+  'gh[pousr]_[A-Za-z0-9]{36,}',
+  'github_pat_[A-Za-z0-9_]{50,}',
+
+  // GitLab: personal access, deploy, feed, runner, trigger and CI job tokens.
+  'gl(?:pat|dt|ft|rt|ptt|cbt)-[A-Za-z0-9_-]{20,}',
+
+  // Slack bot/user/legacy tokens and app-level tokens.
+  'xox[abeoprs]-[A-Za-z0-9-]{10,}',
+  'xapp-\\d-[A-Za-z0-9-]{10,}',
+
+  // OpenAI (project, service-account, admin), Anthropic, OpenRouter.
+  'sk-(?:proj|svcacct|admin|None|ant-api\\d{2}|ant-admin\\d{2}|or-v1)-[A-Za-z0-9_-]{20,}',
+  // OpenAI classic keys and other `sk-` vendors. 32 rather than 20 so that a
+  // hyphenated identifier that happens to start with `sk-` cannot match.
+  'sk-[A-Za-z0-9]{32,}',
+
+  // Other AI vendors with fixed prefixes.
+  'gsk_[A-Za-z0-9]{20,}', // Groq
+  'xai-[A-Za-z0-9]{20,}', // xAI
+  'pplx-[A-Za-z0-9]{20,}', // Perplexity
+  'r8_[A-Za-z0-9]{20,}', // Replicate
+  'hf_[A-Za-z0-9]{20,}', // Hugging Face
+
+  // Payments and commerce.
+  '[sr]k_(?:live|test|prod)_[A-Za-z0-9]{16,}', // Stripe secret / restricted
+  'shp(?:at|ca|pa|ss)_[A-Fa-f0-9]{32,}', // Shopify
+
+  // Registries, PaaS and mail.
+  'npm_[A-Za-z0-9]{36,}',
+  'dop_v1_[a-f0-9]{64,}', // DigitalOcean
+  'sbp_[a-f0-9]{40,}', // Supabase
+  'SG\\.[A-Za-z0-9_-]{22,}\\.[A-Za-z0-9_-]{43,}', // SendGrid
+];
+
+/**
+ * A single dotted-quad octet: 0-255, no leading zeros beyond a bare `0`.
+ * @internal
+ */
+const IPV4_OCTET = '(?:25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)';
+
+/**
+ * Words that mark a following dotted quad as a version, not an address.
+ * @internal
+ */
+const VERSION_MARKER = '(?:v|ver|rev|version|release|build)';
+
+/**
+ * Default PII patterns.
+ *
+ * These run **by default** wherever `detectPII` is enabled -
+ * `createProductionValidationMiddleware`, and `createSecurityMiddleware`, which
+ * redacts by default - so a false positive is not a cosmetic problem. It
+ * silently rewrites the user's message and then asks the model to reason about
+ * `[REDACTED_APIKEY]`. The patterns are therefore tuned for precision on
+ * ordinary developer text (#67).
+ *
+ * Two of them are deliberately narrower than the naive version:
+ *
+ * - `apiKey` requires a **vendor prefix** ({@link API_KEY_SOURCES}), not a
+ *   length. The previous `/\b[A-Za-z0-9]{32,}\b/` matched every git SHA, every
+ *   dashless UUID, and every base64 id. Entropy is not an available fix - a git
+ *   SHA is uniformly random hex, so it scores as high as any secret. The cost
+ *   is that an *unprefixed* secret (Mistral, Cohere and other vendors issue
+ *   bare alphanumeric keys) is no longer matched; the benefit is that prefixed
+ *   ones now are, which the length rule missed entirely because `_` breaks
+ *   `\b` (`ghp_...` was never detected) and `AKIA...` is only 20 characters.
+ *   To restore length-based matching, add it back explicitly:
+ *
+ *   ```typescript
+ *   piiPatterns: { ...DEFAULT_PII_PATTERNS, longToken: /\b[A-Za-z0-9]{32,}\b/g }
+ *   ```
+ *
+ * - `ipAddress` validates octet ranges and skips quads introduced by a version
+ *   marker, so `version 1.2.3.4` and `v1.2.3.4` are left alone. A bare
+ *   four-segment version string is **genuinely ambiguous**: `1.2.3.4` is both a
+ *   valid IPv4 address and a valid four-part version, and nothing in the text
+ *   distinguishes them. With no marker word present this pattern reads it as an
+ *   address. That is a choice, not a determination.
+ *
+ * Uses lookbehind (ES2018), so it needs Node 18+ / Safari 16.4+ - already
+ * implied by this package's ES2022 target.
  */
 export const DEFAULT_PII_PATTERNS: Record<string, RegExp> = {
   // Email addresses
@@ -302,11 +405,16 @@ export const DEFAULT_PII_PATTERNS: Record<string, RegExp> = {
   // US Phone numbers
   phone: /\b(\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b/g,
 
-  // IP addresses
-  ipAddress: /\b(?:\d{1,3}\.){3}\d{1,3}\b/g,
+  // IPv4 addresses, with valid octets and no version-marker prefix.
+  // The trailing `(?!\.\d)` keeps `1.2.3.4.5` from matching its own prefix
+  // while still allowing a sentence-final `10.0.0.1.`
+  ipAddress: new RegExp(
+    `(?<!\\b${VERSION_MARKER}\\.?\\s{0,2})(?<!\\d\\.)\\b${IPV4_OCTET}(?:\\.${IPV4_OCTET}){3}\\b(?!\\.\\d)`,
+    'gi'
+  ),
 
-  // API keys (common patterns)
-  apiKey: /\b[A-Za-z0-9]{32,}\b/g,
+  // API keys, by vendor prefix rather than by length.
+  apiKey: new RegExp(`\\b(?:${API_KEY_SOURCES.join('|')})`, 'g'),
 };
 
 /**
