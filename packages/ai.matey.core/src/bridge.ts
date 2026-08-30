@@ -14,7 +14,12 @@ import type {
   InferFrontendResponse,
   InferFrontendStreamChunk,
 } from '@johnhenry/aimatey-types';
-import type { IRChatRequest, IRChatResponse, IRChatStream } from '@johnhenry/aimatey-types';
+import type {
+  IRChatRequest,
+  IRChatResponse,
+  IRChatStream,
+  IRProvenance,
+} from '@johnhenry/aimatey-types';
 import type {
   BridgeConfig,
   RequestOptions,
@@ -285,8 +290,8 @@ export class Bridge<
         Promise.resolve(this.backend.executeStream(context.request, options?.signal))
       );
 
-      // Step 7: Convert IR stream to frontend format
-      const frontendStream = this.frontend.fromIRStream(irStream);
+      // Step 7: Stamp provenance, then convert IR stream to frontend format
+      const frontendStream = this.frontend.fromIRStream(this.enrichStream(irStream));
 
       // Step 8: Yield chunks to caller
       let chunkSequence = 0;
@@ -617,10 +622,29 @@ export class Bridge<
   // ==========================================================================
 
   /**
-   * Get router instance (returns null for basic Bridge).
+   * Get the router backing this bridge, or `null` when there is none.
+   *
+   * A bridge constructed over a {@link Router} hands it back here, so the router's
+   * surface - `listBackends()`, `getBackendInfo()`, `setFallbackChain()`, the health
+   * and circuit-breaker controls - stays reachable through the object you were given.
+   * A bridge wired to a plain backend adapter returns `null`.
+   *
+   * The check is structural rather than an `instanceof`, so consumers do not pull the
+   * Router implementation in at runtime just to ask the question.
+   *
+   * @example
+   * ```typescript
+   * const router = bridge.getRouter();
+   * if (router) {
+   *   console.log(router.listBackends());
+   * }
+   * ```
    */
-  getRouter(): null {
-    return null;
+  getRouter(): Router | null {
+    const candidate = this.backend as BackendAdapter & Partial<Router>;
+    return typeof candidate.has === 'function' && typeof candidate.listBackends === 'function'
+      ? (candidate as unknown as Router)
+      : null;
   }
 
   /**
@@ -717,7 +741,7 @@ export class Bridge<
       Promise.resolve(this.backend.executeStream(context.request, options?.signal))
     );
 
-    for await (const chunk of irStream) {
+    for await (const chunk of this.enrichStream(irStream)) {
       if (options?.signal?.aborted) {
         break;
       }
@@ -946,19 +970,6 @@ export class Bridge<
   }
 
   /**
-   * Narrow the configured backend to a Router, structurally.
-   *
-   * Type-only coupling on purpose: importing the Router class here just to run an
-   * `instanceof` check would make every Bridge consumer pull the router in at runtime.
-   */
-  private asRouter(): Router | null {
-    const candidate = this.backend as BackendAdapter & Partial<Router>;
-    return typeof candidate.has === 'function' && typeof candidate.listBackends === 'function'
-      ? (candidate as unknown as Router)
-      : null;
-  }
-
-  /**
    * Reject a per-request `backend` override naming a backend that is not registered.
    *
    * Only *unregistered* names are rejected. A backend that is registered but currently
@@ -971,7 +982,7 @@ export class Bridge<
    * @throws AdapterError ROUTING_FAILED when the name is not a registered backend
    */
   private assertBackendRegistered(name: string): void {
-    const router = this.asRouter();
+    const router = this.getRouter();
     if (!router || router.has(name)) {
       return;
     }
@@ -989,6 +1000,31 @@ export class Bridge<
   }
 
   /**
+   * Stamp bridge provenance without discarding what answered the request.
+   *
+   * `frontend` is authoritative - the bridge knows which frontend adapter it holds.
+   * `backend` is not: when the configured backend is a {@link Router},
+   * `this.backend.metadata.name` is the *router's* name, not the adapter that actually
+   * served the request. So a `backend` already written further down the chain always
+   * wins, and the bridge's own backend name is only the fallback for an adapter that
+   * reported none.
+   *
+   * A router-backed bridge additionally records the router under `router` - the field
+   * that exists for it - so the routing layer stays visible without overwriting the
+   * backend that answered.
+   */
+  private resolveProvenance(provenance: IRProvenance | undefined): IRProvenance {
+    const routerName = this.getRouter() ? this.backend.metadata.name : undefined;
+
+    return {
+      ...provenance,
+      frontend: this.frontend.metadata.name,
+      backend: provenance?.backend ?? this.backend.metadata.name,
+      ...(routerName !== undefined && { router: provenance?.router ?? routerName }),
+    };
+  }
+
+  /**
    * Enrich response with provenance and timing.
    */
   private enrichResponse(response: IRChatResponse, request: IRChatRequest): IRChatResponse {
@@ -997,13 +1033,42 @@ export class Bridge<
       metadata: {
         ...response.metadata,
         requestId: request.metadata.requestId,
-        provenance: {
-          ...response.metadata.provenance,
-          frontend: this.frontend.metadata.name,
-          backend: this.backend.metadata.name,
-        },
+        provenance: this.resolveProvenance(response.metadata.provenance),
       },
     };
+  }
+
+  /**
+   * Streaming counterpart to {@link enrichResponse}.
+   *
+   * A stream has no single response object to enrich, so the same provenance rule is
+   * applied to the `start` chunk - the chunk backends carry response metadata on - and
+   * every other chunk passes through untouched. Without this, `chatStream()` reported
+   * whatever provenance the backend happened to volunteer while `chat()` always
+   * reported some, so the two paths disagreed about the same request.
+   *
+   * `requestId` is deliberately left alone: backends set it on the start chunk to the
+   * provider's own stream id (Anthropic's `msg_...`), which is more useful than
+   * restating the bridge's.
+   *
+   * A start chunk carrying no metadata at all is passed through untouched rather than
+   * given a fabricated one - `IRMetadata` requires a request id and timestamp the bridge
+   * would have to invent.
+   */
+  private async *enrichStream(stream: IRChatStream): IRChatStream {
+    for await (const chunk of stream) {
+      if (chunk.type === 'start' && chunk.metadata) {
+        yield {
+          ...chunk,
+          metadata: {
+            ...chunk.metadata,
+            provenance: this.resolveProvenance(chunk.metadata.provenance),
+          },
+        };
+      } else {
+        yield chunk;
+      }
+    }
   }
 
   /**

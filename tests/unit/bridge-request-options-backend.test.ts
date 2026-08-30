@@ -27,9 +27,12 @@ import type {
 
 /**
  * Backend that always answers with a fixed, identifying string, so tests can tell
- * which backend actually served a request. Provenance is not usable for this:
- * `Bridge.enrichResponse()` overwrites `provenance.backend` with the *router's*
- * name when the bridge's backend is a router.
+ * which backend actually served a request.
+ *
+ * Provenance now carries the same answer - #57 stopped `Bridge.enrichResponse()`
+ * overwriting `provenance.backend` with the router's name - and is asserted in
+ * `bridge-observability.test.ts`. These tests keep using the response body, so a
+ * regression in one is not masked by a regression in the other.
  */
 function createStaticBackend(name: string, answer: string): BackendAdapter {
   const metadata: AdapterMetadata = {
