@@ -302,16 +302,41 @@ export class HuggingFaceBackendAdapter implements BackendAdapter<
         buildStructuredOutputFallbackMessages(request.messages, request.responseFormat)
       );
 
+      const temperature = request.parameters?.temperature;
+
+      // `temperature: 0` is the IR/OpenAI spelling of "decode greedily". Hugging
+      // Face spells the same intent as `do_sample: false` with the sampling
+      // knobs *absent*, and rejects the literal zero:
+      // text-generation-inference validates `temperature.unwrap_or(1.0) <= 0.0
+      // -> ValidationError::Temperature` ("`temperature` must be strictly
+      // positive") unconditionally, before and independently of `do_sample`
+      // (`router/src/validation.rs`). So `do_sample: false` does not excuse the
+      // zero -- the request never reaches the model.
+      //
+      // `top_p`/`top_k` have to go with it. They are not merely redundant under
+      // `do_sample: false`; TGI's server *promotes* them back to sampling:
+      //
+      //   has_warpers = (temperature != 1.0) or (top_k != 0) or (top_p < 1.0) ...
+      //   sampling    = do_sample or has_warpers
+      //   self.choice = Sampling(...) if sampling else Greedy()
+      //
+      // (`server/text_generation_server/utils/tokens.py`, and the same per-request
+      // promotion in the batched `HeterogeneousNextTokenChooser`.) Leaving either
+      // one in the payload would silently override the `do_sample: false` we just
+      // set and sample anyway. Omitting all three lets TGI's own defaults
+      // (temperature 1.0, top_p 1.0, top_k 0) collapse `has_warpers` to false, so
+      // `do_sample: false` decides, and the request decodes greedily as asked.
+      const greedy = temperature === 0;
+
       return {
         inputs: prompt,
         parameters: {
-          temperature: request.parameters?.temperature,
+          temperature: greedy ? undefined : temperature,
           max_new_tokens: request.parameters?.maxTokens,
-          top_p: request.parameters?.topP,
-          top_k: request.parameters?.topK,
+          top_p: greedy ? undefined : request.parameters?.topP,
+          top_k: greedy ? undefined : request.parameters?.topK,
           repetition_penalty: normalizeRepetitionPenalty(request.parameters?.frequencyPenalty),
-          do_sample:
-            request.parameters?.temperature !== undefined && request.parameters.temperature > 0,
+          do_sample: temperature !== undefined && temperature > 0,
           return_full_text: false,
         },
         options: {
