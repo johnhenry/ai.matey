@@ -21,6 +21,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { Bridge, Router } from '@johnhenry/aimatey-core';
 import { GenericFrontendAdapter } from '@johnhenry/aimatey-frontend';
 import { BridgeEventType } from '@johnhenry/aimatey-types';
+import { ErrorCode, NetworkError } from '@johnhenry/aimatey-errors';
 import type {
   AdapterMetadata,
   BackendAdapter,
@@ -98,7 +99,15 @@ function createStaticBackend(name: string, options: StaticBackendOptions = {}): 
 
     async execute(request: IRChatRequest): Promise<IRChatResponse> {
       if (shouldFail()) {
-        throw new Error(`${name} is down`);
+        // A *classified retryable* failure, not a bare Error. #70 stopped the bridge
+        // retrying errors that carry no classification, on the reasoning that a real
+        // backend always classifies: the HTTP adapters wrap every fetch rejection as
+        // NetworkError. A bare Error here would exercise a path no real backend takes,
+        // and would stop this fixture from reaching the retry it exists to test.
+        throw new NetworkError({
+          code: ErrorCode.NETWORK_ERROR,
+          message: `${name} is down`,
+        });
       }
       return {
         message: { role: 'assistant', content: answer },
@@ -114,7 +123,15 @@ function createStaticBackend(name: string, options: StaticBackendOptions = {}): 
 
     async *executeStream(request: IRChatRequest): AsyncGenerator<IRStreamChunk, void, undefined> {
       if (shouldFail()) {
-        throw new Error(`${name} is down`);
+        // A *classified retryable* failure, not a bare Error. #70 stopped the bridge
+        // retrying errors that carry no classification, on the reasoning that a real
+        // backend always classifies: the HTTP adapters wrap every fetch rejection as
+        // NetworkError. A bare Error here would exercise a path no real backend takes,
+        // and would stop this fixture from reaching the retry it exists to test.
+        throw new NetworkError({
+          code: ErrorCode.NETWORK_ERROR,
+          message: `${name} is down`,
+        });
       }
       if (!options.omitsStartChunk) {
         // `StreamStartChunk.metadata` is required, so the metadata-less variant
