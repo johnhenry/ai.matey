@@ -882,19 +882,72 @@ bridge.use(transform);
 
 ### Security Middleware
 
+Protects the outgoing request, and computes an HTTP response header policy for
+a host application to apply.
+
 ```typescript
 import { createSecurityMiddleware, createProductionSecurityMiddleware } from '@johnhenry/aimatey';
 
-// Production preset
+// Safe by default: sanitizes content, redacts PII, warns on prompt injection.
+bridge.use(createSecurityMiddleware());
+
+// Production preset - same, but blocks prompt-injection attempts.
 bridge.use(createProductionSecurityMiddleware());
 
 // Custom configuration
 bridge.use(createSecurityMiddleware({
+  redactPII: true,                     // default
+  piiPatterns: { badge: /\bBADGE-\d{4}\b/g },
+  promptInjectionAction: 'block',      // 'warn' (default) | 'log' | 'block' | 'ignore'
+  sanitizeContent: true,               // default
+  // HTTP response header policy (advisory - see below)
   contentSecurityPolicy: "default-src 'self'",
   frameOptions: 'DENY',
   hsts: 'max-age=31536000; includeSubDomains',
 }));
 ```
+
+**Request protection.** Message content is sanitized (null bytes and zero-width
+characters removed) and PII is redacted **before the request reaches the
+backend**, on both `chat()` and `chatStream()`. Each match is replaced with
+`[REDACTED_<TYPE>]` and a `content-redacted` `IRWarning` is appended to
+`request.metadata.warnings`, so the rewrite is recorded rather than silent. Pass
+`redactPII: false` to opt out.
+
+`DEFAULT_PII_PATTERNS` errs towards over-matching - its `apiKey` pattern matches
+any run of 32+ alphanumeric characters (a git SHA, a base64 id) and `ipAddress`
+matches dotted-quad version strings like `1.2.3.4`. Supply `piiPatterns` of your
+own if a false positive would damage legitimate content.
+
+**Response header policy.** `Content-Security-Policy`,
+`Strict-Transport-Security`, `X-Frame-Options` and friends are *browser response*
+headers; they are meaningless as request headers to a provider API, and ai.matey
+does not send them upstream. Emit them from the HTTP layer instead:
+
+```typescript
+import { createCoreHandler } from '@johnhenry/aimatey-http-core';
+import { buildSecurityHeaders } from '@johnhenry/aimatey-middleware';
+
+const handler = createCoreHandler({
+  bridge,
+  headers: buildSecurityHeaders({ frameOptions: 'SAMEORIGIN' }),
+});
+```
+
+The middleware also attaches the computed policy to
+`request.metadata.custom.securityHeaders` (key: `SECURITY_HEADERS_METADATA_KEY`),
+readable with `getSecurityHeaders(request)` from a later middleware or a backend
+adapter.
+
+**Relationship to the validation middleware.** There is one PII implementation.
+`createSecurityMiddleware` delegates to `createValidationMiddleware` rather than
+reimplementing `detectPII` / `redactPII` / `detectPromptInjection` /
+`sanitizeRequest`. The split is preset vs. knobs: use the security middleware for
+a safe-by-default security-only surface, and
+[`createValidationMiddleware`](#validation-middleware) when you need the full
+configuration (message and token limits, allowed models, moderation callbacks,
+`piiAction: 'block' | 'warn'`). Register one or the other unless you genuinely
+want both rule sets.
 
 ### Cost Tracking Middleware
 
@@ -939,6 +992,7 @@ bridge.use(createValidationMiddleware({
 
   // Prompt Injection Prevention
   preventPromptInjection: true,
+  injectionAction: 'block', // 'block' (default) | 'warn' | 'log' | 'ignore'
 
   // Token Limits
   maxMessages: 100,
@@ -2047,7 +2101,10 @@ import {
   createSecurityMiddleware,
   createProductionSecurityMiddleware,
   createDevelopmentSecurityMiddleware,
+  buildSecurityHeaders,
+  getSecurityHeaders,
   DEFAULT_SECURITY_CONFIG,
+  SECURITY_HEADERS_METADATA_KEY,
 } from '@johnhenry/aimatey-middleware/security';
 ```
 

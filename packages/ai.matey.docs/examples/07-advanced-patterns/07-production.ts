@@ -166,36 +166,38 @@ bridge.use(
 
   console.log(`
 // Security best practices
-import { createSecurityMiddleware } from '@johnhenry/aimatey-middleware';
+import {
+  createSecurityMiddleware,
+  createValidationMiddleware,
+  buildSecurityHeaders,
+} from '@johnhenry/aimatey-middleware';
 
+// Protect the outgoing request: sanitize content, redact PII, block injection.
 bridge.use(
   createSecurityMiddleware({
-    // Sanitize inputs
-    sanitizeInputs: true,
-    maxInputLength: 10000,
-
-    // Content filtering
-    contentFilters: ['profanity', 'pii', 'secrets'],
-
-    // Rate limiting by user
-    perUserRateLimit: {
-      maxRequests: 50,
-      windowMs: 3600000, // per hour
-    },
-
-    // API key rotation
-    rotateKeys: {
-      enabled: true,
-      rotationInterval: 86400000, // daily
-    },
-
-    // Audit logging
-    auditLog: {
-      enabled: true,
-      destination: 's3://audit-logs/',
-    },
+    redactPII: true,
+    sanitizeContent: true,
+    promptInjectionAction: 'block',
   })
 );
+
+// Size and shape limits live on the validation middleware.
+bridge.use(
+  createValidationMiddleware({
+    maxMessages: 100,
+    maxMessageLength: 10000,
+    maxTotalTokens: 128000,
+    // Reuse an external moderation service for content filtering.
+    moderationCallback: async (content) => moderationAPI.check(content),
+    blockFlaggedContent: true,
+  })
+);
+
+// Security headers are HTTP *response* headers - apply them at the HTTP layer.
+const handler = createCoreHandler({
+  bridge,
+  headers: buildSecurityHeaders({ hsts: 'max-age=31536000; includeSubDomains; preload' }),
+});
 
 // Environment variable validation
 const requiredEnvVars = [

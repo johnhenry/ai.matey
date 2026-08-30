@@ -198,6 +198,21 @@ export interface ValidationConfig {
   preventPromptInjection?: boolean;
 
   /**
+   * Action when a prompt injection attempt is detected.
+   *
+   * Mirrors {@link ValidationConfig.piiAction}:
+   * - `'block'` - record a validation error (throws when `throwOnError` is not `false`)
+   * - `'warn'` / `'log'` - record a non-blocking warning and let the request through
+   * - `'ignore'` - detect nothing (equivalent to `preventPromptInjection: false`)
+   *
+   * `'warn'` is useful because {@link DEFAULT_INJECTION_PATTERNS} is
+   * deliberately broad and can match innocent text.
+   *
+   * @default 'block'
+   */
+  injectionAction?: 'block' | 'warn' | 'log' | 'ignore';
+
+  /**
    * Prompt injection patterns to detect
    */
   injectionPatterns?: RegExp[];
@@ -262,6 +277,13 @@ export interface ValidationConfig {
    * @default true
    */
   logWarnings?: boolean;
+
+  /**
+   * Prefix for console output, so a message can be traced back to the
+   * middleware that produced it. `createSecurityMiddleware` passes `'Security'`.
+   * @default 'Validation'
+   */
+  logPrefix?: string;
 }
 
 /**
@@ -510,17 +532,18 @@ export async function validateRequest(
     }
 
     // Detect prompt injection
-    if (config.preventPromptInjection !== false) {
+    const injectionAction = config.injectionAction ?? 'block';
+    if (config.preventPromptInjection !== false && injectionAction !== 'ignore') {
       const hasInjection = detectPromptInjection(text, config.injectionPatterns);
 
       if (hasInjection) {
-        errors.push(
-          createValidationError(
-            `Potential prompt injection detected in message ${i}`,
-            `messages[${i}].content`,
-            text
-          )
-        );
+        const injectionMessage = `Potential prompt injection detected in message ${i}`;
+
+        if (injectionAction === 'block') {
+          errors.push(createValidationError(injectionMessage, `messages[${i}].content`, text));
+        } else {
+          warnings.push(injectionMessage);
+        }
       }
     }
 
@@ -750,6 +773,8 @@ export function sanitizeRequest(request: IRChatRequest, config: ValidationConfig
  * ```
  */
 export function createValidationMiddleware(config: ValidationConfig = {}): Middleware {
+  const logPrefix = config.logPrefix ?? 'Validation';
+
   return async (context, next) => {
     // Validate request
     const validationResult = await validateRequest(context.request, config);
@@ -757,7 +782,7 @@ export function createValidationMiddleware(config: ValidationConfig = {}): Middl
     // Log warnings
     if (config.logWarnings !== false && validationResult.warnings.length > 0) {
       for (const warning of validationResult.warnings) {
-        console.warn(`[Validation] ${warning}`);
+        console.warn(`[${logPrefix}] ${warning}`);
       }
     }
 
@@ -774,7 +799,7 @@ export function createValidationMiddleware(config: ValidationConfig = {}): Middl
       }
 
       // Log errors but continue
-      console.error(`[Validation] Errors: ${errorMessage}`);
+      console.error(`[${logPrefix}] Errors: ${errorMessage}`);
     }
 
     // Sanitize request

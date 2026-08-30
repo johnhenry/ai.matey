@@ -152,7 +152,7 @@ import {
 bridge
   .use(createLoggingMiddleware({ level: 'info' }))
   .use(createValidationMiddleware({ validateIRFormat: true }))
-  .use(createSecurityMiddleware({ enableRateLimiting: true }))
+  .use(createSecurityMiddleware({ redactPII: true, promptInjectionAction: 'warn' }))
   .use(createRetryMiddleware({ maxAttempts: 3, backoffMultiplier: 2 }))
   .use(createCachingMiddleware({ ttl: 3600 }))
   .use(createCostTrackingMiddleware())
@@ -169,7 +169,7 @@ bridge
 - **Telemetry** - Metrics collection and reporting
 - **OpenTelemetry** - Distributed tracing integration (OpenTelemetry standard)
 - **Cost Tracking** - Token usage and cost tracking per request
-- **Security** - Rate limiting, PII detection, content moderation
+- **Security** - PII redaction, content sanitization, prompt-injection detection, HTTP header policy
 - **Conversation History** - Automatic context management and persistence
 
 ### HTTP Server
