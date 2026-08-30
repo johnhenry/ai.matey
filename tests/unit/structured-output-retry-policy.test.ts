@@ -526,6 +526,106 @@ describe('generateObject retry policy (#69)', () => {
     });
   });
 
+  // ==========================================================================
+  // Gate B: an attempt reproduced the identical failure
+  // ==========================================================================
+
+  describe('Gate B: repeated identical failure', () => {
+    /**
+     * The issue's own reproduction, for a schema the converter renders
+     * faithfully: `{type:'number'}` is exactly right, so Gate A has nothing
+     * to say, and only repetition reveals that resampling is not working.
+     */
+    it('stops on the second identical response instead of burning the budget', async () => {
+      const { bridge, requests } = stubBridge([{ age: 'nope' }]);
+
+      const error = await createGenerateObject(bridge)({
+        schema: z.object({ age: z.number() }),
+        prompt: 'How old is Alice?',
+        maxRetries: 5,
+      }).catch((e: unknown) => e);
+
+      expect(requests).toHaveLength(2);
+      expect((error as Error).message).toMatch(/identical response/);
+    });
+
+    /**
+     * The gate must compare *values*, not JSON text: the same object with its
+     * keys emitted in a different order is the same answer, and treating it
+     * as progress would let a stuck model run the whole budget.
+     */
+    it('treats a reordered but equal payload as identical', async () => {
+      const { bridge, requests } = stubBridge([
+        { a: 'x', b: 'y' },
+        { b: 'y', a: 'x' },
+      ]);
+
+      await expect(
+        createGenerateObject(bridge)({
+          schema: z.object({ a: z.number(), b: z.number() }),
+          prompt: 'two numbers',
+          maxRetries: 5,
+        })
+      ).rejects.toThrow(/identical response/);
+
+      expect(requests).toHaveLength(2);
+    });
+
+    /**
+     * The counterpart, and the reason the gate cannot key on the error set:
+     * these two responses are different answers that fail in exactly the same
+     * way. Zod issues carry no input value, so their error sets are
+     * byte-identical -- and stopping here would be the regression the
+     * correction comment on #69 rules out.
+     */
+    it('does not stop when the payload changes but the errors read the same', async () => {
+      const { bridge, requests } = stubBridge([{ age: 'x' }, { age: 'y' }, { age: 'z' }]);
+
+      await expect(
+        createGenerateObject(bridge)({
+          schema: z.object({ age: z.number() }),
+          prompt: 'How old is Alice?',
+          maxRetries: 3,
+        })
+      ).rejects.toThrow(/did not match the schema/);
+
+      expect(requests).toHaveLength(3);
+    });
+
+    it('spends the whole budget when the caller opts out', async () => {
+      const { bridge, requests } = stubBridge([{ age: 'nope' }]);
+
+      await expect(
+        createGenerateObject(bridge)({
+          schema: z.object({ age: z.number() }),
+          prompt: 'How old is Alice?',
+          maxRetries: 4,
+          stopWhenRetryCannotHelp: false,
+        })
+      ).rejects.toThrow(/did not match the schema/);
+
+      expect(requests).toHaveLength(4);
+    });
+
+    it('still reports the errors and stays non-retryable', async () => {
+      const { bridge } = stubBridge([{ age: 'nope' }]);
+
+      const error = (await createGenerateObject(bridge)({
+        schema: z.object({ age: z.number() }),
+        prompt: 'How old is Alice?',
+        maxRetries: 5,
+      }).catch((e: unknown) => e)) as {
+        isRetryable?: boolean;
+        message: string;
+        validationDetails?: Array<{ field?: string }>;
+      };
+
+      expect(error.isRetryable).toBe(false);
+      expect(error.message).toMatch(/Validation failed/);
+      expect(error.validationDetails?.[0]?.field).toBe('age');
+    });
+  });
+
   describe('responses with no tool call', () => {
     it('keeps retrying, since another sample may call the tool', async () => {
       const { bridge, requests } = toolLessBridge(3, { age: 30 });
