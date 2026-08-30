@@ -23,6 +23,7 @@ import type {
   IRTool,
   IRWarning,
 } from '@johnhenry/aimatey-types';
+import { ValidationError, ErrorCode as ErrorCodeEnum } from '@johnhenry/aimatey-errors';
 import { extractToolCalls } from './tools.js';
 
 // ============================================================================
@@ -1064,6 +1065,100 @@ function buildExtractDataTool(schema: any): { tool: IRTool; warnings: IRWarning[
 }
 
 /**
+ * `JSON.stringify` that cannot itself throw.
+ *
+ * The retry loop serializes both Zod issues and the model-authored tool-call
+ * arguments into error text and prompt text. A `bigint` anywhere in either
+ * makes plain `JSON.stringify` throw `TypeError: Do not know how to
+ * serialize a BigInt`, which would replace a useful validation failure with a
+ * confusing one; a circular reference does the same. Neither is reachable
+ * through Zod v4 issues (they carry no input value), but tool-call arguments
+ * come from a backend adapter and are not ours to trust.
+ */
+function safeJsonStringify(value: unknown): string {
+  try {
+    return JSON.stringify(value, (_key, v) => (typeof v === 'bigint' ? `${v}` : v)) ?? 'null';
+  } catch {
+    return '"[unserializable]"';
+  }
+}
+
+/**
+ * Reject an attempt budget that cannot do what the caller asked.
+ *
+ * `maxRetries` was previously used unchecked as a loop bound, so `0`, `NaN`
+ * and `-1` all made *zero* provider calls and then threw the generic
+ * "Failed to generate object", while `Infinity` looped without bound. All
+ * four are caller mistakes worth naming immediately rather than surfacing as
+ * a mystery failure or a hang. `Number.isInteger` rejects `NaN` and
+ * `Infinity` as well as fractions.
+ */
+function assertAttemptBudget(maxRetries: unknown): void {
+  if (!Number.isInteger(maxRetries) || (maxRetries as number) < 1) {
+    throw new ValidationError({
+      code: ErrorCodeEnum.INVALID_REQUEST,
+      message:
+        `options.maxRetries must be an integer >= 1 (received ${describeValue(maxRetries)}). ` +
+        'It is the total number of attempts, so 1 means "call the provider once, do not retry".',
+      validationDetails: [
+        {
+          field: 'maxRetries',
+          value: maxRetries,
+          reason: 'Not an integer >= 1',
+          expected: 'Integer >= 1',
+        },
+      ],
+    });
+  }
+}
+
+/**
+ * Throw if the caller has already aborted.
+ *
+ * `signal` was previously only handed to `executeIR`, so an abort that landed
+ * between attempts was never noticed by the loop itself: it started another
+ * attempt and relied on the transport to reject. Checking at the top of each
+ * attempt makes the abort take effect at the loop's own boundary.
+ */
+function throwIfAborted(signal: AbortSignal | undefined): void {
+  if (!signal?.aborted) {
+    return;
+  }
+  const reason = (signal as { reason?: unknown }).reason;
+  if (reason instanceof Error) {
+    throw reason;
+  }
+  const error = new Error('generateObject was aborted');
+  error.name = 'AbortError';
+  throw error;
+}
+
+/**
+ * Whether a transport failure is worth another attempt.
+ *
+ * The loop used to catch *everything* and retry it, so an authentication
+ * failure, a malformed-request rejection or an abort each burned the whole
+ * budget re-asking a question that had already been answered definitively.
+ *
+ * `isRetryable` is duck-typed rather than checked with `instanceof
+ * AdapterError` on purpose: in a workspace it is entirely possible for the
+ * error to have been constructed against a different copy of
+ * `@johnhenry/aimatey-errors` than the one linked here, and `instanceof`
+ * would then silently answer `false` for every adapter error. Reading the
+ * property works across copies.
+ *
+ * Anything that does not declare itself (a bare `Error`, a `fetch` network
+ * failure) keeps today's benefit of the doubt and is retried.
+ */
+function isRetryableTransportError(error: unknown): boolean {
+  if (error instanceof Error && error.name === 'AbortError') {
+    return false;
+  }
+  const declared = (error as { isRetryable?: unknown } | null)?.isRetryable;
+  return typeof declared === 'boolean' ? declared : true;
+}
+
+/**
  * Create a generateObject function bound to a Bridge instance
  *
  * This is a factory function that creates a generateObject implementation
@@ -1078,6 +1173,7 @@ export function createGenerateObject(bridge: StructuredOutputBridge) {
 
     // Fail fast, outside the retry loop: a bad schema will never succeed
     assertZodSchema(schema, 'options.schema');
+    assertAttemptBudget(maxRetries);
 
     // Convert schema to an IR tool definition (provider-agnostic)
     const { tool: irTool, warnings: conversionWarnings } = buildExtractDataTool(schema);
@@ -1085,68 +1181,94 @@ export function createGenerateObject(bridge: StructuredOutputBridge) {
     let lastError: Error | undefined;
 
     for (let attempt = 0; attempt < maxRetries; attempt++) {
-      try {
-        const request: IRChatRequest = {
-          messages: [{ role: 'user', content: prompt }],
-          parameters: {
-            model: model ?? bridge.config?.defaultModel,
-            temperature,
-          },
-          tools: [irTool],
-          toolChoice: { name: EXTRACT_TOOL_NAME },
-          metadata: {
-            requestId:
-              typeof crypto !== 'undefined' && crypto.randomUUID
-                ? crypto.randomUUID()
-                : `generate-object-${Date.now()}-${attempt}`,
-            timestamp: Date.now(),
-            provenance: { frontend: bridge.frontend.metadata.name },
-            // Semantic drift from the Zod -> JSON Schema conversion, on the
-            // documented IR channel, so middleware and logs can see that the
-            // tool contract does not fully describe the caller's schema.
-            ...(conversionWarnings.length > 0 ? { warnings: conversionWarnings } : {}),
-          },
-        };
+      throwIfAborted(signal);
 
+      const request: IRChatRequest = {
+        messages: [{ role: 'user', content: prompt }],
+        parameters: {
+          model: model ?? bridge.config?.defaultModel,
+          temperature,
+        },
+        tools: [irTool],
+        toolChoice: { name: EXTRACT_TOOL_NAME },
+        metadata: {
+          requestId:
+            typeof crypto !== 'undefined' && crypto.randomUUID
+              ? crypto.randomUUID()
+              : `generate-object-${Date.now()}-${attempt}`,
+          timestamp: Date.now(),
+          provenance: { frontend: bridge.frontend.metadata.name },
+          // Semantic drift from the Zod -> JSON Schema conversion, on the
+          // documented IR channel, so middleware and logs can see that the
+          // tool contract does not fully describe the caller's schema.
+          ...(conversionWarnings.length > 0 ? { warnings: conversionWarnings } : {}),
+        },
+      };
+
+      // Only the transport call is retry-eligible by `catch`.
+      //
+      // The whole loop body used to sit inside this `try`, which made the
+      // `catch` the final word on every failure below it: a decision to stop
+      // could not be expressed as a `throw`, because the `catch` would
+      // capture it into `lastError` and retry anyway. Narrowing the `try` to
+      // the network call is what lets the validation branch below decide for
+      // itself whether another attempt can possibly differ.
+      let response: IRChatResponse;
+      try {
         // Make the LLM call via IR -- correct for any backend's own
         // forced-tool-call wire format, since executeIR skips frontend
         // conversion and each backend's fromIR/toIR already normalizes
         // toolChoice/ToolUseContent to and from its native shape.
-        const response = await bridge.executeIR(request, { signal });
-
-        const toolCalls = extractToolCalls(response);
-        const firstToolCall = toolCalls[0];
-
-        if (!firstToolCall) {
-          throw new Error('No tool call in response');
+        response = await bridge.executeIR(request, { signal });
+      } catch (error) {
+        const transportError = error as Error;
+        // An expired key, a rejected request or an abort fails identically on
+        // every attempt; only a plausibly transient failure earns the rest of
+        // the budget.
+        if (!isRetryableTransportError(transportError)) {
+          throw transportError;
         }
-
-        const data = firstToolCall.input;
-
-        // Validate against schema
-        const validation = validateWithSchema(data, schema);
-
-        if (!validation.success) {
-          const errors = 'errors' in validation ? validation.errors : 'unknown error';
-          lastError = new Error(
-            `Validation failed: ${JSON.stringify(errors)}` +
-              describeConversionWarnings(conversionWarnings)
-          );
-          continue; // Retry
+        lastError = transportError;
+        if (attempt === maxRetries - 1) {
+          throw lastError;
         }
+        continue;
+      }
 
+      const toolCalls = extractToolCalls(response);
+      const firstToolCall = toolCalls[0];
+
+      if (!firstToolCall) {
+        // Genuinely retryable: nothing about the request forbids a tool call,
+        // so another sample may well produce one.
+        lastError = new Error('No tool call in response');
+        if (attempt === maxRetries - 1) {
+          throw lastError;
+        }
+        continue;
+      }
+
+      const data = firstToolCall.input;
+
+      // Validate against schema
+      const validation = validateWithSchema(data, schema);
+
+      if (validation.success) {
         // Return validated object
         return {
           object: validation.data,
           usage: response.usage,
           finishReason: response.finishReason || 'stop',
         };
-      } catch (error) {
-        lastError = error as Error;
-        if (attempt === maxRetries - 1) {
-          throw lastError;
-        }
       }
+
+      const errors: readonly unknown[] =
+        'errors' in validation && Array.isArray(validation.errors) ? validation.errors : [];
+
+      lastError = new Error(
+        `Validation failed: ${safeJsonStringify(errors)}` +
+          describeConversionWarnings(conversionWarnings)
+      );
     }
 
     throw lastError || new Error('Failed to generate object');
