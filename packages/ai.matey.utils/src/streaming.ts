@@ -355,16 +355,48 @@ export async function streamToText(stream: IRChatStream): Promise<string> {
 /**
  * Split a stream into multiple consumers.
  *
+ * The source is drained eagerly, as fast as it produces, independently of how
+ * fast any split is read. Each returned split gets its own queue, and every
+ * chunk is appended to all of them.
+ *
+ * **A split that starts iterating late still receives the whole stream from
+ * its first chunk.** Splits are not live subscriptions: chunks produced before
+ * a split was ever iterated are buffered for it, not dropped. Draining one
+ * split to completion before touching another is therefore well defined, and
+ * both see identical sequences:
+ *
+ * ```ts
+ * const [ui, log] = splitStream(source, 2);
+ * for await (const chunk of ui) render(chunk); // drains the source
+ * for await (const chunk of log) persist(chunk); // still gets every chunk
+ * ```
+ *
+ * This is deliberate, and matches {@link teeStream}. A split exists to fan one
+ * stream out to consumers whose start times the caller does not control -- a
+ * renderer plus a background writer, say -- and there is no subscribe step to
+ * hook, only a first `next()`. Treating a late first `next()` as an error would
+ * make the main use case unexpressible; silently dropping the chunks (which is
+ * what this function did before #37) is worse still, because the late split
+ * ends cleanly having quietly lost its prefix.
+ *
+ * The cost is memory: unread chunks are retained for every split that has not
+ * consumed them, so a split that is never iterated pins the entire stream until
+ * the whole array is released. Do not split a long stream "just in case" -- take
+ * only the splits that will be read.
+ *
  * @param stream Original stream
  * @param consumerCount Number of consumers
  * @returns Array of streams, one per consumer
  */
 export function splitStream(stream: IRChatStream, consumerCount: number): IRChatStream[] {
-  const chunks: IRStreamChunk[] = [];
   const consumers: Array<{
     resolve: ((chunk: IteratorResult<IRStreamChunk>) => void) | null;
     queue: IRStreamChunk[];
   }> = Array.from({ length: consumerCount }, () => ({
+    // Null, not a no-op function: the producer below treats a non-null
+    // resolver as "a consumer is parked waiting for this chunk". A truthy
+    // no-op default made it hand chunks to nobody before any real consumer
+    // had started iterating, losing them (#37).
     resolve: null,
     queue: [],
   }));
@@ -376,7 +408,6 @@ export function splitStream(stream: IRChatStream, consumerCount: number): IRChat
   void (async () => {
     try {
       for await (const chunk of stream) {
-        chunks.push(chunk);
         // Distribute to all consumers
         for (const consumer of consumers) {
           consumer.queue.push(chunk);

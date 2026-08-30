@@ -1107,6 +1107,68 @@ describe('splitStream', () => {
     expect(secondResult).toEqual(chunks);
   });
 
+  it('should buffer chunks emitted before a second split ever subscribed', async () => {
+    // Pins the documented semantics (#37): a split that starts iterating late
+    // receives buffered history, back to the stream's first chunk. It is not a
+    // live subscription, and subscribing late is not an error.
+    //
+    // Emission is driven one chunk at a time by the test, and each `next()`
+    // that resolves is proof the producer already pulled and distributed that
+    // chunk -- so "two chunks were emitted before the second split subscribed"
+    // is established by happens-before, not by a delay.
+    const chunks: IRStreamChunk[] = [
+      { type: 'content', delta: 'a', sequence: 0 },
+      { type: 'content', delta: 'b', sequence: 1 },
+      { type: 'content', delta: 'c', sequence: 2 },
+      { type: 'done', sequence: 3, finishReason: 'stop' },
+    ];
+
+    const gates = chunks.map(() => {
+      let release!: () => void;
+      const promise = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      return { promise, release };
+    });
+
+    async function* gatedSource(): IRChatStream {
+      for (let i = 0; i < chunks.length; i++) {
+        await gates[i]!.promise;
+        yield chunks[i]!;
+      }
+    }
+
+    const [first, second] = splitStream(gatedSource(), 2);
+
+    // Push exactly two chunks through, reading them from the FIRST split only.
+    gates[0]!.release();
+    expect((await first!.next()).value).toEqual(chunks[0]);
+    gates[1]!.release();
+    expect((await first!.next()).value).toEqual(chunks[1]);
+
+    // Only now does the second split begin iterating. Chunks 0 and 1 were
+    // emitted and distributed before this point.
+    const secondReceived: IRStreamChunk[] = [];
+    const secondDrain = (async () => {
+      for await (const chunk of second!) {
+        secondReceived.push(chunk);
+      }
+    })();
+
+    gates[2]!.release();
+    gates[3]!.release();
+
+    const firstReceived: IRStreamChunk[] = [chunks[0]!, chunks[1]!];
+    for await (const chunk of first!) {
+      firstReceived.push(chunk);
+    }
+    await secondDrain;
+
+    expect(firstReceived).toEqual(chunks);
+    // The whole stream, including the prefix it was not around for.
+    expect(secondReceived).toEqual(chunks);
+  });
+
   it('should deliver all chunks when both splits consume concurrently', async () => {
     const chunks: IRStreamChunk[] = [
       { type: 'content', delta: 'x', sequence: 0 },
