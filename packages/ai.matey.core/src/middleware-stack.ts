@@ -23,6 +23,7 @@ import type {
   Middleware,
   MiddlewareContext,
   MiddlewareNext,
+  MiddlewareRegistrationOptions,
   StreamingMiddleware,
   StreamingMiddlewareContext,
   StreamingMiddlewareNext,
@@ -396,10 +397,71 @@ async function* passThroughStream(
  * `streaming` is what actually runs on the streaming path - the adapted
  * wrapper for standard middleware, or the function itself for stream-native
  * middleware.
+ *
+ * `name` is what this registration is called when it fails; `undefined` means
+ * nothing better than its position is known (see {@link resolveMiddlewareName}).
  */
 interface MiddlewareStackEntry {
   readonly standard?: Middleware;
   readonly streaming: StreamingMiddleware;
+  readonly name?: string;
+}
+
+/**
+ * Function names that identify nothing.
+ *
+ * A middleware built by a factory that ends in
+ * `const middleware: Middleware = ...; return middleware;` reports `.name` as
+ * `'middleware'` - true of `createConversationHistoryMiddleware` in this repo.
+ * `Middleware "middleware" failed` is no more use than the `'unknown'` this
+ * replaced, so such a name is discarded in favour of the position.
+ */
+const UNINFORMATIVE_FUNCTION_NAMES: ReadonlySet<string> = new Set([
+  'middleware',
+  'streamingMiddleware',
+  'anonymous',
+  'fn',
+  'handler',
+]);
+
+/**
+ * The name a registration should answer to, or `undefined` for "position only".
+ *
+ * An explicit name wins; otherwise the function's own `.name`, which is free
+ * for `function rateLimit()` and for `const rateLimit = async () => {}` but
+ * empty for the anonymous arrow most middleware factories return.
+ *
+ * Deliberately never `'unknown'`: `middlewareName` was populated with that
+ * literal at four sites and with nothing at the two that actually wrap a
+ * middleware failure (#71), so the one piece of provenance the wrapper exists
+ * to add was always either absent or a placeholder.
+ */
+function resolveMiddlewareName(
+  middleware: Middleware | StreamingMiddleware,
+  explicit?: string
+): string | undefined {
+  const given = explicit?.trim();
+  if (given) {
+    return given;
+  }
+
+  const own = typeof middleware === 'function' ? middleware.name.trim() : '';
+  if (own === '' || UNINFORMATIVE_FUNCTION_NAMES.has(own)) {
+    return undefined;
+  }
+
+  return own;
+}
+
+/**
+ * How a registration is referred to in an error message.
+ *
+ * Falls back to the registration position rather than to a placeholder - a
+ * position is less useful than a name and far more useful than nothing, and it
+ * is the index the caller can count off their own `use()` calls.
+ */
+function middlewareLabel(name: string | undefined, index: number): string {
+  return name ?? `middleware[${index}]`;
 }
 
 /**
@@ -487,19 +549,26 @@ export class MiddlewareStack {
    * {@link adaptMiddlewareToStreaming} for how it is adapted to streams and
    * what that cannot do.
    *
+   * Pass `{ name }` to say what this middleware is called when it fails;
+   * without it the name comes from the function's own `.name`, and failing
+   * that from its registration position (see {@link resolveMiddlewareName}).
+   *
    * @param middleware Middleware function to add
+   * @param options Registration options; `name` identifies it in errors
    * @throws {MiddlewareError} If stack is locked
    */
-  use(middleware: Middleware): void {
+  use(middleware: Middleware, options?: MiddlewareRegistrationOptions): void {
+    const name = resolveMiddlewareName(middleware, options?.name);
     if (this.locked) {
       throw new MiddlewareError({
         message: 'Cannot add middleware after stack is locked',
-        middlewareName: 'unknown',
+        middlewareName: name,
       });
     }
     this.entries.push({
       standard: middleware,
       streaming: adaptMiddlewareToStreaming(middleware),
+      name,
     });
   }
 
@@ -516,7 +585,7 @@ export class MiddlewareStack {
     if (this.locked) {
       throw new MiddlewareError({
         message: 'Cannot remove middleware after stack is locked',
-        middlewareName: 'unknown',
+        middlewareName: resolveMiddlewareName(middleware),
       });
     }
     const index = this.entries.findIndex((entry) => entry.standard === middleware);
@@ -533,17 +602,22 @@ export class MiddlewareStack {
    * Stream-native middleware runs on the streaming path only, interleaved with
    * `use()` middleware in registration order.
    *
+   * Pass `{ name }` to say what this middleware is called when it fails; see
+   * {@link use}.
+   *
    * @param middleware Streaming middleware function to add
+   * @param options Registration options; `name` identifies it in errors
    * @throws {MiddlewareError} If stack is locked
    */
-  useStreaming(middleware: StreamingMiddleware): void {
+  useStreaming(middleware: StreamingMiddleware, options?: MiddlewareRegistrationOptions): void {
+    const name = resolveMiddlewareName(middleware, options?.name);
     if (this.locked) {
       throw new MiddlewareError({
         message: 'Cannot add streaming middleware after stack is locked',
-        middlewareName: 'unknown',
+        middlewareName: name,
       });
     }
-    this.entries.push({ streaming: middleware });
+    this.entries.push({ streaming: middleware, name });
   }
 
   /**
@@ -560,7 +634,7 @@ export class MiddlewareStack {
     if (this.locked) {
       throw new MiddlewareError({
         message: 'Cannot remove streaming middleware after stack is locked',
-        middlewareName: 'unknown',
+        middlewareName: resolveMiddlewareName(middleware),
       });
     }
     const index = this.entries.findIndex(
@@ -664,7 +738,13 @@ export class MiddlewareStack {
       this.lock();
     }
 
-    const chain = this.getMiddleware();
+    // Built from `entries` rather than `getMiddleware()` so each frame keeps
+    // the *registration* index, which is what a caller can count off their own
+    // `use()` calls - the streaming path interleaves `useStreaming()` entries,
+    // so a chain-local index would name the same middleware two ways.
+    const chain = this.entries.flatMap((entry, index) =>
+      entry.standard ? [{ run: entry.standard, label: middlewareLabel(entry.name, index) }] : []
+    );
 
     // If no middleware, call handler directly
     if (chain.length === 0) {
@@ -676,8 +756,8 @@ export class MiddlewareStack {
     // Compose middleware chain. `index` is a parameter rather than shared
     // mutable state, so each `next()` re-enters at its own position.
     const dispatch = async (index: number): Promise<IRChatResponse> => {
-      const middlewareFn = chain[index];
-      if (!middlewareFn) {
+      const frame = chain[index];
+      if (!frame) {
         // End of middleware chain, call final handler
         return boundary.call();
       }
@@ -685,14 +765,15 @@ export class MiddlewareStack {
       const next: MiddlewareNext = () => dispatch(index + 1);
 
       try {
-        return await middlewareFn(context, next);
+        return await frame.run(context, next);
       } catch (error) {
         // Wrap only what this middleware raised itself and left unclassified
         if (!shouldWrapAsMiddlewareError(error, boundary)) {
           throw error;
         }
         throw new MiddlewareError({
-          message: `Middleware execution failed: ${error instanceof Error ? error.message : String(error)}`,
+          message: `Middleware "${frame.label}" failed: ${error instanceof Error ? error.message : String(error)}`,
+          middlewareName: frame.label,
           cause: error instanceof Error ? error : undefined,
           irState: {
             request: context.request,
@@ -758,7 +839,10 @@ export class MiddlewareStack {
       this.lock();
     }
 
-    const chain = this.entries.map((entry) => entry.streaming);
+    const chain = this.entries.map((entry, index) => ({
+      run: entry.streaming,
+      label: middlewareLabel(entry.name, index),
+    }));
 
     // If no middleware at all, call handler directly
     if (chain.length === 0) {
@@ -770,8 +854,8 @@ export class MiddlewareStack {
     // Compose streaming middleware chain. `index` is a parameter rather than
     // shared mutable state, so each `next()` re-enters at its own position.
     const dispatch = async (index: number): Promise<IRChatStream> => {
-      const middlewareFn = chain[index];
-      if (!middlewareFn) {
+      const frame = chain[index];
+      if (!frame) {
         // End of middleware chain, call final handler
         return boundary.call();
       }
@@ -779,14 +863,15 @@ export class MiddlewareStack {
       const next: StreamingMiddlewareNext = () => dispatch(index + 1);
 
       try {
-        return await middlewareFn(context, next);
+        return await frame.run(context, next);
       } catch (error) {
         // Wrap only what this middleware raised itself and left unclassified
         if (!shouldWrapAsMiddlewareError(error, boundary)) {
           throw error;
         }
         throw new MiddlewareError({
-          message: `Streaming middleware execution failed: ${error instanceof Error ? error.message : String(error)}`,
+          message: `Streaming middleware "${frame.label}" failed: ${error instanceof Error ? error.message : String(error)}`,
+          middlewareName: frame.label,
           cause: error instanceof Error ? error : undefined,
           irState: {
             request: context.request,

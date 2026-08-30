@@ -190,12 +190,12 @@ Remove event listener.
 off(event: BridgeEventType, listener: BridgeEventListener): void
 ```
 
-##### `use(middleware)`
+##### `use(middleware, options?)`
 
 Add middleware to the bridge. It runs on **both** `chat()` and `chatStream()`.
 
 ```typescript
-use(middleware: Middleware): Bridge
+use(middleware: Middleware, options?: { name?: string }): Bridge
 ```
 
 **Returns:** The bridge instance (for chaining)
@@ -203,10 +203,19 @@ use(middleware: Middleware): Bridge
 **Example:**
 ```typescript
 bridge
-  .use(createLoggingMiddleware({ level: 'info' }))
-  .use(createRetryMiddleware({ maxRetries: 3 }))
-  .use(createCachingMiddleware({ ttl: 3600 }));
+  .use(createLoggingMiddleware({ level: 'info' }), { name: 'logging' })
+  .use(createRetryMiddleware({ maxRetries: 3 }), { name: 'retry' })
+  .use(createCachingMiddleware({ ttl: 3600 }), { name: 'caching' });
 ```
+
+A middleware that fails is reported as `Middleware "<name>" failed: ...`, which
+is the only thing that says *which* of a chain of eight broke. The name comes
+from `options.name`, failing that from the function's own `.name` - free for
+`function rateLimit()` and for `const rateLimit = async (ctx, next) => ...` -
+and failing that from the registration position, `middleware[3]`. Every
+middleware factory in this package ends in `return async (context, next) => {…}`,
+which produces an anonymous function, so pass `{ name }` for anything built by
+one or it can only be identified by position.
 
 `next()` is **re-entrant**: calling it more than once re-runs the whole
 remainder of the chain, in order, once per call. A retry-shaped middleware
@@ -493,13 +502,17 @@ streaming path only. Registration order is preserved across the two.
 
 #### Methods
 
-##### `use(middleware)` / `useStreaming(middleware)`
+##### `use(middleware, options?)` / `useStreaming(middleware, options?)`
 
-Register middleware.
+Register middleware. `options.name` is what the middleware is called when it
+fails; without it the name is taken from the function's own `.name`, and
+failing that from its registration position (`middleware[3]`). The position is
+the index across *both* `use()` and `useStreaming()`, so the same middleware is
+named the same way on the streaming and the non-streaming path.
 
 ```typescript
-use(middleware: Middleware): void
-useStreaming(middleware: StreamingMiddleware): void
+use(middleware: Middleware, options?: { name?: string }): void
+useStreaming(middleware: StreamingMiddleware, options?: { name?: string }): void
 ```
 
 ##### `remove(middleware)` / `removeStreaming(middleware)`

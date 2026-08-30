@@ -135,6 +135,27 @@ export type StreamingMiddleware = (
   next: StreamingMiddlewareNext
 ) => Promise<IRChatStream>;
 
+/**
+ * Options accepted when registering middleware on a stack or a bridge.
+ */
+export interface MiddlewareRegistrationOptions {
+  /**
+   * Name this middleware answers to when it fails.
+   *
+   * A failure raised by a middleware is reported as
+   * `Middleware "<name>" failed: ...`, which is the only thing that says
+   * *which* of a chain of eight middleware broke. Without this the name is
+   * taken from the function's own `.name` - free for `function rateLimit()`
+   * and for `const rateLimit = async (ctx, next) => ...` - and failing that
+   * from the registration position, `middleware[3]`.
+   *
+   * Worth passing explicitly for anything built by a factory: a factory that
+   * ends in `return async (context, next) => { ... }` produces an anonymous
+   * function, so its middleware can only be identified by position.
+   */
+  readonly name?: string;
+}
+
 // ============================================================================
 // Middleware Registration
 // ============================================================================
