@@ -487,6 +487,126 @@ describe('MiddlewareStack.executeStream', () => {
 
     await expect(stack.executeStream(context, finalHandler)).rejects.toThrow(MiddlewareError);
   });
+
+  // Regression: #46 - use() middleware was skipped on the streaming path.
+  it('should run use() middleware on the streaming path', async () => {
+    const stack = new MiddlewareStack();
+    const log: string[] = [];
+
+    stack.use(createTestMiddleware('mw1', log));
+
+    const finalHandler = vi.fn(async () => {
+      log.push('handler');
+      return createTestStream();
+    });
+    const context = createStreamingMiddlewareContext(createTestRequest(), {});
+
+    const stream = await stack.executeStream(context, finalHandler);
+    for await (const _chunk of stream) {
+      // drain
+    }
+
+    expect(finalHandler).toHaveBeenCalledTimes(1);
+    expect(log).toEqual(['mw1-before', 'handler', 'mw1-after']);
+  });
+
+  it('should interleave use() and useStreaming() in registration order', async () => {
+    const stack = new MiddlewareStack();
+    const log: string[] = [];
+
+    const streamingMw = (name: string): StreamingMiddleware => async (_ctx, next) => {
+      log.push(name);
+      return next();
+    };
+    const standardMw = (name: string): Middleware => async (_ctx, next) => {
+      log.push(name);
+      return next();
+    };
+
+    stack.use(standardMw('standard-1'));
+    stack.useStreaming(streamingMw('streaming-1'));
+    stack.use(standardMw('standard-2'));
+
+    const context = createStreamingMiddlewareContext(createTestRequest(), {});
+    const stream = await stack.executeStream(context, async () => createTestStream());
+    for await (const _chunk of stream) {
+      // drain
+    }
+
+    expect(log).toEqual(['standard-1', 'streaming-1', 'standard-2']);
+  });
+
+  it('should see request rewrites made by use() middleware in the final handler', async () => {
+    const stack = new MiddlewareStack();
+
+    stack.use(async (ctx, next) => {
+      ctx.request = { ...ctx.request, messages: [{ role: 'user', content: 'rewritten' }] };
+      return next();
+    });
+
+    const context = createStreamingMiddlewareContext(createTestRequest(), {});
+    const seen: string[] = [];
+    const stream = await stack.executeStream(context, async () => {
+      seen.push(context.request.messages[0].content as string);
+      return createTestStream();
+    });
+    for await (const _chunk of stream) {
+      // drain
+    }
+
+    expect(seen).toEqual(['rewritten']);
+  });
+});
+
+// ============================================================================
+// MiddlewareStack.removeStreaming Tests
+// ============================================================================
+
+describe('MiddlewareStack.removeStreaming', () => {
+  it('should remove streaming middleware from the stack', () => {
+    const stack = new MiddlewareStack();
+    const mw1: StreamingMiddleware = vi.fn();
+    const mw2: StreamingMiddleware = vi.fn();
+
+    stack.useStreaming(mw1);
+    stack.useStreaming(mw2);
+
+    expect(stack.removeStreaming(mw1)).toBe(true);
+    expect(stack.getStreamingMiddleware()).toEqual([mw2]);
+  });
+
+  it('should return false when streaming middleware not found', () => {
+    const stack = new MiddlewareStack();
+
+    expect(stack.removeStreaming(vi.fn())).toBe(false);
+  });
+
+  it('should throw when stack is locked', () => {
+    const stack = new MiddlewareStack();
+    const mw: StreamingMiddleware = vi.fn();
+    stack.useStreaming(mw);
+    stack.lock();
+
+    expect(() => stack.removeStreaming(mw)).toThrow(MiddlewareError);
+  });
+});
+
+// ============================================================================
+// MiddlewareStack registration reporting
+// ============================================================================
+
+describe('MiddlewareStack registration reporting', () => {
+  it('should report use() middleware only from getMiddleware()', () => {
+    const stack = new MiddlewareStack();
+    const standard: Middleware = vi.fn();
+    const streaming: StreamingMiddleware = vi.fn();
+
+    stack.use(standard);
+    stack.useStreaming(streaming);
+
+    expect(stack.getMiddleware()).toEqual([standard]);
+    expect(stack.getStreamingMiddleware()).toEqual([streaming]);
+  });
 });
 
 // ============================================================================

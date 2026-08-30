@@ -123,6 +123,12 @@ export interface MiddlewareOptions {
 
   /**
    * Whether middleware supports streaming.
+   *
+   * Descriptive metadata only - nothing reads it. Every `Middleware` runs on
+   * the streaming path (the stack adapts it); write a {@link StreamingMiddleware}
+   * and register it with `bridge.useStreaming()` when you need chunk-level
+   * control.
+   *
    * @default false
    */
   supportsStreaming?: boolean;
