@@ -812,7 +812,7 @@ npx tsx examples/routing/fallback.ts
 
 ---
 
-### 15. Router with Model Translation (`routing/model-translation.ts`)
+### 15. Router with Model Translation
 
 Automatic model name translation during fallback for cross-provider compatibility.
 
@@ -913,11 +913,6 @@ async function main() {
 main().catch(console.error);
 ```
 
-**Run:**
-```bash
-npx tsx examples/routing/model-translation.ts
-```
-
 **Key Features:**
 
 - **Exact Match**: Direct model name → model name mapping
@@ -934,7 +929,7 @@ npx tsx examples/routing/model-translation.ts
 
 ---
 
-### 16. Router with Per-Backend Translation (`routing/per-backend-translation.ts`)
+### 16. Router with Per-Backend Translation
 
 Backend-specific model translation mappings that override global translations.
 
@@ -1024,11 +1019,6 @@ async function main() {
 main().catch(console.error);
 ```
 
-**Run:**
-```bash
-npx tsx examples/routing/per-backend-translation.ts
-```
-
 **Translation Priority:**
 
 1. **Backend-specific exact match** (highest priority)
@@ -1046,7 +1036,7 @@ npx tsx examples/routing/per-backend-translation.ts
 
 ---
 
-### 17. Capability-Based Routing (`routing/capability-based.ts`)
+### 17. Capability-Based Routing
 
 Automatically select backends based on model capabilities and requirements.
 
@@ -1125,11 +1115,6 @@ async function main() {
 main().catch(console.error);
 ```
 
-**Run:**
-```bash
-npx tsx examples/routing/capability-based.ts
-```
-
 **How It Works:**
 
 1. Router queries all backends for available models
@@ -1139,7 +1124,7 @@ npx tsx examples/routing/capability-based.ts
 
 ---
 
-### 18. Cost-Optimized Routing (`routing/cost-optimized.ts`)
+### 18. Cost-Optimized Routing
 
 Automatically route to the cheapest backend that meets requirements.
 
@@ -1229,11 +1214,6 @@ async function main() {
 main().catch(console.error);
 ```
 
-**Run:**
-```bash
-npx tsx examples/routing/cost-optimized.ts
-```
-
 **Cost Optimization Benefits:**
 - Automatically selects cheapest models
 - Reduces API costs by 30-70%
@@ -1242,7 +1222,7 @@ npx tsx examples/routing/cost-optimized.ts
 
 ---
 
-### 19. Speed-Optimized Routing (`routing/speed-optimized.ts`)
+### 19. Speed-Optimized Routing
 
 Route to the fastest backend for low-latency applications.
 
@@ -1338,11 +1318,6 @@ async function main() {
 main().catch(console.error);
 ```
 
-**Run:**
-```bash
-npx tsx examples/routing/speed-optimized.ts
-```
-
 **Speed Benefits:**
 - Selects fastest models (flash, haiku, mini variants)
 - Reduces latency by 50-80%
@@ -1351,7 +1326,7 @@ npx tsx examples/routing/speed-optimized.ts
 
 ---
 
-### 20. Quality-Optimized Routing (`routing/quality-optimized.ts`)
+### 20. Quality-Optimized Routing
 
 Route to the highest quality models for critical tasks.
 
@@ -1441,11 +1416,6 @@ async function main() {
 }
 
 main().catch(console.error);
-```
-
-**Run:**
-```bash
-npx tsx examples/routing/quality-optimized.ts
 ```
 
 **Quality Benefits:**
@@ -1987,7 +1957,7 @@ import { OllamaBackendAdapter } from '@johnhenry/aimatey-backend/ollama';
 
 ## Need Help?
 
-- **API Reference**: See [API.md](./docs/API.md)
+- **API Reference**: See [api.md](./docs/api.md)
 - **Guides**: See [GUIDES.md](./docs/GUIDES.md)
 - **Issues**: Report at [GitHub Issues](https://github.com/johnhenry/ai.matey/issues)
 - **More Examples**: Check the [tests](./tests/) for additional usage patterns

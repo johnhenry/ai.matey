@@ -66,6 +66,6 @@ See [EXAMPLES.md](../EXAMPLES.md) for:
 ## Need Help?
 
 - **Full Examples**: [EXAMPLES.md](../EXAMPLES.md)
-- **API Reference**: [docs/API.md](../docs/API.md)
+- **API Reference**: [docs/api.md](../docs/api.md)
 - **Feature Guides**: [docs/GUIDES.md](../docs/GUIDES.md)
 - **Issues**: [GitHub Issues](https://github.com/johnhenry/ai.matey/issues)

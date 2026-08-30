@@ -614,10 +614,10 @@ The actual overhead depends on:
 
 ## Next Steps
 
-- **[Middleware Guide](./MIDDLEWARE.md)** - Learn about other middleware
-- **[Router Guide](./ROUTER.md)** - Multi-provider routing strategies
+- **[Middleware Guide](./api.md#middleware)** - Learn about other middleware
+- **[Router Guide](./api.md#router)** - Multi-provider routing strategies
 - **[Examples](../EXAMPLES.md)** - See full examples
-- **[API Reference](./API.md)** - Complete API documentation
+- **[API Reference](./api.md)** - Complete API documentation
 
 ## Resources
 

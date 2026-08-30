@@ -270,7 +270,7 @@ function ChatComponent() {
 | ai.matey.react.hooks | Build + types | 100% | ✅ Production-ready |
 | ai.matey.utils | 50+ utilities | 100% | ✅ Production-ready |
 
-*Full test report: [FINAL-COMPREHENSIVE-TEST-REPORT.md](../../ai.matey.examples/FINAL-COMPREHENSIVE-TEST-REPORT.md)*
+*Full test report: [FINAL-COMPREHENSIVE-TEST-REPORT.md](./archive/FINAL-COMPREHENSIVE-TEST-REPORT.md)*
 
 ## Market Position
 
@@ -698,7 +698,7 @@ Our roadmap focuses on:
 ## Related Documentation
 
 **Core Documentation:**
-- [API Reference](./API.md) - Complete API documentation
+- [API Reference](./api.md) - Complete API documentation
 - [Implementation Guides](./GUIDES.md) - Step-by-step tutorials
 - [OpenTelemetry Integration](./opentelemetry.md) - Observability setup
 
