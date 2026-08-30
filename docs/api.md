@@ -228,6 +228,15 @@ effects (logging, cost tracking, cache writes) happen again too, and mutations
 they made to `context` on the first pass are still there on the second -
 `context` is shared, not snapshotted. Nothing bounds the number of passes.
 
+Errors **keep their own classification**. A failure is wrapped in a
+`MiddlewareError` only when a middleware raised it itself and it carries no
+classification of its own; an `AdapterError` - from a middleware or from the
+backend - propagates untouched, with its `code`, category and `isRetryable`
+intact. The error a caller catches therefore does not depend on how many
+middleware are registered, and retry middleware sees a transient
+`NetworkError` as retryable wherever it sits in the chain. `MiddlewareError`
+means what its name says: a middleware itself failed.
+
 On the streaming path a `Middleware` is adapted onto the stream:
 
 - Everything before `await next()` runs **before** the backend is called, so
@@ -504,7 +513,9 @@ removeStreaming(middleware: StreamingMiddleware): boolean
 
 ##### `execute(context, finalHandler)`
 
-Execute the non-streaming middleware chain.
+Execute the non-streaming middleware chain. Only a failure a middleware raised
+itself and left unclassified is wrapped in a `MiddlewareError`; an
+`AdapterError`, and anything `finalHandler` raised, propagates untouched.
 
 ```typescript
 async execute(
