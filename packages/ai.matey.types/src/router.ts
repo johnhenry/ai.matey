@@ -195,10 +195,16 @@ export interface RouterConfig {
   readonly modelTranslation?: ModelTranslationConfig;
 
   /**
-   * Called when the router generates a warning — currently emitted when a
-   * request's model is silently substituted with a backend's default model
-   * during hybrid translation (and `modelTranslation.warnOnDefault` is not
-   * disabled). The same warning is also attached to the request metadata.
+   * Called when the router generates a warning. Currently emitted when:
+   *
+   * - a request's model is silently substituted with a backend's default
+   *   model during hybrid translation (and `modelTranslation.warnOnDefault`
+   *   is not disabled) — category `model-substituted`. That warning is also
+   *   attached to the request metadata.
+   * - unregistering a backend changes the router's own configuration, e.g.
+   *   clearing `defaultBackend` because the backend it named was removed —
+   *   category `routing-config-changed`. There is no request to attach this
+   *   one to, so the hook is the only channel for it.
    */
   readonly onWarning?: (warning: IRWarning) => void;
 }
@@ -542,12 +548,47 @@ export interface Router extends BackendAdapter<unknown, unknown> {
   // ==========================================================================
 
   /**
-   * Register a backend adapter.
+   * Register a backend adapter under a name that is not yet in use.
+   *
+   * Throws if `name` is already registered — use {@link Router.replace} to
+   * swap the adapter behind an existing name.
    */
   register(name: string, adapter: BackendAdapter): Router;
 
   /**
-   * Unregister a backend adapter.
+   * Replace the adapter registered under an existing name, keeping the
+   * backend's position in the registry and all routing configuration that
+   * refers to it (fallback chain, model mappings, translation mappings).
+   *
+   * This is the supported way to change a backend's configuration — a rotated
+   * API key, a new base URL, a different default model — without tearing the
+   * backend out of the router.
+   *
+   * Cumulative accounting stats (request counts, latencies, cost) are carried
+   * over, because they describe traffic the router sent to this logical
+   * backend. Live health judgements (`isHealthy`, circuit breaker state,
+   * consecutive failures) are reset, because they describe the *previous*
+   * configuration and are stale the moment it is replaced.
+   *
+   * Throws if `name` is not registered — use {@link Router.register} to add a
+   * new backend.
+   */
+  replace(name: string, adapter: BackendAdapter): Router;
+
+  /**
+   * Unregister a backend adapter, along with every routing rule that refers
+   * to it (fallback chain entries, model mappings, model patterns and
+   * backend-specific translation mappings).
+   *
+   * Unregistering the backend named by `config.defaultBackend` clears
+   * `defaultBackend` and emits a `routing-config-changed` warning through
+   * {@link RouterConfig.onWarning} rather than failing. Unregistering the
+   * last remaining backend is allowed: a router with no backends is a valid
+   * transient state (it is also the state of a freshly constructed router),
+   * and routing a request through it fails at request time with a routing
+   * error.
+   *
+   * Throws if `name` is not registered.
    */
   unregister(name: string): Router;
 
