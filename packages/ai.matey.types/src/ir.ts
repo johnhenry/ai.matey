@@ -700,7 +700,8 @@ export type WarningCategory =
   | 'system-message-transformed'
   | 'content-type-unsupported'
   | 'tool-unsupported'
-  | 'model-substituted';
+  | 'model-substituted'
+  | 'routing-config-changed';
 
 /**
  * Semantic drift warning.

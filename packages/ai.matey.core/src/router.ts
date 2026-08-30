@@ -44,7 +44,7 @@ import { inferCapabilities } from './capability-inference.js';
  * Internal backend state tracking.
  */
 interface BackendState {
-  readonly adapter: BackendAdapter;
+  adapter: BackendAdapter;
   isHealthy: boolean;
   lastHealthCheck?: number;
   circuitBreakerState: 'closed' | 'open' | 'half-open';
@@ -57,6 +57,20 @@ interface BackendState {
   totalCost: number;
 }
 
+/**
+ * Mutable view of RouterConfig.
+ *
+ * `RouterConfig`'s fields are `readonly` for consumers, but the router owns
+ * its config object and must be able to walk back a setting that has become
+ * invalid — currently `defaultBackend`, when the backend it names is
+ * unregistered. The router keeps a single config object and exposes it as
+ * the readonly `config` property, so `config` (and `metadata.config`, which
+ * is the same object) always reflects the live configuration.
+ */
+type MutableRouterConfig = {
+  -readonly [K in keyof RouterConfig]: RouterConfig[K];
+};
+
 // ============================================================================
 // Router Implementation
 // ============================================================================
@@ -67,6 +81,9 @@ interface BackendState {
 export class Router implements IRouter {
   readonly metadata: AdapterMetadata;
   readonly config: RouterConfig;
+
+  /** Same object as `config`, typed mutably for router-owned updates. */
+  private readonly mutableConfig: MutableRouterConfig;
 
   private backends: Map<string, BackendState> = new Map();
   private modelMapping: Map<string, string> = new Map(); // model -> backend (for routing)
@@ -88,7 +105,7 @@ export class Router implements IRouter {
   };
 
   constructor(config: Partial<RouterConfig> = {}) {
-    this.config = {
+    this.mutableConfig = {
       routingStrategy: config.routingStrategy ?? 'explicit',
       fallbackStrategy: config.fallbackStrategy ?? 'sequential',
       defaultBackend: config.defaultBackend,
@@ -111,6 +128,7 @@ export class Router implements IRouter {
         strictMode: false,
       },
     };
+    this.config = this.mutableConfig;
 
     this.metadata = {
       name: 'router',
@@ -157,13 +175,18 @@ export class Router implements IRouter {
   // ==========================================================================
 
   /**
-   * Register a backend adapter.
+   * Register a backend adapter under a name that is not yet in use.
+   *
+   * Registering is deliberately strict: a duplicate name is almost always a
+   * double-initialization bug, not an intent to reconfigure. To swap the
+   * adapter behind a name that already exists — the API-key-rotation case —
+   * use {@link Router.replace}.
    */
   register(name: string, adapter: BackendAdapter): Router {
     if (this.backends.has(name)) {
       throw new AdapterError({
         code: ErrorCode.ROUTING_FAILED,
-        message: `Backend '${name}' is already registered`,
+        message: `Backend '${name}' is already registered (use replace() to swap its adapter)`,
         isRetryable: false,
         provenance: { router: this.metadata.name },
       });
@@ -185,7 +208,78 @@ export class Router implements IRouter {
   }
 
   /**
-   * Unregister a backend adapter.
+   * Replace the adapter registered under an existing name.
+   *
+   * This is the supported way to change a backend's configuration in place —
+   * a rotated API key, a new base URL, a different default model — without
+   * removing it from the router. Everything that refers to the backend *by
+   * name* keeps working untouched: registration order, the fallback chain,
+   * model mappings, model patterns and backend-specific translation
+   * mappings. (An unregister/register round trip loses all of that, which is
+   * why it is not a substitute.)
+   *
+   * State handling is split deliberately:
+   *
+   * - **Carried over** — `totalRequests`, `successfulRequests`,
+   *   `failedRequests`, `latencies`, `totalCost`. These are a cumulative
+   *   accounting record of the traffic this router sent to this logical
+   *   backend. `totalCost` in particular is money already spent; zeroing it
+   *   on a credential change would silently corrupt spend tracking.
+   * - **Reset** — `isHealthy`, `circuitBreakerState`, `consecutiveFailures`,
+   *   `circuitOpenedAt`, `lastHealthCheck`. These are a live judgement about
+   *   a configuration that no longer exists, and are stale by construction
+   *   the moment it is replaced. Keeping them would defeat the motivating
+   *   use case: an expired key produces auth failures, the failures trip the
+   *   breaker, and a breaker left open would keep refusing the *new*,
+   *   working key until `circuitBreakerTimeout` elapsed — or, if this is the
+   *   only backend, fail every request outright.
+   *
+   * Callers who want a genuinely fresh slate can follow this with
+   * {@link Router.resetStats}.
+   *
+   * @throws AdapterError ROUTING_FAILED if `name` is not registered.
+   */
+  replace(name: string, adapter: BackendAdapter): Router {
+    const state = this.backends.get(name);
+    if (!state) {
+      throw new AdapterError({
+        code: ErrorCode.ROUTING_FAILED,
+        message: `Backend '${name}' is not registered (use register() to add it)`,
+        isRetryable: false,
+        provenance: { router: this.metadata.name },
+      });
+    }
+
+    // Swap the adapter, keeping the accounting counters on the same state
+    // object so registration order and cumulative stats survive.
+    state.adapter = adapter;
+
+    // The health/circuit-breaker verdict described the old configuration.
+    state.isHealthy = true;
+    state.circuitBreakerState = 'closed';
+    state.consecutiveFailures = 0;
+    state.circuitOpenedAt = undefined;
+    state.lastHealthCheck = undefined;
+
+    return this;
+  }
+
+  /**
+   * Unregister a backend adapter, together with every routing rule that
+   * refers to it.
+   *
+   * Removing a backend is always allowed, including the last one: a router
+   * with no backends is a valid transient state — it is also the state of a
+   * freshly constructed `new Router()` — and it surfaces as a routing error
+   * on the next request, which is the right error at the right time. An app
+   * whose only provider was just disconnected is in exactly that state.
+   *
+   * If the removed backend was `config.defaultBackend`, that setting is
+   * cleared (it can no longer be honoured) and a `routing-config-changed`
+   * warning is emitted through {@link RouterConfig.onWarning} so the change
+   * is not silent.
+   *
+   * @throws AdapterError ROUTING_FAILED if `name` is not registered.
    */
   unregister(name: string): Router {
     if (!this.backends.has(name)) {
@@ -197,27 +291,41 @@ export class Router implements IRouter {
       });
     }
 
-    // Check if it's the default backend
-    if (this.config.defaultBackend === name) {
-      throw new AdapterError({
-        code: ErrorCode.ROUTING_FAILED,
-        message: `Cannot unregister default backend '${name}'`,
-        isRetryable: false,
-        provenance: { router: this.metadata.name },
-      });
-    }
-
-    // Check if it's the last backend
-    if (this.backends.size === 1) {
-      throw new AdapterError({
-        code: ErrorCode.ROUTING_FAILED,
-        message: `Cannot unregister last backend '${name}'`,
-        isRetryable: false,
-        provenance: { router: this.metadata.name },
-      });
-    }
-
     this.backends.delete(name);
+
+    // Drop routing rules that now point at a backend that no longer exists.
+    // Every setter validates that the backends it names are registered, so
+    // leaving these behind would break that invariant -- and a later
+    // register() of a *different* adapter under the same name would silently
+    // inherit the removed backend's routing rules and translation mappings.
+    this.fallbackChain = this.fallbackChain.filter((backend) => backend !== name);
+    this.modelPatterns = this.modelPatterns.filter((pattern) => pattern.backend !== name);
+    this.backendTranslationMappings.delete(name);
+    for (const [model, backend] of this.modelMapping.entries()) {
+      if (backend === name) {
+        this.modelMapping.delete(model);
+      }
+    }
+
+    // The default backend can no longer be honoured -- clear it rather than
+    // refusing to remove the backend.
+    if (this.config.defaultBackend === name) {
+      this.mutableConfig.defaultBackend = undefined;
+
+      this.config.onWarning?.(
+        createWarning(
+          'routing-config-changed',
+          `Backend '${name}' was unregistered while it was the router's defaultBackend; defaultBackend has been cleared`,
+          {
+            field: 'config.defaultBackend',
+            originalValue: name,
+            transformedValue: undefined,
+            source: this.metadata.name,
+          }
+        )
+      );
+    }
+
     return this;
   }
 
