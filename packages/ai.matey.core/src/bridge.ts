@@ -96,7 +96,7 @@ export class Bridge<
   private _backendUsage: Record<string, number> = {};
   private _statsResetTimestamp = Date.now();
 
-  // Event listeners (stored for future event emission)
+  // Event listeners, keyed by event type plus '*' for listeners on every event
   private _eventListeners: Map<string, Set<BridgeEventListener>> = new Map();
 
   /**
@@ -562,8 +562,20 @@ export class Bridge<
   /**
    * Register an event listener.
    *
-   * Note: Event emission is not yet implemented. Listeners are stored
-   * for future use when event emission is added.
+   * Six {@link BridgeEventType} values are emitted: `request:start`,
+   * `request:success` and `request:error` from {@link chat}, and `stream:start`,
+   * `stream:complete` and `stream:error` from {@link chatStream}. A `'*'` listener
+   * receives all six.
+   *
+   * The remaining values are declared on the type but nothing emits them, so a
+   * listener registered for `request:cancelled`, `stream:chunk`, `backend:selected`,
+   * `backend:failover` or `middleware:executed` never fires.
+   *
+   * `executeIR()` and `executeIRStream()` are deliberately silent, so a `runTools()`
+   * loop reports as the one request the caller made rather than one event per turn.
+   *
+   * Listeners are called synchronously and a listener that throws is swallowed, so one
+   * failing listener can neither fail the request nor stop the others from running.
    *
    * @param event Event type to listen for, or '*' for all events
    * @param listener Callback function
@@ -593,10 +605,9 @@ export class Bridge<
   }
 
   /**
-   * Register a one-time event listener.
+   * Register a one-time event listener, removed after the first matching event.
    *
-   * Note: Event emission is not yet implemented. Listeners are stored
-   * for future use when event emission is added.
+   * See {@link on} for which events are actually emitted.
    *
    * @param event Event type to listen for
    * @param listener Callback function

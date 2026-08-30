@@ -1,7 +1,8 @@
 /**
- * Bridge backend-usage statistics tests
+ * Bridge backend-usage statistics & event-emission tests
  *
- * Regression tests for #68.
+ * Regression tests for #68 - two things `Bridge`'s observability surface reported
+ * falsely.
  *
  * `getStats().backendUsage` was derived at read time as
  * `{ [this.backend.metadata.name]: this._successfulRequests }`. `this.backend` is
@@ -10,14 +11,20 @@
  * the only thing the field exists to report, unobservable. It is now accumulated as
  * requests succeed, keyed by the backend named in the response's resolved provenance
  * (#57), which is the backend that actually answered.
+ *
+ * `on()` and `once()` both carried a JSDoc note saying "Event emission is not yet
+ * implemented". It has been implemented for some time. The tests here pin the events
+ * that actually fire, so the note cannot come back without a failure.
  */
 
 import { describe, it, expect, vi } from 'vitest';
 import { Bridge, Router } from '@johnhenry/aimatey-core';
 import { GenericFrontendAdapter } from '@johnhenry/aimatey-frontend';
+import { BridgeEventType } from '@johnhenry/aimatey-types';
 import type {
   AdapterMetadata,
   BackendAdapter,
+  BridgeEventData,
   IRCapabilities,
   IRChatRequest,
   IRChatResponse,
@@ -565,5 +572,208 @@ describe('resetStats() clears backendUsage (#68)', () => {
 
     // No residue from before the reset.
     expect(bridge.getStats().backendUsage).toEqual({ expensive: 1 });
+  });
+});
+
+// ============================================================================
+// #68 (2) - events really are emitted
+// ============================================================================
+
+describe('Bridge events are emitted (#68)', () => {
+  function collect(bridge: Bridge): BridgeEventData[] {
+    const seen: BridgeEventData[] = [];
+    bridge.on('*', (event) => {
+      seen.push(event);
+    });
+    return seen;
+  }
+
+  it('emits request:start and request:success from chat()', async () => {
+    const bridge = createBridge(createStaticBackend('solo'));
+    const seen = collect(bridge);
+
+    await bridge.chat(createRequest());
+
+    expect(seen.map((e) => e.type)).toEqual([
+      BridgeEventType.REQUEST_START,
+      BridgeEventType.REQUEST_SUCCESS,
+    ]);
+  });
+
+  it('emits request:error from a failing chat()', async () => {
+    const bridge = createBridge(createStaticBackend('flaky', { fails: true }));
+    const seen = collect(bridge);
+
+    await expect(bridge.chat(createRequest())).rejects.toThrow();
+
+    expect(seen.map((e) => e.type)).toEqual([
+      BridgeEventType.REQUEST_START,
+      BridgeEventType.REQUEST_ERROR,
+    ]);
+  });
+
+  it('emits stream:start and stream:complete from chatStream()', async () => {
+    const bridge = createBridge(createStaticBackend('solo'));
+    const seen = collect(bridge);
+
+    await drain(bridge.chatStream(createRequest()));
+
+    expect(seen.map((e) => e.type)).toEqual([
+      BridgeEventType.STREAM_START,
+      BridgeEventType.STREAM_COMPLETE,
+    ]);
+  });
+
+  it('emits stream:error from a failing chatStream()', async () => {
+    const bridge = createBridge(createStaticBackend('flaky', { fails: true }));
+    const seen = collect(bridge);
+
+    await expect(drain(bridge.chatStream(createRequest()))).rejects.toThrow();
+
+    expect(seen.map((e) => e.type)).toEqual([
+      BridgeEventType.STREAM_START,
+      BridgeEventType.STREAM_ERROR,
+    ]);
+  });
+
+  it('delivers to a listener registered for one specific event type', async () => {
+    const bridge = createBridge(createStaticBackend('solo'));
+    const successes: BridgeEventData[] = [];
+    bridge.on(BridgeEventType.REQUEST_SUCCESS, (event) => {
+      successes.push(event);
+    });
+
+    await bridge.chat(createRequest());
+    await bridge.chat(createRequest());
+
+    expect(successes).toHaveLength(2);
+    expect(successes[0]?.type).toBe(BridgeEventType.REQUEST_SUCCESS);
+  });
+
+  it('carries the request, response and duration on a success event', async () => {
+    const bridge = createBridge(createStaticBackend('solo'));
+    const seen = collect(bridge);
+
+    await bridge.chat(createRequest());
+
+    const success = seen.find((e) => e.type === BridgeEventType.REQUEST_SUCCESS);
+    expect(success).toBeDefined();
+    expect(success).toMatchObject({
+      requestId: expect.any(String),
+      durationMs: expect.any(Number),
+    });
+    expect((success as { response?: IRChatResponse }).response?.metadata.provenance?.backend).toBe(
+      'solo'
+    );
+  });
+
+  it('fires a once() listener exactly once', async () => {
+    const bridge = createBridge(createStaticBackend('solo'));
+    let calls = 0;
+    bridge.once(BridgeEventType.REQUEST_START, () => {
+      calls++;
+    });
+
+    await bridge.chat(createRequest());
+    await bridge.chat(createRequest());
+
+    expect(calls).toBe(1);
+  });
+
+  it('stops delivering after off()', async () => {
+    const bridge = createBridge(createStaticBackend('solo'));
+    let calls = 0;
+    const listener = () => {
+      calls++;
+    };
+    bridge.on(BridgeEventType.REQUEST_START, listener);
+
+    await bridge.chat(createRequest());
+    bridge.off(BridgeEventType.REQUEST_START, listener);
+    await bridge.chat(createRequest());
+
+    expect(calls).toBe(1);
+  });
+
+  it('does not let a throwing listener fail the request or silence the others', async () => {
+    const bridge = createBridge(createStaticBackend('solo'));
+    let reached = 0;
+    bridge.on('*', () => {
+      throw new Error('listener blew up');
+    });
+    bridge.on('*', () => {
+      reached++;
+    });
+
+    await expect(bridge.chat(createRequest())).resolves.toBeDefined();
+    expect(reached).toBe(2);
+  });
+
+  it('emits exactly the six event types on() documents, and no others', async () => {
+    // Pins both halves of the on() JSDoc: the six that fire, and the five that are
+    // declared on BridgeEventType but that nothing emits. If one of the latter ever
+    // starts firing, the doc has gone stale again and this fails.
+    const emitted = new Set<string>();
+    const record = (bridge: Bridge) =>
+      bridge.on('*', (event) => {
+        emitted.add(event.type);
+      });
+
+    const ok = createBridge(createStaticBackend('solo'));
+    record(ok);
+    await ok.chat(createRequest());
+    await drain(ok.chatStream(createRequest()));
+
+    const bad = createBridge(createStaticBackend('flaky', { fails: true }));
+    record(bad);
+    await expect(bad.chat(createRequest())).rejects.toThrow();
+    await expect(drain(bad.chatStream(createRequest()))).rejects.toThrow();
+
+    expect([...emitted].sort()).toEqual(
+      [
+        BridgeEventType.REQUEST_START,
+        BridgeEventType.REQUEST_SUCCESS,
+        BridgeEventType.REQUEST_ERROR,
+        BridgeEventType.STREAM_START,
+        BridgeEventType.STREAM_COMPLETE,
+        BridgeEventType.STREAM_ERROR,
+      ].sort()
+    );
+
+    for (const never of [
+      BridgeEventType.REQUEST_CANCELLED,
+      BridgeEventType.STREAM_CHUNK,
+      BridgeEventType.BACKEND_SELECTED,
+      BridgeEventType.BACKEND_FAILOVER,
+      BridgeEventType.MIDDLEWARE_EXECUTED,
+    ]) {
+      expect(emitted.has(never)).toBe(false);
+    }
+  });
+
+  it('stays silent on executeIR(), which is documented not to emit', async () => {
+    const bridge = createBridge(createStaticBackend('solo'));
+    const seen = collect(bridge);
+
+    await bridge.executeIR(createRequest());
+    await drain(bridge.executeIRStream(createRequest()));
+
+    expect(seen).toEqual([]);
+    expect(bridge.getStats().backendUsage).toEqual({});
+  });
+
+  it('names the routed backend in the success event on a router-backed bridge', async () => {
+    const router = new Router({ routingStrategy: 'explicit', defaultBackend: 'cheap' });
+    router.register('cheap', createStaticBackend('cheap'));
+    router.register('expensive', createStaticBackend('expensive'));
+    const bridge = createBridge(router);
+    const seen = collect(bridge);
+
+    await bridge.chat(createRequest(), { backend: 'expensive' });
+
+    const success = seen.find((e) => e.type === BridgeEventType.REQUEST_SUCCESS);
+    expect((success as { response?: IRChatResponse }).response?.metadata.provenance?.backend).toBe(
+      'expensive'
+    );
   });
 });
