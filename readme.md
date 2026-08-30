@@ -366,7 +366,7 @@ registerModels([
 
 | Document | Description |
 |----------|-------------|
-| [API Reference](./docs/API.md) | Complete API documentation for all components |
+| [API Reference](./docs/api.md) | Complete API documentation for all components |
 | [IR Format Guide](./docs/IR-FORMAT.md) | Comprehensive Intermediate Representation format specification |
 | [Feature Guides](./docs/GUIDES.md) | In-depth guides for parallel dispatch, CLI tools, response conversion |
 | [Roadmap](./docs/ROADMAP.md) | Project roadmap and planned features |

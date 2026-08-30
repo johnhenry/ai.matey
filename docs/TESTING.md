@@ -745,7 +745,7 @@ git push
 - [ai.matey.examples](https://github.com/johnhenry/ai.matey.examples) - Integration test applications
 
 **Test Reports**:
-- [Final Comprehensive Test Report](../FINAL-COMPREHENSIVE-TEST-REPORT.md) - Full validation results
+- [Final Comprehensive Test Report](./archive/FINAL-COMPREHENSIVE-TEST-REPORT.md) - Full validation results
 
 ---
 

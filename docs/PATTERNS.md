@@ -887,12 +887,12 @@ snippet across.
 
 ### Contributing Patterns
 
-Have a pattern to share? See [CONTRIBUTING.md](../CONTRIBUTING.md) for guidelines on submitting patterns.
+Have a pattern to share? See [contributing guide](../packages/ai.matey.docs/src/content/docs/contributing/index.md) for guidelines on submitting patterns.
 
 ---
 
 **Related Documentation:**
 - [Performance Benchmarks](./BENCHMARKS.md) - Performance data for these patterns
 - [Testing Guide](./TESTING.md) - How these patterns were validated
-- [API Reference](./API.md) - API documentation
+- [API Reference](./api.md) - API documentation
 - [Examples Repository](https://github.com/johnhenry/ai.matey.examples) - Full test applications

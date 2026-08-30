@@ -718,6 +718,6 @@ curl http://localhost:3000/v1/chat/completions \
 
 ## Additional Resources
 
-- [API Reference](./API.md) - Complete API documentation
+- [API Reference](./api.md) - Complete API documentation
 - [Examples](../examples/) - Working code examples
-- [README](../README.md) - Getting started and overview
+- [README](../readme.md) - Getting started and overview

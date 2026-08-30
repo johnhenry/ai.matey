@@ -1177,6 +1177,6 @@ For the complete, authoritative type definitions, refer to the source code:
 
 ## See Also
 
-- [API Reference](./API.md) - Complete API documentation
-- [Architecture Guide](../README.md#architecture) - System architecture overview
+- [API Reference](./api.md) - Complete API documentation
+- [Architecture Guide](../readme.md#architecture) - System architecture overview
 - [Type Definitions](../packages/ai.matey.types/readme.md) - TypeScript types package
