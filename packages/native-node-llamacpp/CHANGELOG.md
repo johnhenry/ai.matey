@@ -1,5 +1,16 @@
 # @johnhenry/aimatey-native-node-llamacpp
 
+## 0.1.1
+
+### Patch Changes
+
+- Updated dependencies [6e79fa1]
+- Updated dependencies [213b23e]
+- Updated dependencies [0ac4957]
+  - @johnhenry/aimatey-types@0.2.0
+  - @johnhenry/aimatey-errors@0.1.1
+  - @johnhenry/aimatey-utils@0.1.1
+
 ## 0.1.0
 
 ### Minor Changes
