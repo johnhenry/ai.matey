@@ -5,6 +5,10 @@
  * Middleware executes in order with "onion" pattern - each middleware
  * can execute code before and after calling next().
  *
+ * `next()` is re-entrant: calling it more than once re-runs the remainder of
+ * the chain rather than skipping ahead, so retry-shaped middleware retries the
+ * same chain it ran the first time. See {@link MiddlewareStack.execute}.
+ *
  * A single stack drives both the non-streaming and the streaming path.
  * Middleware registered with {@link MiddlewareStack.use} runs on both:
  * on the streaming path it is wrapped by {@link adaptMiddlewareToStreaming}.
@@ -205,9 +209,12 @@ async function* replayResponseAsStream(response: IRChatResponse): IRChatStream {
  *   from `executeStream()` exactly as they do from `execute()`.
  * - **A stream cannot be restarted.** Calling `next()` a second time after a
  *   stream has been handed to the consumer throws a `MiddlewareError`; a
- *   partially delivered stream cannot be retried. (Retry middleware still
- *   retries failures raised *by* `next()` itself, before any chunk is
- *   delivered.)
+ *   partially delivered stream cannot be retried. This is the one place where
+ *   a second `next()` is refused rather than served - everywhere else it
+ *   re-runs the remainder of the chain (see
+ *   {@link MiddlewareStack.execute}). Retry middleware still retries failures
+ *   raised *by* `next()` itself, before any chunk is delivered, and such a
+ *   retry re-runs the whole downstream chain.
  * - **A consumer that abandons the stream** (breaks out of the loop, aborts)
  *   still runs the response phase, with a partial response whose
  *   `finishReason` is `cancelled`.
@@ -535,6 +542,37 @@ export class MiddlewareStack {
   /**
    * Execute middleware stack for non-streaming requests.
    *
+   * ## `next()` is re-entrant
+   *
+   * The chain is dispatched by recursion, and every `next()` closes over its
+   * own position in it. Calling `next()` more than once therefore re-runs *the
+   * whole remainder of the chain*, in order, once per call - the second pass
+   * takes exactly the same code path as the first.
+   *
+   * This is deliberate, and the reason this stack does not carry Koa's
+   * "next() called multiple times" guard: retry-shaped middleware
+   * (`try { return await next() } catch { return next() }`) is a first-class
+   * pattern here, and the retry has to re-run the validation, redaction and
+   * transform middleware registered after it or the second attempt would hit
+   * the backend with a differently-prepared request. Throwing would ban a
+   * useful pattern; the previous behaviour - advancing *past* the next
+   * middleware and silently running a shorter chain - was the one option that
+   * is never correct.
+   *
+   * Consequences a middleware author should know about:
+   *
+   * - Re-running is not free of side effects: every downstream middleware runs
+   *   again, so anything they do (logging, cost tracking, cache writes) happens
+   *   again too. Mutations they made to `context` on the first pass are still
+   *   there on the second - `context` is shared, not snapshotted.
+   * - Nothing bounds the number of passes. A middleware that calls `next()` in
+   *   an unbounded loop will retry forever, exactly as an unbounded loop
+   *   anywhere else would.
+   * - On the streaming path the same re-entrancy applies to the chain
+   *   (see {@link executeStream}), but a *standard* middleware adapted onto a
+   *   stream can only retry a `next()` that failed before any chunk was
+   *   delivered; see {@link adaptMiddlewareToStreaming}.
+   *
    * @param context Middleware context
    * @param finalHandler Final handler function (backend.execute)
    * @returns Response after middleware chain
@@ -555,21 +593,16 @@ export class MiddlewareStack {
       return finalHandler();
     }
 
-    // Compose middleware chain
-    let index = 0;
-
-    const next: MiddlewareNext = async (): Promise<IRChatResponse> => {
-      if (index >= chain.length) {
-        // End of middleware chain, call final handler
-        return finalHandler();
-      }
-
+    // Compose middleware chain. `index` is a parameter rather than shared
+    // mutable state, so each `next()` re-enters at its own position.
+    const dispatch = async (index: number): Promise<IRChatResponse> => {
       const middlewareFn = chain[index];
       if (!middlewareFn) {
         // End of middleware chain, call final handler
         return finalHandler();
       }
-      index++;
+
+      const next: MiddlewareNext = () => dispatch(index + 1);
 
       try {
         return await middlewareFn(context, next);
@@ -588,7 +621,7 @@ export class MiddlewareStack {
       }
     };
 
-    return next();
+    return dispatch(0);
   }
 
   /**
@@ -597,6 +630,32 @@ export class MiddlewareStack {
    * Runs every registration in the stack - stream-native middleware added with
    * {@link useStreaming} and, adapted, every middleware added with
    * {@link use} - in registration order.
+   *
+   * ## `next()` is re-entrant
+   *
+   * As on the non-streaming path (see {@link execute}), each `next()` closes
+   * over its own position in the chain, so calling it more than once re-runs
+   * the whole remainder of the chain and starts a *fresh* stream each time.
+   *
+   * The two `next()` guards in this file answer different questions and do not
+   * conflict:
+   *
+   * - **This dispatcher** decides what a second `next()` *reaches*: the same
+   *   chain the first one did, never a shorter one.
+   * - **{@link adaptMiddlewareToStreaming}** decides whether a *standard*
+   *   middleware may make that second call at all. Once its first `next()` has
+   *   handed a stream to the consumer, the chunks are already gone and no
+   *   restart can reach the consumer, so the adapter throws a
+   *   `MiddlewareError` rather than start a stream nobody can read. Before any
+   *   chunk is delivered - i.e. when the first `next()` *failed* - it lets the
+   *   call through, and that retry now re-runs the whole downstream chain
+   *   instead of skipping the middleware next to it.
+   *
+   * A {@link StreamingMiddleware} registered with {@link useStreaming} owns the
+   * `IRChatStream` itself rather than receiving an assembled response, so it
+   * has no such restriction: it may call `next()` as often as it likes and
+   * choose which of the resulting streams to return. Streams it abandons are
+   * never iterated.
    *
    * @param context Streaming middleware context
    * @param finalHandler Final handler function (backend.executeStream)
@@ -618,21 +677,16 @@ export class MiddlewareStack {
       return finalHandler();
     }
 
-    // Compose streaming middleware chain
-    let index = 0;
-
-    const next: StreamingMiddlewareNext = async (): Promise<IRChatStream> => {
-      if (index >= chain.length) {
-        // End of middleware chain, call final handler
-        return finalHandler();
-      }
-
+    // Compose streaming middleware chain. `index` is a parameter rather than
+    // shared mutable state, so each `next()` re-enters at its own position.
+    const dispatch = async (index: number): Promise<IRChatStream> => {
       const middlewareFn = chain[index];
       if (!middlewareFn) {
         // End of middleware chain, call final handler
         return finalHandler();
       }
-      index++;
+
+      const next: StreamingMiddlewareNext = () => dispatch(index + 1);
 
       try {
         return await middlewareFn(context, next);
@@ -651,7 +705,7 @@ export class MiddlewareStack {
       }
     };
 
-    return next();
+    return dispatch(0);
   }
 
   /**

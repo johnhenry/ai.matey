@@ -208,6 +208,26 @@ bridge
   .use(createCachingMiddleware({ ttl: 3600 }));
 ```
 
+`next()` is **re-entrant**: calling it more than once re-runs the whole
+remainder of the chain, in order, once per call. A retry-shaped middleware
+therefore retries the *same* chain it ran the first time, with every validation,
+redaction and transform middleware registered after it applied again:
+
+```typescript
+bridge.use(async (ctx, next) => {
+  try {
+    return await next();
+  } catch (error) {
+    return next(); // re-runs every middleware after this one, then the backend
+  }
+});
+```
+
+Re-running is not free: every downstream middleware runs again, so their side
+effects (logging, cost tracking, cache writes) happen again too, and mutations
+they made to `context` on the first pass are still there on the second -
+`context` is shared, not snapshotted. Nothing bounds the number of passes.
+
 On the streaming path a `Middleware` is adapted onto the stream:
 
 - Everything before `await next()` runs **before** the backend is called, so
@@ -229,8 +249,13 @@ Limitations on the streaming path:
   consumer is still iterating.
 - A middleware that short-circuits (returns without calling `next()`, e.g. a
   cache hit) has its response replayed as a synthetic stream.
-- A stream cannot be restarted: calling `next()` twice throws a
-  `MiddlewareError`.
+- A stream cannot be restarted: once `next()` has handed a stream to the
+  consumer, calling it again throws a `MiddlewareError` - the chunks are already
+  gone, so a restart could never reach the consumer. This is the one place a
+  second `next()` is refused rather than re-running the chain. A `next()` that
+  *failed* before any chunk was delivered can still be retried, and that retry
+  re-runs the whole downstream chain. Use `useStreaming()` for a middleware that
+  needs to restart or replace the stream itself.
 
 ##### `useStreaming(middleware)`
 
