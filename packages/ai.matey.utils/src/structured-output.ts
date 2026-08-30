@@ -1013,6 +1013,26 @@ export interface GenerateObjectOptions<T = any> {
   temperature?: number;
   maxRetries?: number;
   signal?: AbortSignal;
+
+  /**
+   * Stop early when another attempt provably cannot differ (#69).
+   *
+   * Two situations qualify, and neither is "the first validation failure" --
+   * `temperature` defaults to `0.7`, so resampling is a genuine second
+   * chance and a model that fails once may well succeed next time:
+   *
+   * - The provider returned a value that **conforms to the JSON Schema it was
+   *   actually sent**, and a lossy schema conversion explains the Zod
+   *   failure. The model answered the question correctly; the question was
+   *   wrong. No sample can validate.
+   * - An attempt reproduced the **identical error set** as the one before it.
+   *
+   * Set to `false` to spend the whole `maxRetries` budget regardless, as
+   * before this issue.
+   *
+   * @default true
+   */
+  stopWhenRetryCannotHelp?: boolean;
 }
 
 /**
@@ -1047,8 +1067,20 @@ export interface StreamObjectOptions<T = any> {
  * request's `metadata.warnings` (the IR channel for semantic drift) and are
  * appended to a validation failure, so a lossy schema conversion is never
  * silent (#66).
+ *
+ * `jsonSchema` is the same document as `tool.parameters`, handed back
+ * *before* the cast to the IR type. `IRTool['parameters']` narrows `type` to
+ * a `JSONSchemaType` union, which is the wrong shape for walking a schema
+ * whose `type` may legitimately be absent (`{}` is how an unrepresentable
+ * field is spelled). The retry loop needs to read this document to ask
+ * whether a response conforms to the contract that was actually sent, so it
+ * is returned rather than discarded (#69).
  */
-function buildExtractDataTool(schema: any): { tool: IRTool; warnings: IRWarning[] } {
+function buildExtractDataTool(schema: any): {
+  tool: IRTool;
+  warnings: IRWarning[];
+  jsonSchema: JSONSchema;
+} {
   const toolDef = schemaToToolDefinition(schema, EXTRACT_TOOL_NAME, 'Extract structured data');
   return {
     tool: {
@@ -1061,6 +1093,7 @@ function buildExtractDataTool(schema: any): { tool: IRTool; warnings: IRWarning[
       parameters: toolDef.function.parameters as unknown as IRTool['parameters'],
     },
     warnings: toolDef.warnings ?? [],
+    jsonSchema: toolDef.function.parameters,
   };
 }
 
@@ -1158,6 +1191,294 @@ function isRetryableTransportError(error: unknown): boolean {
   return typeof declared === 'boolean' ? declared : true;
 }
 
+// ============================================================================
+// Retry policy (#69): can another attempt possibly differ?
+// ============================================================================
+
+/**
+ * Whether a value satisfies a JSON Schema, or `'unknown'` where this walker
+ * does not understand the subschema well enough to say.
+ *
+ * `'unknown'` is a first-class answer, not an error case. It is the reason
+ * this can be used to *stop* a retry: the caller only ever acts on a
+ * confident `true`, so anything unrecognized falls through to the existing
+ * retry behaviour rather than to a new early exit.
+ */
+type Conformance = true | false | 'unknown';
+
+/** `false` wins over `'unknown'`, which wins over `true`. */
+function combineConformance(results: readonly Conformance[]): Conformance {
+  let sawUnknown = false;
+  for (const result of results) {
+    if (result === false) {
+      return false;
+    }
+    if (result === 'unknown') {
+      sawUnknown = true;
+    }
+  }
+  return sawUnknown ? 'unknown' : true;
+}
+
+/** Structural equality, good enough for `const`/`enum` members. */
+function jsonEquals(a: unknown, b: unknown): boolean {
+  return a === b || safeJsonStringify(a) === safeJsonStringify(b);
+}
+
+function matchesJsonType(value: unknown, type: string): Conformance {
+  switch (type) {
+    case 'string':
+      return typeof value === 'string';
+    case 'number':
+      return typeof value === 'number' && Number.isFinite(value);
+    case 'integer':
+      return typeof value === 'number' && Number.isInteger(value);
+    case 'boolean':
+      return typeof value === 'boolean';
+    case 'null':
+      return value === null;
+    case 'array':
+      return Array.isArray(value);
+    case 'object':
+      return typeof value === 'object' && value !== null && !Array.isArray(value);
+    default:
+      // A vocabulary this walker was not written for.
+      return 'unknown';
+  }
+}
+
+/**
+ * Does `value` conform to the JSON Schema the provider was actually sent?
+ *
+ * This is the question the retry loop could not previously ask. A response
+ * that satisfies the tool contract *and* still fails Zod validation is not a
+ * model mistake -- it is the correct answer to a question that was posed
+ * wrongly, and re-asking it cannot help.
+ *
+ * Deliberately not interpreted, each returning `'unknown'` so the caller
+ * keeps retrying:
+ *
+ * - `allOf`, which needs subschema intersection to answer honestly.
+ * - Any `type` outside the seven JSON Schema primitives.
+ * - A missing subschema.
+ *
+ * `format` is deliberately *ignored* rather than treated as unknown. It is
+ * annotation-only in JSON Schema, providers do not enforce it, and treating
+ * it as a constraint would make this answer `'unknown'` for exactly the
+ * `{type:'string',format:'date-time'}` case that motivated the gate.
+ */
+function conformsToJsonSchema(value: unknown, schema: JSONSchema | undefined): Conformance {
+  if (schema === undefined || typeof schema !== 'object') {
+    return 'unknown';
+  }
+
+  // Intersection semantics are not modelled; do not guess.
+  if (schema.allOf !== undefined) {
+    return 'unknown';
+  }
+
+  if (schema.const !== undefined) {
+    return jsonEquals(value, schema.const);
+  }
+
+  if (schema.enum !== undefined) {
+    return schema.enum.some((member) => jsonEquals(value, member));
+  }
+
+  if (schema.anyOf !== undefined) {
+    const branches = schema.anyOf.map((branch) => conformsToJsonSchema(value, branch));
+    if (branches.some((branch) => branch === true)) {
+      return true;
+    }
+    // Every branch rejected it outright: so does the union.
+    return branches.every((branch) => branch === false) ? false : 'unknown';
+  }
+
+  const declared = schema.type;
+  if (declared === undefined) {
+    // `{}` -- the JSON Schema spelling of "any value". Everything conforms,
+    // which is precisely why a field converted to `{}` can never be
+    // constrained into satisfying a stricter Zod type.
+    return true;
+  }
+
+  const types = Array.isArray(declared) ? declared : [declared];
+  const typeResults = types.map((type) => matchesJsonType(value, type));
+  if (!typeResults.some((result) => result === true)) {
+    return typeResults.some((result) => result === 'unknown') ? 'unknown' : false;
+  }
+
+  if (Array.isArray(value)) {
+    return conformsToArraySchema(value, schema);
+  }
+  if (typeof value === 'object' && value !== null) {
+    return conformsToObjectSchema(value as Record<string, unknown>, schema);
+  }
+  return true;
+}
+
+function conformsToArraySchema(value: readonly unknown[], schema: JSONSchema): Conformance {
+  if (typeof schema.minItems === 'number' && value.length < schema.minItems) {
+    return false;
+  }
+  if (typeof schema.maxItems === 'number' && value.length > schema.maxItems) {
+    return false;
+  }
+  if (schema.uniqueItems === true) {
+    const seen = new Set(value.map((item) => safeJsonStringify(item)));
+    if (seen.size !== value.length) {
+      return false;
+    }
+  }
+
+  const results: Conformance[] = [];
+  for (let index = 0; index < value.length; index++) {
+    const itemSchema = schema.prefixItems?.[index] ?? schema.items;
+    // No `items` at all means unconstrained elements, not a failure.
+    if (itemSchema !== undefined) {
+      results.push(conformsToJsonSchema(value[index], itemSchema));
+    }
+  }
+  return combineConformance(results);
+}
+
+function conformsToObjectSchema(
+  value: Record<string, unknown>,
+  schema: JSONSchema
+): Conformance {
+  for (const key of schema.required ?? []) {
+    if (!Object.prototype.hasOwnProperty.call(value, key)) {
+      return false;
+    }
+  }
+
+  const results: Conformance[] = [];
+  for (const [key, child] of Object.entries(value)) {
+    const propertySchema = schema.properties?.[key];
+    if (propertySchema !== undefined) {
+      results.push(conformsToJsonSchema(child, propertySchema));
+      continue;
+    }
+    if (schema.additionalProperties === false) {
+      return false;
+    }
+    if (typeof schema.additionalProperties === 'object') {
+      results.push(conformsToJsonSchema(child, schema.additionalProperties));
+    }
+  }
+  return combineConformance(results);
+}
+
+/** Dotted path for a Zod issue, matching the converter's own vocabulary. */
+function issuePathOf(issue: unknown): readonly (string | number)[] {
+  return (issue as { path?: readonly (string | number)[] } | null)?.path ?? [];
+}
+
+function issuePathString(issue: unknown): string {
+  return issuePathOf(issue).map(String).join('.');
+}
+
+/**
+ * Whether a conversion warning's field names a location at or above a Zod
+ * issue's path.
+ *
+ * The two use different vocabularies for the same place, and comparing them
+ * as strings would make this silently never fire below the top level -- a
+ * bug that looks like a working gate. The converter names array elements
+ * `[]`, tuple slots `[0]`, record values `(value)` and map keys `(key)`
+ * (see `convertByTag`); Zod issue paths carry real indices and real record
+ * keys. So `events.[].when` has to match `['events', 0, 'when']`, and
+ * `bag.(value)` has to match `['bag', 'foo']`.
+ *
+ * A warning is treated as covering any failure at or *below* it, because a
+ * lossily converted subtree explains failures anywhere inside itself.
+ */
+function warningCoversIssue(
+  warningField: string,
+  issuePath: readonly (string | number)[]
+): boolean {
+  const segments = warningField.split('.');
+  if (segments.length > issuePath.length) {
+    return false;
+  }
+  return segments.every((segment, index) => {
+    const actual = issuePath[index];
+    if (segment === String(actual)) {
+      return true;
+    }
+    if (segment === '[]') {
+      return typeof actual === 'number';
+    }
+    if (/^\[\d+\]$/.test(segment)) {
+      return String(actual) === segment.slice(1, -1);
+    }
+    // Any key of a record or map.
+    return segment === '(value)' || segment === '(key)';
+  });
+}
+
+/** The conversion warnings that explain at least one of these failures. */
+function warningsExplaining(
+  errors: readonly unknown[],
+  warnings: readonly IRWarning[]
+): IRWarning[] {
+  const explaining: IRWarning[] = [];
+  for (const warning of warnings) {
+    // A warning with no field is about the schema as a whole (depth
+    // exceeded, for instance), so it covers every failure in it.
+    if (warning.field === undefined) {
+      explaining.push(warning);
+      continue;
+    }
+    if (errors.some((issue) => warningCoversIssue(warning.field!, issuePathOf(issue)))) {
+      explaining.push(warning);
+    }
+  }
+  return explaining;
+}
+
+/**
+ * The failure thrown when the response did not match the schema.
+ *
+ * `ValidationError` rather than a bare `Error`: it hard-codes
+ * `isRetryable: false`, which is exactly the claim being made, and carries
+ * structured `validationDetails` so a caller can inspect the failure instead
+ * of parsing the message. It extends `Error`, so `instanceof Error`,
+ * `.message` and `toThrow(/.../)` all keep working.
+ */
+function schemaValidationError(args: {
+  reason: 'unsatisfiable-schema' | 'retries-exhausted';
+  errors: readonly unknown[];
+  attempts: number;
+  conversionWarnings: readonly IRWarning[];
+  blocking: readonly IRWarning[];
+  frontend: string;
+}): ValidationError {
+  const headline =
+    args.reason === 'unsatisfiable-schema'
+      ? `The response cannot satisfy this schema as sent: ${args.blocking
+          .map((warning) => warning.field ?? '(schema)')
+          .join(', ')}. The provider returned a value that does conform to the ` +
+        `JSON Schema it was given, so no further attempt can validate. Stopped after ` +
+        `${args.attempts} attempt(s).`
+      : `The response did not match the schema after ${args.attempts} attempt(s).`;
+
+  return new ValidationError({
+    code: ErrorCodeEnum.INVALID_REQUEST,
+    message:
+      `${headline}\nValidation failed: ${safeJsonStringify(args.errors)}` +
+      // Preserves the "lossy conversion" sentence from #66 verbatim.
+      describeConversionWarnings(args.conversionWarnings),
+    validationDetails: args.errors.map((issue) => ({
+      field: issuePathString(issue) || '(root)',
+      value: undefined,
+      reason: (issue as { message?: string } | null)?.message ?? 'invalid',
+      expected: (issue as { expected?: string } | null)?.expected,
+    })),
+    provenance: { frontend: args.frontend },
+  });
+}
+
 /**
  * Create a generateObject function bound to a Bridge instance
  *
@@ -1169,14 +1490,26 @@ export function createGenerateObject(bridge: StructuredOutputBridge) {
   return async function generateObject<T = any>(
     options: GenerateObjectOptions
   ): Promise<GenerateObjectResult<T>> {
-    const { schema, prompt, model, temperature = 0.7, maxRetries = 3, signal } = options;
+    const {
+      schema,
+      prompt,
+      model,
+      temperature = 0.7,
+      maxRetries = 3,
+      signal,
+      stopWhenRetryCannotHelp = true,
+    } = options;
 
     // Fail fast, outside the retry loop: a bad schema will never succeed
     assertZodSchema(schema, 'options.schema');
     assertAttemptBudget(maxRetries);
 
     // Convert schema to an IR tool definition (provider-agnostic)
-    const { tool: irTool, warnings: conversionWarnings } = buildExtractDataTool(schema);
+    const {
+      tool: irTool,
+      warnings: conversionWarnings,
+      jsonSchema: sentSchema,
+    } = buildExtractDataTool(schema);
 
     let lastError: Error | undefined;
 
@@ -1264,11 +1597,43 @@ export function createGenerateObject(bridge: StructuredOutputBridge) {
 
       const errors: readonly unknown[] =
         'errors' in validation && Array.isArray(validation.errors) ? validation.errors : [];
+      const attempts = attempt + 1;
 
-      lastError = new Error(
-        `Validation failed: ${safeJsonStringify(errors)}` +
-          describeConversionWarnings(conversionWarnings)
-      );
+      // GATE A -- the request cannot be satisfied as sent.
+      //
+      // Two conditions, and both are needed. A conversion warning alone is
+      // only a correlation: a `z.date()` field that failed because the model
+      // returned `null` is a perfectly ordinary retryable mistake.
+      // Conformance alone is worse -- `'not-an-email'` conforms to
+      // `{type:'string'}`, and bailing there would cut exactly the
+      // legitimate retry the issue's correction comment protects.
+      //
+      // Together they are a proof: the value satisfies the contract the
+      // provider was given, and the reason Zod still rejects it is a
+      // documented lossy conversion of that very field. Every future sample
+      // that respects the tool schema fails the same way.
+      if (stopWhenRetryCannotHelp) {
+        const blocking = warningsExplaining(errors, conversionWarnings);
+        if (blocking.length > 0 && conformsToJsonSchema(data, sentSchema) === true) {
+          throw schemaValidationError({
+            reason: 'unsatisfiable-schema',
+            errors,
+            attempts,
+            conversionWarnings,
+            blocking,
+            frontend: bridge.frontend.metadata.name,
+          });
+        }
+      }
+
+      lastError = schemaValidationError({
+        reason: 'retries-exhausted',
+        errors,
+        attempts,
+        conversionWarnings,
+        blocking: [],
+        frontend: bridge.frontend.metadata.name,
+      });
     }
 
     throw lastError || new Error('Failed to generate object');
