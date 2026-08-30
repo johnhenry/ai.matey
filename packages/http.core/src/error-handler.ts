@@ -58,7 +58,7 @@ export const defaultErrorHandler: ErrorHandler = (
  * time someone rewords the message.
  */
 function explicitStatusCode(error: Error): number | undefined {
-  const details = (error as AdapterError).details as Record<string, unknown> | undefined;
+  const details = (error as AdapterError).details;
   const declared = details?.['httpStatus'];
 
   if (typeof declared === 'number' && declared >= 400 && declared <= 599) {
