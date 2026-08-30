@@ -156,6 +156,9 @@ bridge.use(
     ttl: 3_600_000 // Cache for 1 hour (ttl is in milliseconds)
   })
 );
+
+// Cache entries belong to a caller; name one on each request
+await bridge.chat(request, { principal: userId });
 ```
 
 ### Configuration
@@ -166,7 +169,8 @@ interface CachingConfig {
   maxSize?: number;             // Max cached items (default: 1000)
   storage?: CacheStorage;       // Storage object (default: in-memory LRU)
   keyGenerator?: (request: IRChatRequest) => string; // Custom cache key
-  scopeKey?: string | ((request: IRChatRequest) => string); // Tenant scoping
+  scopeKey?: string | ((request: IRChatRequest) => string | undefined); // Caller scoping
+  unidentified?: 'bypass' | 'share'; // Request with no caller identity (default: 'bypass')
   cacheStreaming?: boolean;     // Also cache streaming responses (default: false)
 }
 
@@ -193,17 +197,21 @@ bridge.use(
 );
 
 // First request hits the API
-const response1 = await bridge.chat({
-  model: 'gpt-4',
-  messages: [{ role: 'user', content: 'What is 2+2?' }]
-});
+const response1 = await bridge.chat(
+  { model: 'gpt-4', messages: [{ role: 'user', content: 'What is 2+2?' }] },
+  { principal: userId }
+);
 
-// Second identical request served from cache (<1ms)
-const response2 = await bridge.chat({
-  model: 'gpt-4',
-  messages: [{ role: 'user', content: 'What is 2+2?' }]
-});
+// Same prompt, same caller: served from cache (<1ms)
+const response2 = await bridge.chat(
+  { model: 'gpt-4', messages: [{ role: 'user', content: 'What is 2+2?' }] },
+  { principal: userId }
+);
 ```
+
+Cache entries are scoped to the caller named by `principal`. A request that
+names no caller is not cached at all - see
+[Scoping the Cache per Caller](#scoping-the-cache-per-caller) below.
 
 #### Redis Cache
 
@@ -257,19 +265,48 @@ bridge.use(
 );
 ```
 
-#### Scoping the Cache per Tenant
+#### Scoping the Cache per Caller
 
-There is no `shouldCache` hook. To keep tenants from sharing cache entries, pass
-`scopeKey`:
+Cache entries belong to a caller. The default key mixes in a scope taken from
+`scopeKey`, or failing that from the request's `metadata.principal`, which is
+set per request:
+
+```typescript
+await bridge.chat(request, { principal: `tenant-${tenantId}:user-${userId}` });
+```
+
+A request with neither is **not cached at all** - it is passed through with a
+`cache-bypassed` warning on `metadata.warnings`. That is the safe default: a
+cache with nothing to scope on is a cache that answers whoever asks next.
+
+When identity lives somewhere the request does not reach, `scopeKey` supplies it
+from the middleware side and wins over `metadata.principal`:
 
 ```typescript
 bridge.use(
   createCachingMiddleware({
     ttl: 3_600_000,
-    scopeKey: (request) => String(request.metadata.custom?.tenantId ?? 'default')
+    scopeKey: () => currentTenantId() // e.g. an async-local store
   })
 );
 ```
+
+#### Single-Tenant Deployments
+
+One process, one audience, every entry safe to share - say so explicitly and
+unidentified requests are cached in one shared bucket again:
+
+```typescript
+bridge.use(
+  createCachingMiddleware({
+    ttl: 3_600_000,
+    unidentified: 'share'
+  })
+);
+```
+
+The keys are unchanged by this option, so an existing external cache (Redis and
+friends) keeps its entries across the upgrade.
 
 ## Retry Middleware
 

@@ -129,6 +129,9 @@ async function runDemo() {
   bridge.use(
     createCachingMiddleware({
       storage: cacheStorage,
+      // Single-user demo: one shared cache is correct here. A multi-user
+      // service passes `{ principal }` per request instead.
+      unidentified: 'share',
       ttl: 3600000, // 1 hour
     })
   );

@@ -114,6 +114,24 @@ export interface RequestOptions {
   readonly metadata?: Record<string, unknown>;
 
   /**
+   * Caller this request is made on behalf of; becomes
+   * `metadata.principal` on the IR request, overriding any principal the
+   * frontend adapter already put there.
+   *
+   * Set it on every request in a deployment that serves more than one user
+   * or tenant. Middleware that shares state between requests -- the caching
+   * middleware above all -- keys on it to keep callers apart, and the cache
+   * declines to store a request that has no principal rather than risk
+   * serving it to somebody else (#44).
+   *
+   * @example
+   * ```typescript
+   * await bridge.chat(request, { principal: `tenant-${tenantId}:user-${userId}` });
+   * ```
+   */
+  readonly principal?: string;
+
+  /**
    * Skip middleware execution for this request.
    * @default false
    */

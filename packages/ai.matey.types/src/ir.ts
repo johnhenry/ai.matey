@@ -707,7 +707,15 @@ export type WarningCategory =
    * redaction by the security or validation middleware. The request the
    * backend receives is not the request the caller supplied.
    */
-  | 'content-redacted';
+  | 'content-redacted'
+  /**
+   * A response was served straight from the backend because the caching
+   * middleware could not tell which caller the request belonged to, and
+   * caching it would have risked handing it to a different caller. Set
+   * {@link IRMetadata.principal} (or the middleware's `scopeKey`) to make
+   * the request cacheable, or opt the deployment into a shared cache.
+   */
+  | 'cache-bypassed';
 
 /**
  * Semantic drift warning.
@@ -856,6 +864,29 @@ export interface IRMetadata {
    * Documents any transformations or compatibility issues.
    */
   readonly warnings?: readonly IRWarning[];
+
+  /**
+   * Identity of the caller this request is made on behalf of.
+   *
+   * An opaque, deployment-defined string: a tenant ID, a user ID, an API-key
+   * fingerprint, a session ID, or a composite such as `'tenant-7:user-42'`.
+   * It is compared verbatim, never parsed, and is never sent to a provider --
+   * it exists so that middleware which shares state *between* requests can
+   * tell two callers apart.
+   *
+   * Set it whenever one process serves more than one user or tenant. The
+   * caching middleware refuses to cache a request that has no principal
+   * rather than risk serving one caller's completion to another (#44); a
+   * genuinely single-tenant deployment opts out of that with the
+   * middleware's own `unidentified: 'share'`.
+   *
+   * This is deliberately a first-class field rather than a convention inside
+   * {@link IRMetadata.custom}: `custom` is an unstructured bag whose keys
+   * mean whatever the application decided they mean, so no middleware can
+   * safely read identity out of it. Security-relevant scoping needs a field
+   * with one defined meaning.
+   */
+  readonly principal?: string;
 
   /**
    * Custom metadata fields.

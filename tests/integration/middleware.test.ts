@@ -238,7 +238,7 @@ describe('Middleware Integration', () => {
   });
 
   describe('Caching Middleware', () => {
-    it('should cache responses', async () => {
+    it('should cache responses for the same caller', async () => {
       const storage = new InMemoryCacheStorage(100);
 
       const bridge = new Bridge(frontend, backend);
@@ -250,18 +250,24 @@ describe('Middleware Integration', () => {
       );
 
       // First request - should miss cache
-      await bridge.chat({
-        model: 'claude-3-opus-20240229',
-        messages: [{ role: 'user', content: 'Hello' }],
-      });
+      await bridge.chat(
+        {
+          model: 'claude-3-opus-20240229',
+          messages: [{ role: 'user', content: 'Hello' }],
+        },
+        { principal: 'user-a' }
+      );
 
       expect(backend.executionCount).toBe(1);
 
-      // Second request - should hit cache
-      await bridge.chat({
-        model: 'claude-3-opus-20240229',
-        messages: [{ role: 'user', content: 'Hello' }],
-      });
+      // Second request from the same caller - should hit cache
+      await bridge.chat(
+        {
+          model: 'claude-3-opus-20240229',
+          messages: [{ role: 'user', content: 'Hello' }],
+        },
+        { principal: 'user-a' }
+      );
 
       expect(backend.executionCount).toBe(1); // No additional backend call - this proves caching worked
     });
@@ -292,11 +298,10 @@ describe('Middleware Integration', () => {
       expect(backend.executionCount).toBe(2); // Two backend calls
     });
 
-    it('without scopeKey, two different callers sharing a cache collide on the same request', async () => {
-      // Documents the default (unscoped) multi-tenant cache-collision risk:
-      // a cache shared across two callers/tenants serves caller B the
-      // response that was actually generated for caller A's identical
-      // request.
+    it('does not serve one caller the response cached for another (#44)', async () => {
+      // The bug this replaced: a cache shared across two callers/tenants
+      // served caller B the response generated for caller A's identical
+      // request. Distinct principals must now produce distinct entries.
       const storage = new InMemoryCacheStorage(100);
 
       const bridgeA = new Bridge(frontend, backend);
@@ -304,6 +309,49 @@ describe('Middleware Integration', () => {
 
       const bridgeB = new Bridge(new AnthropicFrontendAdapter(), backend);
       bridgeB.use(createCachingMiddleware({ storage, ttl: 60000 }));
+
+      await bridgeA.chat(
+        { model: 'claude-3-opus-20240229', messages: [{ role: 'user', content: 'Hello' }] },
+        { principal: 'user-a' }
+      );
+      await bridgeB.chat(
+        { model: 'claude-3-opus-20240229', messages: [{ role: 'user', content: 'Hello' }] },
+        { principal: 'user-b' }
+      );
+
+      expect(backend.executionCount).toBe(2); // No collision: two backend calls
+    });
+
+    it('does not cache a request that carries no caller identity (#44)', async () => {
+      // Safe by default: with nothing to scope on, the entry that would be
+      // written is one any later caller could read, so none is written.
+      const storage = new InMemoryCacheStorage(100);
+
+      const bridge = new Bridge(frontend, backend);
+      bridge.use(createCachingMiddleware({ storage, ttl: 60000 }));
+
+      await bridge.chat({
+        model: 'claude-3-opus-20240229',
+        messages: [{ role: 'user', content: 'Hello' }],
+      });
+      await bridge.chat({
+        model: 'claude-3-opus-20240229',
+        messages: [{ role: 'user', content: 'Hello' }],
+      });
+
+      expect(backend.executionCount).toBe(2);
+    });
+
+    it("unidentified: 'share' keeps the single-tenant shared cache working", async () => {
+      // One process, one audience: the deployment says so, and unscoped
+      // sharing (the pre-#44 behaviour) comes back.
+      const storage = new InMemoryCacheStorage(100);
+
+      const bridgeA = new Bridge(frontend, backend);
+      bridgeA.use(createCachingMiddleware({ storage, ttl: 60000, unidentified: 'share' }));
+
+      const bridgeB = new Bridge(new AnthropicFrontendAdapter(), backend);
+      bridgeB.use(createCachingMiddleware({ storage, ttl: 60000, unidentified: 'share' }));
 
       await bridgeA.chat({
         model: 'claude-3-opus-20240229',
@@ -314,7 +362,7 @@ describe('Middleware Integration', () => {
         messages: [{ role: 'user', content: 'Hello' }],
       });
 
-      expect(backend.executionCount).toBe(1); // Collision: only one backend call
+      expect(backend.executionCount).toBe(1); // Deliberately shared
     });
 
     it('scopeKey prevents cross-tenant cache collisions on a shared cache', async () => {
@@ -478,16 +526,16 @@ describe('Middleware Integration', () => {
       );
 
       // First request
-      await bridge.chat({
-        model: 'claude-3-opus-20240229',
-        messages: [{ role: 'user', content: 'Hello' }],
-      });
+      await bridge.chat(
+        { model: 'claude-3-opus-20240229', messages: [{ role: 'user', content: 'Hello' }] },
+        { principal: 'user-a' }
+      );
 
-      // Second request (should hit cache)
-      await bridge.chat({
-        model: 'claude-3-opus-20240229',
-        messages: [{ role: 'user', content: 'Hello' }],
-      });
+      // Second request from the same caller (should hit cache)
+      await bridge.chat(
+        { model: 'claude-3-opus-20240229', messages: [{ role: 'user', content: 'Hello' }] },
+        { principal: 'user-a' }
+      );
 
       // Verify logging occurred
       expect(logs.length).toBeGreaterThan(0);
