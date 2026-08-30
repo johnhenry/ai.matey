@@ -432,12 +432,43 @@ const VERSION_MARKER = '(?:v|ver|rev|version|release|build)';
  *   distinguishes them. With no marker word present this pattern reads it as an
  *   address. That is a choice, not a determination.
  *
+ * A third, `email`, is shaped by **cost** rather than precision: these patterns
+ * run on every user message, so a pattern that backtracks is a denial of service
+ * (#80). Anything added here should be measured on a large adversarial input,
+ * not only checked for correctness - `tests/unit/detection-performance.test.ts`
+ * enforces a budget over whatever is in this record.
+ *
  * Uses lookbehind (ES2018), so it needs Node 18+ / Safari 16.4+ - already
  * implied by this package's ES2022 target.
  */
 export const DEFAULT_PII_PATTERNS: Record<string, RegExp> = {
-  // Email addresses
-  email: /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g,
+  // Email addresses.
+  //
+  // The leading lookbehind is what keeps this linear (#80). `@` is not a
+  // local-part character, so if the maximal run of local-part characters is
+  // *not* followed by `@`, no shorter suffix of that run is either - every
+  // restart inside a run is work that provably cannot succeed. A backtracking
+  // engine does not know that and retries from every character anyway, which
+  // makes the naive `\b[A-Za-z0-9._%+-]+@` quadratic: a 60 KB message with no
+  // `@` in it at all (`1.1.1` repeated - version strings) cost ~1.5 s of
+  // blocking CPU, and Node is single-threaded, so that stalls every concurrent
+  // request. The lookbehind states the invariant, so each run is examined once
+  // and the same input costs ~0.2 ms.
+  //
+  // Capping the local part at RFC 5321's 64 octets instead would only bound
+  // the blowup (~8 ms on the same input) *and* would silently stop matching
+  // over-long local parts. The domain is capped at RFC 5321's 255 octets
+  // regardless, because that is what bounds how far the `\.[A-Za-z]{2,}` tail
+  // can backtrack on `a@b.b.b.b...` input.
+  //
+  // The TLD class was `[A-Z|a-z]`, which put a literal `|` in the class -
+  // `foo@bar.|a` was reported as an email address. Corrected here rather than
+  // carried forward.
+  //
+  // Matches are a superset of the previous pattern's: identical, except that a
+  // leading separator is now part of the match (`.foo@x.com` rather than
+  // `foo@x.com`), so redaction covers slightly more, never less.
+  email: /(?<![A-Za-z0-9._%+-])[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]{1,255}\.[A-Za-z]{2,}\b/g,
 
   // US Social Security Numbers
   ssn: /\b\d{3}-\d{2}-\d{4}\b/g,
