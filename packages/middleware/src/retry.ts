@@ -69,20 +69,23 @@ export interface RetryConfig {
  *
  * Only retry transient errors (network issues, rate limits, server errors).
  * Note: maxAttempts is enforced by the middleware loop, not this function.
+ *
+ * An error that carries no `isRetryable` is **not** retried, and `Bridge`'s own
+ * `config.retries` loop now answers the same way (#70) - it used to retry an
+ * unclassified error, so the same fault was transient or permanent depending on
+ * which of the two retries a caller had configured. An unclassified throwable
+ * is as likely a bug in the caller's own adapter or middleware as a transient
+ * fault, and re-running it re-runs every middleware side effect for something
+ * that cannot succeed. A backend that wants its failures retried should raise a
+ * classified `AdapterError`.
+ *
+ * The flag is read duck-typed rather than through `instanceof AdapterError`: a
+ * second copy of the errors package across the ESM/CJS boundary makes
+ * `instanceof` quietly false, and losing retries to a packaging artifact is the
+ * kind of silent failure this policy exists to prevent.
  */
 function defaultShouldRetry(error: unknown, _attempt: number): boolean {
-  // Check if error has isRetryable property
-  if (error && typeof error === 'object' && 'isRetryable' in error) {
-    return (error as { isRetryable: boolean }).isRetryable === true;
-  }
-
-  // For AdapterError, check isRetryable
-  if (error instanceof AdapterError) {
-    return error.isRetryable;
-  }
-
-  // Default: don't retry unknown errors
-  return false;
+  return (error as { isRetryable?: unknown } | undefined)?.isRetryable === true;
 }
 
 /**

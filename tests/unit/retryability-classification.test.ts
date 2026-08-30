@@ -303,3 +303,71 @@ describe('Router ALL_BACKENDS_FAILED reflects why the backends failed', () => {
     expect(error.isRetryable).toBe(false);
   });
 });
+
+// ============================================================================
+// The two retry implementations agree on unknown errors
+// ============================================================================
+
+describe('the two retry implementations agree on unclassified errors', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  async function attemptsUnderBridgeRetry(error: () => unknown): Promise<number> {
+    const backend = createFailingBackend('b', error);
+    const bridge = new Bridge(createMockFrontend(), backend.adapter, { retries: 2 });
+
+    const settled = bridge.chat(HELLO as never).catch((e: unknown) => e);
+    await vi.runAllTimersAsync();
+    await settled;
+
+    return backend.attempts();
+  }
+
+  async function attemptsUnderRetryMiddleware(error: () => unknown): Promise<number> {
+    const backend = createFailingBackend('b', error);
+    const bridge = new Bridge(createMockFrontend(), backend.adapter);
+    bridge.use(createRetryMiddleware({ maxAttempts: 3, initialDelay: 1, useJitter: false }));
+
+    const settled = bridge.chat(HELLO as never).catch((e: unknown) => e);
+    await vi.runAllTimersAsync();
+    await settled;
+
+    return backend.attempts();
+  }
+
+  it('neither retries an unclassified error', async () => {
+    const viaBridge = await attemptsUnderBridgeRetry(() => new Error('unclassified'));
+    const viaMiddleware = await attemptsUnderRetryMiddleware(() => new Error('unclassified'));
+
+    expect(viaBridge).toBe(1);
+    expect(viaMiddleware).toBe(1);
+    expect(viaBridge).toBe(viaMiddleware);
+  });
+
+  it('neither retries a thrown non-Error', async () => {
+    expect(await attemptsUnderBridgeRetry(() => 'a string')).toBe(1);
+    expect(await attemptsUnderRetryMiddleware(() => 'a string')).toBe(1);
+  });
+
+  it('both still retry a classified retryable error', async () => {
+    expect(await attemptsUnderBridgeRetry(retryableFailure)).toBe(3);
+    expect(await attemptsUnderRetryMiddleware(retryableFailure)).toBe(3);
+  });
+
+  it('neither retries a classified non-retryable error', async () => {
+    expect(await attemptsUnderBridgeRetry(permanentFailure)).toBe(1);
+    expect(await attemptsUnderRetryMiddleware(permanentFailure)).toBe(1);
+  });
+
+  it('both honour the flag duck-typed, across a package boundary', async () => {
+    const foreign = () => Object.assign(new Error('from another realm'), { isRetryable: true });
+
+    expect(await attemptsUnderBridgeRetry(foreign)).toBe(3);
+    expect(await attemptsUnderRetryMiddleware(foreign)).toBe(3);
+  });
+});
