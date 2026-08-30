@@ -7,7 +7,6 @@
  * @module
  */
 
-import { createHash, createHmac } from 'node:crypto';
 import type {
   BackendAdapter,
   BackendAdapterConfig,
@@ -116,7 +115,7 @@ export interface AWSBedrockConfig extends BackendAdapterConfig {
 // AWS Signature Version 4 (SigV4) Request Signing
 //
 // Implements the SigV4 algorithm directly (canonical request, string-to-
-// sign, signing-key derivation, signature) using Node's crypto module --
+// sign, signing-key derivation, signature) on top of the Web Crypto API --
 // no AWS SDK dependency needed. See:
 // https://docs.aws.amazon.com/IAM/latest/UserGuide/create-signed-request.html
 // ============================================================================
@@ -183,24 +182,72 @@ function canonicalUri(path: string): string {
     .join('/');
 }
 
-function sha256Hex(data: string): string {
-  return createHash('sha256').update(data, 'utf8').digest('hex');
+/**
+ * Resolve the Web Crypto `SubtleCrypto` implementation.
+ *
+ * SigV4 needs genuine SHA-256 and HMAC-SHA256, so -- unlike the cache-key
+ * hashing in `@johnhenry/aimatey-middleware`, which is only an index and uses
+ * a pure-JS FNV-1a -- this cannot be substituted with a non-cryptographic
+ * stand-in. It uses Web Crypto rather than `node:crypto` so that the module
+ * graph stays browser-safe: `packages/backend/src/index.ts` re-exports this
+ * file, so a bare `node:crypto` import here breaks *every* consumer of
+ * `@johnhenry/aimatey-backend` in browsers, webviews, Capacitor/Electron
+ * renderers and edge runtimes, where bundlers externalize `crypto` and
+ * `createHmac` is `undefined` at runtime. `globalThis.crypto.subtle` is
+ * available in Node 18+, browsers, Deno, Bun and edge runtimes alike.
+ */
+function getSubtleCrypto(): SubtleCrypto {
+  const subtle = globalThis.crypto?.subtle;
+  if (!subtle) {
+    throw new ProviderError({
+      code: ErrorCode.PROVIDER_ERROR,
+      message:
+        'AWS Bedrock SigV4 signing requires the Web Crypto API ' +
+        '(globalThis.crypto.subtle), which is unavailable in this runtime. ' +
+        'It is present in Node 18+, browsers, Deno, Bun and edge runtimes.',
+      isRetryable: false,
+      provenance: { backend: 'aws-bedrock-backend' },
+    });
+  }
+  return subtle;
 }
 
-function hmac(key: Buffer | string, data: string): Buffer {
-  return createHmac('sha256', key).update(data, 'utf8').digest();
+const sigV4TextEncoder = new TextEncoder();
+
+function toHex(bytes: Uint8Array): string {
+  let hex = '';
+  for (const byte of bytes) {
+    hex += byte.toString(16).padStart(2, '0');
+  }
+  return hex;
+}
+
+async function sha256Hex(data: string): Promise<string> {
+  const digest = await getSubtleCrypto().digest('SHA-256', sigV4TextEncoder.encode(data));
+  return toHex(new Uint8Array(digest));
+}
+
+// `Uint8Array<ArrayBuffer>` (not the default `Uint8Array<ArrayBufferLike>`)
+// because TypeScript 5.7+ made Uint8Array generic over its backing buffer and
+// `SubtleCrypto` only accepts a non-shared `ArrayBuffer`.
+async function hmac(key: Uint8Array<ArrayBuffer>, data: string): Promise<Uint8Array<ArrayBuffer>> {
+  const subtle = getSubtleCrypto();
+  const cryptoKey = await subtle.importKey('raw', key, { name: 'HMAC', hash: 'SHA-256' }, false, [
+    'sign',
+  ]);
+  return new Uint8Array(await subtle.sign('HMAC', cryptoKey, sigV4TextEncoder.encode(data)));
 }
 
 /** Derive the SigV4 signing key: HMAC chain over date -> region -> service -> 'aws4_request'. */
-function deriveSigningKey(
+async function deriveSigningKey(
   secretAccessKey: string,
   dateStamp: string,
   region: string,
   service: string
-): Buffer {
-  const kDate = hmac(`AWS4${secretAccessKey}`, dateStamp);
-  const kRegion = hmac(kDate, region);
-  const kService = hmac(kRegion, service);
+): Promise<Uint8Array<ArrayBuffer>> {
+  const kDate = await hmac(sigV4TextEncoder.encode(`AWS4${secretAccessKey}`), dateStamp);
+  const kRegion = await hmac(kDate, region);
+  const kService = await hmac(kRegion, service);
   return hmac(kService, 'aws4_request');
 }
 
@@ -208,20 +255,29 @@ function deriveSigningKey(
  * Compute an AWS SigV4 `Authorization` header value (and the intermediate
  * canonical request / string-to-sign, for testing) for a single request.
  */
-export function signAwsRequestV4(input: SigV4SignInput): SigV4SignResult {
+export async function signAwsRequestV4(input: SigV4SignInput): Promise<SigV4SignResult> {
   const { method, path, headers, body, region, service, accessKeyId, secretAccessKey, amzDate } =
     input;
   const canonicalQueryString = input.canonicalQueryString ?? '';
   const dateStamp = amzDate.slice(0, 8);
 
-  // Canonical headers: lowercase name, trimmed value, sorted by name.
+  // Canonical headers: lowercase name, normalized value, sorted by name.
+  //
+  // Header *values* keep their case (AWS vector `post-header-value-case`);
+  // only the name is lowercased. Values are trimmed and any run of internal
+  // whitespace is collapsed to a single space, which the spec requires
+  // ("trim any leading or trailing spaces / convert sequential spaces to a
+  // single space") and AWS's own vectors exercise: `get-header-value-trim`
+  // canonicalizes `"a   b   c"` to `"a b c"` -- note the collapsing applies
+  // inside quoted strings too -- and `get-header-value-multiline` folds a
+  // continuation-line value down to `value1 value2 value3`.
   const headerEntries = Object.entries(headers)
-    .map(([name, value]) => [name.toLowerCase(), value.trim()] as const)
+    .map(([name, value]) => [name.toLowerCase(), value.trim().replace(/\s+/g, ' ')] as const)
     .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
 
   const canonicalHeaders = headerEntries.map(([name, value]) => `${name}:${value}\n`).join('');
   const signedHeaders = headerEntries.map(([name]) => name).join(';');
-  const hashedPayload = sha256Hex(body);
+  const hashedPayload = await sha256Hex(body);
 
   const canonicalRequest = [
     method.toUpperCase(),
@@ -237,11 +293,11 @@ export function signAwsRequestV4(input: SigV4SignInput): SigV4SignResult {
     'AWS4-HMAC-SHA256',
     amzDate,
     credentialScope,
-    sha256Hex(canonicalRequest),
+    await sha256Hex(canonicalRequest),
   ].join('\n');
 
-  const signingKey = deriveSigningKey(secretAccessKey, dateStamp, region, service);
-  const signature = hmac(signingKey, stringToSign).toString('hex');
+  const signingKey = await deriveSigningKey(secretAccessKey, dateStamp, region, service);
+  const signature = toHex(await hmac(signingKey, stringToSign));
 
   const authorizationHeader =
     `AWS4-HMAC-SHA256 Credential=${accessKeyId}/${credentialScope}, ` +
@@ -638,7 +694,11 @@ export class AWSBedrockBackendAdapter implements BackendAdapter<BedrockRequest, 
    * signature using `awsAccessKeyId` + `awsSecretAccessKey`, rather than a
    * placeholder `Authorization` header.
    */
-  private getHeaders(method: string, path: string, body: string): Promise<Record<string, string>> {
+  private async getHeaders(
+    method: string,
+    path: string,
+    body: string
+  ): Promise<Record<string, string>> {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       Accept: 'application/json',
@@ -657,7 +717,7 @@ export class AWSBedrockBackendAdapter implements BackendAdapter<BedrockRequest, 
         signedHeaders['x-amz-security-token'] = this.config.awsSessionToken;
       }
 
-      const { authorizationHeader } = signAwsRequestV4({
+      const { authorizationHeader } = await signAwsRequestV4({
         method,
         path,
         headers: signedHeaders,
@@ -677,7 +737,7 @@ export class AWSBedrockBackendAdapter implements BackendAdapter<BedrockRequest, 
       }
     }
 
-    return Promise.resolve({ ...headers, ...this.config.headers });
+    return { ...headers, ...this.config.headers };
   }
 
   /**
