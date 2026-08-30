@@ -25,6 +25,7 @@ import type {
   RequestEvent,
   StreamEvent,
 } from '@johnhenry/aimatey-types';
+import type { Router } from '@johnhenry/aimatey-types';
 import { BridgeEventType } from '@johnhenry/aimatey-types';
 import type { Middleware } from '@johnhenry/aimatey-types';
 import type { ListModelsOptions, ListModelsResult } from '@johnhenry/aimatey-types';
@@ -853,6 +854,12 @@ export class Bridge<
     // Apply default model if not specified in request
     const model = request.parameters?.model ?? this.config.defaultModel;
 
+    // Reject an override naming a backend the router has never heard of, before any
+    // work is done - otherwise a typo is silently served by a different provider.
+    if (options?.backend) {
+      this.assertBackendRegistered(options.backend);
+    }
+
     return {
       ...request,
       parameters: {
@@ -870,9 +877,57 @@ export class Bridge<
         custom: {
           ...request.metadata?.custom,
           ...options?.metadata,
+          // `metadata.custom.backend` is the channel Router reads its explicit routing
+          // decision from, so `options.backend` has to land there to have any effect.
+          // Applied last: the typed, first-class option is authoritative over both an
+          // inherited `metadata.custom.backend` and an untyped `options.metadata.backend`.
+          ...(options?.backend && { backend: options.backend }),
         },
       },
     };
+  }
+
+  /**
+   * Narrow the configured backend to a Router, structurally.
+   *
+   * Type-only coupling on purpose: importing the Router class here just to run an
+   * `instanceof` check would make every Bridge consumer pull the router in at runtime.
+   */
+  private asRouter(): Router | null {
+    const candidate = this.backend as BackendAdapter & Partial<Router>;
+    return typeof candidate.has === 'function' && typeof candidate.listBackends === 'function'
+      ? (candidate as unknown as Router)
+      : null;
+  }
+
+  /**
+   * Reject a per-request `backend` override naming a backend that is not registered.
+   *
+   * Only *unregistered* names are rejected. A backend that is registered but currently
+   * unhealthy or circuit-open is left alone: the router's fallback machinery exists
+   * precisely for that case, and throwing here would defeat it.
+   *
+   * When the bridge's backend is a single adapter rather than a router there is no
+   * routing to override, so the option stays inert rather than throwing.
+   *
+   * @throws AdapterError ROUTING_FAILED when the name is not a registered backend
+   */
+  private assertBackendRegistered(name: string): void {
+    const router = this.asRouter();
+    if (!router || router.has(name)) {
+      return;
+    }
+
+    const registered = router.listBackends();
+    throw new AdapterError({
+      code: ErrorCode.ROUTING_FAILED,
+      message:
+        `Requested backend '${name}' is not registered. ` +
+        `Registered backends: ${registered.length > 0 ? registered.join(', ') : '(none)'}`,
+      isRetryable: false,
+      provenance: { frontend: this.frontend.metadata.name },
+      details: { requestedBackend: name, registeredBackends: [...registered] },
+    });
   }
 
   /**

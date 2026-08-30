@@ -86,7 +86,25 @@ export interface RequestOptions {
   readonly signal?: AbortSignal;
 
   /**
-   * Preferred backend identifier (for router).
+   * Per-request backend override, by the name the backend was registered under.
+   *
+   * Only meaningful when the bridge's backend is a `Router`; with a single backend
+   * adapter there is no routing to override and the option is ignored.
+   *
+   * The bridge folds this into `metadata.custom.backend`, which is the channel the
+   * router reads its explicit routing decision from. It is applied last, so it wins
+   * over both a `metadata.custom.backend` already on the request and a `backend` key
+   * passed through {@link RequestOptions.metadata}.
+   *
+   * An unregistered name is rejected up front with an `AdapterError` carrying
+   * `ErrorCode.ROUTING_FAILED`, so a typo cannot be silently served by a different
+   * provider. A name that *is* registered but is currently unhealthy or has an open
+   * circuit breaker is not an error - the router's normal fallback applies.
+   *
+   * @example
+   * ```typescript
+   * await bridge.chat(request, { backend: 'anthropic' });
+   * ```
    */
   readonly backend?: string;
 
