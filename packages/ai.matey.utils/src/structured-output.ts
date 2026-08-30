@@ -1374,10 +1374,7 @@ function conformsToArraySchema(value: readonly unknown[], schema: JSONSchema): C
   return combineConformance(results);
 }
 
-function conformsToObjectSchema(
-  value: Record<string, unknown>,
-  schema: JSONSchema
-): Conformance {
+function conformsToObjectSchema(value: Record<string, unknown>, schema: JSONSchema): Conformance {
   for (const key of schema.required ?? []) {
     if (!Object.prototype.hasOwnProperty.call(value, key)) {
       return false;
@@ -1462,7 +1459,8 @@ function warningsExplaining(
       explaining.push(warning);
       continue;
     }
-    if (errors.some((issue) => warningCoversIssue(warning.field!, issuePathOf(issue)))) {
+    const field = warning.field;
+    if (errors.some((issue) => warningCoversIssue(field, issuePathOf(issue)))) {
       explaining.push(warning);
     }
   }
@@ -1679,9 +1677,7 @@ export function createGenerateObject(bridge: StructuredOutputBridge) {
       throwIfAborted(signal);
 
       const request: IRChatRequest = {
-        messages: [
-          { role: 'user', content: repairText ? `${prompt}\n\n${repairText}` : prompt },
-        ],
+        messages: [{ role: 'user', content: repairText ? `${prompt}\n\n${repairText}` : prompt }],
         parameters: {
           model: model ?? bridge.config?.defaultModel,
           temperature,

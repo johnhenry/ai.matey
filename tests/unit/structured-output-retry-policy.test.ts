@@ -10,8 +10,8 @@
  * - **Gate A** stops when the value the provider returned *conforms to the
  *   JSON Schema it was actually sent* and a lossy conversion explains the
  *   Zod failure. Nothing the model can put in that slot will validate.
- * - **Gate B** stops when an informed retry reproduces the identical error
- *   set.
+ * - **Gate B** stops when the provider returns the identical payload on two
+ *   successive attempts.
  * - **The repair prompt** feeds the validation errors back, so a retry is a
  *   better-informed request instead of the same one.
  *
@@ -170,10 +170,10 @@ describe('generateObject retry policy (#69)', () => {
     });
 
     /**
-     * Gate B keys on the error *set*, not on the attempt number, so a failure
-     * that keeps moving keeps its full budget.
+     * Gate B keys on the returned payload, not on the attempt number, so a
+     * response that keeps moving keeps its full budget.
      */
-    it('runs the whole budget when the error set moves between attempts', async () => {
+    it('runs the whole budget when the response moves between attempts', async () => {
       const { bridge, requests } = stubBridge([
         { a: 'x', b: 2 },
         { a: 1, b: 'y' },
@@ -448,9 +448,7 @@ describe('generateObject retry policy (#69)', () => {
      * array -- passing a casual test suite.
      */
     it('fires inside an array, where the warning field and issue path differ', async () => {
-      const { bridge, requests } = stubBridge([
-        { events: [{ when: '2026-01-01T00:00:00.000Z' }] },
-      ]);
+      const { bridge, requests } = stubBridge([{ events: [{ when: '2026-01-01T00:00:00.000Z' }] }]);
 
       await expect(
         createGenerateObject(bridge)({
@@ -485,11 +483,7 @@ describe('generateObject retry policy (#69)', () => {
      * mistake in a lossily-converted field -- and a retry may well fix it.
      */
     it('does not fire when the value fails the sent schema too', async () => {
-      const { bridge, requests } = stubBridge([
-        { when: null },
-        { when: null },
-        { when: null },
-      ]);
+      const { bridge, requests } = stubBridge([{ when: null }, { when: null }, { when: null }]);
 
       const error = await createGenerateObject(bridge)({
         schema: z.object({ when: z.date() }),
