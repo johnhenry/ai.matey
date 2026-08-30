@@ -39,7 +39,7 @@ import type {
   IRWarning,
   StreamDoneChunk,
 } from '@johnhenry/aimatey-types';
-import { MiddlewareError } from '@johnhenry/aimatey-errors';
+import { AdapterError, MiddlewareError } from '@johnhenry/aimatey-errors';
 import {
   accumulateChunk,
   accumulatorToMessage,
@@ -403,6 +403,74 @@ interface MiddlewareStackEntry {
 }
 
 /**
+ * The boundary between the middleware chain and what runs below it.
+ *
+ * `call()` invokes the final handler and remembers any failure it raised, so a
+ * middleware frame can tell a failure it merely *carried* from one it raised
+ * itself. Marks are weakly keyed by the thrown object and scoped to a single
+ * execution, so nothing is retained and no mark carries over to another
+ * request.
+ */
+interface FinalHandlerBoundary<T> {
+  /** Run the final handler, marking anything it throws. */
+  readonly call: () => Promise<T>;
+  /** Whether this failure came from below the stack rather than a middleware. */
+  readonly raisedBelow: (error: unknown) => boolean;
+}
+
+function createFinalHandlerBoundary<T>(finalHandler: () => Promise<T>): FinalHandlerBoundary<T> {
+  const raised = new WeakSet<object>();
+
+  return {
+    call: async (): Promise<T> => {
+      try {
+        return await finalHandler();
+      } catch (error) {
+        if (typeof error === 'object' && error !== null) {
+          raised.add(error);
+        }
+        throw error;
+      }
+    },
+    raisedBelow: (error: unknown): boolean =>
+      typeof error === 'object' && error !== null && raised.has(error),
+  };
+}
+
+/**
+ * Whether a failure that reached a middleware frame should be re-labelled as a
+ * `MiddlewareError`.
+ *
+ * Only failures a middleware raised *itself*, and that carry no classification
+ * of their own, are wrapped - that is the one case where the wrapper adds
+ * something (a code and a category for an otherwise unclassified throwable).
+ *
+ * Two kinds of failure are passed through untouched (#65):
+ *
+ * - **Already classified.** An `AdapterError` carries a code, a category and a
+ *   retryability; wrapping replaced all three, so a transient `NetworkError`
+ *   reached the retry middleware as a non-retryable `MiddlewareError` and
+ *   `createRetryMiddleware` gave up after one attempt. `MiddlewareError` is
+ *   itself an `AdapterError`, so it is re-thrown as-is here as it always was.
+ * - **Raised below the stack.** The final handler runs inside the innermost
+ *   frame's `next()`, so its failures used to be caught and re-labelled by the
+ *   frame above - which made the error a caller saw depend on how many
+ *   middleware happened to be registered (with none, the same failure
+ *   propagated raw). A backend failure is not a middleware failure at any
+ *   stack size.
+ */
+function shouldWrapAsMiddlewareError(
+  error: unknown,
+  boundary: FinalHandlerBoundary<unknown>
+): boolean {
+  if (error instanceof AdapterError) {
+    return false;
+  }
+
+  return !boundary.raisedBelow(error);
+}
+
+/**
  * Middleware stack for composing middleware functions.
  *
  * Executes middleware in order with proper error handling and context management.
@@ -573,6 +641,16 @@ export class MiddlewareStack {
    *   stream can only retry a `next()` that failed before any chunk was
    *   delivered; see {@link adaptMiddlewareToStreaming}.
    *
+   * ## Errors keep their own classification
+   *
+   * The stack wraps a failure in a `MiddlewareError` only when a middleware
+   * raised it *itself* and it carries no classification of its own. An
+   * `AdapterError` - from a middleware or from the backend - propagates
+   * untouched, with its `code`, category and `isRetryable` intact, and so does
+   * anything the final handler raised. The error a caller sees therefore does
+   * not depend on how many middleware happen to be registered
+   * (see {@link shouldWrapAsMiddlewareError}).
+   *
    * @param context Middleware context
    * @param finalHandler Final handler function (backend.execute)
    * @returns Response after middleware chain
@@ -593,13 +671,15 @@ export class MiddlewareStack {
       return finalHandler();
     }
 
+    const boundary = createFinalHandlerBoundary(finalHandler);
+
     // Compose middleware chain. `index` is a parameter rather than shared
     // mutable state, so each `next()` re-enters at its own position.
     const dispatch = async (index: number): Promise<IRChatResponse> => {
       const middlewareFn = chain[index];
       if (!middlewareFn) {
         // End of middleware chain, call final handler
-        return finalHandler();
+        return boundary.call();
       }
 
       const next: MiddlewareNext = () => dispatch(index + 1);
@@ -607,8 +687,8 @@ export class MiddlewareStack {
       try {
         return await middlewareFn(context, next);
       } catch (error) {
-        // Re-throw as MiddlewareError if not already
-        if (error instanceof MiddlewareError) {
+        // Wrap only what this middleware raised itself and left unclassified
+        if (!shouldWrapAsMiddlewareError(error, boundary)) {
           throw error;
         }
         throw new MiddlewareError({
@@ -657,6 +737,14 @@ export class MiddlewareStack {
    * choose which of the resulting streams to return. Streams it abandons are
    * never iterated.
    *
+   * ## Errors keep their own classification
+   *
+   * As on the non-streaming path (see {@link execute}), only a failure a
+   * middleware raised itself and left unclassified is wrapped in a
+   * `MiddlewareError`. A failure raised while the stream is *consumed* never
+   * reaches this dispatcher at all - it is rethrown by
+   * {@link adaptMiddlewareToStreaming}'s pass-through, unchanged.
+   *
    * @param context Streaming middleware context
    * @param finalHandler Final handler function (backend.executeStream)
    * @returns Stream after middleware chain
@@ -677,13 +765,15 @@ export class MiddlewareStack {
       return finalHandler();
     }
 
+    const boundary = createFinalHandlerBoundary(finalHandler);
+
     // Compose streaming middleware chain. `index` is a parameter rather than
     // shared mutable state, so each `next()` re-enters at its own position.
     const dispatch = async (index: number): Promise<IRChatStream> => {
       const middlewareFn = chain[index];
       if (!middlewareFn) {
         // End of middleware chain, call final handler
-        return finalHandler();
+        return boundary.call();
       }
 
       const next: StreamingMiddlewareNext = () => dispatch(index + 1);
@@ -691,8 +781,8 @@ export class MiddlewareStack {
       try {
         return await middlewareFn(context, next);
       } catch (error) {
-        // Re-throw as MiddlewareError if not already
-        if (error instanceof MiddlewareError) {
+        // Wrap only what this middleware raised itself and left unclassified
+        if (!shouldWrapAsMiddlewareError(error, boundary)) {
           throw error;
         }
         throw new MiddlewareError({

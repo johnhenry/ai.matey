@@ -251,7 +251,26 @@ export class RouterError extends AdapterError {
 }
 
 /**
+ * Retryability of an error that is about to be wrapped.
+ *
+ * Duck-typed rather than tested with `instanceof AdapterError`: a cause can
+ * arrive from a second copy of this package (the dual ESM/CJS output, or a
+ * duplicated install), where `instanceof` quietly returns false. This is how
+ * `defaultShouldRetry` in the retry middleware reads the flag too.
+ */
+function causeIsRetryable(cause: Error | undefined): boolean {
+  return (cause as { isRetryable?: unknown } | undefined)?.isRetryable === true;
+}
+
+/**
  * Middleware error.
+ *
+ * A `MiddlewareError` built around a `cause` is a wrapper, and a wrapper has no
+ * standing to reclassify what it wraps: a transient `NetworkError` does not
+ * stop being retryable because a middleware carried it. Its retryability is
+ * therefore the cause's. A `MiddlewareError` raised on its own - a middleware
+ * that failed by itself - stays non-retryable, as does one wrapping a cause
+ * that carries no classification of its own.
  */
 export class MiddlewareError extends AdapterError {
   readonly middlewareName?: string;
@@ -260,7 +279,7 @@ export class MiddlewareError extends AdapterError {
     super({
       code: ErrorCodeEnum.MIDDLEWARE_ERROR,
       message: options.message,
-      isRetryable: false,
+      isRetryable: causeIsRetryable(options.cause),
       provenance: options.provenance,
       cause: options.cause,
       irState: options.irState,
