@@ -1,5 +1,28 @@
 # @johnhenry/aimatey-react-nextjs
 
+## 0.1.2
+
+### Patch Changes
+
+- Updated dependencies [48c5c26]
+- Updated dependencies [7be8792]
+- Updated dependencies [223c37a]
+- Updated dependencies [3467132]
+- Updated dependencies [681fa2d]
+- Updated dependencies [30629d4]
+- Updated dependencies [f8d20bf]
+- Updated dependencies [eb8580b]
+- Updated dependencies [9b31fc4]
+- Updated dependencies [9fd19f4]
+- Updated dependencies [8b89edb]
+- Updated dependencies [e800f3d]
+- Updated dependencies [582a4e5]
+- Updated dependencies [c06df51]
+- Updated dependencies [71e5631]
+  - @johnhenry/aimatey-core@0.3.0
+  - @johnhenry/aimatey-types@0.3.0
+  - @johnhenry/aimatey-react-core@0.1.2
+
 ## 0.1.1
 
 ### Patch Changes

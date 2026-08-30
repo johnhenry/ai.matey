@@ -1,5 +1,169 @@
 # @johnhenry/aimatey-http
 
+## 0.1.2
+
+### Patch Changes
+
+- 7310960: Give the Node HTTP adapter real error handling: correct status codes, a response for
+  oversized payloads, and no server internals on the wire.
+
+  **A malformed request no longer reads as a server fault.** The Node listener's catch sent
+  `sendError(res, err, 500)` — one hardcoded number for every failure. Unparseable JSON,
+  which is entirely the caller's doing, came back as `500` with the message
+  `Invalid JSON body: Expected property name or '}' in JSON at position 1`; so did a garbage
+  `Host` header, which makes `new URL()` throw a bare `TypeError` inside `parseRequest()`.
+  A client had no way to tell "fix your payload" from "the server is broken", and any retry
+  policy keyed on 5xx would dutifully replay a request that could never succeed.
+
+  The status now comes from `getHTTPStatusCode()`, the mapping that already existed in
+  `error-handler.ts` but was module-private, so every HTTP entry point can reach the one
+  taxonomy instead of hardcoding numbers at each catch site. It is now exported. The parser
+  raises typed errors — `ValidationError` for unparseable JSON and for a `Host`/URL that
+  cannot be parsed — so those map to `400` by class rather than by the accident of the word
+  "invalid" appearing in a message.
+
+  **An oversized body now gets a 413 instead of a dropped connection.** `readBody()` called
+  `req.destroy()` the moment the size limit was crossed. That tears down the socket the
+  response has to go out on, so the client received no status line at all — just a closed
+  connection, indistinguishable from a crash or a network fault. It now stops buffering and
+  keeps draining, which bounds memory the same way while leaving the response writable, and
+  rejects with an error that declares `httpStatus: 413`. Declaring the status is what lets
+  `getHTTPStatusCode()` answer 413 without inferring it from the word "large" in the message,
+  which would break the first time someone reworded it. Errors may now carry
+  `details.httpStatus` for exactly this purpose; it is read only from there, never from
+  `httpContext.statusCode`, because that records what an upstream _provider_ answered and
+  echoing it would report a provider's 404 as our own.
+
+  **Error bodies no longer leak the server.** Every formatter — the two in
+  `response-formatter.ts` and the copy in `CoreHTTPHandler` — put `error.message` straight in
+  the response. A backend that failed with a message naming a source file handed the client
+  that path verbatim. `sanitizeErrorMessage()` (also newly exported) now stands in front of
+  all of them: 5xx becomes the canonical status text, since the caller can do nothing with
+  the detail and the detail is what an attacker wants, while 4xx keeps its message — the only
+  way a caller can correct the request — scrubbed of absolute paths, `file://` URLs, and
+  appended stack frames. The full error is still reported server-side.
+
+  **Server-side reporting follows the existing convention.** The listener called
+  `console.error` directly, bypassing the `logging`/`log` options the core handler already
+  honors, so a host that had configured a logger still got these errors on stderr. It now
+  routes through `log` when logging is enabled and falls back to `console.error` only when
+  nothing is configured.
+
+  **Two smaller hardening changes.** A client that hangs up mid-request is recognised
+  (`ECONNRESET`/`ECONNABORTED`/`EPIPE`, or Node's bare `Error: aborted`) and logged rather
+  than run through the error responder, which would only fail a second time writing to a dead
+  socket. And `req.setTimeout()`/`res.setTimeout()` moved inside the `try`: they sat above it,
+  where a bad `timeout` value would reject the handler promise that `http.Server` never
+  awaits — an unhandled rejection, fatal on Node >= 15, which is the failure this whole area
+  is supposed to prevent.
+
+  Covered by tests that drive a real `http.Server` over real sockets. The existing listener
+  suite builds mock `req`/`res` objects, and a mock never destroys a socket, aborts mid-body,
+  or reports `headersSent` — which is why these failure modes survived it. Each new test
+  asserts both the status code and that the server is still serving afterwards.
+
+- 9fd19f4: Fix package readmes that documented APIs which do not exist (#61).
+
+  These readmes ship in the published tarball (`files: ["dist", "readme.md", ...]`),
+  so the wrong examples reached npm:
+  - `@johnhenry/aimatey-middleware`: the quick-start built a bridge with
+    `new Bridge({ frontend, backend, middleware: [...] })`. `Bridge` takes
+    positional arguments and `BridgeConfig` has no `middleware` field, so that
+    snippet produced a bridge with **no middleware, silently** - the same
+    fail-quiet mode as #46, reached by following the readme. Middleware is
+    registered with `bridge.use()`. Also corrected `initialDelayMs`/`maxDelayMs`
+    to `initialDelay`/`maxDelay`, `ttlMs` to `ttl`, and `detectPromptInjection`
+    to `preventPromptInjection`.
+  - `@johnhenry/aimatey-frontend` and `@johnhenry/aimatey-http`: the same
+    `new Bridge({ frontend, backend })` object form, corrected to the real
+    positional constructor.
+  - `@johnhenry/aimatey-http-core`: the entire quick-start and API reference
+    described `createCorsMiddleware`, `validateApiKey` and `parseRequestBody`,
+    none of which exist. Replaced with the real `CoreHTTPHandler` class and its
+    `CoreHandlerOptions`.
+  - `@johnhenry/aimatey-testing`: listed `MockBackendAdapter`, `createMockResponse`
+    and `assertChatRequest` as its exports; none exist in this package. Replaced
+    with the real fixture / assertion / property-testing surface, and a pointer to
+    `MockBackendAdapter` in `@johnhenry/aimatey-backend-browser/mock`.
+  - `@johnhenry/aimatey-utils`: documented `asyncGeneratorToReadableStream` and
+    `readableStreamToAsyncGenerator`, which do not exist. Replaced with the real
+    `splitStream` / `teeStream` helpers.
+  - `@johnhenry/aimatey-react-core`: `OpenAIBackend` -> `OpenAIBackendAdapter`.
+
+- 9b7b9c7: Fix SSE streaming over the Node, Koa and Fastify HTTP adapters, which emitted zero chunks
+  and never closed the connection.
+
+  **The per-chunk guard contradicted the setup it was guarding.** `NodeResponseAdapter.stream()`
+  calls `sendSSEHeaders()`, which flushes the response headers and sets `headersSent`. The loop
+  that follows was guarded by `if (!this.isWritable()) break;`, and `isWritable()` was
+  `res.writable && !res.headersSent`. So the guard was false on the _first_ iteration, every
+  time: the loop broke before writing anything, and because the `break` skipped the tail, the
+  `[DONE]` sentinel was never written and `res.end()` was never called. Against a real server a
+  streaming request returned `200` with correct SSE headers, an empty body, and a socket that
+  stayed open until it timed out. Every streaming request through these adapters behaved this
+  way — the feature had never worked.
+
+  `headersSent` is simply the wrong term in a per-chunk writability check. Once streaming has
+  started, headers being sent is the _expected_ state, not a reason to stop. The check the loop
+  wants is whether the socket is still usable, so `isWritable()` is now
+  `res.writable && !res.writableEnded && !res.destroyed` — the same question
+  `canStillRespond()` in `node/listener.ts` already asks of the same socket.
+
+  **`!headersSent` was genuinely needed, but one level up.** It is a pre-flight concern: once
+  the status line is on the wire it can no longer be changed, so a _new_ response cannot begin.
+  It now lives in a private `canStartResponse()` that `send()` and the top of `stream()` call,
+  which is exactly the predicate those two call sites evaluated before. Their behaviour is
+  unchanged; only the per-chunk guards inside the loop got the corrected meaning. In particular
+  `send()` still refuses to write a JSON body over a response whose headers have already gone
+  out, so an error surfacing after a stream has begun cannot trigger `ERR_HTTP_HEADERS_SENT`.
+
+  The only callers of `isWritable()` outside the adapters are the two rate-limit checks in
+  `CoreHTTPHandler.handle()`. Both run before anything has been written, where the old and new
+  predicates agree, so neither is affected.
+
+  **Koa and Fastify shared the defect and are fixed the same way.** `KoaResponseAdapter` drives
+  the same `ServerResponse` through the same SSE helpers, and its `ctx.response.headerSent` goes
+  true for the same reason. `FastifyResponseAdapter` folded its own `_headersSent` flag into
+  `isWritable()` and then set that flag two lines above the loop, so its guard was
+  unconditionally false — the same bug without even depending on the socket's real state. Both
+  were confirmed broken against real servers before the change and correct after.
+
+  The Express, Deno and Hono adapters are _not_ affected. Express has the same predicate in its
+  `isWritable()` but its streaming loop consults `res.writable` directly rather than going
+  through it; Deno and Hono build a `ReadableStream` whose body loop never consults
+  `isWritable()` at all. All three were verified streaming correctly over real sockets and are
+  left alone.
+
+  Covered by tests that drive real servers over real sockets. The existing adapter suites build
+  hand-rolled mock `res` objects with no `headersSent` property at all, so `!res.headersSent`
+  read `!undefined` → `true`, the guard passed, and the mock happily recorded chunks: those
+  tests pass identically with and without this fix. This is the same reason the four defects
+  fixed in #43 went unnoticed. Each new test asserts all three symptoms together — that data
+  lines arrive, that the `[DONE]` sentinel is written, and that the response actually ends —
+  because a chunk-count assertion alone still passes against a socket left hanging open.
+
+  Fixes #89.
+
+- Updated dependencies [48c5c26]
+- Updated dependencies [7be8792]
+- Updated dependencies [223c37a]
+- Updated dependencies [3467132]
+- Updated dependencies [681fa2d]
+- Updated dependencies [30629d4]
+- Updated dependencies [f8d20bf]
+- Updated dependencies [eb8580b]
+- Updated dependencies [9b31fc4]
+- Updated dependencies [7310960]
+- Updated dependencies [9fd19f4]
+- Updated dependencies [8b89edb]
+- Updated dependencies [e800f3d]
+- Updated dependencies [582a4e5]
+- Updated dependencies [c06df51]
+- Updated dependencies [71e5631]
+  - @johnhenry/aimatey-core@0.3.0
+  - @johnhenry/aimatey-types@0.3.0
+  - @johnhenry/aimatey-http-core@0.2.0
+
 ## 0.1.1
 
 ### Patch Changes

@@ -1,5 +1,20 @@
 # @johnhenry/aimatey-react-stream
 
+## 0.1.2
+
+### Patch Changes
+
+- Updated dependencies [3467132]
+- Updated dependencies [681fa2d]
+- Updated dependencies [30629d4]
+- Updated dependencies [eb8580b]
+- Updated dependencies [9fd19f4]
+- Updated dependencies [e800f3d]
+- Updated dependencies [582a4e5]
+- Updated dependencies [71e5631]
+  - @johnhenry/aimatey-types@0.3.0
+  - @johnhenry/aimatey-react-core@0.1.2
+
 ## 0.1.1
 
 ### Patch Changes
