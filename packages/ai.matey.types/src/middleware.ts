@@ -136,76 +136,21 @@ export type StreamingMiddleware = (
 ) => Promise<IRChatStream>;
 
 // ============================================================================
-// Middleware Builder & Utilities
+// Middleware Registration
 // ============================================================================
-
-/**
- * Options for creating middleware.
- */
-export interface MiddlewareOptions {
-  /**
-   * Middleware name for debugging/logging.
-   */
-  name?: string;
-
-  /**
-   * Whether middleware supports streaming.
-   *
-   * Descriptive metadata only - nothing reads it. Every `Middleware` runs on
-   * the streaming path (the stack adapts it); write a {@link StreamingMiddleware}
-   * and register it with `bridge.useStreaming()` when you need chunk-level
-   * control.
-   *
-   * @default false
-   */
-  supportsStreaming?: boolean;
-
-  /**
-   * Whether middleware should run before routing decision.
-   * @default false
-   */
-  runBeforeRouting?: boolean;
-
-  /**
-   * Custom configuration for this middleware.
-   */
-  config?: Record<string, unknown>;
-}
-
-/**
- * Middleware with metadata.
- */
-export interface MiddlewareWithMetadata {
-  /**
-   * Middleware name.
-   */
-  readonly name: string;
-
-  /**
-   * Whether middleware supports streaming.
-   */
-  readonly supportsStreaming: boolean;
-
-  /**
-   * Whether middleware runs before routing.
-   */
-  readonly runBeforeRouting: boolean;
-
-  /**
-   * Middleware configuration.
-   */
-  readonly config: Record<string, unknown>;
-
-  /**
-   * The middleware function.
-   */
-  readonly middleware: Middleware;
-
-  /**
-   * The streaming middleware function (if supported).
-   */
-  readonly streamingMiddleware?: StreamingMiddleware;
-}
+//
+// There is no metadata wrapper around a middleware. `Middleware` and
+// `StreamingMiddleware` are plain functions, registered with `bridge.use()` and
+// `bridge.useStreaming()` in registration order.
+//
+// `MiddlewareOptions` and `MiddlewareWithMetadata` used to be declared here.
+// They were exported, referenced by nothing, and had no registration path -
+// `MiddlewareOptions.supportsStreaming` in particular read like the switch
+// controlling whether a middleware ran on streams while being inert, and was
+// opt-*in*, which is the behaviour #46 fixed. Both were removed in #63. Every
+// `Middleware` now runs on the streaming path; the stack adapts it (see
+// `adaptMiddlewareToStreaming`), and a middleware that needs chunk-level
+// control is written as a `StreamingMiddleware`.
 
 // ============================================================================
 // Common Middleware Configuration
