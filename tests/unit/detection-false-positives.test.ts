@@ -362,6 +362,74 @@ describe('PII: real secrets and real PII are still caught', () => {
 });
 
 // ============================================================================
+// PII - the email pattern, after #80
+// ============================================================================
+
+/**
+ * #80 replaced the `email` pattern to stop it backtracking quadratically. The
+ * cost is measured in `detection-performance.test.ts`; what is pinned here is
+ * that the rewrite did not change what it finds.
+ *
+ * The new pattern is anchored to the start of a run of local-part characters
+ * with a lookbehind rather than to `\b`, which makes its matches a *superset*
+ * of the old ones: identical, except that a leading separator is now included
+ * in the match. That is asserted rather than left implicit.
+ */
+describe('email detection survives the performance rewrite (#80)', () => {
+  it.each([
+    ['plain', 'email me at john@example.com', 'john@example.com'],
+    ['bare', 'a@b.co', 'a@b.co'],
+    ['in a sentence', 'dan@example.com opened a pull request', 'dan@example.com'],
+    ['dots and plus', 'ping first.last+tag@sub.domain.example.org', 'first.last+tag@sub.domain.example.org'],
+    ['underscore and percent', 'user_name%x@ex-ample.io', 'user_name%x@ex-ample.io'],
+    ['uppercase', 'UPPER@EXAMPLE.COM', 'UPPER@EXAMPLE.COM'],
+    ['long TLD', 'curator x@y.museum', 'x@y.museum'],
+    // RFC 5321 caps a local part at 64 octets, but a longer one must still be
+    // redacted rather than silently half-redacted - which is what a `{1,64}`
+    // cap on the local part would have done.
+    ['over-long local part', `${'x'.repeat(80)}@e.com`, `${'x'.repeat(80)}@e.com`],
+  ])('still finds an email (%s)', (_label, text, expected) => {
+    const result = detectPII(text, DEFAULT_PII_PATTERNS);
+
+    expect(result.types).toContain('email');
+    expect(result.matches.map((match) => match.value)).toContain(expected);
+    expect(redactPII(text, DEFAULT_PII_PATTERNS)).not.toContain(expected);
+  });
+
+  it.each([
+    'no at sign here at all',
+    'version 1.1.1 and 2.2.2 and 3.3.3',
+    'the sk-fading-circle@ spinner',
+    'a@b.c has a one-character TLD',
+    'commit a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0 by badge-7788',
+  ])('does not invent an email in: %s', (text) => {
+    expect(detectPII(text, DEFAULT_PII_PATTERNS).types).not.toContain('email');
+  });
+
+  it('redacts every address in a message, not just the first', () => {
+    expect(redactPII('a@b.co / c@d.io', DEFAULT_PII_PATTERNS)).toBe(
+      '[REDACTED_EMAIL] / [REDACTED_EMAIL]'
+    );
+  });
+
+  /**
+   * The old TLD class was `[A-Z|a-z]`, which put a literal `|` in the class, so
+   * `foo@bar.|a` was reported as an email address. Corrected by the rewrite.
+   */
+  it('no longer accepts a pipe inside the TLD', () => {
+    expect(detectPII('foo@bar.|a', DEFAULT_PII_PATTERNS).types).not.toContain('email');
+  });
+
+  /**
+   * Documented difference, not an accident: a leading separator is now part of
+   * the match. Redaction therefore covers slightly more, never less.
+   */
+  it('includes a leading separator in the match', () => {
+    expect(redactPII('see .foo@x.com now', DEFAULT_PII_PATTERNS)).toBe('see [REDACTED_EMAIL] now');
+  });
+});
+
+// ============================================================================
 // PII - end to end
 // ============================================================================
 
