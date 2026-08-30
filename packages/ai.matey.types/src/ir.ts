@@ -701,7 +701,13 @@ export type WarningCategory =
   | 'content-type-unsupported'
   | 'tool-unsupported'
   | 'model-substituted'
-  | 'routing-config-changed';
+  | 'routing-config-changed'
+  /**
+   * Message content was rewritten before it left the process - e.g. PII
+   * redaction by the security or validation middleware. The request the
+   * backend receives is not the request the caller supplied.
+   */
+  | 'content-redacted';
 
 /**
  * Semantic drift warning.

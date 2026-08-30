@@ -448,9 +448,10 @@ const packageInfo = {
   'middleware-security': {
     category: 'middleware',
     title: '@johnhenry/aimatey-middleware',
-    description: 'Security middleware for rate limiting and access control',
-    exports: ['createSecurityMiddleware'],
-    config: ['rateLimit', 'allowedModels', 'blockedPatterns'],
+    description:
+      'Security middleware: PII redaction, content sanitization, prompt-injection detection, and an HTTP response header policy',
+    exports: ['createSecurityMiddleware', 'buildSecurityHeaders', 'getSecurityHeaders'],
+    config: ['redactPII', 'promptInjectionAction', 'sanitizeContent', 'contentSecurityPolicy'],
   },
   'middleware-conversation-history': {
     category: 'middleware',

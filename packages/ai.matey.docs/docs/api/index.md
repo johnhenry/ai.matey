@@ -160,7 +160,7 @@ Built-in middleware for common use cases.
 - `createOpenTelemetryMiddleware()` - Distributed tracing
 - `createRateLimitMiddleware()` - Rate limiting
 - `createValidationMiddleware()` - Request validation
-- `createSecurityMiddleware()` - Security headers
+- `createSecurityMiddleware()` - PII redaction, sanitization, prompt-injection detection, HTTP header policy
 - `createConversationHistoryMiddleware()` - Conversation state
 
 [View Middleware Guide →](/packages/middleware)
