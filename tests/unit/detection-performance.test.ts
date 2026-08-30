@@ -87,6 +87,43 @@ function fastest(run: () => void): number {
 }
 
 /**
+ * Per-call cost, repeated enough times that one sample is ~10ms rather than a
+ * fraction of one, and taken as the best of five samples.
+ *
+ * Both halves matter for the ratio assertions below, and both are the
+ * difference between a useful test and a flaky one. A single 0.3ms measurement
+ * is mostly timer noise, and a ratio of two noisy measurements is noise
+ * squared. Taking the *minimum* is the right estimator here because contention
+ * from another process on the machine can only ever inflate a sample, never
+ * deflate one - so the best of five is the closest thing to an uncontended
+ * reading that a shared runner will give up.
+ *
+ * The repeat count is derived from a probe rather than fixed, so a fast pattern
+ * gets many iterations while a pathological one - which is exactly when this
+ * test should fail - still returns in seconds instead of minutes.
+ */
+const SAMPLE_TARGET_MS = 10;
+const SAMPLES = 5;
+
+function perCall(run: () => void): number {
+  run();
+  const probeStart = performance.now();
+  run();
+  const probe = Math.max(performance.now() - probeStart, 0.001);
+  const iterations = Math.max(1, Math.min(2000, Math.ceil(SAMPLE_TARGET_MS / probe)));
+
+  let best = Infinity;
+  for (let sample = 0; sample < SAMPLES; sample++) {
+    const start = performance.now();
+    for (let i = 0; i < iterations; i++) {
+      run();
+    }
+    best = Math.min(best, (performance.now() - start) / iterations);
+  }
+  return best;
+}
+
+/**
  * Per-call budget for one pattern against one 60 KB input.
  *
  * Every current pattern lands under 0.4 ms; the quadratic `email` pattern took
@@ -127,30 +164,28 @@ describe('default detection patterns stay within budget on adversarial input (#8
 // ============================================================================
 
 /**
- * The sharper test. A quadratic pattern quadruples when the input doubles; a
- * linear one roughly doubles. Asserting the ratio rather than the absolute
- * time means a slow or loaded CI machine cannot make this flaky, because both
- * measurements are slowed by the same factor.
+ * The sharper test. Asserting the *shape* of the cost curve rather than an
+ * absolute time means a slow or loaded CI machine cannot make it fail, because
+ * both measurements are slowed by the same factor.
  *
- * The bound is 2.5x per doubling rather than 2x to absorb cache effects, and
- * the quadratic pattern this replaced measured ~4x.
+ * The inputs differ by 4x, which is what makes the two hypotheses easy to tell
+ * apart: linear costs ~4x, quadratic ~16x. A 2x spread would put the answers at
+ * 2 and 4 with nothing but measurement noise in between - that version of this
+ * test failed on its first full run at a measured 3.04.
  */
+const SCALING_FACTOR = 4;
+const SCALING_LIMIT = 8;
+
 describe('detection cost grows linearly, not quadratically (#80)', () => {
-  it.each(Object.keys(CORPORA))('detectPII on %s doubles, not quadruples', (corpus) => {
+  it.each(Object.keys(CORPORA))('detectPII on %s scales linearly', (corpus) => {
     const make = CORPORA[corpus]!;
-    const small = make(30 * KB);
-    const large = make(60 * KB);
+    const small = make(SIZE / SCALING_FACTOR);
+    const large = make(SIZE);
 
-    const smallMs = fastest(() => detectPII(small, DEFAULT_PII_PATTERNS));
-    const largeMs = fastest(() => detectPII(large, DEFAULT_PII_PATTERNS));
+    const smallMs = perCall(() => detectPII(small, DEFAULT_PII_PATTERNS));
+    const largeMs = perCall(() => detectPII(large, DEFAULT_PII_PATTERNS));
 
-    // Guard against dividing by a measurement too small to mean anything.
-    if (smallMs < 0.05) {
-      expect(largeMs).toBeLessThan(BUDGET_MS);
-      return;
-    }
-
-    expect(largeMs / smallMs).toBeLessThan(2.5);
+    expect(largeMs / smallMs).toBeLessThan(SCALING_LIMIT);
   });
 
   it('the reported input no longer costs seconds', () => {
@@ -158,13 +193,13 @@ describe('detection cost grows linearly, not quadratically (#80)', () => {
     const text = repeatTo('1.1.1', 60 * KB);
 
     expect(detectPII(text, DEFAULT_PII_PATTERNS).detected).toBe(false);
-    expect(fastest(() => detectPII(text, DEFAULT_PII_PATTERNS))).toBeLessThan(BUDGET_MS);
+    expect(perCall(() => detectPII(text, DEFAULT_PII_PATTERNS))).toBeLessThan(BUDGET_MS);
   });
 
   it('injection detection stays cheap on the same input', () => {
     const text = repeatTo('ignore all of the previous ', 60 * KB);
 
-    expect(fastest(() => detectPromptInjection(text, DEFAULT_INJECTION_PATTERNS))).toBeLessThan(
+    expect(perCall(() => detectPromptInjection(text, DEFAULT_INJECTION_PATTERNS))).toBeLessThan(
       BUDGET_MS
     );
   });
