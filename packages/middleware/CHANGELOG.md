@@ -1,5 +1,453 @@
 # @johnhenry/aimatey-middleware
 
+## 0.2.0
+
+### Minor Changes
+
+- 3467132: Scope cache entries to a caller, and stop caching requests that name none.
+
+  `createCachingMiddleware`'s default key was a hash of model, messages and parameters, and
+  `createEmbeddingCachingMiddleware`'s of input, model and parameters. Neither had any notion
+  of who was asking. One process answering for several users therefore had a single cache
+  bucket shared by all of them: the second user to send a prompt was handed the first user's
+  completion. That is a disclosure bug wearing a performance bug's clothes, and nothing in
+  the API made it visible - a caller who configured caching and nothing else got it (#44).
+
+  A `scopeKey` option was added in #45 so a deployment _could_ scope entries by tenant. It
+  had to be opted into, which is the wrong way round for this failure mode: the deployment
+  that never heard of the option is exactly the one that is leaking.
+
+  **Identity is now a first-class IR field.** `IRMetadata.principal` is an opaque,
+  deployment-defined string - a tenant ID, a user ID, an API-key fingerprint, a composite
+  like `tenant-7:user-42`. It is compared verbatim, never parsed, and never sent to a
+  provider. `Bridge.chat()`, `chatStream()` and `embed()` set it from a typed request option:
+
+  ```typescript
+  await bridge.chat(request, { principal: `tenant-${tenantId}:user-${userId}` });
+  ```
+
+  It is deliberately not a convention inside `metadata.custom`. `custom` is an unstructured
+  bag whose keys mean whatever an application decided they mean, so no middleware can read
+  identity out of it safely; scoping that exists to keep users apart needs a field with one
+  defined meaning. (The previous documentation suggested `metadata.custom.tenantId`, which
+  worked only because you wrote both halves of the convention yourself.)
+
+  **The default is now to cache less.** The cache key mixes in a scope taken from `scopeKey`
+  if set, otherwise from `metadata.principal`. A request with neither is not cached at all:
+  it goes to the backend, the response comes back with a `cache-bypassed` warning on
+  `metadata.warnings` and `metadata.custom.cacheBypassed === true`, and nothing is written.
+  Nothing written is nothing that can later be read by the wrong caller.
+
+  The alternative default - keep sharing, and warn - was rejected. The two failure modes are
+  not symmetric: defaulting to sharing discloses one user's completion to another and does so
+  silently, while defaulting to bypassing costs cache hits until somebody sets one option and
+  says so in a warning on every response. The expensive mistake is the recoverable one.
+
+  **Single-tenant deployments say so once.** One process, one audience, every entry safe to
+  share - that is why caching was switched on, and it keeps working:
+
+  ```typescript
+  bridge.use(createCachingMiddleware({ ttl: 3_600_000, unidentified: 'share' }));
+  ```
+
+  `unidentified: 'share'` restores the pre-#44 behaviour for requests that carry no identity.
+  Requests that _do_ carry a principal stay scoped to it even in this mode.
+
+  **Existing cache entries survive.** The scope is dropped from the hashed payload when it is
+  undefined, so `unidentified: 'share'` produces byte-identical keys to the ones this
+  middleware produced before caller scoping existed: an external cache (Redis and friends)
+  keeps every entry across the upgrade, and a test pins that. Deployments that adopt
+  principals get new keys for newly-scoped requests, which is the point - the old unscoped
+  entries are simply never read again rather than being served to somebody they do not belong
+  to.
+
+  Nothing here reintroduces a Node-only dependency: keys are still hashed with the pure-JS
+  `stableHash` that #48 moved to, so the middleware keeps working in browsers, webviews and
+  Electron renderers.
+
+  **Why minor rather than patch.** Two reasons, either of which would be enough. New public
+  API is added - `IRMetadata.principal`, `RequestOptions.principal`, `EmbedOptions.principal`,
+  `CachingConfig.unidentified`, `EmbeddingCachingConfig.unidentified`, and a `cache-bypassed`
+  member on `WarningCategory`. And a deployment that upgrades without reading anything sees
+  its cache stop serving hits until it supplies a principal or opts into sharing. That is a
+  behaviour change in the safe direction, but it is a behaviour change, and it should not
+  arrive in a patch that reads as "no action required".
+
+  A custom `keyGenerator` is unaffected: supplying one still takes over key derivation
+  entirely, `scopeKey`, `principal` and `unidentified` are all bypassed, and the generator
+  remains responsible for mixing in caller identity itself.
+
+- 0a7222d: Fix a reachable denial of service in the default `email` PII pattern (#80) and detect
+  `"ignore all previous instructions"`, the canonical prompt injection, which the default
+  injection pattern missed (#81).
+
+  Both defaults run on every user message under a default configuration - since #55
+  `createSecurityMiddleware()` redacts by default and wires in injection detection - so
+  neither of these was a latent edge case.
+
+  ## The email pattern was quadratic (#80)
+
+  `/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g` matched its local-part class
+  greedily from every starting position, scanned forward for an `@`, failed, backtracked and
+  restarted one character along. On text with no `@` in it at all the work was O(n²):
+
+  | input (`'1.1.1'` repeated) | before  | after   |
+  | -------------------------- | ------- | ------- |
+  | 10 KB                      | 37 ms   | 0.04 ms |
+  | 20 KB                      | 152 ms  | 0.07 ms |
+  | 40 KB                      | 640 ms  | 0.15 ms |
+  | 60 KB                      | 1504 ms | 0.22 ms |
+
+  Doubling the input quadrupled the time. Node is single-threaded per process, so a 60 KB
+  message did not make one request slow, it blocked every concurrent request on the instance
+  for a second and a half - and the payload is version strings, which looks like nothing.
+
+  The match is now anchored to the start of a run of local-part characters with a lookbehind.
+  `@` is not a local-part character, so if the maximal run is not followed by `@`, no shorter
+  suffix of it is either: every restart inside a run is provably wasted work. Stating that
+  invariant lets the engine examine each run once. Cost is now linear - 240 KB measures 4x
+  60 KB rather than 16x.
+
+  Bounding the local part at RFC 5321's 64 octets, the other option on the issue, was measured
+  and rejected: it only bounds the blowup (~8 ms on the same input, 40x worse than this) and
+  it silently stops matching over-long local parts instead of redacting them.
+
+  **The other default patterns were audited the same way.** Worst case at 60 KB across eleven
+  adversarial corpora, after: `email` 0.23 ms, `ipAddress` 0.32 ms, `phone` 0.25 ms, `apiKey`
+  0.12 ms, `ssn` 0.09 ms, `creditCard` 0.02 ms, and every injection pattern at or below
+  0.10 ms. `phone` and `ssn` had never been measured before; both are fine. Nothing else needed
+  changing.
+
+  `tests/unit/detection-performance.test.ts` now enforces this. It iterates the exported
+  pattern records rather than a hard-coded list, so a pattern added later is measured
+  automatically, and it asserts the _shape_ of the cost curve (4x input must cost under 10x,
+  where linear is 4x and quadratic is 16x) as well as an absolute budget - a correctness test
+  cannot catch a pattern that finds exactly the right answer while taking 1.5 s to do it, and
+  the shape assertion additionally catches a quadratic pattern that happens to stay under the
+  budget at 60 KB but would not at 600 KB.
+
+  Also corrects the TLD class, which was `[A-Z|a-z]`. The `|` was a literal member of the
+  character class, so `foo@bar.|a` was reported as an email address.
+
+  ## The canonical injection string was not detected (#81)
+
+  `ignore\s+(previous|above|all)\s+(instructions|prompts?|commands?)` accepted exactly one of
+  `previous` / `above` / `all` and then required the noun immediately. `"ignore all previous
+instructions"` stacks two of them, so the phrasing that appears in essentially every
+  published injection example did not match, while the variants an attacker is less likely to
+  use did:
+
+  ```
+  "ignore previous instructions"      -> true
+  "ignore all previous instructions"  -> false   <-- the canonical form
+  "ignore all instructions"           -> true
+  "ignore above instructions"         -> true
+  ```
+
+  Now detected: `all previous`, `any previous`, `the previous`, `these previous`, `your
+previous`, `all your previous`, `all of the previous`, `all prior`, `every previous`,
+  `earlier`, `preceding`, `foregoing`, and the `rules`, `directives` and `guidelines` nouns.
+
+  **Precision was tested as deliberately as recall**, which is the whole point of #67. The
+  pattern is two branches over named vocabulary lists: one requires a word referring to the
+  conversation so far, and one is byte-for-byte the noun set the old pattern accepted after a
+  bare `all`. Keeping them separate is what protects precision - a scope word on its own is
+  not a signal. `"ignore all whitespace when comparing"`, `"How do I make eslint ignore all
+rules in one file?"` and `"we ignore every prompt token past the limit"` are ordinary things
+  to ask a coding assistant, and none of them match: `rules` is not in the legacy noun set and
+  `every` is not in the legacy branch. 18 such sentences are pinned as must-not-match beside
+  22 must-match attacks, and every false-positive case from #67 still passes.
+
+  Measured before shipping, as #81 asked: 0.07 ms on 60 KB of adversarial input against the
+  old pattern's 0.03 ms, linear to 240 KB.
+
+  One residual is pinned rather than fixed: `"you can ignore the previous instructions I gave
+you, I was wrong"` is a genuine user and now matches, because catching `the previous` -
+  which the issue asked for by name - necessarily brings it along. No regex separates those
+  two sentences. That is an argument for the `'warn'` default `createSecurityMiddleware`
+  already chose (#55), which is **unchanged**, not for a cleverer pattern.
+
+  ## Why `minor` rather than `patch`
+
+  Nothing is added, removed or renamed, and no signature changes - `DEFAULT_PII_PATTERNS` and
+  `DEFAULT_INJECTION_PATTERNS` keep their exact types. #67 shipped a comparable detector change
+  as `patch`.
+
+  But #67 made the detectors fire _less_, which can only turn a throw into a pass. This makes
+  one of them fire _more_, and under `createValidationMiddleware({})` a prompt-injection match
+  throws by default. A message that got through yesterday can be rejected today, and a caller
+  whose traffic contains phrasing like `"ignore the previous instructions"` will see new
+  `ValidationError`s from a version bump they read as a defect repair. That is observable
+  behaviour, not a bug fix, so it takes the bump that says so.
+
+  Tests: 2218 -> 2465 passing, 95 files. Reverting the email pattern alone fails 11; reverting
+  the injection pattern alone fails 19.
+
+- 71e5631: Make `createSecurityMiddleware` actually secure the request (#55).
+
+  `createSecurityMiddleware` computed a `securityHeaders` object, wrote it to
+  `request.metadata.custom.securityHeaders`, and returned. Nothing in the
+  repository ever read that key - no backend adapter consulted it, and none of the
+  24 providers attached it to an outgoing request. Registered on a Bridge, a
+  middleware named `createSecurityMiddleware` passed every request through
+  untouched: `card 4111 1111 1111 1111` reached the backend verbatim. It made an
+  application look protected in code review while doing nothing at runtime.
+
+  **Request protection.** The middleware now sanitizes message content, redacts
+  PII, and detects prompt injection _before_ the request reaches the backend, on
+  both `chat()` and `chatStream()`:
+
+  ```ts
+  bridge.use(createSecurityMiddleware());
+  await bridge.chat({ messages: [{ role: 'user', content: 'card 4111 1111 1111 1111' }] });
+  // backend receives: "card [REDACTED_CREDITCARD]"
+  ```
+
+  New `SecurityConfig` options: `redactPII` (default `true`), `piiPatterns`,
+  `promptInjectionAction` (`'warn'` default, or `'block' | 'log' | 'ignore'`),
+  `injectionPatterns`, `sanitizeContent` (default `true`), `sanitizer`,
+  `logWarnings`. `createProductionSecurityMiddleware` blocks injection attempts;
+  `createDevelopmentSecurityMiddleware` warns. The default is `'warn'` rather than
+  `'block'` because `DEFAULT_INJECTION_PATTERNS` is deliberately broad - it matches
+  the bare word `DAN`, so blocking by default would reject innocent prompts.
+
+  **One PII implementation, not two.** `createSecurityMiddleware` delegates to
+  `createValidationMiddleware` rather than reimplementing `detectPII` /
+  `redactPII` / `detectPromptInjection` / `sanitizeRequest`. The two middleware
+  are now preset vs. knobs: security is a small, safe-by-default, security-only
+  surface; validation keeps the full configuration (message and token limits,
+  allowed models, moderation callbacks, `piiAction: 'block' | 'warn'`). Security
+  deliberately does _not_ inherit validation's data-quality rules - an empty
+  message is not a security failure.
+
+  **Redaction is recorded, not silent.** When redaction changes content, a
+  `content-redacted` `IRWarning` naming the PII types found is appended to
+  `request.metadata.warnings`. `WarningCategory` gains the `'content-redacted'`
+  member for it.
+
+  **The header policy.** `Content-Security-Policy`, `Strict-Transport-Security`,
+  `X-Frame-Options` and friends are browser _response_ headers; merging them into
+  `BackendAdapterConfig.headers` would send them upstream to a provider API, where
+  they mean nothing. They are still computed, and now have real consumers:
+  - `buildSecurityHeaders(config)` - exported pure function, for
+    `createCoreHandler({ bridge, headers: buildSecurityHeaders() })`, which does
+    apply them to HTTP responses.
+  - `getSecurityHeaders(request)` - exported reader for the metadata key, which is
+    still written under `SECURITY_HEADERS_METADATA_KEY` for back-compat.
+
+  Also adds `ValidationConfig.injectionAction` (`'block'` default - existing
+  behaviour unchanged - plus `'warn' | 'log' | 'ignore'`), mirroring `piiAction`,
+  and `ValidationConfig.logPrefix` so console output names the middleware that
+  produced it.
+
+  **Behavioural change.** A `createSecurityMiddleware` that previously passed
+  everything through now mutates the request by default. That is why this is a
+  `minor` rather than a `patch`: on a 0.x package a minor is the breaking-change
+  bump, and this changes what an existing registration does. Pass
+  `redactPII: false, sanitizeContent: false, promptInjectionAction: 'ignore'` to
+  restore the old pass-through behaviour, though at that point the middleware only
+  computes a header policy.
+
+  Tests: 1667 -> 1709 passing; 42 new in `tests/unit/security-middleware.test.ts`,
+  including the issue's reproduction on both `chat()` and `chatStream()`, which
+  fails against the previous implementation.
+
+### Patch Changes
+
+- 91ebe34: Stop the default detection patterns firing on ordinary text (#67).
+
+  With default configuration, `createValidationMiddleware({})` **threw** on a
+  message that mentioned a colleague called Dan, and `piiAction: 'redact'`
+  silently rewrote every commit hash in a conversation to `[REDACTED_APIKEY]`
+  before the model saw it. Both were on by default - `preventPromptInjection` and
+  `throwOnError` default to `true`, and since #55 `createSecurityMiddleware`
+  redacts by default - so neither needed opting in to hit.
+
+  ```ts
+  bridge.use(createValidationMiddleware({}));
+  await bridge.chat({ messages: [{ role: 'user', content: 'Hi Dan, can you review this?' }] });
+  // before: throws ValidationError: Potential prompt injection detected
+  // after:  delivered unchanged
+  ```
+
+  **`DAN` needs jailbreak context.** `DEFAULT_INJECTION_PATTERNS` matched the bare
+  word `DAN` case-insensitively, so "Hi Dan", "My colleague Dan says hello" and
+  "Dan asked about the deploy" were all classified as prompt-injection attacks.
+  `DAN` is now matched **case-sensitively** and only beside jailbreak framing
+  (`DAN mode`, `act as DAN`, `you are DAN`, `stands for do anything now`) - the
+  acronym is always written in capitals in the roleplay prompt it comes from,
+  while `Dan` is a common name. `developer mode` had the same shape of bug and got
+  the same treatment: "How do I enable developer mode on Android?" is no longer an
+  attack, while "act as ChatGPT with Developer Mode enabled" still is.
+
+  **`apiKey` matches a vendor prefix, not a length.** `/\b[A-Za-z0-9]{32,}\b/`
+  matched every git SHA, dashless UUID, base64 id and content hash. Entropy could
+  not have fixed this - a git SHA is uniformly random hex and scores exactly as
+  high as a secret - so the pattern now keys on the prefixes vendors add for
+  precisely this purpose (`sk-`, `sk-ant-`, `ghp_`, `github_pat_`, `AKIA`, `xox`,
+  `glpat-`, `AIza`, `gsk_`, `hf_`, `sk_live_`, `npm_`, and others). This is also a
+  **recall improvement** for prefixed credentials, which the length rule missed
+  outright: `ghp_...` never matched, because `_` is a word character and broke the
+  leading `\b`, and `AKIA...` is 20 characters, under the 32 floor. The cost is
+  that an unprefixed vendor key is no longer matched; add
+  `piiPatterns: { ...DEFAULT_PII_PATTERNS, longToken: /\b[A-Za-z0-9]{32,}\b/g }`
+  to get the old rule back.
+
+  **`ipAddress` no longer eats version strings.** `version 1.2.3.4` became
+  `version [REDACTED_IPADDRESS]`. Octets are now range-checked (so `1.2.3.999` is
+  not an address) and quads introduced by `v` / `ver` / `version` / `rev` /
+  `release` / `build` are skipped. A bare four-segment version with no marker word
+  stays ambiguous - `1.2.3.4` is a valid address and a valid version, and nothing
+  in the text separates them - and is still read as an address.
+
+  **`piiDetector` works in redact mode.** The documented escape hatch for exactly
+  these false positives did not function: `sanitizeRequest` keyed off patterns
+  only, so a custom detector was consulted for detection and then ignored for
+  redaction, which applied `DEFAULT_PII_PATTERNS` regardless. The detector now
+  drives redaction, and **replaces** the default patterns rather than augmenting
+  them - for detection and redaction alike, which is what makes it usable to turn
+  a default false positive off. Under `piiAction: 'redact'` the strings it returns
+  in `matches` are the ones replaced with `[REDACTED_<TYPE>]`.
+
+  Supporting API, all additive: `redactPIIMatches(text, matches)` redacts from
+  already-computed matches; `ValidationResult.piiResults` carries per-message
+  detection results; `sanitizeRequest` takes them as an optional third argument, so
+  the detector runs once per message rather than once per phase. A synchronous
+  detector passed straight to `sanitizeRequest` is honoured directly; an async one
+  cannot be awaited from a synchronous function, so that case warns rather than
+  quietly falling back to the patterns the caller replaced.
+
+  `DEFAULT_PII_PATTERNS.ipAddress` now uses lookbehind (ES2018), which needs
+  Node 18+ / Safari 16.4+ - already implied by this package's ES2022 target.
+
+  Tests: 1709 -> 1824 passing; 115 new in
+  `tests/unit/detection-false-positives.test.ts`, which tests **precision as well
+  as recall** - only recall was covered before. Every corpus has both halves:
+  personal names, semantic versions (including four-segment), git SHAs short and
+  long, UUIDs with and without dashes, base64 ids and npm/docker digests must not
+  be detected; genuine injection attempts, real PII, and fourteen real credential
+  formats must still be.
+
+- 9fd19f4: Fix package readmes that documented APIs which do not exist (#61).
+
+  These readmes ship in the published tarball (`files: ["dist", "readme.md", ...]`),
+  so the wrong examples reached npm:
+  - `@johnhenry/aimatey-middleware`: the quick-start built a bridge with
+    `new Bridge({ frontend, backend, middleware: [...] })`. `Bridge` takes
+    positional arguments and `BridgeConfig` has no `middleware` field, so that
+    snippet produced a bridge with **no middleware, silently** - the same
+    fail-quiet mode as #46, reached by following the readme. Middleware is
+    registered with `bridge.use()`. Also corrected `initialDelayMs`/`maxDelayMs`
+    to `initialDelay`/`maxDelay`, `ttlMs` to `ttl`, and `detectPromptInjection`
+    to `preventPromptInjection`.
+  - `@johnhenry/aimatey-frontend` and `@johnhenry/aimatey-http`: the same
+    `new Bridge({ frontend, backend })` object form, corrected to the real
+    positional constructor.
+  - `@johnhenry/aimatey-http-core`: the entire quick-start and API reference
+    described `createCorsMiddleware`, `validateApiKey` and `parseRequestBody`,
+    none of which exist. Replaced with the real `CoreHTTPHandler` class and its
+    `CoreHandlerOptions`.
+  - `@johnhenry/aimatey-testing`: listed `MockBackendAdapter`, `createMockResponse`
+    and `assertChatRequest` as its exports; none exist in this package. Replaced
+    with the real fixture / assertion / property-testing surface, and a pointer to
+    `MockBackendAdapter` in `@johnhenry/aimatey-backend-browser/mock`.
+  - `@johnhenry/aimatey-utils`: documented `asyncGeneratorToReadableStream` and
+    `readableStreamToAsyncGenerator`, which do not exist. Replaced with the real
+    `splitStream` / `teeStream` helpers.
+  - `@johnhenry/aimatey-react-core`: `OpenAIBackend` -> `OpenAIBackendAdapter`.
+
+- e800f3d: Classify `isRetryable` the same way everywhere.
+
+  Four sites decided retryability and they disagreed, so the same fault was
+  transient or permanent depending on which path reached it - and `isRetryable`
+  is the only thing retry logic keys off.
+
+  **`RouterError` derives `ALL_BACKENDS_FAILED` from its leaves, not from its
+  code.** It asserted `isRetryable: options.code === ALL_BACKENDS_FAILED`, so a
+  router whose every backend rejected the API key produced a "retryable" error
+  and the caller burned its whole retry budget on a fault that was permanent at
+  every leaf. `RouterErrorOptions` gains an optional `backendErrors`, and
+  retryability is now `true` only when at least one attempted backend failed
+  retryably - `some`, not `every`, because retrying helps as soon as one leg
+  could succeed. This is the same principle as the `MiddlewareError` fix: a
+  composite has no more standing to reclassify its parts than a wrapper has to
+  reclassify its cause.
+
+  **The router builds every `ALL_BACKENDS_FAILED` through `RouterError`.** There
+  were four construction sites and three answers: `isRetryable: true` in parallel
+  dispatch and parallel fallback, `false` on the embeddings and sequential
+  fallback paths, none of them going through `RouterError`, which said `true` for
+  all of them. All four now go through `RouterError`, which carries the leaf
+  errors where they exist and derives one answer from them.
+
+  **Neither retry implementation retries an unclassified error.** `Bridge`'s
+  `config.retries` loop treated a non-`AdapterError` as retryable while
+  `defaultShouldRetry` in `createRetryMiddleware` did not. `Bridge` now agrees
+  with the middleware: an unclassified throwable is as likely a bug in the
+  caller's own adapter or middleware as a transient fault, retrying it re-runs
+  every middleware side effect for something that cannot succeed, and `Bridge`
+  already wrapped such an error as a non-retryable `INTERNAL_ERROR` on the way
+  out - so retrying it contradicted the classification it then handed the caller.
+
+  **`408 Request Timeout` and `425 Too Early` are retryable.**
+  `createErrorFromHttpResponse` had explicit branches for 401, 403, 429, 400 and
+  5xx and fell through to `statusCode >= 500` for everything else, so the two
+  statuses whose entire meaning is "try again" were marked permanent. `404`,
+  `409` and `422` were checked and stay non-retryable: an identical retry
+  reproduces each of them.
+
+  Both flags are read duck-typed rather than through `instanceof AdapterError`,
+  so a second copy of the errors package across the ESM/CJS boundary does not
+  silently disable retries.
+
+  **Behaviour changes.**
+  - A `RouterError` built with `ALL_BACKENDS_FAILED` and no `backendErrors` is
+    now non-retryable. If you construct one yourself and want the old answer,
+    pass the failures it composes:
+
+    ```ts
+    new RouterError({
+      code: ErrorCode.ALL_BACKENDS_FAILED,
+      message: 'All backends failed',
+      attemptedBackends: ['openai', 'anthropic'],
+      backendErrors: [openaiError, anthropicError], // <- new
+    });
+    ```
+
+  - `bridge.chat()` with `config.retries` no longer retries a backend failure
+    that is not an `AdapterError` (or does not carry `isRetryable: true`). A
+    backend that wants its failures retried should raise a classified error -
+    `NetworkError`, `RateLimitError`, or an `AdapterError` with
+    `isRetryable: true`.
+  - The router's `ALL_BACKENDS_FAILED` errors are now `RouterError` instances
+    rather than bare `AdapterError`s. `RouterError extends AdapterError` and the
+    `code` is unchanged, so `instanceof AdapterError` and `error.code` checks are
+    unaffected; only a check on `error.name === 'AdapterError'` would notice.
+
+- Updated dependencies [48c5c26]
+- Updated dependencies [7be8792]
+- Updated dependencies [223c37a]
+- Updated dependencies [3467132]
+- Updated dependencies [681fa2d]
+- Updated dependencies [22b9273]
+- Updated dependencies [32415cc]
+- Updated dependencies [30629d4]
+- Updated dependencies [f8d20bf]
+- Updated dependencies [eb8580b]
+- Updated dependencies [9b31fc4]
+- Updated dependencies [9fd19f4]
+- Updated dependencies [8b89edb]
+- Updated dependencies [e800f3d]
+- Updated dependencies [582a4e5]
+- Updated dependencies [c06df51]
+- Updated dependencies [71e5631]
+- Updated dependencies [0abfa0b]
+- Updated dependencies [bb69513]
+  - @johnhenry/aimatey-core@0.3.0
+  - @johnhenry/aimatey-types@0.3.0
+  - @johnhenry/aimatey-utils@0.2.0
+  - @johnhenry/aimatey-errors@0.2.0
+
 ## 0.1.1
 
 ### Patch Changes

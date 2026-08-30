@@ -1,5 +1,652 @@
 # @johnhenry/aimatey-core
 
+## 0.3.0
+
+### Minor Changes
+
+- 3467132: Scope cache entries to a caller, and stop caching requests that name none.
+
+  `createCachingMiddleware`'s default key was a hash of model, messages and parameters, and
+  `createEmbeddingCachingMiddleware`'s of input, model and parameters. Neither had any notion
+  of who was asking. One process answering for several users therefore had a single cache
+  bucket shared by all of them: the second user to send a prompt was handed the first user's
+  completion. That is a disclosure bug wearing a performance bug's clothes, and nothing in
+  the API made it visible - a caller who configured caching and nothing else got it (#44).
+
+  A `scopeKey` option was added in #45 so a deployment _could_ scope entries by tenant. It
+  had to be opted into, which is the wrong way round for this failure mode: the deployment
+  that never heard of the option is exactly the one that is leaking.
+
+  **Identity is now a first-class IR field.** `IRMetadata.principal` is an opaque,
+  deployment-defined string - a tenant ID, a user ID, an API-key fingerprint, a composite
+  like `tenant-7:user-42`. It is compared verbatim, never parsed, and never sent to a
+  provider. `Bridge.chat()`, `chatStream()` and `embed()` set it from a typed request option:
+
+  ```typescript
+  await bridge.chat(request, { principal: `tenant-${tenantId}:user-${userId}` });
+  ```
+
+  It is deliberately not a convention inside `metadata.custom`. `custom` is an unstructured
+  bag whose keys mean whatever an application decided they mean, so no middleware can read
+  identity out of it safely; scoping that exists to keep users apart needs a field with one
+  defined meaning. (The previous documentation suggested `metadata.custom.tenantId`, which
+  worked only because you wrote both halves of the convention yourself.)
+
+  **The default is now to cache less.** The cache key mixes in a scope taken from `scopeKey`
+  if set, otherwise from `metadata.principal`. A request with neither is not cached at all:
+  it goes to the backend, the response comes back with a `cache-bypassed` warning on
+  `metadata.warnings` and `metadata.custom.cacheBypassed === true`, and nothing is written.
+  Nothing written is nothing that can later be read by the wrong caller.
+
+  The alternative default - keep sharing, and warn - was rejected. The two failure modes are
+  not symmetric: defaulting to sharing discloses one user's completion to another and does so
+  silently, while defaulting to bypassing costs cache hits until somebody sets one option and
+  says so in a warning on every response. The expensive mistake is the recoverable one.
+
+  **Single-tenant deployments say so once.** One process, one audience, every entry safe to
+  share - that is why caching was switched on, and it keeps working:
+
+  ```typescript
+  bridge.use(createCachingMiddleware({ ttl: 3_600_000, unidentified: 'share' }));
+  ```
+
+  `unidentified: 'share'` restores the pre-#44 behaviour for requests that carry no identity.
+  Requests that _do_ carry a principal stay scoped to it even in this mode.
+
+  **Existing cache entries survive.** The scope is dropped from the hashed payload when it is
+  undefined, so `unidentified: 'share'` produces byte-identical keys to the ones this
+  middleware produced before caller scoping existed: an external cache (Redis and friends)
+  keeps every entry across the upgrade, and a test pins that. Deployments that adopt
+  principals get new keys for newly-scoped requests, which is the point - the old unscoped
+  entries are simply never read again rather than being served to somebody they do not belong
+  to.
+
+  Nothing here reintroduces a Node-only dependency: keys are still hashed with the pure-JS
+  `stableHash` that #48 moved to, so the middleware keeps working in browsers, webviews and
+  Electron renderers.
+
+  **Why minor rather than patch.** Two reasons, either of which would be enough. New public
+  API is added - `IRMetadata.principal`, `RequestOptions.principal`, `EmbedOptions.principal`,
+  `CachingConfig.unidentified`, `EmbeddingCachingConfig.unidentified`, and a `cache-bypassed`
+  member on `WarningCategory`. And a deployment that upgrades without reading anything sees
+  its cache stop serving hits until it supplies a principal or opts into sharing. That is a
+  behaviour change in the safe direction, but it is a behaviour change, and it should not
+  arrive in a patch that reads as "no action required".
+
+  A custom `keyGenerator` is unaffected: supplying one still takes over key derivation
+  entirely, `scopeKey`, `principal` and `unidentified` are all bypassed, and the generator
+  remains responsible for mixing in caller identity itself.
+
+- f8d20bf: Stop middleware from reclassifying the errors it carries.
+
+  `MiddlewareStack` re-labelled _every_ failure that passed through a middleware
+  as a `MiddlewareError`, and `MiddlewareError` hard-coded `isRetryable: false`.
+  A retryable `NetworkError` raised by the backend therefore reached the retry
+  middleware already reclassified as permanent, and `createRetryMiddleware`
+  stopped retrying as soon as any middleware was registered after it:
+
+  ```ts
+  bridge.use(createRetryMiddleware({ maxAttempts: 3 }));
+  bridge.use(someOtherMiddleware); // <- retry now gives up after one attempt
+  ```
+
+  Retry configuration looked applied and was not; whether it worked depended
+  purely on registration order. The same loss of classification reached
+  everything downstream - `Bridge`'s own `config.retries` loop, `Router`'s
+  `customFallback`, the HTTP status mapping (a backend `NetworkError` answered
+  `500` instead of `502`), and any application-level retry, all of which were
+  told a transient network failure was permanent.
+
+  Two changes:
+  - **`MiddlewareStack` (`@johnhenry/aimatey-core`)** now wraps only what a
+    middleware raised _itself_ and left unclassified. An `AdapterError` already
+    carries a code, a category and a retryability, so it propagates untouched;
+    so does anything the final handler raised, which is a backend failure rather
+    than a middleware failure. `MiddlewareError` is an `AdapterError`, so it is
+    still re-thrown as-is.
+  - **`MiddlewareError` (`@johnhenry/aimatey-errors`)** built around a `cause`
+    now reports the cause's retryability instead of asserting `false`. Without a
+    cause, or with a cause that carries no classification, it stays
+    non-retryable.
+
+  This also removes a divergence that had nothing to do with retry: with an empty
+  stack a backend failure propagated raw, and registering a single middleware
+  turned the same failure into a `MiddlewareError`. The error a caller sees no
+  longer depends on how many middleware are registered.
+
+  **Behaviour change for `@johnhenry/aimatey-core`.** Code that catches
+  `MiddlewareError` to handle _backend_ failures behind a middleware chain now
+  sees the original error class - `NetworkError`, `RateLimitError`,
+  `ProviderError` - as it already did with no middleware registered. Catch
+  `AdapterError` (the common base) or switch on `error.code` instead.
+  `MiddlewareError` still means what its name says: a middleware itself failed.
+
+- eb8580b: Name middleware, so a failure says which one failed.
+
+  `MiddlewareError.middlewareName` existed, was typed and documented, and never
+  held a middleware name. The four sites that set it hardcoded the literal
+  `'unknown'`; the two that actually wrap a middleware failure omitted it. A
+  stack of eight middleware reported `Middleware execution failed: <message>`
+  with no indication of which one broke - the one piece of provenance the wrapper
+  exists to add was always either absent or a placeholder.
+
+  The blocker was that `MiddlewareStack` entries carried no name, so naming
+  middleware was the prerequisite.
+
+  `use()` and `useStreaming()` - on both `MiddlewareStack` and `Bridge` - now
+  take an optional second argument:
+
+  ```ts
+  bridge.use(createRetryMiddleware({ maxAttempts: 3 }), { name: 'retry' });
+  ```
+
+  and a failure reads:
+
+  ```
+  Middleware "retry" failed: connection reset
+  ```
+
+  The name is resolved at registration, in order:
+  1. `options.name`;
+  2. the function's own `.name` - free for `function rateLimit()` and for
+     `const rateLimit = async (ctx, next) => ...`, and skipped when it carries no
+     information (`middleware`, `handler`, `fn`, …);
+  3. the registration position, `middleware[3]`.
+
+  The position is the index across _both_ `use()` and `useStreaming()`, so the
+  same middleware is named identically on the streaming and the non-streaming
+  path. It is never `'unknown'`: a position is less useful than a name and far
+  more useful than nothing. The four lock-guard errors now name the middleware
+  being added or removed instead of claiming `'unknown'`, and report no name at
+  all when the function is anonymous.
+
+  Every middleware factory in `@johnhenry/aimatey-middleware` ends in
+  `return async (context, next) => {…}`, which produces an anonymous function -
+  so pass `{ name }` for anything built by one, or it can only be identified by
+  position.
+
+  **API addition, fully backward compatible.** The new parameter is optional;
+  every existing `use(middleware)` and `useStreaming(middleware)` call keeps
+  working unchanged, and `remove()`/`getMiddleware()` identity is unaffected.
+  The only observable change is the wording of the failure message, which gained
+  the middleware's name.
+
+- e800f3d: Classify `isRetryable` the same way everywhere.
+
+  Four sites decided retryability and they disagreed, so the same fault was
+  transient or permanent depending on which path reached it - and `isRetryable`
+  is the only thing retry logic keys off.
+
+  **`RouterError` derives `ALL_BACKENDS_FAILED` from its leaves, not from its
+  code.** It asserted `isRetryable: options.code === ALL_BACKENDS_FAILED`, so a
+  router whose every backend rejected the API key produced a "retryable" error
+  and the caller burned its whole retry budget on a fault that was permanent at
+  every leaf. `RouterErrorOptions` gains an optional `backendErrors`, and
+  retryability is now `true` only when at least one attempted backend failed
+  retryably - `some`, not `every`, because retrying helps as soon as one leg
+  could succeed. This is the same principle as the `MiddlewareError` fix: a
+  composite has no more standing to reclassify its parts than a wrapper has to
+  reclassify its cause.
+
+  **The router builds every `ALL_BACKENDS_FAILED` through `RouterError`.** There
+  were four construction sites and three answers: `isRetryable: true` in parallel
+  dispatch and parallel fallback, `false` on the embeddings and sequential
+  fallback paths, none of them going through `RouterError`, which said `true` for
+  all of them. All four now go through `RouterError`, which carries the leaf
+  errors where they exist and derives one answer from them.
+
+  **Neither retry implementation retries an unclassified error.** `Bridge`'s
+  `config.retries` loop treated a non-`AdapterError` as retryable while
+  `defaultShouldRetry` in `createRetryMiddleware` did not. `Bridge` now agrees
+  with the middleware: an unclassified throwable is as likely a bug in the
+  caller's own adapter or middleware as a transient fault, retrying it re-runs
+  every middleware side effect for something that cannot succeed, and `Bridge`
+  already wrapped such an error as a non-retryable `INTERNAL_ERROR` on the way
+  out - so retrying it contradicted the classification it then handed the caller.
+
+  **`408 Request Timeout` and `425 Too Early` are retryable.**
+  `createErrorFromHttpResponse` had explicit branches for 401, 403, 429, 400 and
+  5xx and fell through to `statusCode >= 500` for everything else, so the two
+  statuses whose entire meaning is "try again" were marked permanent. `404`,
+  `409` and `422` were checked and stay non-retryable: an identical retry
+  reproduces each of them.
+
+  Both flags are read duck-typed rather than through `instanceof AdapterError`,
+  so a second copy of the errors package across the ESM/CJS boundary does not
+  silently disable retries.
+
+  **Behaviour changes.**
+  - A `RouterError` built with `ALL_BACKENDS_FAILED` and no `backendErrors` is
+    now non-retryable. If you construct one yourself and want the old answer,
+    pass the failures it composes:
+
+    ```ts
+    new RouterError({
+      code: ErrorCode.ALL_BACKENDS_FAILED,
+      message: 'All backends failed',
+      attemptedBackends: ['openai', 'anthropic'],
+      backendErrors: [openaiError, anthropicError], // <- new
+    });
+    ```
+
+  - `bridge.chat()` with `config.retries` no longer retries a backend failure
+    that is not an `AdapterError` (or does not carry `isRetryable: true`). A
+    backend that wants its failures retried should raise a classified error -
+    `NetworkError`, `RateLimitError`, or an `AdapterError` with
+    `isRetryable: true`.
+  - The router's `ALL_BACKENDS_FAILED` errors are now `RouterError` instances
+    rather than bare `AdapterError`s. `RouterError extends AdapterError` and the
+    `code` is unchanged, so `instanceof AdapterError` and `error.code` checks are
+    unaffected; only a check on `error.name === 'AdapterError'` would notice.
+
+### Patch Changes
+
+- 48c5c26: Fix `Bridge.getStats().backendUsage` attributing every success to the wrapper, and delete
+  the `on()`/`once()` docs that denied events are emitted.
+
+  **`backendUsage` now names the backend that actually served each request.** It was derived
+  at read time as `{ [this.backend.metadata.name]: this._successfulRequests }`. `this.backend`
+  is whatever the bridge was constructed with, so on a router-backed bridge that is the
+  _router_: four requests round-robined across two registered backends reported
+  `{ router: 4 }` instead of `{ cheap: 2, expensive: 2 }`. Per-backend usage - the only thing
+  the field exists to report - was unobservable, and the workaround was to tally provenance
+  by hand outside the bridge, which is what the round-robin example in the docs does.
+
+  The count is now accumulated as requests succeed, keyed by the backend named in the
+  response's resolved `provenance.backend`. That is the value #57 made report the adapter
+  that answered rather than the bridge's wrapper, so this fix consumes that precedence rule
+  rather than restating it: whatever the chain reported wins, and the bridge's own backend
+  name is the fallback only when the adapter reported none. A router-backed bridge starts
+  telling the truth; a single-backend bridge reports exactly what it always did.
+
+  **The streaming path is fixed with it.** `chatStream()` increments the same success counter
+  `chat()` does, so it was already contributing to `backendUsage` - all of it filed under the
+  wrapper. Leaving it alone would have dropped streamed requests from the breakdown entirely.
+  It now reports the backend named on the stream's enriched `start` chunk, read before the
+  frontend conversion that discards IR metadata, so the two paths agree about who served a
+  request and the per-backend counts sum to `successfulRequests`.
+
+  `resetStats()` clears the breakdown along with the other counters.
+
+  Two consequences worth stating. A backend that has served nothing since the last reset now
+  has no key at all, where a fresh single-backend bridge previously reported its one backend
+  with a count of `0`; a zero for a backend that never ran is the same class of falsehood
+  being fixed here. And `backendUsage` now agrees with `provenance.backend` for an adapter
+  whose reported name differs from its registered one, rather than with the bridge's
+  configured name. Semantics are otherwise unchanged: it still counts successes only, so a
+  failed request remains in `failedRequests` and `errorBreakdown`.
+
+  **`on()` and `once()` no longer claim events are unimplemented.** Both carried
+  "Event emission is not yet implemented. Listeners are stored for future use when event
+  emission is added." Emission has been implemented for some time - `emit()` is called from
+  seven sites. The note told anyone reading the JSDoc that the feature in front of them did
+  not work, so the reasonable response was to go build a wrapper instead of using it.
+
+  Replaced with what actually happens: six `BridgeEventType` values are emitted -
+  `request:start`, `request:success` and `request:error` from `chat()`, and `stream:start`,
+  `stream:complete` and `stream:error` from `chatStream()` - while `request:cancelled`,
+  `stream:chunk`, `backend:selected`, `backend:failover` and `middleware:executed` are
+  declared on the type but nothing emits them, so a listener for one of those never fires.
+  The docs also now state that `executeIR()`/`executeIRStream()` are deliberately silent, and
+  that a listener which throws is swallowed rather than failing the request. Tests pin each
+  of those claims, so the docs cannot silently go stale again.
+
+  Docs only for the second half - no behaviour changed there.
+
+- 7be8792: Fix `Bridge` statistics drifting when a request failed before its execution pipeline ran.
+
+  `_totalRequests` is incremented the moment a request arrives, but the work that happens
+  before the retry loop - `frontend.toIR()`, request enrichment, and the registered-backend
+  check enrichment performs - threw straight past the failure accounting. `getStats()` then
+  reported a request that was counted as sent, never counted as failed, and produced no
+  error event, so a caller computing `successRate` watched it drift downward with no failure
+  to explain it, and anything listening for `REQUEST_ERROR` never learned the request died.
+
+  Both `chat()` and `chatStream()` now run that pre-pipeline work inside the same accounting
+  the rest of the method uses: `failedRequests` and the error breakdown are incremented, and
+  a `REQUEST_ERROR` (or `STREAM_ERROR`, on the streaming path) event is emitted. The original
+  error is re-thrown unchanged, so which error a caller sees is unaffected. When
+  `frontend.toIR()` itself is what threw there is no IR request to report, so the event
+  carries a stub with the generated request id and frontend provenance rather than being
+  dropped.
+
+  These are fail-fast programmer errors - a malformed request, an unknown backend name - and
+  so are rare in a working integration, but they are exactly the errors worth an event while
+  building one.
+
+  `executeIR()` and `executeIRStream()` are deliberately left alone: they do not increment
+  `totalRequests` either, so nothing skews. `getStats()` and the `REQUEST_*` events count
+  `chat()` and `chatStream()` calls only, which means a `runTools()` loop reports as the one
+  request the caller made rather than one per turn. That is now stated on both methods.
+
+- 223c37a: Fix a router-backed `Bridge` being unobservable: `getRouter()` always returned `null`, and
+  `enrichResponse()` overwrote which backend actually answered.
+
+  **`Bridge.getRouter()` now returns the router.** It was hardcoded to `return null`, with a
+  return type of the literal `null` rather than `Router | null` - so even the type said it
+  could never work, while the `Bridge` interface in `@johnhenry/aimatey-types` had promised
+  `Router | null` all along. There was no supported way to reach the router a bridge was
+  constructed with: no inspecting `listBackends()`, no reading `getBackendInfo()`, no
+  adjusting a fallback chain through the object you were handed. It now returns the
+  configured backend when that backend is a `Router`, and `null` otherwise. The check is
+  structural rather than an `instanceof`, so consumers do not pull the `Router`
+  implementation in at runtime just to ask the question - this is the same duck-typing the
+  private `asRouter()` added in #51 was doing, and that helper has been folded into
+  `getRouter()` so there is one answer to the question instead of two.
+
+  **Response provenance now names the backend that answered.** `enrichResponse()` set
+  `provenance.backend` to `this.backend.metadata.name` unconditionally. For a router-backed
+  bridge `this.backend` _is_ the router, so every response claimed `"router"`, discarding
+  what the backend adapter had already written. For a multi-provider router - the case this
+  library exists for - that field was always wrong, which matters for cost attribution, for
+  debugging a bad answer, and for any UI showing where a reply came from.
+
+  The precedence rule is now:
+  - `provenance.frontend` is always the bridge's frontend adapter. The bridge knows this for
+    certain.
+  - `provenance.backend` keeps whatever the chain already reported, and only falls back to
+    the bridge's own backend name when the adapter reported none. Every shipped backend
+    adapter reports one, so in practice the routed backend wins.
+  - `provenance.router` is set to the router's name on a router-backed bridge, using the
+    field that already exists for it. The routing layer stays visible without overwriting
+    the backend, so nothing that was learnable from the old (wrong) value is lost.
+
+  **The streaming path now reports provenance too.** `chatStream()` and `executeIRStream()`
+  applied no provenance at all, so the two paths disagreed about the same request:
+  `chat()` always reported some backend while `chatStream()` reported only what the backend
+  volunteered. The same rule is now applied to a stream's `start` chunk - the chunk backends
+  carry response metadata on. Other chunks pass through untouched, and a `start` chunk
+  carrying no metadata at all is left alone rather than given a fabricated one.
+
+  Released as a patch: this is a bug fix in every direction. The widened `getRouter()` return
+  type only brings the class in line with the `Bridge` interface it implements, which already
+  declared `Router | null`, so no published type narrows and `@johnhenry/aimatey-types` is
+  untouched. Callers reading `provenance.backend` on a single-adapter bridge see exactly what
+  they saw before.
+
+- 30629d4: Fix `MiddlewareContext.backend` and `.backendName` being documented but never populated.
+
+  Both fields were declared and documented - "backend that will process (or processed) the
+  request, available after routing decision" - and were `undefined` on every path, for every
+  backend type. The bridge simply never set them.
+
+  The cost is bigger than a missing field: **a middleware could not execute a turn of its
+  own**, which rules out the whole class of middleware that needs a second pass - an agentic
+  tool loop, retry with a modified request, failover. Middleware written against the
+  documented type reads `context.backend` and guards with `if (!backend) …`; through a real
+  `Bridge` that guard always fired. One consumer hit exactly this: the tool ran, the model
+  never saw the result, and stripping the tool-call syntax left the user with an empty reply.
+  Unit tests passed because a hand-built context had `backend` set, which is what the type
+  invites. Middleware that merely _branches_ on `backendName` was hit more quietly - it took
+  its fallback path every time, with no error.
+
+  `Bridge` now populates both fields on all four paths (`chat`, `chatStream`, `executeIR`,
+  `executeIRStream`), through new optional `backend` parameters on `createMiddlewareContext`
+  and `createStreamingMiddlewareContext`.
+
+  **Which backend they name.** The fields are seeded before the chain runs and narrowed once
+  the routing decision resolves:
+  - Before dispatch they are whatever the bridge is about to call. For a router-backed bridge
+    that is the router, because the provider genuinely has not been chosen yet - and it is
+    the useful value there, since executing through the router routes an extra turn the same
+    way the original request was routed.
+  - After a response comes back they are narrowed to the backend that actually served it,
+    read from the response provenance the backend reports, with `backend` resolved through
+    the router's registry so `backendName` always equals `backend.metadata.name`. On the
+    streaming path the narrowing happens off the `start` chunk, early enough that the
+    response phase of every middleware sees it.
+
+  That is what "available after routing decision" describes, and it means a follow-up turn
+  taken after `next()` goes to the backend that just answered - usually what a follow-up
+  wants. To re-route deliberately, execute through `bridge.getRouter()` instead. Narrowing is
+  driven from the bridge's innermost dispatch, so a middleware that calls `next()` more than
+  once sees the value for its most recent dispatch rather than a stale one.
+
+  Predicting the selected backend _before_ dispatch was considered and rejected: `Router`
+  has no access to the middleware context (`BackendAdapter.execute()` takes only a request),
+  and calling `Router.selectBackend()` up front would advance round-robin and re-roll random
+  selection, so the context could name a backend other than the one that answered. Naming
+  the router until the answer is known is honest; guessing is not.
+
+  `backend` and `backendName` are no longer `readonly` on `MiddlewareContext`, since they are
+  refined in place as the decision resolves. Dropping `readonly` does not affect assignability,
+  so no existing implementation of the interface breaks.
+
+  `createFailoverMiddleware()` in `@johnhenry/aimatey-patterns` is **not** affected: it takes
+  its fallback adapters through `FailoverConfig.fallbacks` and never reads `context.backend`.
+  It was already working, and keeps working.
+
+- 9b31fc4: Fix `next()` called twice skipping the rest of the middleware chain.
+
+  `MiddlewareStack.execute()` and `executeStream()` composed the chain with a
+  single mutable `index` captured in the `next` closure, so a second `next()`
+  advanced _past_ the next middleware instead of re-running the remainder of the
+  chain:
+
+  ```ts
+  bridge.use(async (ctx, next) => {
+    await next();
+    return next(); // a retry
+  });
+  bridge.use(async (ctx, next) => next()); // ran once for two next() calls
+  ```
+
+  The second call went straight to the backend, so retry-shaped middleware
+  retried with the unvalidated, untransformed request - the second attempt took a
+  different code path from the first, silently, unless the retry happened to be
+  registered last.
+
+  Both paths now dispatch by recursion with the index as a parameter, so every
+  `next()` re-enters at its own position and re-runs the whole remainder of the
+  chain, in order, once per call.
+
+  `next()` is deliberately left **re-entrant** rather than guarded the way Koa
+  guards it. Koa throws on a second `next()` within one middleware; here
+  retry-shaped middleware is a first-class pattern and a retry must re-run the
+  validation, redaction and transform middleware registered after it, or the
+  second attempt reaches the backend with a differently-prepared request.
+  Re-running is not free of side effects - every downstream middleware runs
+  again, `context` is shared rather than snapshotted, and nothing bounds the
+  number of passes - and that is now documented on `execute()`, `executeStream()`
+  and in `docs/api.md`.
+
+  The one place a second `next()` is still refused is the streaming adapter added
+  in #46/#50: once a standard middleware's first `next()` has handed a stream to
+  the consumer, the chunks are already delivered and no restart could reach the
+  consumer, so `adaptMiddlewareToStreaming` throws a `MiddlewareError` rather than
+  start a stream nobody can read. A `next()` that _failed_ before any chunk was
+  delivered is still retryable there, and such a retry now re-runs the whole
+  downstream chain instead of skipping the middleware next to it. Stream-native
+  middleware registered with `useStreaming()` owns the `IRChatStream` itself and
+  may call `next()` as often as it likes.
+
+  Error handling is unchanged: the innermost frame wraps a non-`MiddlewareError`
+  into a `MiddlewareError`, outer frames re-throw it as-is, and the final handler
+  is still called outside the `try`.
+
+  Fixes #56.
+
+- 8b89edb: Document two concurrency fixes that changed observable behaviour without a changelog entry,
+  and pin both with tests that do not depend on timing (#36, #37).
+
+  The code fixes landed in #45 but carried no changeset, so they were on course to be
+  published as silent behaviour changes. Both alter what a caller observes, so both are
+  recorded here.
+
+  **`Router` "first success" parallel dispatch no longer settles on the first _failure_
+  (#36).** `dispatchParallel({ strategy: 'first' })` awaited `Promise.race()` over per-backend
+  promises that are wrapped to always fulfill - carrying `{ success: false, error }` when the
+  backend threw - so the race returned whichever backend _settled_ first regardless of
+  outcome. A backend that failed fast decided the result, and the dispatch threw
+  `ALL_BACKENDS_FAILED` while a slower backend was still in flight and about to succeed.
+  `fallbackParallel()` had the same defect through `Promise.race()` over the raw rejecting
+  promises. That is the exact inverse of what "first success" promises, and it bit hardest in
+  the case the strategy exists for: a fast-failing cheap backend paired with a slower reliable
+  one.
+
+  Both now race on fulfilment. `fallbackParallel()` uses `Promise.any()`; `dispatchParallel()`
+  uses a `raceFirstSuccess()` helper, because its legs never reject and `Promise.any()` cannot
+  see the `success` flag. `ALL_BACKENDS_FAILED` is now raised only once _every_ backend has
+  failed, and names all of them rather than just the first to give up.
+
+  What changes for callers: a parallel dispatch that used to fail can now succeed, and one
+  that fails takes as long as its slowest backend rather than its fastest. Anything relying on
+  a parallel dispatch failing fast will see it wait. `cancelOnFirstSuccess` still aborts the
+  losing backends, but only on an actual success - a failure no longer cancels the field.
+
+  **`splitStream()` no longer drops chunks produced before a split starts iterating (#37).**
+  Each consumer's resolver defaulted to a no-op function. The eager producer treats a non-null
+  resolver as "a consumer is parked waiting", so it handed chunks to that no-op and shifted
+  them off the queue before any real consumer had begun. A split that started iterating even
+  slightly late silently lost its prefix and then ended cleanly, so the loss looked like a
+  short stream rather than an error. The sibling `teeStream()` had it right, defaulting to
+  `null`; `splitStream()` now matches.
+
+  The semantics this implies are now stated on the function rather than left to be discovered:
+  **a split that subscribes late receives buffered history back to the stream's first chunk.**
+  Splits are not live subscriptions. Draining one split fully before touching another is well
+  defined and both see identical sequences. The alternative - treating a late first `next()` as
+  an error - was rejected because a split exists to fan out to consumers whose start times the
+  caller does not control, and there is no subscribe step to hook, only a first `next()`. The
+  documented cost is memory: unread chunks are retained per split, so a split that is never
+  iterated pins the whole stream.
+
+  A dead `chunks` accumulator that appended every chunk and was never read has been removed
+  alongside, so retention now matches what the documentation describes.
+
+  Patch rather than minor in both cases: no API, option or type changed, and each is a bug fix
+  restoring the behaviour the existing names and docs already promised.
+
+- 582a4e5: Router: `clone()` keeps translation mappings, stats and circuit-breaker state (#58)
+
+  `Router.clone()` copied `modelMapping`, `modelPatterns` and `fallbackChain` but
+  not `modelTranslationMapping` or `backendTranslationMappings` — exactly the
+  configuration that makes cross-provider fallback produce a valid request. A
+  cloned router would fall back to a backend and send it a model name it had
+  never heard of. Both are now copied, as independent maps.
+
+  `clone()` also re-`register`ed each adapter, so every backend started fresh:
+  request counts, latency samples and `totalCost` zeroed, and any **open circuit
+  breaker silently closed**. Since `clone({ … })` reads like "same router,
+  different config", cloning to change one option quietly re-armed a backend the
+  breaker had just taken out of rotation.
+
+  A clone is now documented, and implemented, as _this router with different
+  settings_. It inherits:
+  - **Routing configuration** — backend registrations in the same order, sharing
+    the same adapter instances, plus the fallback chain, model mappings, model
+    patterns, and the global and per-backend model translation mappings.
+  - **Routing state** — the round-robin cursor, so a clone continues the rotation
+    rather than restarting it.
+  - **Accounting** — router-level and per-backend request counts, latency samples
+    and `totalCost`, on the same reasoning as `replace()`: a cumulative record of
+    traffic really sent and money really spent, which a configuration change does
+    not un-spend.
+  - **Health verdict** — `isHealthy`, `lastHealthCheck`, `consecutiveFailures`
+    and the circuit-breaker state.
+
+  That last point is where `clone()` deliberately differs from `replace()`, which
+  _resets_ the health verdict. Both follow the same underlying rule: a health
+  verdict survives exactly as long as the thing it judged. `replace()` swaps in a
+  different adapter, so the verdict is stale by construction. `clone()` carries
+  the _same adapter instances_ across, so an open circuit is still an accurate
+  statement about them — and silently re-arming a backend the breaker had just
+  removed, merely because the caller cloned to change an unrelated setting, is
+  the more dangerous default.
+
+  One exception: a clone that turns the circuit breaker **off** starts with every
+  circuit closed. Nothing in such a router calls the breaker, so an inherited open
+  circuit would never move back to half-open and the backend would be unroutable
+  forever.
+
+  Callers who want a genuinely fresh slate can follow the clone with
+  `resetStats()` and `resetCircuitBreaker()`.
+
+  Tests: `tests/unit/router-clone.test.ts` (16 cases).
+
+- c06df51: Router: fail streamed requests over, and record their outcome (#54)
+
+  `Router.executeStream()` never failed over. Where `execute()` called
+  `executeFallback()`, the streaming path yielded an error chunk, so
+  `fallbackStrategy`, `setFallbackChain()` and `customFallback` were all inert
+  for streaming — the normal path for a chat app.
+
+  It now fails over, bounded by what the consumer has already seen. Once model
+  output has been handed over, no other backend can take the stream: restarting
+  would duplicate or contradict text the user is already reading, so a failure
+  from that point still surfaces as an `error` chunk. Before that point nothing
+  is observable, so chunks that carry no model output (`start`, `metadata`) are
+  held back and flushed the instant the first `content`, `tool_use` or `done`
+  chunk arrives. The buffer never waits on a timer or a chunk count, so it adds
+  nothing to time-to-first-token; it only defers chunks a consumer cannot render
+  anyway. A backend that dies mid-preamble is replaced without the caller ever
+  learning it existed. An `error` chunk that arrives before the stream has
+  committed is treated exactly like a thrown error.
+
+  Three consequences worth knowing:
+  - Streaming fallback is always **sequential**, including under
+    `fallbackStrategy: 'parallel'`. Racing streams would start N generations and
+    abandon N-1 — billable output for no latency gain, since a stream can only be
+    moved before its first token anyway.
+  - An **aborted** request is never failed over: the caller asked to stop, not
+    for a different backend.
+  - At most 32 preamble chunks are held. A backend that emits more than that
+    before its first token is malformed; rather than buffer without bound the
+    router flushes, gives up the option to fail over, and streams through.
+
+  `executeStreamOnBackend()` also counted a request without ever recording its
+  outcome — `successfulRequests`, `failedRequests` and `latencies` were never
+  touched and the circuit breaker was never consulted. So `successRate` decayed
+  toward zero for any backend serving streamed traffic, the breaker never tripped
+  on streaming failures nor reset on streaming successes, and latency-optimised
+  routing was blind to streaming.
+
+  The returned stream is now wrapped so its outcome reaches the same
+  `recordSuccess` / `recordFailure` the non-streaming path uses (both extracted
+  from `executeOnBackend`, whose behaviour is unchanged):
+  - **Success** — a `done` chunk is seen, or the backend's iterator finishes
+    without one. Counts a success, breaks the consecutive-failure run, takes a
+    latency sample and accrues cost, and closes a half-open circuit.
+  - **Failure** — the iterator throws, or yields an in-band `error` chunk. Counts
+    a failure and may trip the breaker.
+  - **Abandoned** — the consumer stops reading (`break`, `return()`, `throw()`,
+    or an aborted request). Counted as a completed request without fault, because
+    cancelling a stream must never be able to trip a circuit breaker on a backend
+    that did nothing wrong. It contributes no latency sample and no cost estimate,
+    and deliberately leaves `consecutiveFailures` and the breaker state untouched:
+    a stream the consumer walked away from is not evidence that a suspect backend
+    has recovered.
+
+  The latency sample for a stream is full-response wall time — the same quantity
+  `execute()` measures — so `averageLatencyMs` stays coherent for a backend
+  serving both kinds of traffic. Time-to-first-token is a different, also useful
+  metric; it would need its own field rather than being mixed into this one.
+
+  `totalRequests` is now counted when the stream is first iterated rather than
+  when it is created, so a stream that is created and discarded is not counted as
+  sent. It was already counted after the circuit-breaker check, so a request the
+  breaker refuses is still not counted.
+
+  Tests: `tests/unit/router-streaming-fallback.test.ts` (24 cases).
+
+- Updated dependencies [3467132]
+- Updated dependencies [681fa2d]
+- Updated dependencies [22b9273]
+- Updated dependencies [32415cc]
+- Updated dependencies [30629d4]
+- Updated dependencies [f8d20bf]
+- Updated dependencies [eb8580b]
+- Updated dependencies [9fd19f4]
+- Updated dependencies [8b89edb]
+- Updated dependencies [e800f3d]
+- Updated dependencies [582a4e5]
+- Updated dependencies [71e5631]
+- Updated dependencies [0abfa0b]
+- Updated dependencies [bb69513]
+  - @johnhenry/aimatey-types@0.3.0
+  - @johnhenry/aimatey-utils@0.2.0
+  - @johnhenry/aimatey-errors@0.2.0
+
 ## 0.2.0
 
 ### Minor Changes

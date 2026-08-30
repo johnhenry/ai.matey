@@ -1,6 +1,6 @@
 {
   "name": "@johnhenry/aimatey-react-stream",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "React streaming utilities for AI Matey - StreamProvider, StreamContext",
   "type": "module",
   "main": "./dist/cjs/index.js",
@@ -36,8 +36,8 @@
     "lint:fix": "eslint src --ext .ts,.tsx --fix"
   },
   "dependencies": {
-    "@johnhenry/aimatey-types": "^0.2.0",
-    "@johnhenry/aimatey-react-core": "^0.1.1"
+    "@johnhenry/aimatey-types": "^0.3.0",
+    "@johnhenry/aimatey-react-core": "^0.1.2"
   },
   "peerDependencies": {
     "react": ">=18.0.0"
