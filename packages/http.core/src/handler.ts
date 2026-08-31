@@ -21,6 +21,7 @@ import { createMetricsHandler } from './metrics.js';
 import { openaiEmbedRequestToIR, irToOpenAIEmbedResponse } from '@johnhenry/aimatey-utils';
 import { normalizeCORSOptions } from './cors.js';
 import { detectProviderFormat, sanitizeErrorMessage } from './response-formatter.js';
+import { getHTTPStatusCode } from './status-mapping.js';
 
 /**
  * Core HTTP request handler (framework-agnostic)
@@ -444,7 +445,10 @@ export class CoreHTTPHandler {
     } else {
       // Use built-in error formatting
       const format = detectProviderFormat(req.url || '');
-      const statusCode = this.getErrorStatusCode(error);
+      // The shared mapper, not a private copy. handler.ts used to carry its
+      // own, and the two disagreed about identical input -- a timeout was 408
+      // here and 504 there, among others (#105).
+      const statusCode = getHTTPStatusCode(error);
 
       res.status(statusCode);
       res.send(this.formatErrorResponse(error, statusCode, format));
@@ -475,49 +479,6 @@ export class CoreHTTPHandler {
     }
 
     return false;
-  }
-
-  /**
-   * Get HTTP status code from error
-   */
-  private getErrorStatusCode(error: Error): number {
-    // An error that declares the status it means (see error-handler.ts) is
-    // taken at its word; only undeclared errors fall through to guessing from
-    // the message text.
-    const declared = (error as { details?: Record<string, unknown> }).details?.['httpStatus'];
-    if (typeof declared === 'number' && declared >= 400 && declared <= 599) {
-      return declared;
-    }
-
-    // Check for common error patterns
-    const message = error.message.toLowerCase();
-
-    if (message.includes('unauthorized') || message.includes('authentication')) {
-      return 401;
-    }
-
-    if (message.includes('forbidden') || message.includes('permission')) {
-      return 403;
-    }
-
-    if (message.includes('not found')) {
-      return 404;
-    }
-
-    if (message.includes('timeout')) {
-      return 408;
-    }
-
-    if (message.includes('conflict')) {
-      return 409;
-    }
-
-    if (message.includes('validation') || message.includes('invalid')) {
-      return 400;
-    }
-
-    // Default to 500 for unknown errors
-    return 500;
   }
 
   /**
