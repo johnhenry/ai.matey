@@ -384,14 +384,29 @@ export async function streamToText(stream: IRChatStream): Promise<string> {
  * the whole array is released. Do not split a long stream "just in case" -- take
  * only the splits that will be read.
  *
+ * A split that *stops* reading, however, is released. Finalising a split's
+ * generator -- `break`ing out of a `for await`, an early `return`, or an error
+ * thrown in the consuming loop -- deregisters it: its queue is dropped and the
+ * producer stops enqueuing for it. Once every split has finalised the producer
+ * stops pulling from the source altogether, since no split can be read again
+ * after its generator has completed (#102).
+ *
+ * **A source error is delivered to every split, not swallowed.** Each split
+ * yields whatever chunks genuinely arrived and then throws the source's error,
+ * so a truncated stream is distinguishable from a complete one. This matches
+ * {@link teeStream}; before #101 the error ended every split cleanly *and*
+ * surfaced as an unhandled rejection.
+ *
  * @param stream Original stream
  * @param consumerCount Number of consumers
  * @returns Array of streams, one per consumer
+ * @throws The source stream's error, into every split, if the source fails.
  */
 export function splitStream(stream: IRChatStream, consumerCount: number): IRChatStream[] {
   const consumers: Array<{
     resolve: ((chunk: IteratorResult<IRStreamChunk>) => void) | null;
     queue: IRStreamChunk[];
+    active: boolean;
   }> = Array.from({ length: consumerCount }, () => ({
     // Null, not a no-op function: the producer below treats a non-null
     // resolver as "a consumer is parked waiting for this chunk". A truthy
@@ -399,17 +414,34 @@ export function splitStream(stream: IRChatStream, consumerCount: number): IRChat
     // had started iterating, losing them (#37).
     resolve: null,
     queue: [],
+    // Cleared when this split's generator finalises. A split that has not
+    // started iterating yet is still active -- it is entitled to the whole
+    // buffered history (#37) -- so this only ever goes true -> false.
+    active: true,
   }));
 
   let streamDone = false;
-  const activeConsumers = consumerCount;
+  // A real reference count, not the `const` it used to be (#102). Only the
+  // producer reads it; a split must not stop because its siblings did.
+  let activeConsumers = consumerCount;
+  // Captured rather than swallowed, then rethrown into each split (#101).
+  let sourceError: Error | null = null;
 
   // Start consuming the source stream
   void (async () => {
     try {
       for await (const chunk of stream) {
-        // Distribute to all consumers
+        // Every split has finalised, so nothing can ever read again. Stop
+        // pulling and let the source be released (#102).
+        if (activeConsumers === 0) {
+          break;
+        }
+
+        // Distribute to all consumers that are still reading
         for (const consumer of consumers) {
+          if (!consumer.active) {
+            continue;
+          }
           consumer.queue.push(chunk);
           if (consumer.resolve) {
             const resolver = consumer.resolve;
@@ -418,9 +450,14 @@ export function splitStream(stream: IRChatStream, consumerCount: number): IRChat
           }
         }
       }
+    } catch (e) {
+      // Without this the rejection had no handler at all -- the IIFE is
+      // `void`-ed -- and every consumer saw a clean end of stream (#101).
+      sourceError = e instanceof Error ? e : new Error(String(e));
     } finally {
       streamDone = true;
-      // Signal completion to all consumers
+      // Wake every parked consumer. Each then drains its queue and, if the
+      // source failed, throws.
       for (const consumer of consumers) {
         if (consumer.resolve) {
           consumer.resolve({ value: undefined, done: true });
@@ -432,22 +469,38 @@ export function splitStream(stream: IRChatStream, consumerCount: number): IRChat
   // Create consumer streams
   return consumers.map((consumer) => {
     return (async function* () {
-      while (activeConsumers > 0) {
-        if (consumer.queue.length > 0) {
-          yield consumer.queue.shift()!;
-        } else if (streamDone) {
-          break;
-        } else {
-          // Wait for next chunk
-          await new Promise<void>((resolve) => {
-            consumer.resolve = (result) => {
-              if (!result.done && result.value) {
-                consumer.queue.push(result.value);
-              }
-              resolve();
-            };
-          });
+      try {
+        // Not `while (activeConsumers > 0)`: that condition was invariant, and
+        // a split must keep serving its own buffered chunks regardless of how
+        // many siblings are left.
+        while (true) {
+          if (consumer.queue.length > 0) {
+            yield consumer.queue.shift()!;
+          } else if (streamDone) {
+            if (sourceError) {
+              throw sourceError;
+            }
+            return;
+          } else {
+            // Wait for next chunk
+            await new Promise<void>((resolve) => {
+              consumer.resolve = (result) => {
+                if (!result.done && result.value) {
+                  consumer.queue.push(result.value);
+                }
+                resolve();
+              };
+            });
+          }
         }
+      } finally {
+        // Fires on every exit path a generator has -- running to completion,
+        // `break`, an early `return`, or a throw in the consuming loop -- which
+        // is precisely the deregistration hook #102 said was missing.
+        consumer.active = false;
+        consumer.resolve = null;
+        consumer.queue.length = 0;
+        activeConsumers--;
       }
     })();
   });
