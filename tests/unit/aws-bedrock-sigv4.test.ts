@@ -631,3 +631,148 @@ describe('AWSBedrockBackendAdapter request signing', () => {
     expect(headers['Authorization']).not.toBe(nonStreaming.authorizationHeader);
   });
 });
+
+// ============================================================================
+// Issue #103: caller headers must not clobber the computed SigV4 material
+// ============================================================================
+
+/**
+ * `getHeaders()` ended with `return { ...headers, ...this.config.headers }`, so
+ * `config.headers` was spread LAST and any caller-supplied header won over the
+ * ones signing had just computed -- `Authorization`, `X-Amz-Date` and
+ * `X-Amz-Security-Token` included. The request then failed with a generic AWS
+ * signature error that points nowhere near `config.headers`.
+ *
+ * The fix reverses the spread so auth wins. These tests pin that, and the last
+ * one pins the other half: ordinary caller headers must still get through, so
+ * the fix must not degenerate into "ignore config.headers".
+ *
+ * The override values below are deliberately synthetic and not credential
+ * shaped -- nothing here is a real or realistic secret.
+ *
+ * NOT COVERED: header names that differ only in case (`authorization` vs
+ * `Authorization`). `Record<string, string>` holds both simultaneously and
+ * `fetch` would collide them on the wire; the adapter does not normalize case,
+ * so that remains an open surface. It is out of scope for #103, which is about
+ * precedence between two values under the same key.
+ */
+describe('AWSBedrockBackendAdapter header precedence (issue #103)', () => {
+  const originalFetch = globalThis.fetch;
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+    vi.restoreAllMocks();
+  });
+
+  function makeRequest(): IRChatRequest {
+    return {
+      messages: [{ role: 'user', content: 'Hello!' }],
+      parameters: { model: 'anthropic.claude-3-haiku-20240307-v1:0' },
+      metadata: { requestId: 'req-1', timestamp: Date.now(), provenance: {} },
+    } as unknown as IRChatRequest;
+  }
+
+  function stubJsonResponse(capture: (url: string, init: RequestInit) => void) {
+    globalThis.fetch = vi.fn(async (url: unknown, init?: unknown) => {
+      capture(String(url), (init ?? {}) as RequestInit);
+      return new Response(
+        JSON.stringify({
+          output: { message: { role: 'assistant', content: [{ text: 'Hi!' }] } },
+          stopReason: 'end_turn',
+          usage: { inputTokens: 5, outputTokens: 2, totalTokens: 7 },
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } }
+      );
+    }) as unknown as typeof fetch;
+  }
+
+  it('keeps the computed Authorization when a caller supplies their own', async () => {
+    let headers: Record<string, string> = {};
+    stubJsonResponse((_url, init) => {
+      headers = init.headers as Record<string, string>;
+    });
+
+    const adapter = new AWSBedrockBackendAdapter({
+      ...BEDROCK_CONFIG_BASE,
+      region: 'us-east-1',
+      awsAccessKeyId: SUITE_ACCESS_KEY_ID,
+      awsSecretAccessKey: SUITE_SECRET_ACCESS_KEY,
+      headers: { Authorization: 'Bearer caller-override-must-not-win' },
+    });
+    await adapter.execute(makeRequest());
+
+    expect(headers['Authorization']).not.toBe('Bearer caller-override-must-not-win');
+    expect(headers['Authorization']).toMatch(
+      /^AWS4-HMAC-SHA256 Credential=AKIDEXAMPLE\/\d{8}\/us-east-1\/bedrock\/aws4_request, SignedHeaders=host;x-amz-date, Signature=[0-9a-f]{64}$/
+    );
+  });
+
+  it('keeps the computed X-Amz-Date when a caller supplies their own', async () => {
+    let headers: Record<string, string> = {};
+    stubJsonResponse((_url, init) => {
+      headers = init.headers as Record<string, string>;
+    });
+
+    const adapter = new AWSBedrockBackendAdapter({
+      ...BEDROCK_CONFIG_BASE,
+      region: 'us-east-1',
+      awsAccessKeyId: SUITE_ACCESS_KEY_ID,
+      awsSecretAccessKey: SUITE_SECRET_ACCESS_KEY,
+      headers: { 'X-Amz-Date': '19700101T000000Z' },
+    });
+    await adapter.execute(makeRequest());
+
+    // A stale date is exactly the case that produces an opaque AWS signature
+    // error, because the signature was computed over the real one.
+    expect(headers['X-Amz-Date']).not.toBe('19700101T000000Z');
+    expect(headers['X-Amz-Date']).toMatch(/^\d{8}T\d{6}Z$/);
+  });
+
+  it('keeps the computed X-Amz-Security-Token when a caller supplies their own', async () => {
+    let headers: Record<string, string> = {};
+    stubJsonResponse((_url, init) => {
+      headers = init.headers as Record<string, string>;
+    });
+
+    const adapter = new AWSBedrockBackendAdapter({
+      ...BEDROCK_CONFIG_BASE,
+      region: 'us-east-1',
+      awsAccessKeyId: SUITE_ACCESS_KEY_ID,
+      awsSecretAccessKey: SUITE_SECRET_ACCESS_KEY,
+      awsSessionToken: 'session-token-fixture',
+      headers: { 'X-Amz-Security-Token': 'caller-override-must-not-win' },
+    });
+    await adapter.execute(makeRequest());
+
+    // The token is part of the signed set when configured, so a caller
+    // replacing it invalidates the signature.
+    expect(headers['X-Amz-Security-Token']).toBe('session-token-fixture');
+  });
+
+  it('still forwards caller headers that do not collide with the signature', async () => {
+    let headers: Record<string, string> = {};
+    stubJsonResponse((_url, init) => {
+      headers = init.headers as Record<string, string>;
+    });
+
+    const adapter = new AWSBedrockBackendAdapter({
+      ...BEDROCK_CONFIG_BASE,
+      region: 'us-east-1',
+      awsAccessKeyId: SUITE_ACCESS_KEY_ID,
+      awsSecretAccessKey: SUITE_SECRET_ACCESS_KEY,
+      headers: {
+        'X-Custom-Trace-Id': 'trace-123',
+        Accept: 'application/vnd.custom+json',
+      },
+    });
+    await adapter.execute(makeRequest());
+
+    // A header the signature knows nothing about passes through untouched.
+    expect(headers['X-Custom-Trace-Id']).toBe('trace-123');
+    // And a caller may still override a non-auth default such as Accept:
+    // reversing the spread must not turn every computed header into a wall.
+    expect(headers['Accept']).toBe('application/vnd.custom+json');
+    // Auth is unaffected either way.
+    expect(headers['Authorization']).toMatch(/^AWS4-HMAC-SHA256 Credential=AKIDEXAMPLE\//);
+  });
+});
