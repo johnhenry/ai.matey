@@ -9,15 +9,8 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import type { ErrorHandler } from './types.js';
 import { sendError, detectProviderFormat } from './response-formatter.js';
-import {
-  AdapterError,
-  ValidationError,
-  AuthenticationError,
-  RateLimitError,
-  NetworkError,
-  ProviderError,
-  StreamError,
-} from '@johnhenry/aimatey-errors';
+import { getHTTPStatusCode } from './status-mapping.js';
+import { AdapterError, NetworkError, ProviderError } from '@johnhenry/aimatey-errors';
 
 /**
  * Default error handler
@@ -44,102 +37,11 @@ export const defaultErrorHandler: ErrorHandler = (
 };
 
 /**
- * The status an error deliberately declares for the response we are about to
- * send, if it declares one.
- *
- * Read only from `details.httpStatus`, which is set by code raising an error
- * *for* a response of ours. Deliberately NOT read from `httpContext.statusCode`
- * -- that records what an *upstream provider* answered, and echoing an upstream
- * status as our own would turn e.g. a provider's 404 into our 404 rather than
- * the 502/503 that describes our own failure to serve the request.
- *
- * Declaring the status this way lets a raiser ask for e.g. 413 without the
- * mapping having to infer it from message text, which breaks silently the first
- * time someone rewords the message.
+ * Re-exported from `./status-mapping.js`, which holds the single
+ * implementation now shared with `handler.ts` (#105). Still exported from here
+ * so the package's public entry point (`index.ts`) is unchanged.
  */
-function explicitStatusCode(error: Error): number | undefined {
-  const details = (error as AdapterError).details;
-  const declared = details?.['httpStatus'];
-
-  if (typeof declared === 'number' && declared >= 400 && declared <= 599) {
-    return declared;
-  }
-
-  return undefined;
-}
-
-/**
- * Get HTTP status code from error.
- *
- * Exported so that every HTTP entry point maps errors to statuses the same way
- * instead of hardcoding a number at each catch site.
- */
-export function getHTTPStatusCode(error: Error): number {
-  // An explicit status on the error always wins over inference.
-  const explicit = explicitStatusCode(error);
-  if (explicit !== undefined) {
-    return explicit;
-  }
-
-  // Check for adapter errors
-  if (error instanceof ValidationError) {
-    return 400;
-  }
-
-  if (error instanceof AuthenticationError) {
-    return 401;
-  }
-
-  if (error instanceof RateLimitError) {
-    return 429;
-  }
-
-  if (error instanceof NetworkError) {
-    return 502;
-  }
-
-  if (error instanceof ProviderError) {
-    return 503;
-  }
-
-  if (error instanceof StreamError) {
-    return 500;
-  }
-
-  if (error instanceof AdapterError) {
-    return 500;
-  }
-
-  // Check for common error patterns in message
-  const message = error.message.toLowerCase();
-
-  if (message.includes('invalid') || message.includes('malformed')) {
-    return 400;
-  }
-
-  if (message.includes('unauthorized') || message.includes('authentication')) {
-    return 401;
-  }
-
-  if (message.includes('forbidden') || message.includes('permission')) {
-    return 403;
-  }
-
-  if (message.includes('not found')) {
-    return 404;
-  }
-
-  if (message.includes('timeout')) {
-    return 504;
-  }
-
-  if (message.includes('too large')) {
-    return 413;
-  }
-
-  // Default to 500
-  return 500;
-}
+export { getHTTPStatusCode } from './status-mapping.js';
 
 /**
  * Create error handler that logs to a custom logger
