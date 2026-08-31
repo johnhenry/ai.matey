@@ -150,9 +150,30 @@ describe('accumulateChunk', () => {
     let acc = createStreamAccumulator();
     const chunks: IRStreamChunk[] = [
       { type: 'content', delta: 'Checking.', sequence: 0 },
-      { type: 'tool_use', sequence: 1, id: 'call_1', name: 'get_weather', inputDelta: '', index: 0 },
-      { type: 'tool_use', sequence: 2, id: 'call_1', name: 'get_weather', inputDelta: '{"loc', index: 0 },
-      { type: 'tool_use', sequence: 3, id: 'call_1', name: 'get_weather', inputDelta: 'ation":"SF"}', index: 0 },
+      {
+        type: 'tool_use',
+        sequence: 1,
+        id: 'call_1',
+        name: 'get_weather',
+        inputDelta: '',
+        index: 0,
+      },
+      {
+        type: 'tool_use',
+        sequence: 2,
+        id: 'call_1',
+        name: 'get_weather',
+        inputDelta: '{"loc',
+        index: 0,
+      },
+      {
+        type: 'tool_use',
+        sequence: 3,
+        id: 'call_1',
+        name: 'get_weather',
+        inputDelta: 'ation":"SF"}',
+        index: 0,
+      },
     ];
 
     for (const chunk of chunks) {
@@ -445,9 +466,7 @@ describe('mapStream', () => {
     ];
 
     const stream = createMockStream(chunks);
-    const mapped = mapStream(stream, (chunk) =>
-      chunk.type === 'content' ? chunk.delta : ''
-    );
+    const mapped = mapStream(stream, (chunk) => (chunk.type === 'content' ? chunk.delta : ''));
 
     const result = await collect(mapped);
 
@@ -479,9 +498,7 @@ describe('tapStream', () => {
   });
 
   it('should handle async callbacks', async () => {
-    const chunks: IRStreamChunk[] = [
-      { type: 'content', delta: 'Hello', sequence: 0 },
-    ];
+    const chunks: IRStreamChunk[] = [{ type: 'content', delta: 'Hello', sequence: 0 }];
 
     let callbackExecuted = false;
     const stream = createMockStream(chunks);
@@ -549,9 +566,7 @@ describe('streamToResponse', () => {
   });
 
   it('should create default done chunk if missing', async () => {
-    const chunks: IRStreamChunk[] = [
-      { type: 'content', delta: 'Hello', sequence: 0 },
-    ];
+    const chunks: IRStreamChunk[] = [{ type: 'content', delta: 'Hello', sequence: 0 }];
 
     const metadata: IRMetadata = { model: 'test', provider: 'test' };
     const stream = createMockStream(chunks);
@@ -606,9 +621,7 @@ describe('streamToText', () => {
 
 describe('catchStreamErrors', () => {
   it('should pass through chunks when no error occurs', async () => {
-    const chunks: IRStreamChunk[] = [
-      { type: 'content', delta: 'Hello', sequence: 0 },
-    ];
+    const chunks: IRStreamChunk[] = [{ type: 'content', delta: 'Hello', sequence: 0 }];
 
     const stream = createMockStream(chunks);
     const wrapped = catchStreamErrors(stream, () => null);
@@ -665,9 +678,7 @@ describe('streamWithTimeout', () => {
   });
 
   it('should pass through chunks when no timeout', async () => {
-    const chunks: IRStreamChunk[] = [
-      { type: 'content', delta: 'Hello', sequence: 0 },
-    ];
+    const chunks: IRStreamChunk[] = [{ type: 'content', delta: 'Hello', sequence: 0 }];
 
     const stream = createMockStream(chunks);
     const timeoutStream = streamWithTimeout(stream, 1000, () => ({
@@ -923,13 +934,11 @@ describe('validateStream', () => {
 
     // Should get warnings for both duplicate and out-of-order
     expect(warnings.length).toBeGreaterThan(0);
-    expect(warnings.some(w => w.includes('Duplicate sequence number'))).toBe(true);
+    expect(warnings.some((w) => w.includes('Duplicate sequence number'))).toBe(true);
   });
 
   it('should pass through chunks without sequence numbers', async () => {
-    const chunks: IRStreamChunk[] = [
-      { type: 'content', delta: 'Hello' } as IRStreamChunk,
-    ];
+    const chunks: IRStreamChunk[] = [{ type: 'content', delta: 'Hello' } as IRStreamChunk];
 
     const stream = createMockStream(chunks);
     const validated = validateStream(stream);
@@ -1183,5 +1192,167 @@ describe('splitStream', () => {
 
     expect(firstResult).toEqual(chunks);
     expect(secondResult).toEqual(chunks);
+  });
+
+  // ==========================================================================
+  // #101 -- source errors must reach consumers, and must not escape unhandled
+  // ==========================================================================
+
+  it('should rethrow a source error into every split rather than ending cleanly', async () => {
+    // Regression test (#101): the producer IIFE was `try`/`finally` with no
+    // `catch`, so a source error ran the `finally`, set `streamDone` and
+    // resolved every parked consumer with `{ done: true }`. A truncated stream
+    // was therefore indistinguishable from a complete one -- the caller
+    // committed a partial response as if it were whole.
+    //
+    // `teeStream` already captures the error and rethrows it into each
+    // consumer; `splitStream` must agree.
+    const boom = new Error('upstream exploded');
+
+    async function* failingSource(): IRChatStream {
+      yield { type: 'content', delta: 'a', sequence: 0 };
+      yield { type: 'content', delta: 'b', sequence: 1 };
+      throw boom;
+    }
+
+    const [first, second] = splitStream(failingSource(), 2);
+
+    // Both splits must surface the failure. `collect` iterates to completion,
+    // so a clean end of stream would resolve instead of reject.
+    await expect(collect(first!)).rejects.toThrow('upstream exploded');
+    await expect(collect(second!)).rejects.toThrow('upstream exploded');
+  });
+
+  it('should deliver the chunks that did arrive before rethrowing the source error', async () => {
+    // Truncation is signalled, but the prefix that genuinely arrived is not
+    // discarded: a split yields what it got, then throws.
+    async function* failingSource(): IRChatStream {
+      yield { type: 'content', delta: 'a', sequence: 0 };
+      yield { type: 'content', delta: 'b', sequence: 1 };
+      throw new Error('upstream exploded');
+    }
+
+    const [first] = splitStream(failingSource(), 2);
+
+    const received: IRStreamChunk[] = [];
+    let thrown: unknown;
+    try {
+      for await (const chunk of first!) {
+        received.push(chunk);
+      }
+    } catch (error) {
+      thrown = error;
+    }
+
+    expect(received).toEqual([
+      { type: 'content', delta: 'a', sequence: 0 },
+      { type: 'content', delta: 'b', sequence: 1 },
+    ]);
+    expect(thrown).toBeInstanceOf(Error);
+    expect((thrown as Error).message).toBe('upstream exploded');
+  });
+
+  it('should not leave the source error as an unhandled rejection', async () => {
+    // Regression test (#101), second failure mode -- distinct from the
+    // truncation above and not covered by it. The producer is invoked as
+    // `void (async () => { ... })()`, so with no `catch` the rejection has no
+    // handler at all. Under Node's default `--unhandled-rejections=throw` that
+    // terminates the process, and it happens whether or not anyone is
+    // consuming.
+    //
+    // Nothing iterates either split here, so the *only* thing that could
+    // report the error is an unhandled rejection.
+    const seen: unknown[] = [];
+    const onUnhandled = (reason: unknown): void => {
+      seen.push(reason);
+    };
+
+    // Vitest installs its own listener; adding ours does not remove it, and
+    // `process.on` fires every registered listener.
+    process.on('unhandledRejection', onUnhandled);
+    try {
+      async function* failingSource(): IRChatStream {
+        yield { type: 'content', delta: 'a', sequence: 0 };
+        throw new Error('unobserved upstream failure');
+      }
+
+      // Deliberately abandon both splits.
+      splitStream(failingSource(), 2);
+
+      // Node emits `unhandledRejection` once the microtask queue has drained
+      // and the rejection is still unhandled. Two macrotask turns is well past
+      // that point.
+      await new Promise((resolve) => setTimeout(resolve, 20));
+      await new Promise((resolve) => setTimeout(resolve, 20));
+    } finally {
+      process.off('unhandledRejection', onUnhandled);
+    }
+
+    expect(seen).toEqual([]);
+  });
+
+  // ==========================================================================
+  // #102 -- an abandoned split must deregister
+  // ==========================================================================
+
+  it('should stop draining the source once every split has been abandoned', async () => {
+    // Regression test (#102): `activeConsumers` was a `const`, so it never
+    // counted and there was no deregistration path at all. The producer drained
+    // the entire source and pushed every chunk into the queue of a split nobody
+    // would ever read again, growing without bound.
+    //
+    // With a real reference count, a split that breaks out of its `for await`
+    // finalises its generator and deregisters; once none are left the producer
+    // stops pulling. `pulled` is the externally observable proof.
+    let pulled = 0;
+
+    async function* countingSource(): IRChatStream {
+      for (let i = 0; i < 10_000; i++) {
+        pulled++;
+        yield { type: 'content', delta: String(i), sequence: i };
+        // Yield to the event loop so the test can observe a partial drain
+        // rather than the whole source being consumed in one synchronous burst.
+        await Promise.resolve();
+      }
+    }
+
+    const [first, second] = splitStream(countingSource(), 2);
+
+    // Both splits take exactly one chunk and walk away.
+    for await (const _chunk of first!) {
+      break;
+    }
+    for await (const _chunk of second!) {
+      break;
+    }
+
+    // Let the producer run for a while with nobody listening.
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    const afterAbandon = pulled;
+    await new Promise((resolve) => setTimeout(resolve, 20));
+
+    // The producer must have stopped. Without the fix it races to 10,000.
+    expect(pulled).toBe(afterAbandon);
+    expect(pulled).toBeLessThan(10_000);
+  });
+
+  it('should keep serving a live split after its sibling is abandoned', async () => {
+    // Deregistering an abandoned split must not disturb the ones still reading.
+    const chunks: IRStreamChunk[] = [
+      { type: 'content', delta: 'a', sequence: 0 },
+      { type: 'content', delta: 'b', sequence: 1 },
+      { type: 'content', delta: 'c', sequence: 2 },
+      { type: 'done', sequence: 3, finishReason: 'stop' },
+    ];
+
+    const [first, second] = splitStream(createMockStream(chunks), 2);
+
+    // Abandon the first split after a single chunk.
+    for await (const _chunk of first!) {
+      break;
+    }
+
+    // The second split still receives the whole stream, prefix included.
+    expect(await collect(second!)).toEqual(chunks);
   });
 });
