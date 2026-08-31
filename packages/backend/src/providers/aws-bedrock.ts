@@ -693,16 +693,37 @@ export class AWSBedrockBackendAdapter implements BackendAdapter<BedrockRequest, 
    * above). Computes an actual canonical request / string-to-sign /
    * signature using `awsAccessKeyId` + `awsSecretAccessKey`, rather than a
    * placeholder `Authorization` header.
+   *
+   * Header precedence is, lowest to highest:
+   *
+   * 1. transport defaults (`Content-Type`, `Accept`)
+   * 2. `config.headers` supplied by the caller
+   * 3. the computed SigV4 material
+   *
+   * The last step is the point of #103. `config.headers` used to be spread
+   * last, so a caller could replace `Authorization`, `X-Amz-Date` or
+   * `X-Amz-Security-Token` after signing. The signature is computed over
+   * specific values, so substituting one produced a generic AWS signature
+   * error that pointed nowhere near `config.headers`. Auth must not fail open.
+   *
+   * Caller headers still win over the transport defaults, which is deliberate:
+   * the reported defect is about auth, and demoting `config.headers` below
+   * *everything* would silently take away overrides that work today and are
+   * none of signing's business.
    */
   private async getHeaders(
     method: string,
     path: string,
     body: string
   ): Promise<Record<string, string>> {
-    const headers: Record<string, string> = {
+    const defaultHeaders: Record<string, string> = {
       'Content-Type': 'application/json',
       Accept: 'application/json',
     };
+
+    // Kept separate from the defaults so it can be applied *after* the caller's
+    // headers rather than before them.
+    const authHeaders: Record<string, string> = {};
 
     // If AWS credentials are provided in config, sign the request with SigV4.
     if (this.config.awsAccessKeyId && this.config.awsSecretAccessKey) {
@@ -729,15 +750,18 @@ export class AWSBedrockBackendAdapter implements BackendAdapter<BedrockRequest, 
         amzDate,
       });
 
-      headers['Authorization'] = authorizationHeader;
-      headers['X-Amz-Date'] = amzDate;
+      authHeaders['Authorization'] = authorizationHeader;
+      authHeaders['X-Amz-Date'] = amzDate;
 
       if (this.config.awsSessionToken) {
-        headers['X-Amz-Security-Token'] = this.config.awsSessionToken;
+        authHeaders['X-Amz-Security-Token'] = this.config.awsSessionToken;
       }
     }
 
-    return { ...headers, ...this.config.headers };
+    // When no credentials are configured `authHeaders` is empty, so a caller
+    // supplying their own `Authorization` (fronting proxy, sidecar signer)
+    // still gets it through. There is no signature to protect in that case.
+    return { ...defaultHeaders, ...this.config.headers, ...authHeaders };
   }
 
   /**
