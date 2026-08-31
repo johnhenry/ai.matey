@@ -9,7 +9,7 @@
 
 import type {
   BackendAdapter,
-  BackendAdapterConfig,
+  ApiKeyBackendAdapterConfig,
   AdapterMetadata,
 } from '@johnhenry/aimatey-types';
 import type {
@@ -113,7 +113,7 @@ export interface OpenRouterStreamChunk {
   }>;
 }
 
-export interface OpenRouterConfig extends BackendAdapterConfig {
+export interface OpenRouterConfig extends ApiKeyBackendAdapterConfig {
   siteUrl?: string; // Your site URL (for HTTP-Referer header)
   siteName?: string; // Your site name (for X-Title header)
 }

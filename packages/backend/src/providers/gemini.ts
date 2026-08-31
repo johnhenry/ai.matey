@@ -9,7 +9,7 @@
 
 import type {
   BackendAdapter,
-  BackendAdapterConfig,
+  ApiKeyBackendAdapterConfig,
   AdapterMetadata,
 } from '@johnhenry/aimatey-types';
 import type { IREmbedRequest, IREmbedResponse } from '@johnhenry/aimatey-types';
@@ -82,11 +82,11 @@ export interface GeminiResponse {
 
 export class GeminiBackendAdapter implements BackendAdapter<GeminiRequest, GeminiResponse> {
   readonly metadata: AdapterMetadata;
-  private readonly config: BackendAdapterConfig;
+  private readonly config: ApiKeyBackendAdapterConfig;
   private readonly baseURL: string;
   private readonly modelCache: ReturnType<typeof getModelCache>;
 
-  constructor(config: BackendAdapterConfig) {
+  constructor(config: ApiKeyBackendAdapterConfig) {
     this.config = config;
     this.baseURL = config.baseURL || 'https://generativelanguage.googleapis.com/v1beta';
     this.modelCache = getModelCache(config.modelsCacheScope || 'global');

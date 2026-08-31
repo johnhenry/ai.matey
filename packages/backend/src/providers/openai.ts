@@ -9,7 +9,7 @@
 
 import type {
   BackendAdapter,
-  BackendAdapterConfig,
+  ApiKeyBackendAdapterConfig,
   AdapterMetadata,
 } from '@johnhenry/aimatey-types';
 import type {
@@ -206,7 +206,7 @@ export function requiresMaxCompletionTokens(model: string): boolean {
  */
 export class OpenAIBackendAdapter implements BackendAdapter<OpenAIRequest, OpenAIResponse> {
   readonly metadata: AdapterMetadata;
-  protected readonly config: BackendAdapterConfig;
+  protected readonly config: ApiKeyBackendAdapterConfig;
   protected readonly baseURL: string;
   private readonly modelCache: ReturnType<typeof getModelCache>;
 
@@ -216,7 +216,7 @@ export class OpenAIBackendAdapter implements BackendAdapter<OpenAIRequest, OpenA
    * @param config Backend adapter configuration
    * @param metadataOverride Optional metadata to override defaults (used by subclasses)
    */
-  constructor(config: BackendAdapterConfig, metadataOverride?: Partial<AdapterMetadata>) {
+  constructor(config: ApiKeyBackendAdapterConfig, metadataOverride?: Partial<AdapterMetadata>) {
     this.config = config;
     this.baseURL = config.baseURL || 'https://api.openai.com/v1';
     this.modelCache = getModelCache(config.modelsCacheScope || 'global');

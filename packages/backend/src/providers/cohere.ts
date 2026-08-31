@@ -9,7 +9,7 @@
 
 import type {
   BackendAdapter,
-  BackendAdapterConfig,
+  ApiKeyBackendAdapterConfig,
   AdapterMetadata,
 } from '@johnhenry/aimatey-types';
 import type { IREmbedRequest, IREmbedResponse } from '@johnhenry/aimatey-types';
@@ -128,11 +128,11 @@ export interface CohereStreamChunk {
  */
 export class CohereBackendAdapter implements BackendAdapter<CohereRequest, CohereResponse> {
   readonly metadata: AdapterMetadata;
-  private readonly config: BackendAdapterConfig;
+  private readonly config: ApiKeyBackendAdapterConfig;
   private readonly baseURL: string;
   private readonly modelCache: ReturnType<typeof getModelCache>;
 
-  constructor(config: BackendAdapterConfig) {
+  constructor(config: ApiKeyBackendAdapterConfig) {
     this.config = config;
     this.baseURL = config.baseURL || 'https://api.cohere.ai/v1';
     this.modelCache = getModelCache(config.modelsCacheScope || 'global');

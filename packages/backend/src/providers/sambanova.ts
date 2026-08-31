@@ -8,7 +8,11 @@
  */
 
 import { OpenAIBackendAdapter, type OpenAIRequest, type OpenAIResponse } from './openai.js';
-import type { BackendAdapter, BackendAdapterConfig, IRChatRequest } from '@johnhenry/aimatey-types';
+import type {
+  BackendAdapter,
+  ApiKeyBackendAdapterConfig,
+  IRChatRequest,
+} from '@johnhenry/aimatey-types';
 import { estimateTokens } from '../shared.js';
 
 /**
@@ -61,8 +65,8 @@ export class SambaNovaBackendAdapter
   extends OpenAIBackendAdapter
   implements BackendAdapter<OpenAIRequest, OpenAIResponse>
 {
-  constructor(config: BackendAdapterConfig) {
-    const sambaNovaConfig: BackendAdapterConfig = {
+  constructor(config: ApiKeyBackendAdapterConfig) {
+    const sambaNovaConfig: ApiKeyBackendAdapterConfig = {
       ...config,
       baseURL: config.baseURL || 'https://api.sambanova.ai/v1',
       defaultModel: config.defaultModel || 'Meta-Llama-3.1-8B-Instruct',
@@ -164,6 +168,8 @@ export class SambaNovaBackendAdapter
  * });
  * ```
  */
-export function createSambaNovaAdapter(config: BackendAdapterConfig): SambaNovaBackendAdapter {
+export function createSambaNovaAdapter(
+  config: ApiKeyBackendAdapterConfig
+): SambaNovaBackendAdapter {
   return new SambaNovaBackendAdapter(config);
 }

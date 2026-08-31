@@ -9,7 +9,7 @@
 
 import type {
   BackendAdapter,
-  BackendAdapterConfig,
+  ApiKeyBackendAdapterConfig,
   AdapterMetadata,
 } from '@johnhenry/aimatey-types';
 import type {
@@ -93,12 +93,12 @@ export class ReplicateBackendAdapter implements BackendAdapter<
   ReplicatePrediction
 > {
   readonly metadata: AdapterMetadata;
-  private readonly config: BackendAdapterConfig;
+  private readonly config: ApiKeyBackendAdapterConfig;
   private readonly baseURL: string;
   private readonly maxPollAttempts: number = 60; // Max 60 attempts (60 seconds)
   private readonly pollInterval: number = 1000; // Poll every 1 second
 
-  constructor(config: BackendAdapterConfig) {
+  constructor(config: ApiKeyBackendAdapterConfig) {
     this.config = config;
     this.baseURL = config.baseURL || 'https://api.replicate.com/v1';
     this.metadata = {

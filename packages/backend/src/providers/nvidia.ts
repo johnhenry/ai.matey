@@ -8,7 +8,11 @@
  */
 
 import { OpenAIBackendAdapter, type OpenAIRequest, type OpenAIResponse } from './openai.js';
-import type { BackendAdapter, BackendAdapterConfig, IRChatRequest } from '@johnhenry/aimatey-types';
+import type {
+  BackendAdapter,
+  ApiKeyBackendAdapterConfig,
+  IRChatRequest,
+} from '@johnhenry/aimatey-types';
 import { estimateTokens } from '../shared.js';
 
 /**
@@ -69,9 +73,9 @@ export class NVIDIABackendAdapter
   extends OpenAIBackendAdapter
   implements BackendAdapter<OpenAIRequest, OpenAIResponse>
 {
-  constructor(config: BackendAdapterConfig) {
+  constructor(config: ApiKeyBackendAdapterConfig) {
     // NVIDIA NIM API endpoint
-    const nvidiaConfig: BackendAdapterConfig = {
+    const nvidiaConfig: ApiKeyBackendAdapterConfig = {
       ...config,
       baseURL: config.baseURL || 'https://integrate.api.nvidia.com/v1',
       // Without this, the adapter silently inherits OpenAIBackendAdapter's
@@ -176,6 +180,6 @@ export class NVIDIABackendAdapter
  * });
  * ```
  */
-export function createNVIDIAAdapter(config: BackendAdapterConfig): NVIDIABackendAdapter {
+export function createNVIDIAAdapter(config: ApiKeyBackendAdapterConfig): NVIDIABackendAdapter {
   return new NVIDIABackendAdapter(config);
 }

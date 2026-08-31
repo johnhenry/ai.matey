@@ -8,7 +8,11 @@
  */
 
 import { OpenAIBackendAdapter, type OpenAIRequest, type OpenAIResponse } from './openai.js';
-import type { BackendAdapter, BackendAdapterConfig, IRChatRequest } from '@johnhenry/aimatey-types';
+import type {
+  BackendAdapter,
+  ApiKeyBackendAdapterConfig,
+  IRChatRequest,
+} from '@johnhenry/aimatey-types';
 import { estimateTokens } from '../shared.js';
 
 /**
@@ -60,8 +64,8 @@ export class InceptionBackendAdapter
   extends OpenAIBackendAdapter
   implements BackendAdapter<OpenAIRequest, OpenAIResponse>
 {
-  constructor(config: BackendAdapterConfig) {
-    const inceptionConfig: BackendAdapterConfig = {
+  constructor(config: ApiKeyBackendAdapterConfig) {
+    const inceptionConfig: ApiKeyBackendAdapterConfig = {
       ...config,
       baseURL: config.baseURL || 'https://api.inceptionlabs.ai/v1',
       defaultModel: config.defaultModel || 'mercury-coder-small',
@@ -158,6 +162,8 @@ export class InceptionBackendAdapter
  * });
  * ```
  */
-export function createInceptionAdapter(config: BackendAdapterConfig): InceptionBackendAdapter {
+export function createInceptionAdapter(
+  config: ApiKeyBackendAdapterConfig
+): InceptionBackendAdapter {
   return new InceptionBackendAdapter(config);
 }

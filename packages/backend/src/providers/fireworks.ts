@@ -9,7 +9,7 @@
 
 import type {
   BackendAdapter,
-  BackendAdapterConfig,
+  ApiKeyBackendAdapterConfig,
   AdapterMetadata,
 } from '@johnhenry/aimatey-types';
 import type { IREmbedRequest, IREmbedResponse } from '@johnhenry/aimatey-types';
@@ -135,10 +135,10 @@ export class FireworksAIBackendAdapter implements BackendAdapter<
   FireworksAIResponse
 > {
   readonly metadata: AdapterMetadata;
-  private readonly config: BackendAdapterConfig;
+  private readonly config: ApiKeyBackendAdapterConfig;
   private readonly baseURL: string;
 
-  constructor(config: BackendAdapterConfig) {
+  constructor(config: ApiKeyBackendAdapterConfig) {
     this.config = config;
     this.baseURL = config.baseURL || 'https://api.fireworks.ai/inference/v1';
     this.metadata = {

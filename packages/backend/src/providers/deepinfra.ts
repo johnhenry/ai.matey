@@ -9,7 +9,7 @@
 
 import type {
   BackendAdapter,
-  BackendAdapterConfig,
+  ApiKeyBackendAdapterConfig,
   AdapterMetadata,
 } from '@johnhenry/aimatey-types';
 import type { IREmbedRequest, IREmbedResponse } from '@johnhenry/aimatey-types';
@@ -124,10 +124,10 @@ export class DeepInfraBackendAdapter implements BackendAdapter<
   DeepInfraResponse
 > {
   readonly metadata: AdapterMetadata;
-  private readonly config: BackendAdapterConfig;
+  private readonly config: ApiKeyBackendAdapterConfig;
   private readonly baseURL: string;
 
-  constructor(config: BackendAdapterConfig) {
+  constructor(config: ApiKeyBackendAdapterConfig) {
     this.config = config;
     this.baseURL = config.baseURL || 'https://api.deepinfra.com/v1/openai';
     this.metadata = {
