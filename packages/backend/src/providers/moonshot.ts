@@ -8,7 +8,11 @@
  */
 
 import { OpenAIBackendAdapter, type OpenAIRequest, type OpenAIResponse } from './openai.js';
-import type { BackendAdapter, BackendAdapterConfig, IRChatRequest } from '@johnhenry/aimatey-types';
+import type {
+  BackendAdapter,
+  ApiKeyBackendAdapterConfig,
+  IRChatRequest,
+} from '@johnhenry/aimatey-types';
 import { estimateTokens } from '../shared.js';
 
 /**
@@ -60,8 +64,8 @@ export class MoonshotBackendAdapter
   extends OpenAIBackendAdapter
   implements BackendAdapter<OpenAIRequest, OpenAIResponse>
 {
-  constructor(config: BackendAdapterConfig) {
-    const moonshotConfig: BackendAdapterConfig = {
+  constructor(config: ApiKeyBackendAdapterConfig) {
+    const moonshotConfig: ApiKeyBackendAdapterConfig = {
       ...config,
       baseURL: config.baseURL || 'https://api.moonshot.cn/v1',
       defaultModel: config.defaultModel || 'kimi-k3',
@@ -160,6 +164,6 @@ export class MoonshotBackendAdapter
  * });
  * ```
  */
-export function createMoonshotAdapter(config: BackendAdapterConfig): MoonshotBackendAdapter {
+export function createMoonshotAdapter(config: ApiKeyBackendAdapterConfig): MoonshotBackendAdapter {
   return new MoonshotBackendAdapter(config);
 }

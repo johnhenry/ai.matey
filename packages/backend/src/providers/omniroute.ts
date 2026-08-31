@@ -11,7 +11,12 @@
  */
 
 import { OpenAIBackendAdapter, type OpenAIRequest, type OpenAIResponse } from './openai.js';
-import type { BackendAdapter, BackendAdapterConfig, IRChatRequest } from '@johnhenry/aimatey-types';
+import type {
+  BackendAdapter,
+  ApiKeyBackendAdapterConfig,
+  BackendAdapterConfig,
+  IRChatRequest,
+} from '@johnhenry/aimatey-types';
 
 /**
  * Backend adapter for a self-hosted OmniRoute gateway.
@@ -40,7 +45,7 @@ export class OmniRouteBackendAdapter
   implements BackendAdapter<OpenAIRequest, OpenAIResponse>
 {
   constructor(config: BackendAdapterConfig) {
-    const omnirouteConfig: BackendAdapterConfig = {
+    const omnirouteConfig: ApiKeyBackendAdapterConfig = {
       ...config,
       baseURL: config.baseURL || 'http://localhost:20128/v1',
       defaultModel: config.defaultModel || 'auto',

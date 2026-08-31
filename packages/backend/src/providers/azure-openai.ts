@@ -9,7 +9,7 @@
 
 import type {
   BackendAdapter,
-  BackendAdapterConfig,
+  ApiKeyBackendAdapterConfig,
   AdapterMetadata,
 } from '@johnhenry/aimatey-types';
 import type {
@@ -110,7 +110,7 @@ export interface AzureOpenAIStreamChunk {
   }>;
 }
 
-export interface AzureOpenAIConfig extends BackendAdapterConfig {
+export interface AzureOpenAIConfig extends ApiKeyBackendAdapterConfig {
   resourceName?: string; // Azure resource name
   deploymentId?: string; // Azure deployment ID
   apiVersion?: string; // Azure API version (default: '2024-02-15-preview')

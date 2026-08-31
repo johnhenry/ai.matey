@@ -8,7 +8,7 @@
  */
 
 import { OpenAIBackendAdapter, type OpenAIRequest, type OpenAIResponse } from './openai.js';
-import type { BackendAdapter, BackendAdapterConfig } from '@johnhenry/aimatey-types';
+import type { BackendAdapter, ApiKeyBackendAdapterConfig } from '@johnhenry/aimatey-types';
 
 /**
  * Backend adapter for DeepSeek API.
@@ -52,11 +52,11 @@ export class DeepSeekBackendAdapter
   extends OpenAIBackendAdapter
   implements BackendAdapter<OpenAIRequest, OpenAIResponse>
 {
-  constructor(config: BackendAdapterConfig) {
+  constructor(config: ApiKeyBackendAdapterConfig) {
     // DeepSeek API endpoint; default to the current V4 generation
     // (deepseek-chat/deepseek-reasoner are retired as of 2026-07-24).
     // Without this, the inherited OpenAI fallback model would be sent.
-    const deepseekConfig: BackendAdapterConfig = {
+    const deepseekConfig: ApiKeyBackendAdapterConfig = {
       ...config,
       baseURL: config.baseURL ?? 'https://api.deepseek.com/v1',
       defaultModel: config.defaultModel ?? 'deepseek-v4-flash',
@@ -108,6 +108,6 @@ export class DeepSeekBackendAdapter
  * });
  * ```
  */
-export function createDeepSeekAdapter(config: BackendAdapterConfig): DeepSeekBackendAdapter {
+export function createDeepSeekAdapter(config: ApiKeyBackendAdapterConfig): DeepSeekBackendAdapter {
   return new DeepSeekBackendAdapter(config);
 }

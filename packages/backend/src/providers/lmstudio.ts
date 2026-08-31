@@ -8,7 +8,12 @@
  */
 
 import { OpenAIBackendAdapter, type OpenAIRequest, type OpenAIResponse } from './openai.js';
-import type { BackendAdapter, BackendAdapterConfig, IRChatRequest } from '@johnhenry/aimatey-types';
+import type {
+  BackendAdapter,
+  ApiKeyBackendAdapterConfig,
+  BackendAdapterConfig,
+  IRChatRequest,
+} from '@johnhenry/aimatey-types';
 
 /**
  * Backend adapter for LM Studio local API.
@@ -61,7 +66,7 @@ export class LMStudioBackendAdapter
 {
   constructor(config: BackendAdapterConfig) {
     // LM Studio default endpoint
-    const lmstudioConfig: BackendAdapterConfig = {
+    const lmstudioConfig: ApiKeyBackendAdapterConfig = {
       ...config,
       baseURL: config.baseURL || 'http://localhost:1234/v1',
       // LM Studio doesn't require API key for local usage

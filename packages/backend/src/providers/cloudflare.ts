@@ -9,7 +9,7 @@
 
 import type {
   BackendAdapter,
-  BackendAdapterConfig,
+  ApiKeyBackendAdapterConfig,
   AdapterMetadata,
 } from '@johnhenry/aimatey-types';
 import type {
@@ -104,7 +104,7 @@ export interface CloudflareStreamChunk {
   }>;
 }
 
-export interface CloudflareConfig extends BackendAdapterConfig {
+export interface CloudflareConfig extends ApiKeyBackendAdapterConfig {
   accountId?: string; // Cloudflare account ID
 }
 

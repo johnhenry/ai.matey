@@ -127,8 +127,22 @@ export interface BackendAdapterConfig {
   /**
    * API key for authentication.
    * Should be injected from environment or secure config.
+   *
+   * **Optional on the base config, and required by the adapters that actually
+   * use one** -- see {@link ApiKeyBackendAdapterConfig}.
+   *
+   * This was required until #104, which forced every caller of an adapter that
+   * does not authenticate this way to invent a dummy string for a field with
+   * no consumer. The type gave no hint that it was inert, so a required
+   * credential field also invited callers to put a *real* secret somewhere
+   * nothing would ever read it.
+   *
+   * Adapters that ignore it entirely: AWS Bedrock (SigV4 via
+   * `awsAccessKeyId`/`awsSecretAccessKey`), Ollama and the model runner
+   * (local, unauthenticated). LM Studio and OmniRoute read it only to
+   * substitute the string `'not-needed'` when it is absent.
    */
-  readonly apiKey: string;
+  readonly apiKey?: string;
 
   /**
    * Base URL for API endpoint.
@@ -251,6 +265,32 @@ export interface BackendAdapterConfig {
    */
   readonly streaming?: StreamingConfig;
 }
+
+/**
+ * A {@link BackendAdapterConfig} for an adapter that genuinely authenticates
+ * with an API key, narrowing `apiKey` back to required.
+ *
+ * `apiKey` is optional on the base config because a good number of adapters
+ * never read it (#104): AWS Bedrock signs with SigV4, Ollama and the model
+ * runner talk to a local unauthenticated server, and LM Studio and OmniRoute
+ * substitute `'not-needed'` when it is absent. Making it required for all of
+ * them meant every such caller had to invent a dummy string.
+ *
+ * Requiring it *here* rather than dropping the requirement everywhere is the
+ * other half of that change: an adapter that really does need a key must still
+ * refuse to be constructed without one, so this is not a blanket weakening.
+ *
+ * @example
+ * ```typescript
+ * // Providers that authenticate with a bearer token or equivalent:
+ * class OpenAIBackendAdapter {
+ *   constructor(private readonly config: ApiKeyBackendAdapterConfig) {}
+ * }
+ * ```
+ */
+export type ApiKeyBackendAdapterConfig = BackendAdapterConfig & {
+  readonly apiKey: string;
+};
 
 /**
  * Backend adapter interface.

@@ -8,7 +8,11 @@
  */
 
 import { OpenAIBackendAdapter, type OpenAIRequest, type OpenAIResponse } from './openai.js';
-import type { BackendAdapter, BackendAdapterConfig, IRChatRequest } from '@johnhenry/aimatey-types';
+import type {
+  BackendAdapter,
+  ApiKeyBackendAdapterConfig,
+  IRChatRequest,
+} from '@johnhenry/aimatey-types';
 import { estimateTokens } from '../shared.js';
 
 /**
@@ -60,9 +64,9 @@ export class GroqBackendAdapter
   extends OpenAIBackendAdapter
   implements BackendAdapter<OpenAIRequest, OpenAIResponse>
 {
-  constructor(config: BackendAdapterConfig) {
+  constructor(config: ApiKeyBackendAdapterConfig) {
     // Groq API endpoint
-    const groqConfig: BackendAdapterConfig = {
+    const groqConfig: ApiKeyBackendAdapterConfig = {
       ...config,
       baseURL: config.baseURL || 'https://api.groq.com/openai/v1',
       defaultModel: config.defaultModel || 'llama-3.1-8b-instant',
@@ -151,6 +155,6 @@ export class GroqBackendAdapter
  * });
  * ```
  */
-export function createGroqAdapter(config: BackendAdapterConfig): GroqBackendAdapter {
+export function createGroqAdapter(config: ApiKeyBackendAdapterConfig): GroqBackendAdapter {
   return new GroqBackendAdapter(config);
 }
