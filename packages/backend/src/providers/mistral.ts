@@ -481,7 +481,11 @@ export class MistralBackendAdapter implements BackendAdapter<MistralRequest, Mis
       metadata: {
         ...originalRequest.metadata,
         providerResponseId: response.id,
-        provenance: { ...originalRequest.metadata.provenance, backend: this.metadata.name },
+        provenance: {
+          ...originalRequest.metadata.provenance,
+          backend: this.metadata.name,
+          servedModel: response.model,
+        },
         custom: {
           ...originalRequest.metadata.custom,
           mistralResponseId: response.id,

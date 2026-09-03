@@ -258,6 +258,7 @@ export class XAIBackendAdapter implements BackendAdapter<XAIRequest, XAIResponse
         provenance: {
           ...originalRequest.metadata.provenance,
           backend: this.metadata.name,
+          servedModel: response.model,
         },
         custom: {
           ...originalRequest.metadata.custom,

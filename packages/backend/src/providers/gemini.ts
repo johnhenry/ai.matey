@@ -74,6 +74,15 @@ export interface GeminiResponse {
     candidatesTokenCount: number;
     totalTokenCount: number;
   };
+  /**
+   * The model version that generated the response ("Output only" in the Gemini API
+   * reference for `GenerateContentResponse`).
+   *
+   * Gemini has no top-level `model` key, which is why the generic `raw.model` read the
+   * OpenTelemetry middleware used before #113 could never see it. Declared here so
+   * `toIR()` can put it on `provenance.servedModel` like every other provider's echo.
+   */
+  modelVersion?: string;
 }
 
 // ============================================================================
@@ -595,7 +604,12 @@ export class GeminiBackendAdapter implements BackendAdapter<GeminiRequest, Gemin
       metadata: {
         ...originalRequest.metadata,
         providerResponseId: undefined, // Gemini does not provide a response ID
-        provenance: { ...originalRequest.metadata.provenance, backend: this.metadata.name },
+        provenance: {
+          ...originalRequest.metadata.provenance,
+          backend: this.metadata.name,
+          // Gemini reports the served model as `modelVersion`, not `model`.
+          servedModel: response.modelVersion,
+        },
         custom: {
           ...originalRequest.metadata.custom,
           latencyMs,

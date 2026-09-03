@@ -276,6 +276,7 @@ export class CerebrasBackendAdapter implements BackendAdapter<CerebrasRequest, C
         provenance: {
           ...originalRequest.metadata.provenance,
           backend: this.metadata.name,
+          servedModel: response.model,
         },
         custom: {
           ...originalRequest.metadata.custom,

@@ -17,6 +17,7 @@ import type {
   MessageContent,
 } from '@johnhenry/aimatey-types';
 import type { StreamConversionOptions } from '@johnhenry/aimatey-types';
+import { resolveServedModel } from '@johnhenry/aimatey-types';
 import { AdapterConversionError, ErrorCode } from '@johnhenry/aimatey-errors';
 import { convertStreamMode } from '@johnhenry/aimatey-utils';
 
@@ -458,7 +459,13 @@ export class OpenAIFrontendAdapter implements FrontendAdapter<
         id: response.metadata.requestId,
         object: 'chat.completion',
         created: Math.floor(response.metadata.timestamp / 1000),
-        model: response.metadata.provenance?.backend || 'unknown',
+        // The model that answered, not the adapter that ran it. Before #113 this emitted
+        // `provenance.backend`, so an HTTP client of an aimatey server was handed
+        // `"model": "openai-backend"` in an otherwise OpenAI-shaped payload.
+        model:
+          resolveServedModel(response.metadata.provenance) ??
+          response.metadata.provenance?.backend ??
+          'unknown',
         choices: [
           {
             index: 0,
@@ -529,7 +536,10 @@ export class OpenAIFrontendAdapter implements FrontendAdapter<
           case 'start':
             // Extract metadata
             messageId = chunk.metadata.requestId;
-            model = chunk.metadata.provenance?.backend || 'unknown';
+            model =
+              resolveServedModel(chunk.metadata.provenance) ??
+              chunk.metadata.provenance?.backend ??
+              'unknown';
             created = Math.floor(chunk.metadata.timestamp / 1000);
             break;
 

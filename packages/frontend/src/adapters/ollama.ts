@@ -15,6 +15,7 @@ import type {
   IRMessage,
 } from '@johnhenry/aimatey-types';
 import type { StreamConversionOptions } from '@johnhenry/aimatey-types';
+import { resolveServedModel } from '@johnhenry/aimatey-types';
 
 // ============================================================================
 // Ollama API Types
@@ -217,7 +218,9 @@ export class OllamaFrontendAdapter implements FrontendAdapter<OllamaRequest, Oll
    */
   fromIR(response: IRChatResponse): Promise<OllamaResponse> {
     return Promise.resolve({
-      model: (response.metadata.custom?.model as string) || 'unknown',
+      // Was `metadata.custom?.model`, which nothing writes onto an `IRChatResponse` -- a dead
+      // read that always took the constant fallback, the same defect class as #112.
+      model: resolveServedModel(response.metadata.provenance) ?? 'unknown',
       created_at: new Date().toISOString(),
       message: {
         role: 'assistant',

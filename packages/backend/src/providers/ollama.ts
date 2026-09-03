@@ -393,7 +393,11 @@ export class OllamaBackendAdapter implements BackendAdapter<OllamaRequest, Ollam
       metadata: {
         ...originalRequest.metadata,
         providerResponseId: undefined, // Ollama does not provide a response ID
-        provenance: { ...originalRequest.metadata.provenance, backend: this.metadata.name },
+        provenance: {
+          ...originalRequest.metadata.provenance,
+          backend: this.metadata.name,
+          servedModel: response.model,
+        },
         custom: {
           ...originalRequest.metadata.custom,
           latencyMs,

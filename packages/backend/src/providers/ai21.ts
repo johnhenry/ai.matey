@@ -241,6 +241,7 @@ export class AI21BackendAdapter implements BackendAdapter<AI21Request, AI21Respo
         provenance: {
           ...originalRequest.metadata.provenance,
           backend: this.metadata.name,
+          servedModel: response.model,
         },
         custom: {
           ...originalRequest.metadata.custom,
