@@ -313,6 +313,35 @@ function shouldSample(samplingRate: number): boolean {
 }
 
 // ============================================================================
+// Served Model
+// ============================================================================
+
+/**
+ * The model that actually generated a response, or `undefined` if it cannot be determined.
+ *
+ * The OpenTelemetry GenAI semantic conventions draw a deliberate distinction:
+ * `request.model` is "the name of the GenAI model a request is being made to" (e.g. `gpt-4`)
+ * while `response.model` is "the name of the model that generated the response"
+ * (e.g. `gpt-4-0613`). The two attributes exist in order to differ -- a provider may resolve
+ * an alias to a dated snapshot, and ai.matey's own router may substitute a model outright
+ * (the `model-substituted` warning category).
+ *
+ * The IR has no typed field for the served model yet (#113). The one source available is the
+ * provider's own response body, which every backend adapter preserves verbatim in `raw`;
+ * `model` is the conventional key across the OpenAI- and Anthropic-shaped providers.
+ *
+ * This deliberately does NOT fall back to the requested model. Reporting the requested model
+ * as the served one would make `ai.response.model` a duplicate of `ai.request.model` by
+ * construction, and would assert a model that never served in exactly the substitution case
+ * the attribute exists to record. Leaving the attribute unset keeps "not reported"
+ * distinguishable from "reported as X".
+ */
+function getServedModel(response: IRChatResponse): string | undefined {
+  const model = response.raw?.['model'];
+  return typeof model === 'string' && model.length > 0 ? model : undefined;
+}
+
+// ============================================================================
 // Middleware Factory
 // ============================================================================
 
@@ -410,8 +439,11 @@ export async function createOpenTelemetryMiddleware(
       // Execute within span context
       const spanContext = api.trace.setSpan(api.context.active(), span);
 
-      // Call next middleware/handler in the span context
-      const response = await api.context.with(spanContext, async () => {
+      // Call next middleware/handler in the span context.
+      // `api` is deliberately `any` (optional peer dependency), so annotate the result:
+      // without this every property access on `response` is unchecked, which is how a read
+      // of a non-existent provenance field survived review (#112).
+      const response: IRChatResponse = await api.context.with(spanContext, async () => {
         return await next();
       });
 
@@ -425,11 +457,9 @@ export async function createOpenTelemetryMiddleware(
       span.setAttribute(OpenTelemetryAttributes.RESPONSE_FINISH_REASON, response.finishReason);
       span.setAttribute(OpenTelemetryAttributes.DURATION_MS, duration);
 
-      if (response.metadata.provenance?.backendModel) {
-        span.setAttribute(
-          OpenTelemetryAttributes.RESPONSE_MODEL,
-          response.metadata.provenance.backendModel
-        );
+      const servedModel = getServedModel(response);
+      if (servedModel !== undefined) {
+        span.setAttribute(OpenTelemetryAttributes.RESPONSE_MODEL, servedModel);
       }
 
       // Add token usage if present
