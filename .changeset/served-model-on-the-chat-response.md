@@ -100,7 +100,11 @@ asked for, `resolveServedModel(...)` is what answered.
    handed `"model": "openai-backend"` in an otherwise OpenAI-shaped response. They now emit
    the served model, falling back to the old value so nothing that had a value loses one.
    **This changes bytes on the wire** and is the literal "improvising it per provider" of the
-   issue title.
+   issue title. **It applies to `chat()` only.** `chatStream()` builds its payload on a
+   different path and still emits the backend adapter's name as `model` for every provider,
+   so a client that streams sees no change from this release and a client that does both sees
+   the two disagree. Closing that needs a served model on `StreamDoneChunk`, which has no
+   metadata slot today -- a separate change, not an oversight of this one.
 2. **Two more dead reads fixed.** `frontend/adapters/mistral.ts` and `ollama.ts` read
    `metadata.custom.model`, whose only writer in the monorepo is Anthropic's *stream start
    chunk* -- so on an `IRChatResponse` they always took their constant fallback

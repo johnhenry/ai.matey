@@ -374,6 +374,36 @@ describe('backend adapters report the served model (#113)', () => {
     expect(ir.metadata.provenance?.servedModel).not.toBe('command-r');
   });
 
+  it('a provider that reports no model does not inherit one from the hop before it', () => {
+    // The four adapters that cannot report a served model all build their provenance as
+    // `{ ...originalRequest.metadata.provenance, backend: this.metadata.name }`. That spread
+    // carries an upstream hop's `servedModel` straight through, and the very next line
+    // relabels the hop as this backend -- so the response would claim THIS provider served a
+    // model it has never heard of. The test above cannot catch it: `makeRequest` sends empty
+    // provenance, so there is nothing to inherit.
+    const upstream: IRChatRequest = {
+      messages: [{ role: 'user', content: 'Hello' }],
+      parameters: { model: 'command-r' },
+      metadata: {
+        requestId: 'req-113',
+        timestamp: Date.now(),
+        provenance: { backend: 'some-earlier-hop', servedModel: 'qwen2.5-7b-instruct' },
+      },
+    } satisfies IRChatRequest;
+
+    const adapter = new CohereBackendAdapter({ apiKey: 'test' });
+    const ir = adapter.toIR(
+      { generation_id: 'gen-1', text: 'hi', finish_reason: 'COMPLETE' } as never,
+      upstream,
+      5
+    );
+
+    expect(ir.metadata.provenance?.backend).toBe(adapter.metadata.name);
+    expect(ir.metadata.provenance?.servedModel).toBeUndefined();
+    expect(ir.metadata.provenance?.servedModel).not.toBe('qwen2.5-7b-instruct');
+    expect(resolveServedModel(ir.metadata.provenance)).toBeUndefined();
+  });
+
   it('OpenRouter fills the typed field and keeps custom.actualModel as a deprecated alias', () => {
     // Removing the alias would be an invisible break: `custom` is Record<string, unknown>,
     // so an external reader gets no compile error and no lint warning -- just undefined at
