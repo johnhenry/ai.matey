@@ -617,6 +617,7 @@ interface IRProvenance {
   readonly backend?: string;
   readonly middleware?: readonly string[];
   readonly router?: string;
+  readonly upstream?: IRProvenance;
 }
 ```
 
@@ -630,6 +631,45 @@ interface IRProvenance {
   router: 'load-balancer'
 }
 ```
+
+#### Nested provenance (`upstream`)
+
+The four flat fields describe a **single hop** — the adapters this process ran. When the
+backend is itself a proxy onto another aimatey instance (a tunnel, a gateway, a self-hosted
+relay, a test double wrapping a real `Router`), what the far side did goes in `upstream`
+rather than overwriting them:
+
+```typescript
+// On the phone, for `phone -> desktop -> llama-cpp`:
+{
+  frontend: 'openai',
+  backend: 'tunnel',        // what this device talked to
+  upstream: {
+    frontend: 'openai',
+    backend: 'llama-cpp',   // what the desktop chose
+    router: 'desktop-router'
+  }
+}
+```
+
+A reader that ignores `upstream` keeps reading the nearest hop, which is what a circuit
+breaker, a usage counter, or a log line means by "the backend". A reader that wants the far
+end walks `upstream` to the last link.
+
+A proxying adapter attaches one with `withUpstreamProvenance()`, which keeps its own hop
+intact:
+
+```typescript
+import { withUpstreamProvenance } from '@johnhenry/aimatey-types';
+
+provenance: withUpstreamProvenance(
+  { backend: this.metadata.name },
+  farResponse.metadata.provenance
+)
+```
+
+Forwarding the far side's provenance upward unchanged is the mistake this prevents: the
+backend it names would silently become this process's backend.
 
 ### IRWarning
 

@@ -780,6 +780,10 @@ export interface IRWarning {
 
 /**
  * Provenance tracking for request/response chain.
+ *
+ * The four flat fields describe a single hop: the adapters *this* process ran. When the
+ * backend is itself a proxy onto another aimatey instance, what the far side did goes in
+ * {@link IRProvenance.upstream} rather than overwriting them.
  */
 export interface IRProvenance {
   /**
@@ -801,6 +805,46 @@ export interface IRProvenance {
    * Router name (if applicable).
    */
   readonly router?: string;
+
+  /**
+   * Provenance reported by the next hop, when `backend` is itself a proxy.
+   *
+   * Set this only when `backend` did not serve the request itself but forwarded it to
+   * another aimatey instance across a process or device boundary -- a tunnel, a gateway,
+   * a self-hosted relay, or a test double wrapping a real `Router`. `upstream` then holds
+   * what the far side reported: its own frontend, the backend *it* chose, and any router
+   * or middleware it ran. The far side may itself have been proxying, so the chain nests
+   * to whatever depth the request actually travelled.
+   *
+   * The four sibling fields always describe the **nearest** hop, so a reader that ignores
+   * `upstream` keeps reading the adapter this process actually talked to -- which is what
+   * a circuit breaker, a usage counter, or a log line means by "the backend". A reader
+   * that wants the far end walks `upstream` to the last link.
+   *
+   * Nesting rather than flattening is deliberate. `backend: 'tunnel'` and
+   * `backend: 'llama-cpp'` are different claims about `phone -> desktop -> llama-cpp`, and
+   * only the first is true of the phone. A flattened chain makes them indistinguishable,
+   * and provenance is a privacy surface: a UI that tells someone whether a reply left
+   * their device cannot be built on a field that cannot separate "your own desktop" from
+   * "a third-party API" (#110).
+   *
+   * Use {@link withUpstreamProvenance} to attach one; it keeps the proxy's own hop intact.
+   *
+   * @example
+   * ```typescript
+   * // On the phone, for `phone -> desktop -> llama-cpp`:
+   * const provenance: IRProvenance = {
+   *   frontend: 'openai',
+   *   backend: 'tunnel',          // what this device talked to
+   *   upstream: {
+   *     frontend: 'openai',
+   *     backend: 'llama-cpp',     // what the desktop chose
+   *     router: 'desktop-router'
+   *   }
+   * };
+   * ```
+   */
+  readonly upstream?: IRProvenance;
 }
 
 /**
