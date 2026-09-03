@@ -17,6 +17,7 @@ import type {
   MessageContent,
 } from '@johnhenry/aimatey-types';
 import type { StreamConversionOptions } from '@johnhenry/aimatey-types';
+import { resolveServedModel } from '@johnhenry/aimatey-types';
 import { AdapterConversionError, ErrorCode } from '@johnhenry/aimatey-errors';
 import { convertStreamMode } from '@johnhenry/aimatey-utils';
 
@@ -445,7 +446,11 @@ export class AnthropicFrontendAdapter implements FrontendAdapter<
         type: 'message',
         role: 'assistant',
         content,
-        model: response.metadata.provenance?.backend || 'unknown',
+        // The model that answered, not the adapter that ran it (#113).
+        model:
+          resolveServedModel(response.metadata.provenance) ??
+          response.metadata.provenance?.backend ??
+          'unknown',
         stop_reason: stopReason,
         usage: {
           input_tokens: response.usage?.promptTokens ?? 0,
@@ -515,7 +520,10 @@ export class AnthropicFrontendAdapter implements FrontendAdapter<
                 id: chunk.metadata.requestId,
                 type: 'message',
                 role: 'assistant',
-                model: chunk.metadata.provenance?.backend || 'unknown',
+                model:
+                  resolveServedModel(chunk.metadata.provenance) ??
+                  chunk.metadata.provenance?.backend ??
+                  'unknown',
               },
             };
             break;

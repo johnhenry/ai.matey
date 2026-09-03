@@ -15,6 +15,7 @@ import type {
   TelemetrySink,
 } from '@johnhenry/aimatey-types';
 import type { IRChatResponse } from '@johnhenry/aimatey-types';
+import { resolveServedModel } from '@johnhenry/aimatey-types';
 
 // Type imports for OpenTelemetry (won't fail if packages aren't installed)
 type Tracer = any;
@@ -326,17 +327,34 @@ function shouldSample(samplingRate: number): boolean {
  * an alias to a dated snapshot, and ai.matey's own router may substitute a model outright
  * (the `model-substituted` warning category).
  *
- * The IR has no typed field for the served model yet (#113). The one source available is the
- * provider's own response body, which every backend adapter preserves verbatim in `raw`;
- * `model` is the conventional key across the OpenAI- and Anthropic-shaped providers.
+ * The primary source is the typed `IRProvenance.servedModel` field (#113), which every
+ * backend adapter that can report a served model now fills from the provider's own response
+ * payload. `resolveServedModel` walks a proxied chain to the hop that actually served, so a
+ * `phone -> desktop -> llama-cpp` response reports llama-cpp's model rather than the tunnel's
+ * name. This middleware needs no per-provider knowledge to read it -- notably, Gemini reports
+ * its served model as `modelVersion`, and that difference is now the *adapter's* problem
+ * rather than tracing's.
+ *
+ * `raw.model` is kept strictly as a **fallback**, for responses whose provenance predates the
+ * typed field: an out-of-tree `BackendAdapter` written against the older IR (the field is
+ * optional, so such an adapter still compiles), a response restored from a cache written by
+ * an older version, or a recorded fixture. No adapter shipped in this repository reaches it.
+ * It is deliberately not extended with per-provider keys -- adding `raw.modelVersion` for
+ * Gemini here would re-couple tracing to payload shapes in the same change that decouples it.
  *
  * This deliberately does NOT fall back to the requested model. Reporting the requested model
  * as the served one would make `ai.response.model` a duplicate of `ai.request.model` by
  * construction, and would assert a model that never served in exactly the substitution case
  * the attribute exists to record. Leaving the attribute unset keeps "not reported"
- * distinguishable from "reported as X".
+ * distinguishable from "reported as X" -- which is the honest outcome for the four providers
+ * that do not echo a served model at all (Cohere, Bedrock, HuggingFace, Replicate).
  */
 function getServedModel(response: IRChatResponse): string | undefined {
+  const servedModel = resolveServedModel(response.metadata.provenance);
+  if (servedModel !== undefined) {
+    return servedModel;
+  }
+
   const model = response.raw?.['model'];
   return typeof model === 'string' && model.length > 0 ? model : undefined;
 }

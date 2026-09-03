@@ -290,6 +290,11 @@ export class OpenRouterBackendAdapter implements BackendAdapter<
       ...(originalRequest.tools?.length ? [buildToolsUnsupportedWarning(this.metadata.name)] : []),
     ];
 
+    // OpenRouter routes to whichever upstream provider it picked, so the model that answered
+    // routinely differs from the one requested. Read once and used for both the typed field
+    // and the deprecated `custom.actualModel` alias below, so the two cannot disagree.
+    const servedModel = response.model;
+
     return {
       message,
       finishReason: finishReasonMap[choice.finish_reason || 'stop'] || 'stop',
@@ -306,11 +311,19 @@ export class OpenRouterBackendAdapter implements BackendAdapter<
         provenance: {
           ...originalRequest.metadata.provenance,
           backend: this.metadata.name,
+          servedModel,
         },
         custom: {
           ...originalRequest.metadata.custom,
           latencyMs,
-          actualModel: response.model, // OpenRouter may route to different model
+          /**
+           * @deprecated since #113 -- read `metadata.provenance.servedModel` instead, or
+           * `resolveServedModel(metadata.provenance)` for a proxied chain. Kept as an alias
+           * for one minor because `custom` is typed `Record<string, unknown>`: removing a key
+           * from it produces no compile error and no lint warning for an external consumer,
+           * only `undefined` at runtime. Removed in the next major.
+           */
+          actualModel: servedModel,
           ...(originalRequest.responseFormat ? { responseFormatEnforced: false } : {}),
         },
         warnings: extraWarnings.length

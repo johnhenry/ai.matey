@@ -479,6 +479,10 @@ export class AWSBedrockBackendAdapter implements BackendAdapter<BedrockRequest, 
         provenance: {
           ...originalRequest.metadata.provenance,
           backend: this.metadata.name,
+          // This provider does not report a served model. Setting it explicitly
+          // stops an upstream hop's value, spread in above, from being
+          // re-attributed to this backend — absent is acceptable, wrong is not.
+          servedModel: undefined,
         },
         custom: {
           ...originalRequest.metadata.custom,

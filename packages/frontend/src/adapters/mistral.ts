@@ -14,6 +14,7 @@ import type {
   IRMessage,
 } from '@johnhenry/aimatey-types';
 import type { StreamConversionOptions } from '@johnhenry/aimatey-types';
+import { resolveServedModel } from '@johnhenry/aimatey-types';
 
 // Mistral API Types (defined locally to avoid cross-package type warnings)
 /**
@@ -232,7 +233,9 @@ export class MistralFrontendAdapter implements FrontendAdapter<MistralRequest, M
       id: `mistral-${Date.now()}`,
       object: 'chat.completion',
       created: Math.floor(Date.now() / 1000),
-      model: (response.metadata.custom?.model as string) || 'mistral-small',
+      // Was `metadata.custom?.model`, which nothing writes onto an `IRChatResponse` -- a dead
+      // read that always took the constant fallback, the same defect class as #112.
+      model: resolveServedModel(response.metadata.provenance) ?? 'mistral-small',
       choices: [
         {
           index: 0,
