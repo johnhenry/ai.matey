@@ -2,8 +2,9 @@
  * Provenance helpers.
  *
  * `IRProvenance` is defined in `ir.ts` alongside the rest of the IR. This module holds the
- * one operation that is easy to get wrong: recording that the backend which answered was a
- * proxy, not the thing that actually ran the model.
+ * operations that are easy to get wrong: recording that the backend which answered was a
+ * proxy rather than the thing that actually ran the model, and reading back out of a
+ * nested chain which model that was.
  *
  * @module
  */
@@ -87,4 +88,59 @@ export function withUpstreamProvenance(
   }
 
   return { ...local, upstream };
+}
+
+/**
+ * The model that actually generated a response, read out of a provenance chain.
+ *
+ * `IRProvenance.servedModel` is a per-hop fact, so a proxied response holds more than one
+ * hop and at most one of them served. This resolves the chain to a single answer for the
+ * consumers that want one -- tracing (`ai.response.model`), a frontend adapter projecting
+ * the IR back onto a provider wire shape, a UI reporting what answered.
+ *
+ * **Nearest-first.** The walk starts at the near hop and returns the first `servedModel` it
+ * finds. In the canonical proxy chain that *is* the far end, because a hop that forwarded
+ * rather than served leaves its own `servedModel` unset -- so `phone -> desktop ->
+ * llama-cpp` resolves to llama-cpp's model without the walk needing to know which hop was
+ * the last one.
+ *
+ * Nearest-first rather than strictly-last-link is deliberate. A hop's `servedModel` is a
+ * true claim about that hop, so the nearest one is never *wrong* -- only potentially less
+ * specific. Preferring it means a chain whose far hop is a provider that does not report
+ * the served model at all (Cohere, Bedrock, HuggingFace, Replicate) can still resolve to a
+ * nearer hop that does -- an HTTP-proxying adapter that parsed the served model off the
+ * response body, say. Last-link-only would discard that and return `undefined`, trading
+ * real coverage for purity.
+ *
+ * Returns `undefined` when no hop reported one. That is a load-bearing outcome, not a
+ * failure: a consumer must be able to tell "not reported" from "reported as X", so callers
+ * must leave their attribute or field **absent** rather than substituting the requested
+ * model.
+ *
+ * @param provenance The near hop, or `undefined`.
+ * @returns The nearest reported served model, or `undefined` if no hop reported one.
+ *
+ * @example
+ * ```typescript
+ * resolveServedModel({ backend: 'openai', servedModel: 'gpt-4-0613' });
+ * // => 'gpt-4-0613'
+ *
+ * resolveServedModel({
+ *   backend: 'tunnel',                       // forwarded; served nothing
+ *   upstream: { backend: 'llama-cpp', servedModel: 'qwen2.5-7b-instruct' },
+ * });
+ * // => 'qwen2.5-7b-instruct'
+ *
+ * resolveServedModel({ backend: 'cohere' });
+ * // => undefined -- Cohere does not echo the served model
+ * ```
+ */
+export function resolveServedModel(provenance: IRProvenance | undefined): string | undefined {
+  for (let hop = provenance; hop !== undefined; hop = hop.upstream) {
+    if (hop.servedModel !== undefined && hop.servedModel.length > 0) {
+      return hop.servedModel;
+    }
+  }
+
+  return undefined;
 }

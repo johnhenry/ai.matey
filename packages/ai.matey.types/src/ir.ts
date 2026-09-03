@@ -781,7 +781,7 @@ export interface IRWarning {
 /**
  * Provenance tracking for request/response chain.
  *
- * The four flat fields describe a single hop: the adapters *this* process ran. When the
+ * The flat fields describe a single hop: the adapters *this* process ran. When the
  * backend is itself a proxy onto another aimatey instance, what the far side did goes in
  * {@link IRProvenance.upstream} rather than overwriting them.
  */
@@ -795,6 +795,55 @@ export interface IRProvenance {
    * Backend adapter name.
    */
   readonly backend?: string;
+
+  /**
+   * The model that actually generated the response, as the provider reported it.
+   *
+   * Set by the backend adapter from the provider's own response payload -- OpenAI's
+   * `model`, Anthropic's `model`, Gemini's `modelVersion` -- and **never** from the
+   * request. `IRParameters.model` is what was asked for; this is what answered. The two
+   * exist in order to differ: a provider may resolve an alias to a dated snapshot
+   * (`gpt-4` -> `gpt-4-0613`), and ai.matey's own `Router` may substitute a model outright
+   * (the `model-substituted` warning category). Before this field, a consumer was told a
+   * substitution had happened but could not learn *what* answered without parsing `raw`
+   * per provider (#113).
+   *
+   * `undefined` means **not reported**, and must stay distinguishable from a reported
+   * value. Four shipped providers genuinely do not echo the served model -- Cohere,
+   * Bedrock (an inference profile deliberately does not disclose it), HuggingFace and
+   * Replicate -- so an adapter that cannot report one leaves this unset rather than
+   * defaulting to the requested model. A defaulted value would assert a model that never
+   * ran in exactly the substitution case this field exists to record.
+   *
+   * It lives on provenance, next to {@link IRProvenance.backend}, because it is a
+   * **per-hop** fact. In `phone -> desktop -> llama-cpp` the model that answered belongs to
+   * the last hop; the tunnel served nothing at all, and leaving its `servedModel`
+   * undefined is the honest statement of that. A single flat field on the response could
+   * record only one of the two, reintroducing the ambiguity #110 removed from `backend`
+   * one field over. Use {@link resolveServedModel} to walk a chain.
+   *
+   * Adapters assign this as a **plain key** (`servedModel: response.model`) rather than with
+   * the conditional-spread idiom used elsewhere in their metadata blocks
+   * (`...(x ? { k: x } : {})`). That is deliberate: excess-property checking does not see
+   * through a spread of a conditional expression, so a misspelled key written that way
+   * compiles silently -- which is exactly how the non-existent `provenance.backendModel`
+   * read survived until #112. A plain key makes a typo `error TS2561` at every write site.
+   * A provider that reports nothing therefore yields `servedModel: undefined`, which
+   * `JSON.stringify` drops and {@link resolveServedModel} treats as not-reported.
+   *
+   * @example
+   * ```typescript
+   * // Single hop -- the near hop is the serving hop.
+   * { frontend: 'openai', backend: 'openai', servedModel: 'gpt-4-0613' }
+   *
+   * // Proxied -- the tunnel forwarded, llama-cpp served.
+   * {
+   *   backend: 'tunnel',                        // no servedModel: it did not serve
+   *   upstream: { backend: 'llama-cpp', servedModel: 'qwen2.5-7b-instruct' }
+   * }
+   * ```
+   */
+  readonly servedModel?: string;
 
   /**
    * Middleware chain (in order of execution).
@@ -816,7 +865,7 @@ export interface IRProvenance {
    * or middleware it ran. The far side may itself have been proxying, so the chain nests
    * to whatever depth the request actually travelled.
    *
-   * The four sibling fields always describe the **nearest** hop, so a reader that ignores
+   * The sibling fields always describe the **nearest** hop, so a reader that ignores
    * `upstream` keeps reading the adapter this process actually talked to -- which is what
    * a circuit breaker, a usage counter, or a log line means by "the backend". A reader
    * that wants the far end walks `upstream` to the last link.
