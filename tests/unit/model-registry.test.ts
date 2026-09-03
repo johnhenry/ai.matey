@@ -17,6 +17,7 @@ import {
   registerModels,
   overrideModelPricing,
   resetModelRegistry,
+  MODEL_REGISTRY_SEED,
 } from '@johnhenry/aimatey-utils';
 
 afterEach(() => {
@@ -32,7 +33,9 @@ describe('getModelEntry', () => {
 
   it('resolves aliases', () => {
     expect(getModelEntry('claude-sonnet-4-5')?.id).toBe('claude-sonnet-4-5-20250929');
-    expect(getModelEntry('mistral-large-latest')?.id).toBe('mistral-large-2411');
+    // Migrated 2026-09-03: mistral-large-2411 was retired 2026-05-31, so the
+    // floating alias now points at the current Large.
+    expect(getModelEntry('mistral-large-latest')?.id).toBe('mistral-large-2512');
   });
 
   it('falls back to the longest matching prefix for unknown snapshots', () => {
@@ -102,11 +105,13 @@ describe('reset isolation', () => {
 describe('2026-07 provider refresh', () => {
   it('resolves DeepSeek V4 models with vision and current pricing', () => {
     const flash = getModelEntry('deepseek-v4-flash');
-    expect(flash?.capabilities?.vision).toBe(true);
+    // Repriced 2026-08-16 and vision moved to a dedicated model - see the
+    // 2026-09-03 refresh block below. Context window is unchanged.
+    expect(flash?.capabilities?.vision).toBe(false);
     expect(flash?.contextWindow).toBe(1000000);
-    expect(flash?.pricing).toEqual({ inputPer1M: 0.14, outputPer1M: 0.28, cachedInputPer1M: 0.003 });
+    expect(flash?.pricing).toEqual({ inputPer1M: 0.44, outputPer1M: 1.32, cachedInputPer1M: 0.014 });
 
-    expect(getModelEntry('deepseek-v4-pro')?.pricing?.inputPer1M).toBe(0.435);
+    expect(getModelEntry('deepseek-v4-pro')?.pricing?.inputPer1M).toBe(1.32);
   });
 
   it('marks retired DeepSeek ids deprecated but priced', () => {
@@ -133,11 +138,17 @@ describe('2026-07 provider refresh', () => {
 });
 
 describe('2026-07-23 provider refresh', () => {
-  it('resolves the GPT-5.6 family with 1M context', () => {
-    expect(getModelEntry('gpt-5.6-sol')?.pricing).toEqual({ inputPer1M: 5.0, outputPer1M: 30.0 });
-    expect(getModelEntry('gpt-5.6-terra')?.contextWindow).toBe(1000000);
-    expect(getModelEntry('gpt-5.6-luna')?.pricing?.inputPer1M).toBe(1.0);
-    expect(getModelContextWindow('gpt-5.6-terra')).toBe(1000000);
+  it('resolves the GPT-5.6 family with 1.05M context', () => {
+    // Prices cut 2026-07-30 (terra/luna) and 2026-08-21 (sol); context window
+    // corrected to the documented 1,050,000 (= 922,000 input + 128,000 out).
+    expect(getModelEntry('gpt-5.6-sol')?.pricing).toEqual({
+      inputPer1M: 4.0,
+      outputPer1M: 20.0,
+      cachedInputPer1M: 0.4,
+    });
+    expect(getModelEntry('gpt-5.6-terra')?.contextWindow).toBe(1050000);
+    expect(getModelEntry('gpt-5.6-luna')?.pricing?.inputPer1M).toBe(0.2);
+    expect(getModelContextWindow('gpt-5.6-terra')).toBe(1050000);
   });
 
   it('marks the deprecated dated GPT-5/o3 snapshot family deprecated but priced', () => {
@@ -145,8 +156,11 @@ describe('2026-07-23 provider refresh', () => {
     expect(getModelEntry('gpt-5-mini')?.deprecated).toBe(true);
     expect(getModelEntry('gpt-5-nano')?.deprecated).toBe(true);
     expect(getModelEntry('o3')?.deprecated).toBe(true);
-    // o4-mini was not confirmed deprecated - must not be flipped
-    expect(getModelEntry('o4-mini')?.deprecated).toBeFalsy();
+    // o4-mini WAS confirmed deprecated on 2026-09-03: OpenAI's deprecations
+    // table names the bare alias, announced 2026-04-22, shutdown 2026-10-23.
+    // The 2026-07-23 pass could not confirm it and correctly left it alone.
+    expect(getModelEntry('o4-mini')?.deprecated).toBe(true);
+    expect(getModelEntry('o4-mini')?.pricing?.inputPer1M).toBe(1.1);
     expect(getModelEntry('gpt-5')?.pricing?.inputPer1M).toBe(1.25);
   });
 
@@ -169,6 +183,162 @@ describe('2026-07-23 provider refresh', () => {
     expect(kimi?.contextWindow).toBe(1048576);
     // OpenRouter-listed alias resolves to the same entry
     expect(getModelEntry('moonshotai/kimi-k3')?.id).toBe('kimi-k3');
+  });
+});
+
+describe('2026-09-03 provider refresh', () => {
+  it('seeds the current Claude lineup, including the ids that previously fell through', () => {
+    // Before this refresh, 'claude-fable-5-1' prefix-matched onto the
+    // 'claude-fable-5' entry and billed cache reads at $1.00 instead of
+    // $0.25 - a 4x overcount that looked like a successful resolution.
+    expect(getModelEntry('claude-fable-5-1')?.id).toBe('claude-fable-5-1');
+    expect(getModelEntry('claude-fable-5-1')?.pricing?.cachedInputPer1M).toBe(0.25);
+    expect(getModelEntry('claude-fable-5')?.pricing?.cachedInputPer1M).toBe(1.0);
+
+    expect(getModelEntry('claude-opus-5')?.family).toBe('claude-5');
+    expect(getModelContextWindow('claude-opus-5')).toBe(1000000);
+  });
+
+  it('prices Claude Sonnet 5 at the $2/$10 that became standard', () => {
+    // The file had bet on an increase to $3/$15 on 2026-09-01 that Anthropic
+    // cancelled, over-pricing the mainstream Sonnet model by 50%.
+    expect(getModelPricingInfo('claude-sonnet-5')).toEqual({
+      inputPer1M: 2.0,
+      outputPer1M: 10.0,
+      cachedInputPer1M: 0.2,
+    });
+  });
+
+  it('gives Claude Opus 4.8 its documented 1M context window', () => {
+    expect(getModelContextWindow('claude-opus-4-8')).toBe(1000000);
+    expect(getModelEntry('claude-opus-4.8')?.maxOutputTokens).toBe(128000);
+    expect(getModelEntry('claude-opus-4-8')?.releaseDate).toBe('2026-05-28');
+  });
+
+  it('keeps DeepSeek image support on the only model that accepts images', () => {
+    // Capability routing was previously picking a model that 400s on images.
+    expect(getModelEntry('deepseek-v4-flash-vision-exp')?.capabilities?.vision).toBe(true);
+    expect(getModelEntry('deepseek-v4-flash')?.capabilities?.vision).toBe(false);
+    expect(getModelEntry('deepseek-v4-pro')?.capabilities?.vision).toBe(false);
+  });
+
+  it('migrates every Mistral -latest alias off a retired model', () => {
+    expect(getModelEntry('mistral-medium-latest')?.id).toBe('mistral-medium-3-5');
+    expect(getModelEntry('mistral-small-latest')?.id).toBe('mistral-small-2603');
+    expect(getModelEntry('codestral-latest')?.id).toBe('codestral-2508');
+
+    for (const id of [
+      'mistral-large-2411',
+      'mistral-medium-2505',
+      'mistral-small-2501',
+      'codestral-2501',
+    ]) {
+      const entry = getModelEntry(id);
+      expect(entry?.deprecated, `${id} should be deprecated`).toBe(true);
+      expect(entry?.pricing?.inputPer1M, `${id} should keep its price`).toBeTypeOf('number');
+    }
+  });
+
+  it('corrects Grok 4.5 and seeds Grok 4.6', () => {
+    // grok-4.5's context and pricing were placeholders copied from grok-4.3.
+    expect(getModelContextWindow('grok-4.5')).toBe(500000);
+    expect(getModelEntry('grok-4.5')?.pricing).toEqual({
+      inputPer1M: 2.0,
+      outputPer1M: 6.0,
+      cachedInputPer1M: 0.3,
+    });
+    expect(getModelEntry('grok-4.6')?.contextWindow).toBe(500000);
+    expect(getModelEntry('grok-3')?.deprecated).toBe(true);
+  });
+
+  it('corrects the Gemini Flash prices that were seeded as estimates', () => {
+    expect(getModelEntry('gemini-3.6-flash')?.pricing?.inputPer1M).toBe(0.75);
+    expect(getModelEntry('gemini-3.5-flash-lite')?.pricing?.outputPer1M).toBe(2.5);
+    expect(getModelEntry('gemini-3.8-flash')?.family).toBe('gemini-3');
+    expect(getModelEntry('gemini-embedding-2-preview')?.id).toBe('gemini-embedding-2');
+  });
+
+  it('seeds the Moonshot K2 line without inventing release dates', () => {
+    expect(getModelEntry('kimi-k2.6')?.provider).toBe('moonshot');
+    expect(getModelEntry('moonshotai/kimi-k2.7-code')?.id).toBe('kimi-k2.7-code');
+    // Moonshot publishes no release dates for active models; omitted, not guessed.
+    expect(getModelEntry('kimi-k2.6')?.releaseDate).toBeUndefined();
+  });
+});
+
+describe('seed data invariants', () => {
+  it('every entry has the required identity fields', () => {
+    for (const entry of MODEL_REGISTRY_SEED) {
+      expect(entry.id, 'entry is missing an id').toBeTruthy();
+      expect(entry.provider, `${entry.id} is missing a provider`).toBeTruthy();
+      expect(entry.family, `${entry.id} is missing a family`).toBeTruthy();
+    }
+  });
+
+  it('ids are unique', () => {
+    const ids = MODEL_REGISTRY_SEED.map((entry) => entry.id);
+    const duplicates = ids.filter((id, i) => ids.indexOf(id) !== i);
+    expect(duplicates, 'duplicate ids silently shadow each other in the index').toEqual([]);
+  });
+
+  it('aliases are unique and never collide with a canonical id', () => {
+    // buildIndex() writes aliases into a Map, so a duplicate alias silently
+    // resolves to whichever entry happens to come last in the seed.
+    const ids = new Set(MODEL_REGISTRY_SEED.map((entry) => entry.id));
+    const aliases = MODEL_REGISTRY_SEED.flatMap((entry) => [...(entry.aliases ?? [])]);
+
+    const duplicates = aliases.filter((alias, i) => aliases.indexOf(alias) !== i);
+    expect(duplicates, 'duplicate aliases resolve non-deterministically').toEqual([]);
+
+    const collisions = aliases.filter((alias) => ids.has(alias));
+    expect(collisions, 'an alias shadowed by a canonical id is dead weight').toEqual([]);
+  });
+
+  it('deprecated entries keep their pricing, because cost tracking needs it', () => {
+    // This is the header's stated reason for never deleting an entry: a
+    // deprecated model stripped of its prices makes historical usage
+    // unpriceable, and getModelPricingInfo() would return null for it.
+    const deprecated = MODEL_REGISTRY_SEED.filter((entry) => entry.deprecated);
+    expect(deprecated.length).toBeGreaterThan(20);
+
+    for (const entry of deprecated) {
+      expect(entry.pricing, `${entry.id} lost its pricing`).toBeDefined();
+      expect(getModelPricingInfo(entry.id), `${entry.id} prices to null`).not.toBeNull();
+    }
+  });
+
+  it('every price is a finite, non-negative number', () => {
+    for (const entry of MODEL_REGISTRY_SEED) {
+      if (!entry.pricing) continue;
+      const { inputPer1M, outputPer1M, cachedInputPer1M } = entry.pricing;
+      for (const [label, value] of [
+        ['inputPer1M', inputPer1M],
+        ['outputPer1M', outputPer1M],
+        ['cachedInputPer1M', cachedInputPer1M],
+      ] as const) {
+        if (value === undefined) continue;
+        expect(Number.isFinite(value), `${entry.id}.${label} is not finite`).toBe(true);
+        expect(value, `${entry.id}.${label} is negative`).toBeGreaterThanOrEqual(0);
+      }
+    }
+  });
+
+  it('a cached-input rate is never more expensive than base input', () => {
+    for (const entry of MODEL_REGISTRY_SEED) {
+      const { inputPer1M, cachedInputPer1M } = entry.pricing ?? {};
+      if (cachedInputPer1M === undefined || inputPer1M === undefined) continue;
+      expect(cachedInputPer1M, `${entry.id} caches dearer than it reads`).toBeLessThanOrEqual(
+        inputPer1M,
+      );
+    }
+  });
+
+  it('embedding entries declare their output dimensions', () => {
+    const embeddings = MODEL_REGISTRY_SEED.filter((entry) => entry.kind === 'embedding');
+    expect(embeddings.length).toBeGreaterThan(0);
+    for (const entry of embeddings) {
+      expect(entry.embeddingDimensions, `${entry.id} has no dimensions`).toBeGreaterThan(0);
+    }
   });
 });
 

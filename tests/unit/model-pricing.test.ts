@@ -105,9 +105,13 @@ describe('getModelPricing', () => {
   it('should return pricing for Mistral models', () => {
     const pricing = getModelPricing('mistral-large-latest');
 
+    // Refreshed 2026-09-03: the `-latest` alias was migrated off
+    // mistral-large-2411 (retired 2026-05-31) onto mistral-large-2512, so it
+    // now prices $0.50/$1.50 per 1M rather than the retired model's $2/$6.
+    // This assertion previously pinned the price of a model you cannot call.
     expect(pricing).not.toBeNull();
-    expect(pricing?.input).toBe(0.002);
-    expect(pricing?.output).toBe(0.006);
+    expect(pricing?.input).toBe(0.0005);
+    expect(pricing?.output).toBe(0.0015);
   });
 
   it('should return pricing for DeepSeek models', () => {
