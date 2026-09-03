@@ -9,6 +9,9 @@
 // IR (Intermediate Representation) types
 export * from './ir.js';
 
+// Provenance helpers
+export * from './provenance.js';
+
 // Adapter interfaces
 export * from './adapters.js';
 

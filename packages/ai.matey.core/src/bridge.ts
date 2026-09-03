@@ -1291,6 +1291,13 @@ export class Bridge<
    * A router-backed bridge additionally records the router under `router` - the field
    * that exists for it - so the routing layer stays visible without overwriting the
    * backend that answered.
+   *
+   * The spread is what carries an `upstream` chain through (#110). When the backend that
+   * answered was a proxy onto another aimatey instance, it reports its own name under
+   * `backend` and nests the far side under `upstream`; the bridge stamps its own frontend
+   * over the near hop and leaves the chain beneath it alone. The bridge cannot build that
+   * chain itself - only the proxying adapter knows it forwarded - so its job here is to
+   * not destroy one. See `withUpstreamProvenance` in `@johnhenry/aimatey-types`.
    */
   private resolveProvenance(provenance: IRProvenance | undefined): IRProvenance {
     const routerName = this.getRouter() ? this.backend.metadata.name : undefined;
