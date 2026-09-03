@@ -164,7 +164,10 @@ export class OpenAIFrontendAdapter implements FrontendAdapter {
       id: response.metadata.providerResponseId ?? response.metadata.requestId,
       object: 'chat.completion',
       created: Math.floor(response.metadata.timestamp / 1000),
-      model: response.metadata.custom?.model as string,
+      // The model that answered. `resolveServedModel` walks a proxied provenance chain to
+      // the hop that actually served; it returns undefined when the provider does not
+      // report one, so pick a fallback rather than asserting the requested model.
+      model: resolveServedModel(response.metadata.provenance) ?? 'unknown',
       choices: [{
         index: 0,
         message: {
