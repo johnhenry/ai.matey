@@ -1,6 +1,6 @@
 {
   "name": "@johnhenry/aimatey-patterns",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Production integration patterns for AI Matey - complexity routing, parallel aggregation, failover, cost optimization, batch processing",
   "type": "module",
   "main": "./dist/cjs/index.js",
@@ -37,9 +37,9 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@johnhenry/aimatey-types": "^0.3.0",
-    "@johnhenry/aimatey-core": "^0.3.0",
-    "@johnhenry/aimatey-errors": "^0.2.0"
+    "@johnhenry/aimatey-types": "^0.4.0",
+    "@johnhenry/aimatey-core": "^0.3.1",
+    "@johnhenry/aimatey-errors": "^0.2.1"
   },
   "devDependencies": {
     "typescript": "^5.9.3",

@@ -1,5 +1,263 @@
 # @johnhenry/aimatey-backend
 
+## 0.3.0
+
+### Minor Changes
+
+- 07842f9: Make `apiKey` optional on `BackendAdapterConfig`, and required on the adapters that use one (#104).
+
+  ## A required credential with no consumer
+
+  `BackendAdapterConfig.apiKey` was `readonly apiKey: string` -- required. AWS Bedrock
+  authenticates with SigV4 from `awsAccessKeyId` / `awsSecretAccessKey` and reads
+  `config.apiKey` **zero times**, so every Bedrock user had to invent a dummy string to satisfy
+  a field the adapter ignores. Nothing in the type said it was inert, and a required credential
+  field invites a caller to put a _real_ secret in it, on the reasonable assumption that it is
+  required for a reason.
+
+  ## The survey said Bedrock is not a special case
+
+  The issue offered a contained fix (narrow `apiKey` to `never` on `AWSBedrockConfig`) and a
+  real one (make it optional at the base), and said the choice depended on whether other
+  adapters had the same shape. Grepping every adapter:
+
+  **Never read `config.apiKey`, yet required one:**
+
+  | adapter                    | config                                                  |
+  | -------------------------- | ------------------------------------------------------- |
+  | `AWSBedrockBackendAdapter` | `AWSBedrockConfig extends BackendAdapterConfig`         |
+  | `OllamaBackendAdapter`     | takes `BackendAdapterConfig` directly                   |
+  | model-runner backend       | `ModelRunnerBackendConfig extends BackendAdapterConfig` |
+
+  **Read it only to paper over its inertness:**
+  - `lmstudio.ts:68` -- `apiKey: config.apiKey || 'not-needed'`
+  - `omniroute.ts:48` -- `apiKey: config.apiKey || 'not-needed'`
+
+  **And a workaround already in the tree:**
+  - `NodeLlamaCppConfig extends Partial<BackendAdapterConfig>` -- weakening _every_ field just
+    to escape this one.
+
+  Both of the local adapters also had `config: BackendAdapterConfig = {} as BackendAdapterConfig`
+  in their factories: a cast that existed only because `{}` was not assignable.
+
+  Three adapters ignoring it, two substituting a placeholder, and one resorting to `Partial<>`
+  is not a Bedrock special case. Option 1.
+
+  ## What changed
+  - `BackendAdapterConfig.apiKey` is now `readonly apiKey?: string`.
+  - New `ApiKeyBackendAdapterConfig = BackendAdapterConfig & { readonly apiKey: string }`,
+    exported from `@johnhenry/aimatey-types`.
+  - The 26 adapters that genuinely authenticate with a key now take
+    `ApiKeyBackendAdapterConfig`, so they still refuse to be constructed without one. This is
+    **not** a blanket weakening.
+  - Bedrock, Ollama and the model runner keep the base config and no longer demand a key.
+  - LM Studio and OmniRoute keep the base config on their _constructors_ -- a caller need not
+    supply a key -- and annotate the config they hand to the OpenAI parent as the narrowed type,
+    since they fill in `'not-needed'` themselves.
+  - DeepSeek requires a key: it is a cloud provider documented as needing `DEEPSEEK_API_KEY`
+    and inherits the actual read from `OpenAIBackendAdapter`.
+
+  ## Compatibility
+
+  Passing `apiKey` where it is no longer required is still valid, so existing callers -- including
+  everyone currently passing a dummy string to Bedrock -- keep compiling. What changes is that
+  `BackendAdapterConfig` is now assignable from objects without `apiKey`, so code that _reads_
+  `config.apiKey` off the base type sees `string | undefined` and must narrow. That is the
+  breaking edge, and on 0.x it makes this `minor`.
+
+- 2ef419e: Carry the served model on the chat response instead of improvising it per provider (#113).
+
+  ## The gap
+
+  The IR had no typed place to record **which model answered**. `IRParameters.model` is the
+  request side, so the only source was the provider's own payload in `raw` -- which couples any
+  generic reader to provider payload shapes. Two independent improvisations existed because of
+  it: `openrouter`'s `metadata.custom.actualModel` (a write with no reader) and the dead
+  `provenance.backendModel` read removed by #112.
+
+  ## `IRProvenance.servedModel`
+
+  ```ts
+  { frontend: 'openai', backend: 'openai-backend', servedModel: 'gpt-4-0613' }
+  ```
+
+  **On provenance, not flat on the response**, because the served model is the one response
+  fact whose value genuinely differs per hop. In `phone -> desktop -> llama-cpp` the model that
+  answered belongs to the last hop, and the tunnel served nothing at all:
+
+  ```ts
+  {
+    backend: 'tunnel',                                     // no servedModel: it forwarded
+    upstream: { backend: 'llama-cpp', servedModel: 'qwen2.5-7b-instruct' }
+  }
+  ```
+
+  A flat field -- on `IRChatResponse` or on `IRMetadata` -- could record only one of those two,
+  reintroducing one field over the exact ambiguity #110 removed from `backend`. A consumer
+  could not tell whether the phone ran qwen locally or the desktop did, which for a privacy
+  surface is not a rounding error.
+
+  The symmetry argument for a top-level `IRChatResponse.model` (matching `IREmbedResponse`) was
+  considered and rejected: `IREmbedResponse.model` is **required** and falls back to the
+  _requested_ model (`backend/src/shared.ts:349`, `json.model ?? model`), so it does not mean
+  "the model that served" and copying it here would have meant asserting a model that never ran
+  in precisely the substitution case this field exists to record.
+
+  `resolveServedModel(provenance)` ships alongside `withUpstreamProvenance` in the types
+  package (which `backend` depends on and `core` does not) and walks a chain **nearest-first**.
+  Because a forwarding hop leaves its own `servedModel` unset, that returns the far end in the
+  canonical proxy chain, while still resolving to a nearer hop that did report when the far one
+  is a provider that reports nothing.
+
+  `servedModel` is assigned as a **plain key**, not with the conditional-spread idiom used
+  elsewhere in these metadata blocks. Excess-property checking does not see through a spread of
+  a conditional expression, so a misspelled key written that way compiles silently -- which is
+  how the non-existent `provenance.backendModel` survived until #112. Deleting the declaration
+  now produces 18 `error TS2353`s, one per write site.
+
+  ## Provider coverage, stated plainly
+
+  **26 of 30** backend adapters populate it; **4** correctly leave it `undefined`.
+  - **Direct (18):** ai21, anthropic, anyscale, azure-openai, cerebras, cloudflare, dashscope,
+    deepinfra, fireworks, gemini, github-models, mistral, ollama, openai, openrouter,
+    perplexity, together-ai, xai.
+  - **Inherited (8):** deepseek, groq, inception, lmstudio, moonshot, nvidia, omniroute,
+    sambanova -- all extend `OpenAIBackendAdapter` and none overrides `toIR()`.
+  - **Absent (4):** cohere (v1 `/chat` returns no model field), aws-bedrock (Converse returns
+    none, and an inference profile deliberately does not disclose it), huggingface
+    (`{ generated_text }` only), replicate (`version` is what you _sent_, so echoing it back
+    would look like coverage and be wrong).
+
+  **Gemini is the one that changes.** #112's `raw.model` read could never see it: Gemini has no
+  top-level `model` key at all, and reports the served model as `modelVersion` ("Output only.
+  The model version used to generate the response"). `GeminiResponse` now declares that field
+  and `toIR()` maps it, so the difference is the adapter's problem rather than tracing's.
+
+  ## OpenTelemetry
+
+  `ai.response.model` now reads the typed field first. `raw.model` is kept strictly as a
+  **fallback** -- an out-of-tree `BackendAdapter` written before the field existed still
+  compiles while setting only `raw`, and a cache or fixture may predate it; dropping the
+  fallback would take those from "attribute set" to "attribute unset". It is deliberately not
+  extended with per-provider keys: teaching it `raw.modelVersion` for Gemini would re-couple
+  tracing to payload shapes in the same change that decouples it.
+
+  When neither source reports, the attribute stays **absent** -- never filled from
+  `parameters.model`. #112's rule is unchanged and still enforced by test.
+
+  ## `'model-substituted'` is now verifiable end to end
+
+  The router emits that warning when it routes to a model other than the one requested. A
+  consumer was told a substitution happened but could not learn _what_ answered without parsing
+  `raw` per provider. Both halves are now on the response: `warning.originalValue` is what was
+  asked for, `resolveServedModel(...)` is what answered.
+
+  ## Behaviour changes worth naming
+  1. **The frontend wire projection.** `frontend/adapters/openai.ts` and `anthropic.ts` emitted
+     `provenance.backend` as the payload's `model`, so an HTTP client of an aimatey server was
+     handed `"model": "openai-backend"` in an otherwise OpenAI-shaped response. They now emit
+     the served model, falling back to the old value so nothing that had a value loses one.
+     **This changes bytes on the wire** and is the literal "improvising it per provider" of the
+     issue title. **It applies to `chat()` only.** `chatStream()` builds its payload on a
+     different path and still emits the backend adapter's name as `model` for every provider,
+     so a client that streams sees no change from this release and a client that does both sees
+     the two disagree. Closing that needs a served model on `StreamDoneChunk`, which has no
+     metadata slot today -- a separate change, not an oversight of this one.
+  2. **Two more dead reads fixed.** `frontend/adapters/mistral.ts` and `ollama.ts` read
+     `metadata.custom.model`, whose only writer in the monorepo is Anthropic's _stream start
+     chunk_ -- so on an `IRChatResponse` they always took their constant fallback
+     (`'mistral-small'` / `'unknown'`). Same defect class as #112, in two more places.
+  3. **`metadata.custom.actualModel` is kept**, as a deprecated alias computed from the same
+     read so the two cannot disagree. Removal is uniquely un-warnable here: `custom` is
+     `Record<string, unknown>`, so an external consumer loses the key with no compile error and
+     no lint warning, just `undefined` rendered into a UI. Removed in the next major.
+
+  Not breaking at the type level: the property is optional, `exactOptionalPropertyTypes` is
+  off, and there is no `satisfies IRProvenance`, `Required<IRProvenance>` or
+  `keyof IRProvenance` anywhere in the tree.
+
+  ## Not in scope
+
+  **Streaming.** OpenAI-shaped adapters emit their `start` chunk before any provider bytes are
+  parsed, so covering streams needs a new `metadata` chunk emission -- an ordering-sensitive
+  change across ~20 adapters. Anthropic alone could have been done for free, but that would
+  make `chat()` and `chatStream()` agree for one provider and disagree for the rest, which is
+  worse than deferring uniformly. Filed as follow-up.
+
+### Patch Changes
+
+- 7368d9a: Stop caller-supplied headers overwriting AWS Bedrock's computed SigV4 material (#103).
+
+  ## Auth failed open
+
+  `getHeaders()` ended with:
+
+  ```ts
+  return { ...headers, ...this.config.headers };
+  ```
+
+  `this.config.headers` was spread **last**, so any caller-supplied header won over the ones
+  signing had just computed -- `Authorization`, `X-Amz-Date` and `X-Amz-Security-Token`
+  included. A caller who set any of them replaced the SigV4 material _after_ the signature had
+  been calculated over the real values. The request then failed with a generic AWS signature
+  error that points nowhere near `config.headers`, so the cause was invisible from the call
+  site.
+
+  ## Precedence is now explicit
+
+  Lowest to highest:
+  1. transport defaults (`Content-Type`, `Accept`)
+  2. `config.headers` from the caller
+  3. the computed SigV4 material
+
+  ```ts
+  return { ...defaultHeaders, ...this.config.headers, ...authHeaders };
+  ```
+
+  The auth headers are built into their own object so they can be applied after the caller's,
+  rather than being mixed into the defaults before them.
+
+  **Caller headers still beat the transport defaults.** That is deliberate. The reported defect
+  is about auth, and demoting `config.headers` beneath _everything_ -- which the minimal
+  one-line reversal would have done -- would silently remove `Content-Type` / `Accept`
+  overrides that work today and are none of signing's business.
+
+  **When no AWS credentials are configured, nothing changes.** The auth object is empty, so a
+  caller supplying their own `Authorization` (a fronting proxy, a sidecar signer) still gets it
+  through. There is no signature to protect in that case.
+
+  | config                            | before                           | after                   |
+  | --------------------------------- | -------------------------------- | ----------------------- |
+  | creds + caller `Authorization`    | caller's wins, AWS rejects it    | computed signature wins |
+  | creds + caller `X-Amz-Date`       | caller's wins, signature invalid | computed date wins      |
+  | creds + caller `X-Custom-*`       | passed through                   | passed through          |
+  | creds + caller `Accept`           | caller's wins                    | caller's wins           |
+  | no creds + caller `Authorization` | caller's wins                    | caller's wins           |
+
+  ## Scope
+
+  The signed set remains `host` + `x-amz-date` (+ the session token when present), and caller
+  headers are still not part of it. That is legal SigV4 -- you sign what you declare in
+  `SignedHeaders` -- and is unchanged here. The defect was the override, not the coverage.
+
+  Header names differing only in case (`authorization` vs `Authorization`) are still not
+  normalized; `Record<string, string>` can hold both and `fetch` would collide them on the
+  wire. That is a separate surface from the precedence bug fixed here.
+
+  `patch`, not `minor`: the only behaviour that changes is a combination that could not have
+  worked -- a caller overriding the signature material while the adapter was signing produced
+  an AWS rejection, not a working request.
+
+- Updated dependencies [f8266bf]
+- Updated dependencies [07842f9]
+- Updated dependencies [9ac5666]
+- Updated dependencies [2ef419e]
+- Updated dependencies [5596299]
+- Updated dependencies [5596299]
+  - @johnhenry/aimatey-types@0.4.0
+  - @johnhenry/aimatey-utils@0.3.0
+  - @johnhenry/aimatey-errors@0.2.1
+
 ## 0.2.0
 
 ### Minor Changes
