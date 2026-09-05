@@ -52,6 +52,19 @@ interface BackendState {
   circuitBreakerState: 'closed' | 'open' | 'half-open';
   consecutiveFailures: number;
   circuitOpenedAt?: number;
+  /**
+   * Handle of the pending open -> half-open transition scheduled by
+   * {@link Router.openCircuitBreaker}, held so the transition can be
+   * cancelled.
+   *
+   * A breaker that stops being open -- closed by hand, reset, replaced,
+   * unregistered, or opened again with a fresh rest period -- must not leave
+   * an earlier timer armed. An armed timer from a previous open fires against
+   * whatever the breaker looks like when it arrives, which cuts a later rest
+   * period short, and it keeps this state object (and the adapter it names)
+   * reachable after the backend has left the router.
+   */
+  circuitTimer?: ReturnType<typeof setTimeout>;
   latencies: number[];
   totalRequests: number;
   successfulRequests: number;
@@ -281,7 +294,10 @@ export class Router implements IRouter {
     // object so registration order and cumulative stats survive.
     state.adapter = adapter;
 
-    // The health/circuit-breaker verdict described the old configuration.
+    // The health/circuit-breaker verdict described the old configuration --
+    // including any half-open transition still pending from it, which would
+    // otherwise fire against the replacement's own breaker.
+    this.clearCircuitTimer(state);
     state.isHealthy = true;
     state.circuitBreakerState = 'closed';
     state.consecutiveFailures = 0;
@@ -309,7 +325,8 @@ export class Router implements IRouter {
    * @throws AdapterError ROUTING_FAILED if `name` is not registered.
    */
   unregister(name: string): Router {
-    if (!this.backends.has(name)) {
+    const removed = this.backends.get(name);
+    if (!removed) {
       throw new AdapterError({
         code: ErrorCode.ROUTING_FAILED,
         message: `Backend '${name}' is not registered`,
@@ -317,6 +334,12 @@ export class Router implements IRouter {
         provenance: { router: this.metadata.name },
       });
     }
+
+    // A pending half-open transition belongs to a backend that no longer
+    // exists. Cancelling it drops the router's last reference to the removed
+    // state -- and to the adapter it names -- rather than holding both until
+    // the timer expires.
+    this.clearCircuitTimer(removed);
 
     this.backends.delete(name);
 
@@ -1085,7 +1108,31 @@ export class Router implements IRouter {
   }
 
   /**
+   * Cancel a backend's pending open -> half-open transition, if one is armed.
+   *
+   * Called wherever a breaker stops being the open breaker that timer was
+   * scheduled for: closed by hand, reset, replaced, unregistered, or opened
+   * again with a fresh rest period.
+   *
+   * Leaving an old timer armed is not harmless. It carries no record of the
+   * open it belongs to, so when it fires it half-opens whichever open the
+   * breaker happens to be in -- ending a later rest period early and letting
+   * a trial request through before the backend has had the time the caller
+   * asked for. It also keeps this `BackendState`, and through it the adapter,
+   * reachable after {@link Router.unregister} has dropped the backend.
+   */
+  private clearCircuitTimer(state: BackendState): void {
+    if (state.circuitTimer !== undefined) {
+      clearTimeout(state.circuitTimer);
+      state.circuitTimer = undefined;
+    }
+  }
+
+  /**
    * Manually open circuit breaker for a backend.
+   *
+   * Any transition still pending from an earlier open is cancelled first, so
+   * the rest period this call starts is the one that is honoured.
    */
   openCircuitBreaker(name: string, timeoutMs?: number): void {
     const state = this.backends.get(name);
@@ -1098,16 +1145,21 @@ export class Router implements IRouter {
       });
     }
 
+    // A transition armed by an earlier open would fire against this one.
+    this.clearCircuitTimer(state);
+
     state.circuitBreakerState = 'open';
     state.circuitOpenedAt = Date.now();
 
     // Auto-close after timeout
-    if (timeoutMs ?? this.config.circuitBreakerTimeout) {
-      setTimeout(() => {
+    const timeout = timeoutMs ?? this.config.circuitBreakerTimeout;
+    if (timeout) {
+      state.circuitTimer = setTimeout(() => {
+        state.circuitTimer = undefined;
         if (state.circuitBreakerState === 'open') {
           state.circuitBreakerState = 'half-open';
         }
-      }, timeoutMs ?? this.config.circuitBreakerTimeout);
+      }, timeout);
     }
   }
 
@@ -1125,6 +1177,7 @@ export class Router implements IRouter {
       });
     }
 
+    this.clearCircuitTimer(state);
     state.circuitBreakerState = 'closed';
     state.consecutiveFailures = 0;
     state.circuitOpenedAt = undefined;
@@ -1137,12 +1190,14 @@ export class Router implements IRouter {
     if (name) {
       const state = this.backends.get(name);
       if (state) {
+        this.clearCircuitTimer(state);
         state.consecutiveFailures = 0;
         state.circuitBreakerState = 'closed';
         state.circuitOpenedAt = undefined;
       }
     } else {
       for (const state of this.backends.values()) {
+        this.clearCircuitTimer(state);
         state.consecutiveFailures = 0;
         state.circuitBreakerState = 'closed';
         state.circuitOpenedAt = undefined;
