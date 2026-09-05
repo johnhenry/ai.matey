@@ -311,6 +311,7 @@ export class OpenAIBackendAdapter implements BackendAdapter<OpenAIRequest, OpenA
    * Execute streaming chat completion request.
    */
   async *executeStream(request: IRChatRequest, signal?: AbortSignal): IRChatStream {
+    let sequence = 0;
     try {
       // Convert IR to OpenAI format
       const openaiRequest = this.fromIR(request);
@@ -347,7 +348,6 @@ export class OpenAIBackendAdapter implements BackendAdapter<OpenAIRequest, OpenA
       }
 
       // Parse SSE stream
-      let sequence = 0;
       let contentBuffer = '';
 
       let finishReasonReceived: FinishReason | null | undefined;
@@ -533,7 +533,7 @@ export class OpenAIBackendAdapter implements BackendAdapter<OpenAIRequest, OpenA
       // Yield error chunk
       yield {
         type: 'error',
-        sequence: 0,
+        sequence: sequence++,
         error: {
           code: error instanceof Error ? error.name : 'UNKNOWN_ERROR',
           message: error instanceof Error ? error.message : String(error),

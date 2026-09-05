@@ -305,6 +305,7 @@ export class AnyscaleBackendAdapter implements BackendAdapter<AnyscaleRequest, A
    * Execute streaming request.
    */
   async *executeStream(request: IRChatRequest, signal?: AbortSignal): IRChatStream {
+    let sequence = 0;
     try {
       const anyscaleRequest = this.fromIR(request);
       anyscaleRequest.stream = true;
@@ -336,8 +337,6 @@ export class AnyscaleBackendAdapter implements BackendAdapter<AnyscaleRequest, A
           provenance: { backend: this.metadata.name },
         });
       }
-
-      let sequence = 0;
       let contentBuffer = '';
 
       yield {
@@ -422,7 +421,7 @@ export class AnyscaleBackendAdapter implements BackendAdapter<AnyscaleRequest, A
     } catch (error) {
       yield {
         type: 'error',
-        sequence: 0,
+        sequence: sequence++,
         error: {
           code: error instanceof Error ? error.name : 'UNKNOWN_ERROR',
           message: error instanceof Error ? error.message : String(error),

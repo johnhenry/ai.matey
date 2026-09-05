@@ -265,16 +265,24 @@ export abstract class GenericModelRunnerBackend extends EventEmitter implements 
 
     this.requestCount++;
 
+    // Tracked across the delegated stream so a failure part-way through
+    // reports the next sequence number rather than restarting at 0.
+    let sequence = 0;
+
     try {
-      if (this.config.communication.type === 'http') {
-        yield* this.executeStreamHttp(request, signal);
-      } else {
-        yield* this.executeStreamStdio(request, signal);
+      const inner =
+        this.config.communication.type === 'http'
+          ? this.executeStreamHttp(request, signal)
+          : this.executeStreamStdio(request, signal);
+
+      for await (const chunk of inner) {
+        sequence = chunk.sequence + 1;
+        yield chunk;
       }
     } catch (error) {
       yield {
         type: 'error',
-        sequence: 0,
+        sequence: sequence++,
         error: {
           code: 'EXECUTION_ERROR',
           message: error instanceof Error ? error.message : String(error),

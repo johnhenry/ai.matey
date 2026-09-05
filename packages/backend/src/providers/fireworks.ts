@@ -362,6 +362,7 @@ export class FireworksAIBackendAdapter implements BackendAdapter<
    * Execute streaming request.
    */
   async *executeStream(request: IRChatRequest, signal?: AbortSignal): IRChatStream {
+    let sequence = 0;
     try {
       const fireworksRequest = this.fromIR(request);
       fireworksRequest.stream = true;
@@ -393,8 +394,6 @@ export class FireworksAIBackendAdapter implements BackendAdapter<
           provenance: { backend: this.metadata.name },
         });
       }
-
-      let sequence = 0;
       let contentBuffer = '';
       let usage:
         | { promptTokens: number; completionTokens: number; totalTokens: number }
@@ -498,7 +497,7 @@ export class FireworksAIBackendAdapter implements BackendAdapter<
     } catch (error) {
       yield {
         type: 'error',
-        sequence: 0,
+        sequence: sequence++,
         error: {
           code: error instanceof Error ? error.name : 'UNKNOWN_ERROR',
           message: error instanceof Error ? error.message : String(error),

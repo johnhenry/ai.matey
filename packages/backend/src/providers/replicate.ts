@@ -335,6 +335,7 @@ export class ReplicateBackendAdapter implements BackendAdapter<
    * Replicate streaming is limited and varies by model.
    */
   async *executeStream(request: IRChatRequest, signal?: AbortSignal): IRChatStream {
+    let sequence = 0;
     try {
       const replicateRequest = this.fromIR(request);
       replicateRequest.stream = true;
@@ -369,8 +370,6 @@ export class ReplicateBackendAdapter implements BackendAdapter<
           provenance: { backend: this.metadata.name },
         });
       }
-
-      let sequence = 0;
       let contentBuffer = '';
 
       yield {
@@ -432,7 +431,7 @@ export class ReplicateBackendAdapter implements BackendAdapter<
     } catch (error) {
       yield {
         type: 'error',
-        sequence: 0,
+        sequence: sequence++,
         error: {
           code: error instanceof Error ? error.name : 'UNKNOWN_ERROR',
           message: error instanceof Error ? error.message : String(error),

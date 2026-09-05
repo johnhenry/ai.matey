@@ -289,6 +289,7 @@ export class AppleBackend implements BackendAdapter {
     }
 
     let session: any = null;
+    let sequence = 0;
 
     try {
       const ai = await loadAppleAI();
@@ -354,7 +355,7 @@ export class AppleBackend implements BackendAdapter {
       // Yield start chunk
       yield {
         type: 'start',
-        sequence: 0,
+        sequence: sequence++,
         metadata: {
           ...request.metadata,
           provenance: {
@@ -366,7 +367,6 @@ export class AppleBackend implements BackendAdapter {
 
       // Stream response using apple-foundation-models streaming API
       const stream = session.streamResponse(prompt, options);
-      let sequence = 1;
       let fullContent = '';
 
       for await (const chunk of stream) {
@@ -404,7 +404,7 @@ export class AppleBackend implements BackendAdapter {
 
       yield {
         type: 'error',
-        sequence: 0,
+        sequence: sequence++,
         error: {
           code: error instanceof Error ? error.name : 'UNKNOWN_ERROR',
           message: error instanceof Error ? error.message : String(error),

@@ -450,6 +450,29 @@ type IRStreamChunk =
   | StreamErrorChunk;
 ```
 
+#### Chunk sequence numbers
+
+Every chunk carries a `sequence`. **The first chunk of a stream carries `0`, and
+each subsequent chunk carries exactly one more than the one before it.** The
+counter is per-stream and spans all chunk types — a `metadata` chunk between two
+`content` chunks consumes a number, and so does the terminal `done` or `error`
+chunk. No number is reused and none is skipped.
+
+Contiguity is what makes the field useful. In-process an async generator cannot
+drop or reorder its own yields, so `sequence` is decoration. Once a stream
+crosses a wire it is the only loss-detection primitive the IR has, and a gap can
+only mean loss if a gap is illegal. A consumer that sees a gap, a repeat, or a
+decrease has not received the stream that was sent, and should fail the turn
+rather than render it — a truncated but fluent answer reads to a user as a real
+answer.
+
+`validateChunkSequence()` and `validateStream()` in `@johnhenry/aimatey-utils`
+check exactly this rule, so consumers do not have to invent their own.
+
+The terminal `error` chunk is the easiest place to break the rule, because it is
+emitted from a `catch` that often cannot see the counter. Hoist the counter above
+the `try`.
+
 #### StreamStartChunk
 
 Signals start of stream:
@@ -688,6 +711,7 @@ interface IRWarning {
 }
 
 type WarningCategory =
+  // The request is not the request the caller wrote.
   | 'parameter-normalized'
   | 'parameter-clamped'
   | 'parameter-unsupported'
@@ -697,7 +721,14 @@ type WarningCategory =
   | 'system-message-transformed'
   | 'content-type-unsupported'
   | 'tool-unsupported'
-  | 'model-substituted';
+  | 'model-substituted'
+  | 'routing-config-changed'
+  | 'content-redacted'
+  | 'cache-bypassed'
+  // The request was served faithfully and the *delivery* was degraded.
+  | 'request-queued'
+  | 'transport-degraded'
+  | 'provenance-lost';
 
 type WarningSeverity = 'info' | 'warning' | 'error';
 ```

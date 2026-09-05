@@ -305,6 +305,7 @@ export class AI21BackendAdapter implements BackendAdapter<AI21Request, AI21Respo
    * Execute streaming request.
    */
   async *executeStream(request: IRChatRequest, signal?: AbortSignal): IRChatStream {
+    let sequence = 0;
     try {
       const ai21Request = this.fromIR(request);
       ai21Request.stream = true;
@@ -336,8 +337,6 @@ export class AI21BackendAdapter implements BackendAdapter<AI21Request, AI21Respo
           provenance: { backend: this.metadata.name },
         });
       }
-
-      let sequence = 0;
       let contentBuffer = '';
 
       yield {
@@ -422,7 +421,7 @@ export class AI21BackendAdapter implements BackendAdapter<AI21Request, AI21Respo
     } catch (error) {
       yield {
         type: 'error',
-        sequence: 0,
+        sequence: sequence++,
         error: {
           code: error instanceof Error ? error.name : 'UNKNOWN_ERROR',
           message: error instanceof Error ? error.message : String(error),

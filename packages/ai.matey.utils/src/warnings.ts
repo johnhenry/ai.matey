@@ -202,6 +202,77 @@ export function createStopSequencesTruncatedWarning(
   );
 }
 
+/**
+ * Create a warning for a request that waited before it ran.
+ *
+ * For a store-and-forward transport that accepted a turn, held it, and
+ * executed it later. The reply is correct and late, which no translation
+ * category can say.
+ *
+ * @param queuedMs How long the request waited before it was executed
+ * @param source Source adapter
+ * @returns Warning object
+ */
+export function createRequestQueuedWarning(queuedMs: number, source?: string): IRWarning {
+  return createWarning('request-queued', `Request was queued for ${queuedMs}ms before it ran`, {
+    severity: 'info',
+    source,
+    details: { queuedMs },
+  });
+}
+
+/**
+ * Create a warning for a turn whose delivery was degraded.
+ *
+ * The request was translated faithfully and the backend did what was asked;
+ * the *link* is what went wrong -- a stream that reconnected mid-response, a
+ * re-send after a transport failure, a hop an order of magnitude slower than
+ * the same request served locally.
+ *
+ * Reach for this rather than `capability-unsupported`, which says the backend
+ * could not do what was asked and means something else entirely.
+ *
+ * @param reason What degraded the delivery
+ * @param options Optional structured detail and source adapter
+ * @returns Warning object
+ */
+export function createTransportDegradedWarning(
+  reason: string,
+  options: { details?: Record<string, unknown>; source?: string } = {}
+): IRWarning {
+  return createWarning('transport-degraded', `Transport degraded: ${reason}`, {
+    severity: 'warning',
+    source: options.source,
+    details: options.details,
+  });
+}
+
+/**
+ * Create a warning for a response that arrived without provenance where the
+ * receiver had reason to expect it.
+ *
+ * `IRMetadata.provenance` is optional, so `undefined` cannot by itself
+ * distinguish "nothing was recorded" from "something recorded it and the trip
+ * ate it". Attaching this on receipt makes the second case detectable, and
+ * says so as the receiving hop's own claim rather than as an inference.
+ *
+ * @param expectedFrom The hop the receiver expected provenance from
+ * @param source Source adapter
+ * @returns Warning object
+ */
+export function createProvenanceLostWarning(expectedFrom: string, source?: string): IRWarning {
+  return createWarning(
+    'provenance-lost',
+    `Response from '${expectedFrom}' carried no provenance where provenance was expected`,
+    {
+      severity: 'warning',
+      field: 'metadata.provenance',
+      source,
+      details: { expectedFrom },
+    }
+  );
+}
+
 // ============================================================================
 // Warning Manipulation
 // ============================================================================

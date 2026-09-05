@@ -224,6 +224,7 @@ export class GeminiBackendAdapter implements BackendAdapter<GeminiRequest, Gemin
   }
 
   async *executeStream(request: IRChatRequest, signal?: AbortSignal): IRChatStream {
+    let sequence = 0;
     try {
       const geminiRequest = this.fromIR(request);
       const model = request.parameters?.model || this.config.defaultModel || 'gemini-3.6-flash';
@@ -256,7 +257,6 @@ export class GeminiBackendAdapter implements BackendAdapter<GeminiRequest, Gemin
         });
       }
 
-      let sequence = 0;
       yield {
         type: 'start',
         sequence: sequence++,
@@ -342,7 +342,7 @@ export class GeminiBackendAdapter implements BackendAdapter<GeminiRequest, Gemin
     } catch (error) {
       yield {
         type: 'error',
-        sequence: 0,
+        sequence: sequence++,
         error: {
           code: error instanceof Error ? error.name : 'UNKNOWN_ERROR',
           message: error instanceof Error ? error.message : String(error),
