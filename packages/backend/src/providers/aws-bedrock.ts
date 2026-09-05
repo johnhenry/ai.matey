@@ -550,6 +550,7 @@ export class AWSBedrockBackendAdapter implements BackendAdapter<BedrockRequest, 
    * Note: Streaming support varies by model and region.
    */
   async *executeStream(request: IRChatRequest, signal?: AbortSignal): IRChatStream {
+    let sequence = 0;
     try {
       const bedrockRequest = this.fromIR(request);
 
@@ -587,8 +588,6 @@ export class AWSBedrockBackendAdapter implements BackendAdapter<BedrockRequest, 
           provenance: { backend: this.metadata.name },
         });
       }
-
-      let sequence = 0;
       let contentBuffer = '';
 
       yield {
@@ -683,7 +682,7 @@ export class AWSBedrockBackendAdapter implements BackendAdapter<BedrockRequest, 
     } catch (error) {
       yield {
         type: 'error',
-        sequence: 0,
+        sequence: sequence++,
         error: {
           code: error instanceof Error ? error.name : 'UNKNOWN_ERROR',
           message: error instanceof Error ? error.message : String(error),

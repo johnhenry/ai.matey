@@ -207,9 +207,11 @@ export class HuggingFaceBackendAdapter implements BackendAdapter<
     // Hugging Face Inference API doesn't support streaming in the standard way
     // We'll simulate it by making a regular request and yielding chunks
 
+    let sequence = 0;
+
     yield {
       type: 'start',
-      sequence: 0,
+      sequence: sequence++,
       metadata: request.metadata,
     } as IRStreamChunk;
 
@@ -227,14 +229,14 @@ export class HuggingFaceBackendAdapter implements BackendAdapter<
 
       yield {
         type: 'content',
-        sequence: 1,
+        sequence: sequence++,
         delta: content,
         role: 'assistant',
       } as IRStreamChunk;
 
       yield {
         type: 'done',
-        sequence: 2,
+        sequence: sequence++,
         finishReason: response.finishReason,
         usage: response.usage,
         message: response.message,
@@ -242,7 +244,7 @@ export class HuggingFaceBackendAdapter implements BackendAdapter<
     } catch (error) {
       yield {
         type: 'error',
-        sequence: 0,
+        sequence: sequence++,
         error: {
           code: error instanceof Error ? error.name : 'UNKNOWN_ERROR',
           message: error instanceof Error ? error.message : String(error),

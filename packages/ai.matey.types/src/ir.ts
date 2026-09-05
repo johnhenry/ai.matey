@@ -715,7 +715,55 @@ export type WarningCategory =
    * {@link IRMetadata.principal} (or the middleware's `scopeKey`) to make
    * the request cacheable, or opt the deployment into a shared cache.
    */
-  | 'cache-bypassed';
+  | 'cache-bypassed'
+  /**
+   * The request was accepted but did not run when it was made -- a
+   * store-and-forward transport held it and executed it later. The reply is
+   * correct and *late*, which is a different claim from any translation
+   * warning: nothing about the request changed, only when it was served.
+   *
+   * Put the wait in {@link IRWarning.details} (e.g. `{ queuedMs: 812000 }`)
+   * when the producer knows it. A caller that has already shown the user a
+   * spinner, or has moved on, needs the elapsed time and not just the fact.
+   */
+  | 'request-queued'
+  /**
+   * The turn was served over a link that materially degraded it -- a stream
+   * that reconnected mid-response, a re-send after a transport failure, or a
+   * hop whose latency was an order of magnitude above the same request served
+   * locally.
+   *
+   * This is deliberately *not* `'capability-unsupported'`. That member says
+   * the backend could not do what was asked; this one says the backend did
+   * exactly what was asked and the delivery was poor. Reaching for
+   * `'capability-unsupported'` to report a slow or lossy link -- or a fallback
+   * forced by device pressure rather than by a missing capability -- is how a
+   * category stops carrying information.
+   */
+  | 'transport-degraded'
+  /**
+   * A response arrived where the receiver had reason to expect
+   * {@link IRMetadata.provenance} and there was none.
+   *
+   * `provenance` is optional, so a bare `undefined` means two very different
+   * things: the chain genuinely recorded nothing, or something recorded it and
+   * it did not survive the trip -- dropped by a transport, a re-serialization,
+   * or a hop that rebuilt `metadata` without spreading the old one. In one
+   * process the second case does not happen. Across a wire it is the
+   * difference between "we do not know where this ran" and "something ate the
+   * answer" (#131).
+   *
+   * A transport-aware adapter that knows the far side stamps provenance
+   * attaches this warning when it receives a response without it, which turns
+   * a silent loss into a detectable one. It is the receiving hop's claim about
+   * what it expected, so it is never inferred by a walker and never attached
+   * by an adapter that had no such expectation: absent provenance with no
+   * `provenance-lost` warning still means "not recorded".
+   *
+   * A consumer that renders a trust label should treat a turn carrying this
+   * warning as unknown-and-suspect rather than unknown-and-ordinary.
+   */
+  | 'provenance-lost';
 
 /**
  * Semantic drift warning.
@@ -1195,6 +1243,39 @@ export type StreamChunkType = 'start' | 'content' | 'tool_use' | 'metadata' | 'd
  */
 export interface BaseStreamChunk {
   readonly type: StreamChunkType;
+
+  /**
+   * Position of this chunk within its stream.
+   *
+   * **The invariant, which every backend adapter must satisfy:** the first
+   * chunk of a stream carries `0`, and each subsequent chunk carries exactly
+   * one more than the chunk before it. The counter is per-stream and spans
+   * **all** chunk types -- a `metadata` chunk between two `content` chunks
+   * consumes a number, and so does the terminal `done` or `error` chunk. No
+   * number is reused, and none is skipped.
+   *
+   * Contiguity is the whole point. In-process an async generator cannot drop
+   * or reorder its own yields, so `sequence` is decoration and any invariant
+   * would do. The moment a stream crosses a wire -- a tunnel, a gateway, a
+   * relay, or any of the proxying shapes {@link IRProvenance.upstream}
+   * anticipates -- it is the only loss-detection primitive the IR has, and it
+   * can only detect loss if a gap is illegal. A consumer that observes a gap,
+   * a repeat, or a decrease has received a stream that is not the stream that
+   * was sent, and should fail the turn rather than render it: a fluent but
+   * truncated answer reads to a user as a real answer, which is the worst
+   * available failure mode for a chat UI (#120).
+   *
+   * `validateChunkSequence()` and `validateStream()` in
+   * `@johnhenry/aimatey-utils` check exactly this rule, so a consumer does not
+   * have to invent it -- and two consumers cannot invent different ones.
+   *
+   * The terminal `error` chunk is the easiest place to break the rule and the
+   * worst place to break it, because it is emitted from a `catch` that often
+   * cannot see the counter. An adapter that reports its failure at `sequence:
+   * 0` after streaming forty chunks turns a clean in-band error into an
+   * apparent replay, and a strict consumer rejects the error rather than the
+   * request that caused it. Hoist the counter above the `try`.
+   */
   readonly sequence: number;
 }
 

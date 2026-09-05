@@ -421,6 +421,7 @@ export class CohereBackendAdapter implements BackendAdapter<CohereRequest, Coher
    * Execute streaming request.
    */
   async *executeStream(request: IRChatRequest, signal?: AbortSignal): IRChatStream {
+    let sequence = 0;
     try {
       const cohereRequest = this.fromIR(request);
       cohereRequest.stream = true;
@@ -452,8 +453,6 @@ export class CohereBackendAdapter implements BackendAdapter<CohereRequest, Coher
           provenance: { backend: this.metadata.name },
         });
       }
-
-      let sequence = 0;
       let contentBuffer = '';
       let citations: CohereResponse['citations'];
 
@@ -543,7 +542,7 @@ export class CohereBackendAdapter implements BackendAdapter<CohereRequest, Coher
     } catch (error) {
       yield {
         type: 'error',
-        sequence: 0,
+        sequence: sequence++,
         error: {
           code: error instanceof Error ? error.name : 'UNKNOWN_ERROR',
           message: error instanceof Error ? error.message : String(error),

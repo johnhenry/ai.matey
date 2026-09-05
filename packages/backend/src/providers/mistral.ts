@@ -178,6 +178,7 @@ export class MistralBackendAdapter implements BackendAdapter<MistralRequest, Mis
   }
 
   async *executeStream(request: IRChatRequest, signal?: AbortSignal): IRChatStream {
+    let sequence = 0;
     try {
       const mistralRequest = this.fromIR(request);
       mistralRequest.stream = true;
@@ -213,7 +214,6 @@ export class MistralBackendAdapter implements BackendAdapter<MistralRequest, Mis
         });
       }
 
-      let sequence = 0;
       yield {
         type: 'start',
         sequence: sequence++,
@@ -292,7 +292,7 @@ export class MistralBackendAdapter implements BackendAdapter<MistralRequest, Mis
     } catch (error) {
       yield {
         type: 'error',
-        sequence: 0,
+        sequence: sequence++,
         error: {
           code: error instanceof Error ? error.name : 'UNKNOWN_ERROR',
           message: error instanceof Error ? error.message : String(error),

@@ -782,6 +782,11 @@ export class Router implements IRouter {
     /** A backend's own error chunk, preferred over a synthesized one. */
     let lastErrorChunk: StreamErrorChunk | undefined;
     let currentBackend: string | null;
+    /**
+     * Highest `sequence` handed to the consumer, so the terminal error chunk
+     * continues this stream's numbering instead of restarting at 0 (#120).
+     */
+    let lastSequence = -1;
 
     try {
       currentBackend = await this.selectBackend(request, preferredBackend);
@@ -842,11 +847,13 @@ export class Router implements IRouter {
           if (!committed) {
             committed = true;
             for (const heldChunk of held) {
+              lastSequence = Math.max(lastSequence, heldChunk.sequence);
               yield heldChunk;
             }
             held.length = 0;
           }
 
+          lastSequence = Math.max(lastSequence, chunk.sequence);
           yield chunk;
         }
 
@@ -854,6 +861,7 @@ export class Router implements IRouter {
         // consumer that preamble.
         if (!aborted) {
           for (const heldChunk of held) {
+            lastSequence = Math.max(lastSequence, heldChunk.sequence);
             yield heldChunk;
           }
         }
@@ -878,7 +886,14 @@ export class Router implements IRouter {
     }
 
     this.stats.failedRequests++;
-    yield lastErrorChunk ?? this.createStreamErrorChunk(lastError);
+    // A backend's own error chunk is numbered against the stream *it* produced,
+    // whose preamble this router may have withheld or replaced by failing over.
+    // Renumber it onto the stream the consumer actually received, so the
+    // terminal chunk is contiguous with what came before it (#120).
+    yield {
+      ...(lastErrorChunk ?? this.createStreamErrorChunk(lastError)),
+      sequence: lastSequence + 1,
+    };
   }
 
   /**
@@ -1725,6 +1740,7 @@ export class Router implements IRouter {
   private createStreamErrorChunk(error: unknown): StreamErrorChunk {
     return {
       type: 'error',
+      // Overwritten by the caller with this stream's next sequence number.
       sequence: 0,
       error: {
         code: error instanceof AdapterError ? error.code : 'UNKNOWN_ERROR',

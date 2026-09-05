@@ -275,12 +275,12 @@ export class ChromeAIBackendAdapter implements BackendAdapter {
    */
   async *executeStream(request: IRChatRequest, signal?: AbortSignal): IRChatStream {
     let session: LanguageModelSession | undefined;
+    let sequence = 0;
 
     try {
       const built = await this.createSession(request, signal);
       session = built.session;
 
-      let sequence = 0;
       yield {
         type: 'start',
         sequence: sequence++,
@@ -332,7 +332,7 @@ export class ChromeAIBackendAdapter implements BackendAdapter {
     } catch (error) {
       yield {
         type: 'error',
-        sequence: 0,
+        sequence: sequence++,
         error: {
           code: error instanceof Error ? error.name : 'UNKNOWN_ERROR',
           message: error instanceof Error ? error.message : String(error),

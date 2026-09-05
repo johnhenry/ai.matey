@@ -338,6 +338,7 @@ export class CerebrasBackendAdapter implements BackendAdapter<CerebrasRequest, C
    * Execute streaming request.
    */
   async *executeStream(request: IRChatRequest, signal?: AbortSignal): IRChatStream {
+    let sequence = 0;
     try {
       const cerebrasRequest = this.fromIR(request);
       cerebrasRequest.stream = true;
@@ -369,8 +370,6 @@ export class CerebrasBackendAdapter implements BackendAdapter<CerebrasRequest, C
           provenance: { backend: this.metadata.name },
         });
       }
-
-      let sequence = 0;
       let contentBuffer = '';
       let timeInfo:
         | { completion_time: number; prompt_time: number; total_time: number }
@@ -470,7 +469,7 @@ export class CerebrasBackendAdapter implements BackendAdapter<CerebrasRequest, C
     } catch (error) {
       yield {
         type: 'error',
-        sequence: 0,
+        sequence: sequence++,
         error: {
           code: error instanceof Error ? error.name : 'UNKNOWN_ERROR',
           message: error instanceof Error ? error.message : String(error),

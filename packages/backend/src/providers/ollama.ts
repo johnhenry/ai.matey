@@ -193,6 +193,7 @@ export class OllamaBackendAdapter implements BackendAdapter<OllamaRequest, Ollam
   }
 
   async *executeStream(request: IRChatRequest, signal?: AbortSignal): IRChatStream {
+    let sequence = 0;
     try {
       const ollamaRequest = this.fromIR(request);
       ollamaRequest.stream = true;
@@ -224,7 +225,6 @@ export class OllamaBackendAdapter implements BackendAdapter<OllamaRequest, Ollam
         });
       }
 
-      let sequence = 0;
       yield {
         type: 'start',
         sequence: sequence++,
@@ -305,7 +305,7 @@ export class OllamaBackendAdapter implements BackendAdapter<OllamaRequest, Ollam
     } catch (error) {
       yield {
         type: 'error',
-        sequence: 0,
+        sequence: sequence++,
         error: {
           code: error instanceof Error ? error.name : 'UNKNOWN_ERROR',
           message: error instanceof Error ? error.message : String(error),

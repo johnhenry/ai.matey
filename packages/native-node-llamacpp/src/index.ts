@@ -254,13 +254,15 @@ export class NodeLlamaCppBackend implements BackendAdapter {
       await this.initialize();
     }
 
+    let sequence = 0;
+
     try {
       // Extract the user's message
       const userMessage = request.messages[request.messages.length - 1];
       if (!userMessage) {
         yield {
           type: 'error',
-          sequence: 0,
+          sequence: sequence++,
           error: {
             code: ErrorCode.INVALID_REQUEST,
             message: 'No messages in request',
@@ -283,8 +285,6 @@ export class NodeLlamaCppBackend implements BackendAdapter {
       }
 
       prompt += `User: ${userContent}\nAssistant:`;
-
-      let sequence = 0;
 
       // Yield start chunk
       yield {
@@ -338,7 +338,7 @@ export class NodeLlamaCppBackend implements BackendAdapter {
     } catch (error) {
       yield {
         type: 'error',
-        sequence: 0,
+        sequence: sequence++,
         error: {
           code: ErrorCode.PROVIDER_ERROR,
           message: `llama.cpp streaming failed: ${error instanceof Error ? error.message : String(error)}`,

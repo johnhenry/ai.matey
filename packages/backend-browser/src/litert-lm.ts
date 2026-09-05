@@ -260,6 +260,7 @@ export class LiteRtLmBackendAdapter implements BackendAdapter {
    */
   async *executeStream(request: IRChatRequest, signal?: AbortSignal): IRChatStream {
     let conversation: LiteRtLmConversation | null = null;
+    let sequence = 0;
 
     try {
       const engine = await this.getEngine();
@@ -268,8 +269,6 @@ export class LiteRtLmBackendAdapter implements BackendAdapter {
       conversation = await engine.createConversation(
         preface.length > 0 ? { preface: { messages: preface } } : {}
       );
-
-      let sequence = 0;
 
       yield {
         type: 'start',
@@ -317,7 +316,7 @@ export class LiteRtLmBackendAdapter implements BackendAdapter {
       conversation?.cancel();
       yield {
         type: 'error',
-        sequence: 0,
+        sequence: sequence++,
         error: {
           code: error instanceof AdapterError ? error.code : 'PROVIDER_ERROR',
           message: error instanceof Error ? error.message : String(error),
