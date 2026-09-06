@@ -238,3 +238,44 @@ describe('Router selection under the default fallbackStrategy (#134)', () => {
     expect(await router.selectBackend(requestFor('primary'), 'primary')).toBe('other');
   });
 });
+
+// ============================================================================
+// isBackendAvailable() -- the predicate routing actually uses (#134, secondary)
+// ============================================================================
+
+describe('Router.isBackendAvailable (#134)', () => {
+  it('should agree with what selection does about an open circuit', async () => {
+    const router = twoBackends(
+      new Router({ routingStrategy: 'explicit', fallbackStrategy: 'none' })
+    );
+
+    expect(router.isBackendAvailable('primary')).toBe(true);
+    expect(await router.selectBackend(requestFor('primary'), 'primary')).toBe('primary');
+
+    router.openCircuitBreaker('primary');
+
+    // A caller can now pre-flight the same predicate rather than approximating
+    // it from isCircuitBreakerOpen().
+    expect(router.isBackendAvailable('primary')).toBe(false);
+    await expect(router.selectBackend(requestFor('primary'), 'primary')).rejects.toThrow(
+      AdapterError
+    );
+  });
+
+  it('should be false for a name that was never registered', () => {
+    const router = twoBackends(new Router());
+
+    expect(router.isBackendAvailable('nonexistent')).toBe(false);
+    expect(router.has('nonexistent')).toBe(false);
+  });
+
+  it('should recover with the circuit', () => {
+    const router = twoBackends(new Router());
+
+    router.openCircuitBreaker('primary');
+    expect(router.isBackendAvailable('primary')).toBe(false);
+
+    router.closeCircuitBreaker('primary');
+    expect(router.isBackendAvailable('primary')).toBe(true);
+  });
+});

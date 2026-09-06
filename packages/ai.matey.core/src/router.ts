@@ -2027,9 +2027,17 @@ export class Router implements IRouter {
   }
 
   /**
-   * Check if backend is available.
+   * Check if a backend is available to be routed to.
+   *
+   * This is the exact predicate routing uses, so it is the only reliable way
+   * to pre-flight "will a request actually go where I ask?". It is stricter
+   * than {@link Router.isCircuitBreakerOpen}, which answers only the circuit
+   * half: a backend that failed its last health check is unhealthy and will
+   * not be routed to even though its circuit is closed.
+   *
+   * Returns `false` for a name that is not registered.
    */
-  private isBackendAvailable(name: string): boolean {
+  isBackendAvailable(name: string): boolean {
     const state = this.backends.get(name);
     if (!state) {
       return false;
