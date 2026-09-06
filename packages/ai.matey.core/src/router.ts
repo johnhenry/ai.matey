@@ -672,8 +672,24 @@ export class Router implements IRouter {
       selectedBackend = this.config.defaultBackend;
     }
 
+    // A named preference that could not be honoured is a *substitution*, and
+    // `fallbackStrategy: 'none'` ("fail immediately") is the caller opting out
+    // of exactly that. Before this guard, an open circuit made the named
+    // backend fail `isBackendAvailable()`, `routeExplicit()` returned null,
+    // and the final-fallback branch below served the request from whichever
+    // backend happened to be registered first -- silently, successfully, and
+    // with no signal that the destination had changed (#134).
+    //
+    // The guard is deliberately limited to a named preference. When the caller
+    // named nothing there is no substitution to refuse: the branch below is
+    // simply how a router without a `defaultBackend` resolves at all, and
+    // suppressing it there would leave a single-backend `'none'` router unable
+    // to route anything.
+    const refusesSubstitution =
+      this.config.fallbackStrategy === 'none' && preferredBackend !== undefined;
+
     // Final fallback: first available backend
-    if (!selectedBackend) {
+    if (!selectedBackend && !refusesSubstitution) {
       const available = this.getAvailableBackends();
       selectedBackend = available[0] ?? null;
     }
