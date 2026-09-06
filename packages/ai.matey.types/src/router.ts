@@ -706,6 +706,19 @@ export interface Router extends BackendAdapter<unknown, unknown> {
    */
   resetCircuitBreaker(name?: string): void;
 
+  /**
+   * Check whether a backend is available to be routed to.
+   *
+   * This is the exact predicate routing uses, so it is the only reliable way
+   * to pre-flight "will a request actually go where I ask?". It is stricter
+   * than the circuit-breaker state alone: a backend that failed its last
+   * health check is unhealthy and will not be routed to even though its
+   * circuit is closed.
+   *
+   * Returns `false` for a name that is not registered.
+   */
+  isBackendAvailable(name: string): boolean;
+
   // ==========================================================================
   // Statistics & Monitoring
   // ==========================================================================
