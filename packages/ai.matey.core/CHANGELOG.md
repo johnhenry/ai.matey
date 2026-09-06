@@ -1,5 +1,225 @@
 # @johnhenry/aimatey-core
 
+## 0.4.0
+
+### Minor Changes
+
+- c26ae12: Make `Router.isBackendAvailable()` public (#134).
+
+  `isBackendAvailable(name)` was `private` while `isCircuitBreakerOpen(name)` was public, so a
+  caller wanting to pre-flight "will this actually go where I asked?" could see the circuit half
+  of the predicate but not the health half, and had to approximate the rest:
+
+  ```ts
+  // what was reachable                    // what routing actually asks
+  !router.isCircuitBreakerOpen(name)       state.isHealthy && state.circuitBreakerState !== 'open'
+  ```
+
+  A backend that failed its last health check is unhealthy and will not be routed to even though
+  its circuit is closed, so the approximation is wrong in exactly the case a caller cares about.
+
+  The method is now public on the `Router` class and declared on the `Router` interface in
+  `@johnhenry/aimatey-types`. Behaviour is unchanged — this only widens visibility.
+
+### Patch Changes
+
+- 9f1e9e5: Cancel a circuit breaker's pending half-open transition when the breaker it belongs to goes away.
+
+  `Router.openCircuitBreaker()` schedules the `open -> half-open` transition with a `setTimeout`
+  and then dropped the handle on the floor. Nothing held it, so nothing could cancel it, and the
+  timer outlived both the open it was scheduled for and, in one case, the backend it named.
+
+  ## A rest period could be cut short by a timer from an earlier one
+
+  The scheduled callback carries no record of which open it belongs to. It half-opens whatever
+  open the breaker happens to be in when it arrives:
+
+  ```ts
+  router.openCircuitBreaker('peer'); // t=0    rest until t=30s
+  router.openCircuitBreaker('peer'); // t=20s  rest until t=50s
+  // t=30s  the t=0 timer fires -> half-open
+  ```
+
+  The second rest period was configured for 30 seconds and lasted 10. A half-open breaker is not
+  refused by `checkCircuitBreaker`, so a trial request reaches a backend 20 seconds before the
+  caller said it should — on a backend that is, by the router's own accounting, still failing.
+
+  The same shape reaches the two lifecycle methods that close a breaker as part of their contract:
+  - `closeCircuitBreaker()` / `resetCircuitBreaker()` left the transition armed, so a breaker
+    closed by hand and later reopened inherited the old timer.
+  - `replace()` documents that it resets the health verdict precisely so a breaker tripped by an
+    expired credential cannot keep refusing the new, working one. It reset the verdict and left
+    the old verdict's timer running — so if the replacement backend then failed too, its rest
+    period was the one cut short.
+
+  ## A transition could outlive its backend
+
+  `unregister()` deleted the map entry and left the timer armed. Until it expired, the callback
+  held the removed `BackendState` — and through it the adapter — keeping both reachable after the
+  router had dropped them, and keeping the host's event loop alive on a backend that no longer
+  exists. For a caller unregistering a backend in order to revoke it, the last reference to the
+  revoked adapter survived the revocation by up to `circuitBreakerTimeout`.
+
+  ## The rule
+
+  A breaker that stops being the open breaker a timer was scheduled for cancels that timer:
+  `openCircuitBreaker` (cancels the earlier one before arming its own), `closeCircuitBreaker`,
+  `resetCircuitBreaker`, `replace` and `unregister`.
+
+  No signature, type or configuration changes. The normal path is unchanged: a breaker left alone
+  still half-opens exactly `circuitBreakerTimeout` after it opened.
+
+- c26ae12: Honour `fallbackStrategy: 'none'` at selection time, not only after a failure (#134).
+
+  ## The defect
+
+  `FallbackStrategy.NONE` is documented as "No fallback - fail immediately if primary backend
+  fails". A caller pairing it with `routingStrategy: 'explicit'` is asking for one thing: **this
+  backend, or nothing.** The Router did not deliver that.
+
+  `fallbackStrategy` was consulted on every _post-failure_ path — `execute()`'s catch,
+  `executeEmbed()`, `executeFallback()`, `nextStreamFallbackBackend()` — but never inside
+  `selectBackend()`. So an open circuit took a different route entirely:
+
+  ```
+  isBackendAvailable('primary')  ->  false   (circuitBreakerState === 'open')
+  routeExplicit('primary')       ->  null
+  // ...falls through to:
+  // Final fallback: first available backend
+  if (!selectedBackend) {
+    selectedBackend = this.getAvailableBackends()[0] ?? null;   // <- unguarded
+  }
+  ```
+
+  Nothing guarded that branch — not `routingStrategy: 'explicit'`, not `fallbackStrategy:
+'none'`. Which backend answered was **registration order**. The request never "failed", so no
+  failure path ever ran, and the caller was told nothing: `execute()` returned a normal response
+  and `executeStream()` produced an ordinary `[content, done]` stream.
+
+  The distinction the code was drawing is _failure_ vs _unavailability_, and the option only
+  covered the first. From the caller's side both are fallback — the request went somewhere they
+  did not name. Reported from a privacy-first on-device app, where a turn targeted at a local
+  model was answered by a cloud provider once the local backend's breaker opened.
+
+  ## The fix
+
+  A named preference that cannot be honoured is a **substitution**, and `'none'` is the opt-out
+  from substitution:
+
+  ```ts
+  const refusesSubstitution =
+    this.config.fallbackStrategy === 'none' && preferredBackend !== undefined;
+
+  if (!selectedBackend && !refusesSubstitution) {
+    /* first available */
+  }
+  ```
+
+  `selectedBackend` stays null and the existing `NO_BACKEND_AVAILABLE` throw fires — which is
+  what "fail immediately" already promised. `executeStream()` surfaces it as an error chunk, its
+  established shape for a failure it cannot fail over.
+
+  The guard is limited to a **named** preference. When the caller named nothing there is no
+  substitution to refuse: that branch is simply how a router without a `defaultBackend` resolves
+  at all, and suppressing it there would leave a single-backend `'none'` router unable to route
+  anything — a much larger break than the bug.
+
+  ## Not changed
+
+  Every other `fallbackStrategy` is untouched: with the default `'sequential'` an open circuit
+  still substitutes at selection time, exactly as before.
+
+  `routingStrategy: 'explicit'` still permits the substitution on its own. It reads like a
+  contradiction, but `routingStrategy` **defaults** to `'explicit'`, so guarding on it would
+  silently re-aim every router that never configured routing at all, and would reroute those
+  requests through the post-failure fallback machinery — changing `totalFallbacks` accounting for
+  successful requests. `fallbackStrategy: 'none'` is the documented opt-out and is what #134 is
+  about.
+
+- 305af90: Give `sequence` a contract and make every adapter keep it, and let a warning say the
+  delivery was degraded rather than the translation (#120, #123, #131).
+
+  ## `sequence` had no contract, and 27 adapters broke the one it turned out to have
+
+  `BaseStreamChunk.sequence` shipped with no doc comment at all. Nothing said whether it
+  starts at 0, whether it increments by one, whether a `metadata` chunk between two `content`
+  chunks consumes a number, or what a consumer should do on a gap. In-process none of that
+  matters: an async generator cannot drop or reorder its own yields, so the field is
+  decoration. Across a wire it is the only loss-detection primitive the IR has, and a gap can
+  only mean loss if a gap is illegal.
+
+  It is now documented as **monotonic and contiguous from 0, across all chunk types of one
+  stream**. That is not a new rule -- it is the rule `validateChunkSequence()` and
+  `validateStream()` in `@johnhenry/aimatey-utils` have always enforced. It was simply never
+  written down, so nothing checked that the library's own adapters obeyed it.
+
+  They did not. Every streaming adapter emitted its terminal `error` chunk from a `catch` that
+  could not see the counter, so it hardcoded `sequence: 0`:
+
+  ```ts
+  } catch (error) {
+    yield { type: 'error', sequence: 0, ... };   // after 40 content chunks
+  }
+  ```
+
+  A provider failing part-way through a generation therefore produced `0, 1, 2, … 40, 0` --
+  a duplicate and a decrease in the one place a consumer most needs to trust the numbering.
+  Passed through this repo's own strict `validateStream()`, that stream throws
+  `Out-of-order chunk: sequence 0 after 41`, replacing the provider's real error with a
+  validator artefact. A consumer using `sequence` to detect a severed connection sees a reset
+  instead.
+
+  Fixed in all 27 emitters -- 22 HTTP providers, `chrome-ai`, `litert-lm`, `native-apple`,
+  `native-model-runner` and `native-node-llamacpp` -- by hoisting the counter above the `try`.
+  `native-model-runner`, which delegates with `yield*`, now tracks the delegated stream's
+  numbering so its own terminal chunk continues it.
+
+  `Router.executeStream` had the same fault twice over. Its synthesized error chunk was
+  numbered 0 after it had already delivered a committed stream's chunks; and a _backend's_
+  error chunk was forwarded with the number the backend gave it, even though the router may
+  have withheld that backend's preamble or failed over from it -- opening a stream at
+  `sequence: 3` with nothing before it. The terminal chunk is now renumbered onto the stream
+  the consumer actually received.
+
+  ## `WarningCategory` could not say a turn was served badly
+
+  All thirteen existing members describe a **translation** problem: a parameter normalized or
+  clamped, a capability missing, content redacted, a model substituted. Coherent, and with no
+  room for a turn that was translated faithfully and then _delivered_ badly. The only thing to
+  reach for was `capability-unsupported`, which says the backend could not do what was asked
+  -- a different claim, and one that stops carrying information after a few stretches.
+
+  Three additive members, and a factory for each in `@johnhenry/aimatey-utils`:
+  - **`request-queued`** -- a store-and-forward transport held the request and ran it later.
+    `createRequestQueuedWarning(queuedMs, source)`; the wait goes in `details`, because a
+    caller that has already shown a spinner needs the elapsed time and not just the fact.
+  - **`transport-degraded`** -- the link degraded the turn: a stream that reconnected
+    mid-response, a re-send after a transport failure, a hop an order of magnitude slower than
+    the same request served locally. `createTransportDegradedWarning(reason, { details, source })`.
+  - **`provenance-lost`** -- a response arrived where the receiver had reason to expect
+    `IRMetadata.provenance` and there was none. `createProvenanceLostWarning(expectedFrom, source)`.
+
+  The last one closes a gap that only exists across a wire. `provenance` is optional, so
+  `undefined` means both "the chain recorded nothing" and "the chain recorded something and
+  the trip ate it" -- dropped by a transport, a re-serialization, or a hop that rebuilt
+  `metadata` without spreading the old one. In one process the second never happens; across a
+  boundary it is the difference between "we do not know where this ran" and "something ate the
+  answer", and an application whose rule is that unknown provenance renders as _no_ trust label
+  needs "unknown" to stay rare and honest.
+
+  It is the **receiving hop's claim about what it expected**, never an inference by a walker
+  and never attached by an adapter that had no such expectation -- so an absent provenance
+  carrying no `provenance-lost` warning still means "not recorded", exactly as before.
+
+  Adding members to a union is additive for producers. Consumers that switch exhaustively on
+  `WarningCategory` will need the usual new-member arms.
+
+- Updated dependencies [c26ae12]
+- Updated dependencies [305af90]
+  - @johnhenry/aimatey-types@0.5.0
+  - @johnhenry/aimatey-utils@0.4.0
+  - @johnhenry/aimatey-errors@0.2.2
+
 ## 0.3.1
 
 ### Patch Changes

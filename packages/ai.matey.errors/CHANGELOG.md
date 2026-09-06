@@ -1,5 +1,13 @@
 # @johnhenry/aimatey-errors
 
+## 0.2.2
+
+### Patch Changes
+
+- Updated dependencies [c26ae12]
+- Updated dependencies [305af90]
+  - @johnhenry/aimatey-types@0.5.0
+
 ## 0.2.1
 
 ### Patch Changes

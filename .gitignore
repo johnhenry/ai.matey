@@ -48,3 +48,5 @@ web.env.local.mjs
 models/
 .claude-trace/
 .todos/
+.auto-claude/
+.worktrees/
