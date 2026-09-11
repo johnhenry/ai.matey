@@ -21,7 +21,7 @@ import type {
 /**
  * Backend adapter for a self-hosted OmniRoute gateway.
  *
- * Unlike ai.matey's other aggregators (OpenRouter, Fireworks), OmniRoute is
+ * Unlike aimatey's other aggregators (OpenRouter, Fireworks), OmniRoute is
  * normally run locally with no API key required - a fresh install already
  * answers requests against its keyless free-provider pool via the special
  * `auto` model, which routes to a healthy provider automatically.

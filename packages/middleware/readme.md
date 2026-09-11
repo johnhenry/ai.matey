@@ -1,10 +1,10 @@
 # @johnhenry/aimatey-middleware
 
-> **Note:** Previously published as `ai.matey.middleware@0.3.1`.
+> **Note:** Previously published as `aimatey-middleware@0.3.1`.
 
-Middleware components for AI Matey - Universal AI Adapter System.
+Middleware components for Aimatey - Universal AI Adapter System.
 
-Part of the [ai.matey](https://github.com/johnhenry/ai.matey) monorepo.
+Part of the [aimatey](https://github.com/johnhenry/aimatey) monorepo.
 
 ## Installation
 
@@ -14,7 +14,7 @@ npm install @johnhenry/aimatey-middleware
 
 ## Overview
 
-This package provides middleware components that can be composed into a middleware stack for request/response processing in AI Matey bridges.
+This package provides middleware components that can be composed into a middleware stack for request/response processing in Aimatey bridges.
 
 ## Included Middleware
 

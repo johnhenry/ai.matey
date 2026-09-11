@@ -44,8 +44,8 @@ const repoRoot = fileURLToPath(new URL('../..', import.meta.url));
  * esbuild resolves anything, so only real imports need listing.
  */
 const WORKSPACE_ALIAS = {
-  '@johnhenry/aimatey-errors': join(repoRoot, 'packages/ai.matey.errors/src/index.ts'),
-  '@johnhenry/aimatey-types': join(repoRoot, 'packages/ai.matey.types/src/index.ts'),
+  '@johnhenry/aimatey-errors': join(repoRoot, 'packages/aimatey-errors/src/index.ts'),
+  '@johnhenry/aimatey-types': join(repoRoot, 'packages/aimatey-types/src/index.ts'),
 };
 
 // ============================================================================
@@ -166,7 +166,7 @@ describe('zod type discrimination (#66)', () => {
       // A consumer-shaped entry point: real Zod, real converter, one bundle.
       const entry = `
         import { z } from 'zod';
-        import { schemaToToolDefinition } from './packages/ai.matey.utils/src/structured-output.ts';
+        import { schemaToToolDefinition } from './packages/aimatey-utils/src/structured-output.ts';
 
         const schemas = {
           union: z.object({ field: z.union([z.string(), z.number()]) }),
@@ -249,7 +249,7 @@ describe('the minified fixture is actually minified', () => {
     const built = buildSync({
       stdin: {
         contents: `
-          import { schemaToToolDefinition } from './packages/ai.matey.utils/src/structured-output.ts';
+          import { schemaToToolDefinition } from './packages/aimatey-utils/src/structured-output.ts';
           export const run = (schema) => schemaToToolDefinition(schema, 'extract', 'Extract');
         `,
         resolveDir: fileURLToPath(new URL('../..', import.meta.url)),

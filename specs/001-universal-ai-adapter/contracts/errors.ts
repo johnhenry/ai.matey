@@ -7,10 +7,10 @@
  *
  * **This is a SPECIFICATION file, not the implementation.**
  *
- * - **Implementation:** `packages/ai.matey.errors/src/index.ts` (386 lines)
+ * - **Implementation:** `packages/aimatey-errors/src/index.ts` (386 lines)
  * - **This spec:** 773 lines (includes planned features not yet implemented)
  *
- * ### ✅ What's Implemented (in packages/ai.matey.errors)
+ * ### ✅ What's Implemented (in packages/aimatey-errors)
  * - AdapterError (base class)
  * - AuthenticationError
  * - AuthorizationError

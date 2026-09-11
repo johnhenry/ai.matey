@@ -1,8 +1,8 @@
 {
-  "name": "ai.matey-monorepo",
+  "name": "aimatey-monorepo",
   "version": "0.0.0",
   "private": true,
-  "description": "AI Matey Monorepo - Universal AI Adapter System",
+  "description": "Aimatey Monorepo - Universal AI Adapter System",
   "type": "module",
   "workspaces": [
     "packages/*"
@@ -26,11 +26,11 @@
     "release": "turbo run build && changeset publish",
     "release:staggered": "./scripts/staggered-publish.sh",
     "release:staggered:dry-run": "./scripts/staggered-publish.sh --dry-run",
-    "docs:dev": "turbo run start --filter=ai.matey.docs",
-    "docs:build": "turbo run build --filter=ai.matey.docs",
-    "docs:serve": "turbo run serve --filter=ai.matey.docs",
-    "example:07-05": "npx tsx packages/ai.matey.docs/examples/07-advanced-patterns/05-react-integration.ts",
-    "example:07-08": "npx tsx packages/ai.matey.docs/examples/07-advanced-patterns/08-edge-deployment.ts"
+    "docs:dev": "turbo run start --filter=@johnhenry/aimatey-docs",
+    "docs:build": "turbo run build --filter=@johnhenry/aimatey-docs",
+    "docs:serve": "turbo run serve --filter=@johnhenry/aimatey-docs",
+    "example:07-05": "npx tsx packages/aimatey-docs/examples/07-advanced-patterns/05-react-integration.ts",
+    "example:07-08": "npx tsx packages/aimatey-docs/examples/07-advanced-patterns/08-edge-deployment.ts"
   },
   "keywords": [
     "ai",
@@ -43,11 +43,11 @@
     "provider-agnostic",
     "typescript"
   ],
-  "author": "AI Matey",
+  "author": "Aimatey",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/johnhenry/ai.matey.git"
+    "url": "git+https://github.com/johnhenry/aimatey.git"
   },
   "engines": {
     "node": ">=18.0.0",

@@ -1,5 +1,5 @@
 /**
- * ai.matey.patterns
+ * aimatey-patterns
  *
  * Production integration patterns, extracted from the validated pattern
  * library (docs/PATTERNS.md) into importable utilities.

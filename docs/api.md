@@ -1,6 +1,6 @@
 # API Reference
 
-Complete API reference for ai.matey - Universal AI Adapter System.
+Complete API reference for aimatey - Universal AI Adapter System.
 
 ## Table of Contents
 
@@ -1030,7 +1030,7 @@ escape hatch when a default pattern is wrong for your traffic. Under
 
 **Response header policy.** `Content-Security-Policy`,
 `Strict-Transport-Security`, `X-Frame-Options` and friends are *browser response*
-headers; they are meaningless as request headers to a provider API, and ai.matey
+headers; they are meaningless as request headers to a provider API, and aimatey
 does not send them upstream. Emit them from the HTTP layer instead:
 
 ```typescript
@@ -1132,7 +1132,7 @@ bridge.use(createValidationMiddleware({
 
 ## Structured Output
 
-ai.matey provides built-in support for generating structured, type-safe outputs using Zod schemas. This enables you to extract validated data from LLM responses with full TypeScript type inference.
+aimatey provides built-in support for generating structured, type-safe outputs using Zod schemas. This enables you to extract validated data from LLM responses with full TypeScript type inference.
 
 **Installation:**
 
@@ -1142,7 +1142,7 @@ Structured output requires the optional peer dependency `zod`:
 npm install zod
 ```
 
-**Note:** ai.matey.core is **zero-dependency by default**. Zod is only required if you use structured output features (`bridge.generateObject()` or `bridge.streamObject()`). If you don't install Zod, you'll get a clear error message with installation instructions.
+**Note:** aimatey-core is **zero-dependency by default**. Zod is only required if you use structured output features (`bridge.generateObject()` or `bridge.streamObject()`). If you don't install Zod, you'll get a clear error message with installation instructions.
 
 ### generateObject
 
@@ -1488,7 +1488,7 @@ const result = detectPII(text, customPatterns);
 
 ## HTTP Integration
 
-ai.matey provides HTTP server integration for multiple frameworks, allowing you to create OpenAI-compatible API endpoints.
+aimatey provides HTTP server integration for multiple frameworks, allowing you to create OpenAI-compatible API endpoints.
 
 ### Framework Support
 
@@ -1665,7 +1665,7 @@ curl http://localhost:8080/v1/chat/completions \
 
 ### OpenAI SDK Wrapper
 
-Drop-in replacement for OpenAI SDK that uses ai.matey bridges.
+Drop-in replacement for OpenAI SDK that uses aimatey bridges.
 
 ```typescript
 import { OpenAI } from '@johnhenry/aimatey-wrapper';
@@ -2122,7 +2122,7 @@ const keyGen = combineKeyGenerators([
 There is no "everything" entry point. `@johnhenry/aimatey` is an umbrella
 placeholder that exports only `VERSION` - import from the specific package
 instead. Every published package is scoped under `@johnhenry/`; the old unscoped
-`ai.matey.*` names were retired when the packages were renamed.
+`aimatey.*` names were retired when the packages were renamed.
 
 | Package | Subpaths |
 |---------|----------|
@@ -2192,4 +2192,4 @@ generated API reference on the documentation site is built from it directly.
 - [Getting Started Guide](../readme.md)
 - [Feature Guides](./GUIDES.md)
 - [Examples](../examples/)
-- [TypeScript Type Definitions](../packages/ai.matey.types/src/)
+- [TypeScript Type Definitions](../packages/aimatey-types/src/)

@@ -1,6 +1,6 @@
 # Frontend Adapter Creator Skill
 
-Use this skill when the user asks to create a new frontend adapter for ai.matey. Frontend adapters convert provider-specific request formats to Universal IR and IR responses back to provider formats.
+Use this skill when the user asks to create a new frontend adapter for aimatey. Frontend adapters convert provider-specific request formats to Universal IR and IR responses back to provider formats.
 
 ## Prerequisites
 

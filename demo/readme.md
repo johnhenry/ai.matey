@@ -1,6 +1,6 @@
-# AI.Matey Demos
+# Aimatey Demos
 
-Interactive demos showcasing different ways to use ai.matey with multiple AI providers.
+Interactive demos showcasing different ways to use aimatey with multiple AI providers.
 
 ## Prerequisites
 
@@ -37,7 +37,7 @@ Interactive demos showcasing different ways to use ai.matey with multiple AI pro
 
 ### 1. Ultimate Kitchen-Sink Demo (`demo.mjs`)
 
-**One demo to rule them all!** This comprehensive demo showcases ALL ai.matey features in a single file (~1,020 lines).
+**One demo to rule them all!** This comprehensive demo showcases ALL aimatey features in a single file (~1,020 lines).
 
 ```bash
 node demo/demo.mjs
@@ -75,10 +75,10 @@ node demo/demo.mjs
 **Example Output:**
 ```
 ================================================================================
-🏴‍☠️ AI.MATEY - ULTIMATE KITCHEN-SINK DEMO
+🏴‍☠️ AIMATEY - ULTIMATE KITCHEN-SINK DEMO
 ================================================================================
 
-This comprehensive demo showcases ALL ai.matey features:
+This comprehensive demo showcases ALL aimatey features:
 
   0. Setup & Configuration
   1. Backend Adapters (Basic Usage)

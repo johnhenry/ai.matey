@@ -324,7 +324,7 @@ function shouldSample(samplingRate: number): boolean {
  * `request.model` is "the name of the GenAI model a request is being made to" (e.g. `gpt-4`)
  * while `response.model` is "the name of the model that generated the response"
  * (e.g. `gpt-4-0613`). The two attributes exist in order to differ -- a provider may resolve
- * an alias to a dated snapshot, and ai.matey's own router may substitute a model outright
+ * an alias to a dated snapshot, and aimatey's own router may substitute a model outright
  * (the `model-substituted` warning category).
  *
  * The primary source is the typed `IRProvenance.servedModel` field (#113), which every
@@ -432,7 +432,7 @@ export async function createOpenTelemetryMiddleware(
     const requestId = context.request.metadata.requestId;
 
     // Create span for the request
-    const span: Span = tracer.startSpan('ai.matey.request', {
+    const span: Span = tracer.startSpan('aimatey-request', {
       attributes: {
         [OpenTelemetryAttributes.REQUEST_ID]: requestId,
         [OpenTelemetryAttributes.REQUEST_MODEL]: context.request.parameters?.model ?? 'unknown',

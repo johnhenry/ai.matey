@@ -2,9 +2,9 @@
  * React Hooks Example - Using React Packages
  *
  * Shows how to use the React-specific packages:
- * - ai.matey.react.core - Core hooks (useChat, useCompletion)
- * - ai.matey.react.hooks - Additional hooks (useAssistant, useTokenCount)
- * - ai.matey.react.stream - Stream components (StreamText, TypeWriter)
+ * - aimatey-react.core - Core hooks (useChat, useCompletion)
+ * - aimatey-react.hooks - Additional hooks (useAssistant, useTokenCount)
+ * - aimatey-react.stream - Stream components (StreamText, TypeWriter)
  */
 
 import React from 'react';
@@ -240,7 +240,7 @@ export function StreamingExample() {
 export function App() {
   return (
     <div className="app">
-      <h1>ai.matey React Examples</h1>
+      <h1>aimatey React Examples</h1>
 
       <section>
         <ChatExample />

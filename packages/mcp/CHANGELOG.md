@@ -58,15 +58,15 @@
 - Updated dependencies
   - @johnhenry/aimatey-types@0.1.0
 
-> Previously published as `ai.matey.mcp`, last unscoped version `0.1.0`.
+> Previously published as `aimatey-mcp`, last unscoped version `0.1.0`.
 
 ## 0.1.0
 
 ### Minor Changes
 
-- d21fe3d: New package: `ai.matey.mcp` - MCP (Model Context Protocol) tool-calling for AI Matey.
+- d21fe3d: New package: `aimatey-mcp` - MCP (Model Context Protocol) tool-calling for Aimatey.
 
-  Translates MCP tools into the `ToolDefinition` shape consumed by `ai.matey.core`'s
+  Translates MCP tools into the `ToolDefinition` shape consumed by `aimatey-core`'s
   `Bridge.runTools()` agentic loop, via an injectable `McpClientLike` client - no hard (or peer)
   dependency on any MCP SDK. Any client satisfying the small structural interface (`listTools`,
   `callTool`) works: the official `@modelcontextprotocol/sdk` wrapped by hand,
@@ -79,4 +79,4 @@
   (MCP tools → `Record<string, ToolDefinition>`), and `runMcpTools` (a convenience wrapper composing
   `mcpToolsToDefinitions` with an already-bound `runTools` function, e.g. `bridge.runTools`).
 
-  Depends only on `ai.matey.types` - `ai.matey.core` itself is untouched by this change.
+  Depends only on `aimatey-types` - `aimatey-core` itself is untouched by this change.

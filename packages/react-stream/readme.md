@@ -1,10 +1,10 @@
 # @johnhenry/aimatey-react-stream
 
-> **Note:** Previously published as `ai.matey.react.stream@0.2.2`.
+> **Note:** Previously published as `aimatey-react.stream@0.2.2`.
 
 React components and utilities for streaming AI responses.
 
-Part of the [ai.matey](https://github.com/johnhenry/ai.matey) monorepo.
+Part of the [aimatey](https://github.com/johnhenry/aimatey) monorepo.
 
 ## Installation
 
@@ -158,7 +158,7 @@ Simulate typing effect for non-streaming text.
 
 ```tsx
 <TypeWriter
-  text="Welcome to AI Matey!"
+  text="Welcome to Aimatey!"
   speed={30}                  // ms per character
   delay={500}                 // ms before starting
   showCursor={true}

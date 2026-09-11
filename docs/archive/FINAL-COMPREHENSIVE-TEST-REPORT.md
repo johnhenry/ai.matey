@@ -1,17 +1,17 @@
-# AI Matey - Final Comprehensive Test Report
+# Aimatey - Final Comprehensive Test Report
 
 **Date:** December 1, 2025
 **Report Version:** 1.0 (Consolidated from 3 source reports)
 **Test Environment:** Published npm packages + Local development
 **Total Test Applications:** 14 (6 original + 8 creative advanced apps)
-**Repository:** https://github.com/johnhenry/ai.matey
-**Published Packages:** https://www.npmjs.com/search?q=%40ai.matey
+**Repository:** https://github.com/johnhenry/aimatey
+**Published Packages:** https://www.npmjs.com/search?q=%40aimatey
 
 ---
 
 ## Executive Summary
 
-Successfully tested the complete **ai.matey package ecosystem** with **14 comprehensive test applications** covering all major packages and use cases. All core functionality is working correctly with published npm packages.
+Successfully tested the complete **aimatey package ecosystem** with **14 comprehensive test applications** covering all major packages and use cases. All core functionality is working correctly with published npm packages.
 
 ### Overall Test Results
 
@@ -44,18 +44,18 @@ All test applications updated to use specific published package versions instead
 
 | Package | Version | Status | Notes |
 |---------|---------|--------|-------|
-| ai.matey.core | 0.2.0 | ✅ Published | Core functionality & Router |
-| ai.matey.backend | **0.2.2** | ✅ Published | Fixed default models + lint fixes (Dec 1, 2025) |
-| ai.matey.http | **0.2.2** | ✅ Published | Fixed Express streaming + lint fixes (Dec 1, 2025) |
-| ai.matey.http.core | 0.2.0 | ✅ Published | Framework-agnostic HTTP core |
-| ai.matey.frontend | 0.2.0 | ✅ Published | Frontend adapters (OpenAI compatible) |
-| ai.matey.middleware | 0.2.0 | ✅ Published | Middleware components (logging, caching, retry, cost tracking) |
-| ai.matey.types | 0.2.0 | ✅ Published | TypeScript type definitions |
-| ai.matey.utils | 0.2.0 | ✅ Published | Stream processing utilities |
-| ai.matey.wrapper | **0.2.2** | ✅ Published | SDK wrapper utilities + test fixes (Dec 1, 2025) |
-| ai.matey.cli | 0.2.0 | ✅ Published | CLI tools & format converters |
-| ai.matey.react.hooks | 0.2.0 | ✅ Published | React hooks (useChat, useCompletion, useObject) |
-| ai.matey.react.core | 0.2.0 | ✅ Published | React core utilities |
+| aimatey-core | 0.2.0 | ✅ Published | Core functionality & Router |
+| aimatey-backend | **0.2.2** | ✅ Published | Fixed default models + lint fixes (Dec 1, 2025) |
+| aimatey-http | **0.2.2** | ✅ Published | Fixed Express streaming + lint fixes (Dec 1, 2025) |
+| aimatey-http.core | 0.2.0 | ✅ Published | Framework-agnostic HTTP core |
+| aimatey-frontend | 0.2.0 | ✅ Published | Frontend adapters (OpenAI compatible) |
+| aimatey-middleware | 0.2.0 | ✅ Published | Middleware components (logging, caching, retry, cost tracking) |
+| aimatey-types | 0.2.0 | ✅ Published | TypeScript type definitions |
+| aimatey-utils | 0.2.0 | ✅ Published | Stream processing utilities |
+| aimatey-wrapper | **0.2.2** | ✅ Published | SDK wrapper utilities + test fixes (Dec 1, 2025) |
+| aimatey-cli | 0.2.0 | ✅ Published | CLI tools & format converters |
+| aimatey-react.hooks | 0.2.0 | ✅ Published | React hooks (useChat, useCompletion, useObject) |
+| aimatey-react.core | 0.2.0 | ✅ Published | React core utilities |
 
 ### Version Pinning Benefits
 
@@ -63,9 +63,9 @@ All test applications updated to use specific published package versions instead
 **After:** Test apps use specific versions (wrapper/backend/http@0.2.2, others@0.2.0)
 
 **Latest Update (December 1, 2025):**
-- ✅ Published ai.matey.wrapper@0.2.2
-- ✅ Published ai.matey.http@0.2.2
-- ✅ Published ai.matey.backend@0.2.2
+- ✅ Published aimatey-wrapper@0.2.2
+- ✅ Published aimatey-http@0.2.2
+- ✅ Published aimatey-backend@0.2.2
 - ✅ Fixed failing test in wrapper package (wrapper-ir.test.ts)
 - ✅ Fixed lint errors (removed unused variables)
 - ✅ All 1,175 tests passing (100%)
@@ -83,15 +83,15 @@ All test applications updated to use specific published package versions instead
 
 | Package | Original Tests | New Creative Tests | Total Coverage |
 |---------|---------------|-------------------|----------------|
-| ai.matey.core | 3 apps | 8 apps | ✅ Comprehensive |
-| ai.matey.backend | 4 apps | 8 apps | ✅ Comprehensive |
-| ai.matey.frontend | 3 apps | 6 apps | ✅ Comprehensive |
-| ai.matey.middleware | 1 app | 4 apps | ✅ Comprehensive |
-| ai.matey.http | 1 app | 1 app | ✅ Good |
-| ai.matey.wrapper | 1 app | 2 apps | ✅ Good |
-| ai.matey.utils | 1 app | 3 apps | ✅ Good |
-| ai.matey.cli | 1 app | 0 apps | ⚠️ Limited |
-| ai.matey.react.hooks | 1 app | 0 apps | ⚠️ Limited |
+| aimatey-core | 3 apps | 8 apps | ✅ Comprehensive |
+| aimatey-backend | 4 apps | 8 apps | ✅ Comprehensive |
+| aimatey-frontend | 3 apps | 6 apps | ✅ Comprehensive |
+| aimatey-middleware | 1 app | 4 apps | ✅ Comprehensive |
+| aimatey-http | 1 app | 1 app | ✅ Good |
+| aimatey-wrapper | 1 app | 2 apps | ✅ Good |
+| aimatey-utils | 1 app | 3 apps | ✅ Good |
+| aimatey-cli | 1 app | 0 apps | ⚠️ Limited |
+| aimatey-react.hooks | 1 app | 0 apps | ⚠️ Limited |
 
 ---
 
@@ -100,7 +100,7 @@ All test applications updated to use specific published package versions instead
 ### 1. test-core-backend-frontend
 
 **Purpose:** Integration testing of core, backend, and frontend packages
-**Packages Used:** ai.matey.core@0.2.0, ai.matey.backend@0.2.1, ai.matey.frontend@0.2.0
+**Packages Used:** aimatey-core@0.2.0, aimatey-backend@0.2.1, aimatey-frontend@0.2.0
 **Status:** ✅ **100% PASS (4/4 tests)**
 **Files:** 9 files, 1,432 lines of code
 
@@ -138,7 +138,7 @@ All test applications updated to use specific published package versions instead
 ### 2. test-middleware
 
 **Purpose:** Testing middleware composition and functionality
-**Packages Used:** ai.matey.core@0.2.0, ai.matey.middleware@0.2.0, ai.matey.backend@0.2.1
+**Packages Used:** aimatey-core@0.2.0, aimatey-middleware@0.2.0, aimatey-backend@0.2.1
 **Status:** ✅ **100% PASS (4/4 middleware types)**
 **Files:** 6 files
 
@@ -174,7 +174,7 @@ All test applications updated to use specific published package versions instead
 ### 3. test-http-server
 
 **Purpose:** Testing Express HTTP server with streaming support
-**Packages Used:** ai.matey.http@**0.2.1**, ai.matey.http.core@0.2.0, ai.matey.backend@0.2.1
+**Packages Used:** aimatey-http@**0.2.1**, aimatey-http.core@0.2.0, aimatey-backend@0.2.1
 **Status:** ✅ **100% PASS (6/6 tests)**
 **Files:** 7 files
 
@@ -211,7 +211,7 @@ All test applications updated to use specific published package versions instead
 
 **Key Findings:**
 - ✅ HTTP streaming now working with published package (v0.2.1)
-- ✅ ai.matey.http@0.2.1 fixes implemented successfully
+- ✅ aimatey-http@0.2.1 fixes implemented successfully
 - ✅ Express middleware properly integrated
 - ✅ SSE (Server-Sent Events) format correct
 - ✅ Both OpenAI and Anthropic endpoints functional
@@ -228,7 +228,7 @@ All test applications updated to use specific published package versions instead
 ### 4. test-react-hooks
 
 **Purpose:** Testing React hooks integration
-**Packages Used:** ai.matey.react.hooks@0.2.0, ai.matey.react.core@0.2.0
+**Packages Used:** aimatey-react.hooks@0.2.0, aimatey-react.core@0.2.0
 **Status:** ✅ **BUILD SUCCESS**
 **Files:** 8 files
 
@@ -254,7 +254,7 @@ All test applications updated to use specific published package versions instead
 ### 5. test-cli
 
 **Purpose:** Testing CLI commands and format conversion
-**Packages Used:** ai.matey.cli@0.2.1
+**Packages Used:** aimatey-cli@0.2.1
 **Status:** ✅ **100% PASS (9/9 tests)**
 **Files:** 10 files
 
@@ -290,24 +290,24 @@ All test applications updated to use specific published package versions instead
 ### 6. test-wrapper-utils
 
 **Purpose:** Testing wrapper utilities
-**Packages Used:** ai.matey.wrapper@0.2.2, ai.matey.utils@0.2.1
+**Packages Used:** aimatey-wrapper@0.2.2, aimatey-utils@0.2.1
 **Status:** ✅ **100% PASS (28/28 tests)**
 **Files:** 7 files, 1,390 lines
 
 #### Test Results:
 
-**ai.matey.types:**
+**aimatey-types:**
 - ✅ Comprehensive TypeScript definitions for IR format
 - ✅ All core types exported correctly
-- ⚠️ Note: Some specialized types (IRChatRequest, IRChatResponse, etc.) available via ai.matey.core
+- ⚠️ Note: Some specialized types (IRChatRequest, IRChatResponse, etc.) available via aimatey-core
 
-**ai.matey.utils: Perfect (100%)**
+**aimatey-utils: Perfect (100%)**
 - ✅ 50+ utility functions all working
 - ✅ 100+ type definitions
 - ✅ Stream processing excellent (collectStream, streamToText, collectStreamFull)
 - ✅ All stream utilities functional
 
-**ai.matey.wrapper: Perfect (100%)**
+**aimatey-wrapper: Perfect (100%)**
 - ✅ SDK wrapper architecture sound
 - ✅ OpenAI wrapper working correctly
 - ✅ Anthropic wrapper working correctly
@@ -318,8 +318,8 @@ All test applications updated to use specific published package versions instead
 - ✅ Advanced stream utilities (transformStream, filterStream, mapStream, processStream) all working
 
 **Key Findings:**
-- ✅ ai.matey.utils is outstanding
-- ✅ ai.matey.wrapper fully functional with all providers
+- ✅ aimatey-utils is outstanding
+- ✅ aimatey-wrapper fully functional with all providers
 - ✅ Comprehensive stream utilities
 - ✅ Strong TypeScript support
 - ✅ All API patterns working correctly
@@ -353,13 +353,13 @@ All test applications updated to use specific published package versions instead
 **Test Results:**
 - ✅ Complexity analysis working correctly
 - ✅ Provider routing logic functional
-- ✅ Integration with Router from ai.matey.core successful
+- ✅ Integration with Router from aimatey-core successful
 - ✅ All 18 test cases documented with expected outputs
 
 **Packages Used:**
-- ai.matey.core@0.2.0 (Router)
-- ai.matey.backend@0.2.1
-- ai.matey.frontend@0.2.0
+- aimatey-core@0.2.0 (Router)
+- aimatey-backend@0.2.1
+- aimatey-frontend@0.2.0
 
 **Issues Found:** None
 
@@ -394,10 +394,10 @@ All test applications updated to use specific published package versions instead
 - ✅ Graceful error handling verified
 
 **Packages Used:**
-- ai.matey.core@0.2.0
-- ai.matey.backend@0.2.1
-- ai.matey.frontend@0.2.0
-- ai.matey.middleware@0.2.0 (CostTrackingMiddleware)
+- aimatey-core@0.2.0
+- aimatey-backend@0.2.1
+- aimatey-frontend@0.2.0
+- aimatey-middleware@0.2.0 (CostTrackingMiddleware)
 
 **Issues Found:** None
 
@@ -440,11 +440,11 @@ All test applications updated to use specific published package versions instead
 - ✅ Error categorization accurate
 
 **Packages Used:**
-- ai.matey.core@0.2.0
-- ai.matey.backend@0.2.1
-- ai.matey.frontend@0.2.0
-- ai.matey.middleware@0.2.0
-- ai.matey.wrapper@0.2.0
+- aimatey-core@0.2.0
+- aimatey-backend@0.2.1
+- aimatey-frontend@0.2.0
+- aimatey-middleware@0.2.0
+- aimatey-wrapper@0.2.0
 
 **Issues Found:** None
 
@@ -485,11 +485,11 @@ All test applications updated to use specific published package versions instead
 - ✅ Provider distribution: DeepSeek (50%), Groq (30%), Haiku (20%)
 
 **Packages Used:**
-- ai.matey.core@0.2.0
-- ai.matey.backend@0.2.1
-- ai.matey.frontend@0.2.0
-- ai.matey.middleware@0.2.0 (CostTrackingMiddleware)
-- ai.matey.utils@0.2.0
+- aimatey-core@0.2.0
+- aimatey-backend@0.2.1
+- aimatey-frontend@0.2.0
+- aimatey-middleware@0.2.0 (CostTrackingMiddleware)
+- aimatey-utils@0.2.0
 
 **Issues Found:** None
 
@@ -548,13 +548,13 @@ All test applications updated to use specific published package versions instead
 - Latency: 101ms (ping/pong)
 
 **Packages Used:**
-- ai.matey.core@0.2.0
-- ai.matey.backend@0.2.1
-- ai.matey.frontend@0.2.0
+- aimatey-core@0.2.0
+- aimatey-backend@0.2.1
+- aimatey-frontend@0.2.0
 - ws@8.16.0 (WebSocket library)
 
 **Issues Found & Resolved:**
-- ❌ Missing ai.matey exports → ✅ Removed unused imports
+- ❌ Missing aimatey exports → ✅ Removed unused imports
 - ❌ Streaming chunks not sent → ✅ Fixed async generator iteration
 - ❌ WebSocket state checking → ✅ Implemented proper readyState check
 
@@ -611,10 +611,10 @@ All test applications updated to use specific published package versions instead
 - ✅ Retry logic improves success rates
 
 **Packages Used:**
-- ai.matey.core@0.2.0
-- ai.matey.backend@0.2.1
-- ai.matey.frontend@0.2.0
-- ai.matey.middleware@0.2.0 (retry logic)
+- aimatey-core@0.2.0
+- aimatey-backend@0.2.1
+- aimatey-frontend@0.2.0
+- aimatey-middleware@0.2.0 (retry logic)
 
 **Issues Found:** None
 
@@ -705,11 +705,11 @@ All test applications updated to use specific published package versions instead
 - ✅ Production-ready with minimal overhead
 
 **Packages Used:**
-- ai.matey.core@0.2.0
-- ai.matey.backend@0.2.1
-- ai.matey.frontend@0.2.0
-- ai.matey.middleware@0.2.0
-- ai.matey.wrapper@0.2.0
+- aimatey-core@0.2.0
+- aimatey-backend@0.2.1
+- aimatey-frontend@0.2.0
+- aimatey-middleware@0.2.0
+- aimatey-wrapper@0.2.0
 
 **Issues Found:** None
 
@@ -763,15 +763,15 @@ All test applications updated to use specific published package versions instead
 - Actionable recommendations
 
 **Packages Used:**
-- ai.matey.core@0.2.0
-- ai.matey.backend@0.2.1
-- ai.matey.frontend@0.2.0
-- ai.matey.middleware@0.2.0
-- ai.matey.utils@0.2.0
+- aimatey-core@0.2.0
+- aimatey-backend@0.2.1
+- aimatey-frontend@0.2.0
+- aimatey-middleware@0.2.0
+- aimatey-utils@0.2.0
 
 **Technology:**
 - Pure Node.js implementation
-- No external dependencies (beyond ai.matey)
+- No external dependencies (beyond aimatey)
 - File system for metrics export
 
 **Issues Found:** None
@@ -786,13 +786,13 @@ All critical issues have been resolved and published.
 
 ### Issues Fixed in Published Packages
 
-#### 1. ✅ FIXED: Anthropic Default Model (ai.matey.backend@0.2.1)
+#### 1. ✅ FIXED: Anthropic Default Model (aimatey-backend@0.2.1)
 
 **Problem:** Default model `claude-3-5-sonnet-20241022` not available on all API keys
 - **Location:** `/packages/backend/src/providers/anthropic.ts:597`
 - **Impact:** All Anthropic requests failed unless model explicitly specified
 - **Fix Applied:** Changed default to `claude-3-haiku-20240307`
-- **Status:** ✅ Published in ai.matey.backend@0.2.1
+- **Status:** ✅ Published in aimatey-backend@0.2.1
 
 **Code Change:**
 ```typescript
@@ -803,13 +803,13 @@ defaultModel: 'claude-3-5-sonnet-20241022'
 defaultModel: 'claude-3-haiku-20240307'
 ```
 
-#### 2. ✅ FIXED: Groq Backend Default Model (ai.matey.backend@0.2.1)
+#### 2. ✅ FIXED: Groq Backend Default Model (aimatey-backend@0.2.1)
 
 **Problem:** Groq inherited OpenAI's default model `gpt-3.5-turbo` which doesn't exist on Groq
 - **Location:** `/packages/backend/src/providers/groq.ts:67`
 - **Impact:** Groq requests failed with "Invalid request: Bad Request"
 - **Fix Applied:** Added `defaultModel: 'llama-3.3-70b-versatile'` to Groq config
-- **Status:** ✅ Published in ai.matey.backend@0.2.1
+- **Status:** ✅ Published in aimatey-backend@0.2.1
 
 **Code Change:**
 ```typescript
@@ -817,13 +817,13 @@ defaultModel: 'claude-3-haiku-20240307'
 defaultModel: config.defaultModel || 'llama-3.3-70b-versatile'
 ```
 
-#### 3. ✅ FIXED: HTTP Streaming (ai.matey.http@0.2.1)
+#### 3. ✅ FIXED: HTTP Streaming (aimatey-http@0.2.1)
 
 **Problem:** Streaming endpoints returned correct headers but no data chunks
-- **Location:** `ai.matey.http` package
+- **Location:** `aimatey-http` package
 - **Impact:** Streaming requests hanging indefinitely
 - **Fix Applied:** Manual SSE implementation for Express compatibility
-- **Status:** ✅ Published in ai.matey.http@0.2.1
+- **Status:** ✅ Published in aimatey-http@0.2.1
 
 **Implementation Details:**
 - Implemented SSE streaming manually for Express compatibility
@@ -841,7 +841,7 @@ defaultModel: config.defaultModel || 'llama-3.3-70b-versatile'
 
 #### 4. ✅ test-websocket-streaming Issues
 
-**Issue A:** Missing exports from ai.matey packages
+**Issue A:** Missing exports from aimatey packages
 - **Resolution:** Removed unused imports (ChatManager, streamChat)
 - **Status:** ✅ Fixed
 
@@ -978,7 +978,7 @@ const cheapest = selectCheapest(costs, qualityTier);
 ### 5. WebSocket Streaming Adapter
 
 **App:** test-websocket-streaming
-**Pattern:** Wrap ai.matey streaming in WebSocket protocol
+**Pattern:** Wrap aimatey streaming in WebSocket protocol
 **Implementation:**
 - WebSocket server with per-client state
 - Conversation history tracking
@@ -1195,26 +1195,26 @@ setInterval(async () => {
 
 ### ⭐️ Exceptional (10/10)
 
-**ai.matey.core**
+**aimatey-core**
 - Perfect universal IR (Intermediate Representation) abstraction
 - Seamless cross-provider compatibility
 - Robust Router implementation
 - Zero issues discovered
 
-**ai.matey.middleware**
+**aimatey-middleware**
 - Production-ready with excellent performance
 - All 4 middleware types working flawlessly
 - Caching provides 1000x+ speedup
 - <1ms overhead per middleware layer
 - Easy composition
 
-**ai.matey.utils**
+**aimatey-utils**
 - Comprehensive stream processing utilities (50+ functions)
 - Outstanding TypeScript support (100+ type definitions)
 - All utilities tested and working
 - Zero issues
 
-**ai.matey.types**
+**aimatey-types**
 - Strong TypeScript support
 - Comprehensive type coverage
 - Strict mode compatible
@@ -1224,26 +1224,26 @@ setInterval(async () => {
 
 ### ✅ Excellent (9/10)
 
-**ai.matey.frontend**
+**aimatey-frontend**
 - OpenAI adapter works flawlessly
 - Perfect API compatibility
 - Clean abstraction layer
 - Streaming and non-streaming both functional
 
-**ai.matey.backend (v0.2.1)**
+**aimatey-backend (v0.2.1)**
 - 24+ providers supported
 - Fixes applied for Anthropic & Groq defaults
 - Universal IR conversion working perfectly
 - Excellent provider coverage
 
-**ai.matey.react.core**
+**aimatey-react.core**
 - Clean React hooks (useChat, useCompletion, useObject)
 - Great developer experience
 - Zero TypeScript errors
 - Efficient bundle size
 - React 18+ compatible
 
-**ai.matey.http (v0.2.1)**
+**aimatey-http (v0.2.1)**
 - OpenAI-compatible API
 - Streaming fixed and working
 - Express integration excellent
@@ -1254,14 +1254,14 @@ setInterval(async () => {
 
 ### 👍 Good (7-8/10)
 
-**ai.matey.cli**
+**aimatey-cli**
 - All core features work
 - Good format conversions (5 provider formats)
 - 13+ providers supported
 - 67% test pass rate (edge cases need attention)
 - Good architecture and extensibility
 
-**ai.matey.wrapper**
+**aimatey-wrapper**
 - Good architecture and design
 - All provider wrappers functional when used correctly
 - API usage patterns need clearer documentation
@@ -1464,30 +1464,30 @@ Specific output examples demonstrating functionality:
 
 **Recommended Packages:**
 
-1. **ai.matey.core + backend@0.2.1 + frontend**
+1. **aimatey-core + backend@0.2.1 + frontend**
    - Use for multi-provider applications
    - Universal IR abstraction is production-ready
    - All provider combinations tested and working
 
-2. **ai.matey.middleware**
+2. **aimatey-middleware**
    - Deploy all 4 middleware types tested
    - Logging for observability
    - Caching for performance (1000x+ speedup)
    - Retry for resilience
    - Cost tracking for optimization
 
-3. **ai.matey.utils**
+3. **aimatey-utils**
    - Use for stream processing
    - 50+ utility functions all working
    - Outstanding TypeScript support
 
-4. **ai.matey.react.core**
+4. **aimatey-react.core**
    - Use for React applications
    - All hooks working perfectly
    - Zero TypeScript errors
    - Efficient bundle size
 
-5. **ai.matey.http@0.2.1 (non-streaming)**
+5. **aimatey-http@0.2.1 (non-streaming)**
    - Use for API servers
    - Perfect OpenAI API compatibility
    - Non-streaming: 100% reliable
@@ -1499,13 +1499,13 @@ Specific output examples demonstrating functionality:
 
 **Test Before Production:**
 
-1. **ai.matey.http@0.2.1 (streaming)**
+1. **aimatey-http@0.2.1 (streaming)**
    - Streaming now working in v0.2.1
    - Test thoroughly with your specific use case
    - Monitor for edge cases
    - Verify SSE format compatibility with your clients
 
-2. **ai.matey.cli**
+2. **aimatey-cli**
    - Verify format conversions for your specific provider formats
    - Test edge cases relevant to your use case
    - 67% pass rate on comprehensive tests
@@ -1517,7 +1517,7 @@ Specific output examples demonstrating functionality:
 
 **Reference Documentation:**
 
-1. **ai.matey.wrapper**
+1. **aimatey-wrapper**
    - Refer to examples for correct API usage
    - Correct: `wrapper.Anthropic(backend)`
    - Incorrect: `new wrapper.Anthropic({ backend })`
@@ -1608,7 +1608,7 @@ Specific output examples demonstrating functionality:
 
 ✅ **APPROVED FOR PRODUCTION DEPLOYMENT**
 
-The **ai.matey package ecosystem is production-ready** with excellent test coverage, strong performance, and comprehensive documentation.
+The **aimatey package ecosystem is production-ready** with excellent test coverage, strong performance, and comprehensive documentation.
 
 ---
 
@@ -1675,25 +1675,25 @@ The **ai.matey package ecosystem is production-ready** with excellent test cover
 ### Production Readiness
 
 **Recommended for Production:**
-- ✅ ai.matey.core@0.2.0
-- ✅ ai.matey.backend@0.2.1
-- ✅ ai.matey.frontend@0.2.0
-- ✅ ai.matey.middleware@0.2.0
-- ✅ ai.matey.utils@0.2.0
-- ✅ ai.matey.types@0.2.0
-- ✅ ai.matey.react.core@0.2.0
-- ✅ ai.matey.react.hooks@0.2.0
-- ✅ ai.matey.http@0.2.1 (with thorough testing)
+- ✅ aimatey-core@0.2.0
+- ✅ aimatey-backend@0.2.1
+- ✅ aimatey-frontend@0.2.0
+- ✅ aimatey-middleware@0.2.0
+- ✅ aimatey-utils@0.2.0
+- ✅ aimatey-types@0.2.0
+- ✅ aimatey-react.core@0.2.0
+- ✅ aimatey-react.hooks@0.2.0
+- ✅ aimatey-http@0.2.1 (with thorough testing)
 
 **Recommended for Testing:**
-- ⚠️ ai.matey.cli@0.2.0 (test format conversions for your use case)
-- ⚠️ ai.matey.wrapper@0.2.0 (refer to documentation for correct usage)
+- ⚠️ aimatey-cli@0.2.0 (test format conversions for your use case)
+- ⚠️ aimatey-wrapper@0.2.0 (refer to documentation for correct usage)
 
 ---
 
 ### Final Recommendation
 
-**✅ The ai.matey ecosystem is ready for production deployment** with the fixes applied in versions 0.2.1 (backend, http) and 0.2.0 (all other packages).
+**✅ The aimatey ecosystem is ready for production deployment** with the fixes applied in versions 0.2.1 (backend, http) and 0.2.0 (all other packages).
 
 **Confidence Level:** High (95%+)
 
@@ -1720,17 +1720,17 @@ The **ai.matey package ecosystem is production-ready** with excellent test cover
 - **Package Manager:** npm
 - **Operating System:** macOS Darwin 25.0.0
 - **Test Date Range:** November 30 - December 1, 2025
-- **Test Directory:** `/Users/johnhenry/Projects/ai.matey.delete/`
+- **Test Directory:** `/Users/johnhenry/Projects/aimatey-delete/`
 
 **Source Repository:**
-- **GitHub:** https://github.com/johnhenry/ai.matey
-- **NPM Packages:** https://www.npmjs.com/search?q=%40ai.matey
+- **GitHub:** https://github.com/johnhenry/aimatey
+- **NPM Packages:** https://www.npmjs.com/search?q=%40aimatey
 
 ---
 
 ## Test Artifacts & Locations
 
-All test applications with detailed reports available in `/Users/johnhenry/Projects/ai.matey.delete/`:
+All test applications with detailed reports available in `/Users/johnhenry/Projects/aimatey-delete/`:
 
 ### Original Test Applications
 

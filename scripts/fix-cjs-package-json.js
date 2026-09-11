@@ -9,7 +9,7 @@
  * compiled to CommonJS for the `require` export condition. Without a nested
  * dist/cjs/package.json overriding the type, Node walks up to the nearest
  * package.json, finds "type": "module", and treats the compiled CJS files
- * as ES modules - so `require("ai.matey.x")` fails with
+ * as ES modules - so `require("aimatey-x")` fails with
  * "Cannot find module './y.js'" (the compiled `require("./y.js")` call is
  * interpreted as an ESM import, which resolves differently). See #23.
  *

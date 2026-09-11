@@ -1,0 +1,42 @@
+{
+  "name": "@johnhenry/aimatey-docs",
+  "version": "0.2.0",
+  "description": "Documentation site for Aimatey - Universal AI Adapter System",
+  "private": true,
+  "scripts": {
+    "dev": "astro dev",
+    "start": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "deploy": "npm run build && wrangler deploy",
+    "typecheck": "astro sync && tsc --noEmit",
+    "clean": "rm -rf dist .astro"
+  },
+  "dependencies": {
+    "@erisera/circuit": "github:erisera-code/circuit",
+    "@astrojs/starlight": "^0.41.3",
+    "astro": "^7.0.6",
+    "starlight-typedoc": "^0.23.0",
+    "typedoc": "^0.28.1",
+    "typedoc-plugin-markdown": "^4.9.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@johnhenry/aimatey-backend": "*",
+    "@johnhenry/aimatey-cli": "*",
+    "@johnhenry/aimatey-core": "*",
+    "@johnhenry/aimatey-frontend": "*",
+    "@johnhenry/aimatey-http": "*",
+    "@johnhenry/aimatey-middleware": "*",
+    "@johnhenry/aimatey-react-core": "*",
+    "@johnhenry/aimatey-react-hooks": "*",
+    "@johnhenry/aimatey-types": "*",
+    "@johnhenry/aimatey-utils": "*",
+    "@johnhenry/aimatey-wrapper": "*",
+    "typescript": "^5.7.2",
+    "wrangler": "^4.107.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

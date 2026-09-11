@@ -1,8 +1,8 @@
 # @johnhenry/aimatey-patterns
 
-> **Note:** Previously published as `ai.matey.patterns@0.2.1`.
+> **Note:** Previously published as `aimatey-patterns@0.2.1`.
 
-Production integration patterns for the [ai.matey](https://github.com/johnhenry/ai.matey)
+Production integration patterns for the [aimatey](https://github.com/johnhenry/aimatey)
 Universal AI Adapter System — the validated patterns from the pattern library, packaged as
 importable utilities.
 
@@ -48,7 +48,7 @@ const processor = createBatchProcessor({
 });
 ```
 
-See the [pattern guide](https://github.com/johnhenry/ai.matey/blob/main/docs/PATTERNS.md) for
+See the [pattern guide](https://github.com/johnhenry/aimatey/blob/main/docs/PATTERNS.md) for
 the full write-ups, benchmarks, and trade-offs behind each pattern.
 
 ## License

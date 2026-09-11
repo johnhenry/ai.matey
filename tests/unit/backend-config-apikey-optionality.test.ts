@@ -74,10 +74,10 @@ const COMPILER_OPTIONS: ts.CompilerOptions = {
   types: [],
   baseUrl: REPO_ROOT,
   paths: {
-    '@johnhenry/aimatey-types': ['packages/ai.matey.types/src/index.ts'],
-    '@johnhenry/aimatey-errors': ['packages/ai.matey.errors/src/index.ts'],
-    '@johnhenry/aimatey-utils': ['packages/ai.matey.utils/src/index.ts'],
-    '@johnhenry/aimatey-core': ['packages/ai.matey.core/src/index.ts'],
+    '@johnhenry/aimatey-types': ['packages/aimatey-types/src/index.ts'],
+    '@johnhenry/aimatey-errors': ['packages/aimatey-errors/src/index.ts'],
+    '@johnhenry/aimatey-utils': ['packages/aimatey-utils/src/index.ts'],
+    '@johnhenry/aimatey-core': ['packages/aimatey-core/src/index.ts'],
     '@johnhenry/aimatey-backend': ['packages/backend/src/index.ts'],
   },
 };
@@ -136,7 +136,7 @@ function describeDiagnostics(diagnostics: readonly ts.Diagnostic[]): string {
     .join('\n');
 }
 
-const TYPES = './packages/ai.matey.types/src/adapters';
+const TYPES = './packages/aimatey-types/src/adapters';
 const BEDROCK = './packages/backend/src/providers/aws-bedrock';
 
 const FIXTURES: readonly Fixture[] = [
@@ -206,7 +206,7 @@ describe('the type-check harness reads source, not built dist', () => {
 
     expect(resolved).toBeDefined();
     expect(path.relative(REPO_ROOT, path.resolve(resolved!))).toBe(
-      path.join('packages', 'ai.matey.types', 'src', 'index.ts')
+      path.join('packages', 'aimatey-types', 'src', 'index.ts')
     );
     expect(resolved).not.toContain('dist');
   });

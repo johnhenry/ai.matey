@@ -3,7 +3,7 @@
  *
  * `runMcpTools(runTools, options)` composes `mcpToolsToDefinitions` with an
  * already-existing `runTools` function (e.g. `bridge.runTools`) from the
- * *outside* - this package never imports `ai.matey.core`, matching
+ * *outside* - this package never imports `aimatey-core`, matching
  * `createRunTools`'s own `RunToolsBridge` structural-typing idiom.
  *
  * @module

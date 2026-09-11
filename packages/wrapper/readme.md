@@ -1,10 +1,10 @@
 # @johnhenry/aimatey-wrapper
 
-> **Note:** Previously published as `ai.matey.wrapper@0.2.4`.
+> **Note:** Previously published as `aimatey-wrapper@0.2.4`.
 
-SDK wrappers and utilities for AI Matey - Universal AI Adapter System.
+SDK wrappers and utilities for Aimatey - Universal AI Adapter System.
 
-Part of the [ai.matey](https://github.com/johnhenry/ai.matey) monorepo.
+Part of the [aimatey](https://github.com/johnhenry/aimatey) monorepo.
 
 ## Installation
 
@@ -14,7 +14,7 @@ npm install @johnhenry/aimatey-wrapper
 
 ## Overview
 
-This package provides SDK-compatible wrappers that let you use familiar SDK patterns (like OpenAI's or Anthropic's) with any AI Matey backend. It also includes IR-native chat utilities for direct usage.
+This package provides SDK-compatible wrappers that let you use familiar SDK patterns (like OpenAI's or Anthropic's) with any Aimatey backend. It also includes IR-native chat utilities for direct usage.
 
 ## Included Components
 

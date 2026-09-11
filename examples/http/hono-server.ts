@@ -1,7 +1,7 @@
 /**
  * Hono Server Example
  *
- * Create a lightweight HTTP server using Hono and ai.matey.
+ * Create a lightweight HTTP server using Hono and aimatey.
  */
 
 import { Hono } from 'hono';

@@ -169,13 +169,13 @@ describe('stableHash', () => {
     // Changing these values changes every existing cache key. That is
     // allowed, but it must be a deliberate, changeset-documented decision.
     expect(stableHash('')).toBe(referenceStableHash(''));
-    expect(stableHash('ai.matey')).toBe(referenceStableHash('ai.matey'));
+    expect(stableHash('aimatey')).toBe(referenceStableHash('aimatey'));
     expect(stableHash('👋')).toBe(referenceStableHash('👋'));
 
     // Snapshot the literal digests so an accidental algorithm change fails
     // loudly rather than silently invalidating every deployed cache.
     expect(stableHash('')).toBe('7347a9db2c773e2c92ca2f0e4bc0fbeb');
-    expect(stableHash('ai.matey')).toBe('8285b592f0bd1e1c5a83e7a890ac554c');
+    expect(stableHash('aimatey')).toBe('de2acd3db143bba78ab7f39542c5f651');
     expect(stableHash('hello world')).toBe('40e9dde76e2fd5481b7f4c729b4ad1d4');
     expect(stableHash('\ud83d\udc4b')).toBe('3b22c0215cfd2adf83ddf35a0b6ecf8f');
   });

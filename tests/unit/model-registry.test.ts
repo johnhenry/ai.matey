@@ -1,7 +1,7 @@
 /**
  * Model registry tests
  *
- * The registry in ai.matey.utils is the single source of truth for model
+ * The registry in aimatey-utils is the single source of truth for model
  * metadata. These tests cover lookup resolution (exact → alias → prefix
  * fallback), runtime registration precedence, pricing overrides, and reset
  * isolation.

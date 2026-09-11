@@ -4,7 +4,7 @@ This file provides guidance to WARP (warp.dev) when working with code in this re
 
 ## Project Overview
 
-ai.matey is a universal AI adapter system that provides a provider-agnostic interface for AI APIs. It enables writing code once that works with any AI provider (OpenAI, Anthropic, Gemini, Ollama, and 20+ others).
+aimatey is a universal AI adapter system that provides a provider-agnostic interface for AI APIs. It enables writing code once that works with any AI provider (OpenAI, Anthropic, Gemini, Ollama, and 20+ others).
 
 **Core Architecture:**
 ```
@@ -170,7 +170,7 @@ Middleware wraps the execution flow for cross-cutting concerns:
 
 #### 5. IR Format (Intermediate Representation)
 
-The IR is the universal format defined in `packages/ai.matey.types/src/ir.ts`. Key types:
+The IR is the universal format defined in `packages/aimatey-types/src/ir.ts`. Key types:
 - `IRChatRequest` - Normalized request with messages, parameters, metadata, tools
 - `IRChatResponse` - Normalized response with message, usage, metadata
 - `IRStreamChunk` - Normalized streaming chunk
@@ -186,17 +186,17 @@ The IR is the universal format defined in `packages/ai.matey.types/src/ir.ts`. K
 
 The dependency hierarchy flows:
 ```
-ai.matey.types (base types)
+aimatey-types (base types)
     ↓
-ai.matey.errors + ai.matey.utils (shared utilities)
+aimatey-errors + aimatey-utils (shared utilities)
     ↓
-ai.matey.core (Bridge, Router, MiddlewareStack)
+aimatey-core (Bridge, Router, MiddlewareStack)
     ↓
 backend + frontend + middleware + http (adapters)
     ↓
 wrapper + react-* + native-* (higher-level integrations)
     ↓
-ai.matey (umbrella package)
+aimatey (umbrella package)
 ```
 
 **Important:** Changes to `@johnhenry/aimatey-types` may affect all packages. Always rebuild after modifying types.

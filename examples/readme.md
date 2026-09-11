@@ -1,6 +1,6 @@
-# ai.matey Examples
+# aimatey Examples
 
-Complete working examples demonstrating different features of ai.matey.
+Complete working examples demonstrating different features of aimatey.
 
 **For comprehensive documentation of all examples, see [EXAMPLES.md](../EXAMPLES.md) in the project root.**
 
@@ -68,4 +68,4 @@ See [EXAMPLES.md](../EXAMPLES.md) for:
 - **Full Examples**: [EXAMPLES.md](../EXAMPLES.md)
 - **API Reference**: [docs/api.md](../docs/api.md)
 - **Feature Guides**: [docs/GUIDES.md](../docs/GUIDES.md)
-- **Issues**: [GitHub Issues](https://github.com/johnhenry/ai.matey/issues)
+- **Issues**: [GitHub Issues](https://github.com/johnhenry/aimatey/issues)

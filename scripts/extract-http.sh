@@ -9,7 +9,7 @@ if [ -z "$ADAPTER" ]; then
 fi
 
 PACKAGE_DIR="packages/http-$ADAPTER"
-PACKAGE_NAME="ai.matey.http.$ADAPTER"
+PACKAGE_NAME="aimatey-http.$ADAPTER"
 
 echo "Creating package: $PACKAGE_NAME"
 
@@ -21,12 +21,12 @@ cp "src/http/adapters/$ADAPTER/"*.ts "$PACKAGE_DIR/src/"
 
 # Update imports in the copied files
 for file in "$PACKAGE_DIR/src/"*.ts; do
-    sed -i -E "s|from '\\.\\./\\.\\./\\.\\./types/[^']+\\.js'|from 'ai.matey.types'|g" "$file"
-    sed -i -E "s|from '\\.\\./\\.\\./types\\.js'|from 'ai.matey.http.core'|g" "$file"
-    sed -i -E "s|from '\\.\\./\\.\\./core/[^']+\\.js'|from 'ai.matey.http.core'|g" "$file"
-    sed -i -E "s|from '\\.\\./\\.\\./\\.\\./errors/[^']+\\.js'|from 'ai.matey.errors'|g" "$file"
-    sed -i -E "s|from '\\.\\./\\.\\./\\.\\./utils/[^']+\\.js'|from 'ai.matey.utils'|g" "$file"
-    sed -i -E "s|from '\\.\\./\\.\\./\\.\\./core/[^']+\\.js'|from 'ai.matey.core'|g" "$file"
+    sed -i -E "s|from '\\.\\./\\.\\./\\.\\./types/[^']+\\.js'|from 'aimatey-types'|g" "$file"
+    sed -i -E "s|from '\\.\\./\\.\\./types\\.js'|from 'aimatey-http.core'|g" "$file"
+    sed -i -E "s|from '\\.\\./\\.\\./core/[^']+\\.js'|from 'aimatey-http.core'|g" "$file"
+    sed -i -E "s|from '\\.\\./\\.\\./\\.\\./errors/[^']+\\.js'|from 'aimatey-errors'|g" "$file"
+    sed -i -E "s|from '\\.\\./\\.\\./\\.\\./utils/[^']+\\.js'|from 'aimatey-utils'|g" "$file"
+    sed -i -E "s|from '\\.\\./\\.\\./\\.\\./core/[^']+\\.js'|from 'aimatey-core'|g" "$file"
 done
 
 # Create package.json
@@ -34,7 +34,7 @@ cat > "$PACKAGE_DIR/package.json" << EOF
 {
   "name": "$PACKAGE_NAME",
   "version": "1.0.0",
-  "description": "${ADAPTER^} HTTP server adapter for AI Matey",
+  "description": "${ADAPTER^} HTTP server adapter for Aimatey",
   "type": "module",
   "main": "./dist/cjs/index.js",
   "module": "./dist/esm/index.js",
@@ -65,23 +65,23 @@ cat > "$PACKAGE_DIR/package.json" << EOF
     "test:watch": "vitest"
   },
   "dependencies": {
-    "ai.matey.types": "*",
-    "ai.matey.errors": "*",
-    "ai.matey.utils": "*",
-    "ai.matey.core": "*",
-    "ai.matey.http.core": "*"
+    "aimatey-types": "*",
+    "aimatey-errors": "*",
+    "aimatey-utils": "*",
+    "aimatey-core": "*",
+    "aimatey-http.core": "*"
   },
   "devDependencies": {
-    "ai.matey.testing": "*",
+    "aimatey-testing": "*",
     "typescript": "^5.9.3",
     "vitest": "^3.2.4"
   },
   "keywords": ["ai", "llm", "$ADAPTER", "http", "server", "adapter", "ai-matey"],
-  "author": "AI Matey",
+  "author": "Aimatey",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/johnhenry/ai.matey.git",
+    "url": "git+https://github.com/johnhenry/aimatey.git",
     "directory": "$PACKAGE_DIR"
   },
   "engines": { "node": ">=18.0.0" }

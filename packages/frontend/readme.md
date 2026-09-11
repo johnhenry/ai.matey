@@ -1,10 +1,10 @@
 # @johnhenry/aimatey-frontend
 
-> **Note:** Previously published as `ai.matey.frontend@0.4.1`.
+> **Note:** Previously published as `aimatey-frontend@0.4.1`.
 
-Frontend adapters for AI Matey - Universal AI Adapter System.
+Frontend adapters for Aimatey - Universal AI Adapter System.
 
-Part of the [ai.matey](https://github.com/johnhenry/ai.matey) monorepo.
+Part of the [aimatey](https://github.com/johnhenry/aimatey) monorepo.
 
 ## Installation
 
@@ -14,7 +14,7 @@ npm install @johnhenry/aimatey-frontend
 
 ## Overview
 
-Frontend adapters convert provider-specific request formats to the Universal IR (Intermediate Representation) format used internally by AI Matey. This allows your application to accept requests in any provider's format and route them to any backend.
+Frontend adapters convert provider-specific request formats to the Universal IR (Intermediate Representation) format used internally by Aimatey. This allows your application to accept requests in any provider's format and route them to any backend.
 
 ## Included Adapters
 

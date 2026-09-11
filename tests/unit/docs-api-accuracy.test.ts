@@ -12,7 +12,7 @@
  *
  * 1. **Import specifiers** - every `import ... from '@johnhenry/aimatey-*'` must
  *    name a package (and subpath) that exists, and every named binding must
- *    actually be exported from it. Unscoped `ai.matey.*` specifiers are rejected
+ *    actually be exported from it. Unscoped `aimatey.*` specifiers are rejected
  *    outright: the packages were renamed into the `@johnhenry` scope (#33/#34).
  *
  * 2. **Documented interfaces** - when a snippet writes `interface X { ... }` and
@@ -45,12 +45,12 @@ const PACKAGES_DIR = path.join(REPO_ROOT, 'packages');
 const DOC_ROOTS = [
   { dir: path.join(REPO_ROOT, 'docs'), exclude: [path.join(REPO_ROOT, 'docs', 'archive')] },
   {
-    dir: path.join(REPO_ROOT, 'packages', 'ai.matey.docs', 'src', 'content', 'docs'),
+    dir: path.join(REPO_ROOT, 'packages', 'aimatey-docs', 'src', 'content', 'docs'),
     // `reference/` is starlight-typedoc output, regenerated at build time and
     // gitignored - it mirrors JSDoc `@example` blocks in the sources, which are
     // not what this check is for.
     exclude: [
-      path.join(REPO_ROOT, 'packages', 'ai.matey.docs', 'src', 'content', 'docs', 'reference'),
+      path.join(REPO_ROOT, 'packages', 'aimatey-docs', 'src', 'content', 'docs', 'reference'),
     ],
   },
 ];

@@ -6,7 +6,7 @@
  * imported from `@modelcontextprotocol/sdk` or any specific client library:
  * this package has no hard (or peer) dependency on any MCP SDK. Any client
  * satisfying `McpClientLike` - the official SDK wrapped by hand, `mcp-query`
- * (`@johnhenry/mcpq`), or a test fake - works without ai.matey ever needing
+ * (`@johnhenry/mcpq`), or a test fake - works without aimatey ever needing
  * to know it exists.
  *
  * @module

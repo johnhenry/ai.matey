@@ -1,10 +1,10 @@
 # @johnhenry/aimatey-react-core
 
-> **Note:** Previously published as `ai.matey.react.core@0.2.2`.
+> **Note:** Previously published as `aimatey-react.core@0.2.2`.
 
 Core React hooks for AI chat interactions.
 
-Part of the [ai.matey](https://github.com/johnhenry/ai.matey) monorepo.
+Part of the [aimatey](https://github.com/johnhenry/aimatey) monorepo.
 
 ## Installation
 
@@ -143,7 +143,7 @@ useChat({
 ```tsx
 useChat({
   direct: {
-    // Required: Backend adapter (any ai.matey backend or Bridge)
+    // Required: Backend adapter (any aimatey backend or Bridge)
     backend: myBackendAdapter,
 
     // Optional: System prompt

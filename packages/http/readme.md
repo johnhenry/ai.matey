@@ -1,10 +1,10 @@
 # @johnhenry/aimatey-http
 
-> **Note:** Previously published as `ai.matey.http@0.3.1`.
+> **Note:** Previously published as `aimatey-http@0.3.1`.
 
-HTTP framework adapters for AI Matey - Universal AI Adapter System.
+HTTP framework adapters for Aimatey - Universal AI Adapter System.
 
-Part of the [ai.matey](https://github.com/johnhenry/ai.matey) monorepo.
+Part of the [aimatey](https://github.com/johnhenry/aimatey) monorepo.
 
 ## Installation
 
@@ -14,7 +14,7 @@ npm install @johnhenry/aimatey-http
 
 ## Overview
 
-This package provides HTTP framework integrations for serving AI Matey bridges as API endpoints. Supports multiple popular Node.js and edge frameworks.
+This package provides HTTP framework integrations for serving Aimatey bridges as API endpoints. Supports multiple popular Node.js and edge frameworks.
 
 ## Included Adapters
 

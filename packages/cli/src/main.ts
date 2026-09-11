@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * AI.Matey CLI - Main Entry Point
+ * Aimatey CLI - Main Entry Point
  *
  * Unified CLI with subcommands for various utilities.
  *
@@ -21,7 +21,7 @@
 
 function showHelp(): void {
   console.log(`
-AI.Matey CLI v0.0.0
+Aimatey CLI v0.0.0
 Universal AI Adapter System - Provider-agnostic interface for AI APIs
 
 USAGE:

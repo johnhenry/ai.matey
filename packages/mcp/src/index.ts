@@ -1,8 +1,8 @@
 /**
- * ai.matey.mcp
+ * aimatey-mcp
  *
- * MCP (Model Context Protocol) tool-calling for AI Matey. Translates MCP
- * tools into the `ToolDefinition` shape consumed by `ai.matey.core`'s
+ * MCP (Model Context Protocol) tool-calling for Aimatey. Translates MCP
+ * tools into the `ToolDefinition` shape consumed by `aimatey-core`'s
  * `Bridge.runTools()` agentic loop, via an injectable MCP client - no hard
  * (or peer) dependency on any MCP SDK.
  *

@@ -1,6 +1,6 @@
 # Test Fixtures
 
-This directory contains test fixtures for all AI providers supported by ai.matey.universal.
+This directory contains test fixtures for all AI providers supported by aimatey-universal.
 
 ## Directory Structure
 

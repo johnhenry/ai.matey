@@ -1,0 +1,70 @@
+{
+  "name": "@johnhenry/aimatey-core",
+  "version": "0.4.0",
+  "description": "Core components for Aimatey - Universal AI Adapter System",
+  "type": "module",
+  "main": "./dist/cjs/index.js",
+  "module": "./dist/esm/index.js",
+  "types": "./dist/types/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/types/index.d.ts",
+        "default": "./dist/esm/index.js"
+      },
+      "require": {
+        "types": "./dist/types/index.d.ts",
+        "default": "./dist/cjs/index.js"
+      }
+    }
+  },
+  "files": [
+    "dist",
+    "readme.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "npm run build:esm && npm run build:cjs && npm run build:types",
+    "build:esm": "tsc -p tsconfig.esm.json",
+    "build:cjs": "tsc -p tsconfig.cjs.json",
+    "build:types": "tsc -p tsconfig.types.json",
+    "clean": "rm -rf dist",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src --ext .ts",
+    "lint:fix": "eslint src --ext .ts --fix",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@johnhenry/aimatey-types": "^0.5.0",
+    "@johnhenry/aimatey-errors": "^0.2.2",
+    "@johnhenry/aimatey-utils": "^0.4.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4"
+  },
+  "keywords": [
+    "ai",
+    "llm",
+    "core",
+    "router",
+    "bridge",
+    "ai-matey"
+  ],
+  "author": "Aimatey",
+  "license": "MIT",
+  "homepage": "https://github.com/johnhenry/aimatey#readme",
+  "bugs": {
+    "url": "https://github.com/johnhenry/aimatey/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/johnhenry/aimatey.git",
+    "directory": "packages/aimatey-core"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

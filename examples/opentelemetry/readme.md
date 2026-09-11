@@ -1,6 +1,6 @@
 # OpenTelemetry Examples
 
-Examples demonstrating OpenTelemetry integration with ai.matey.
+Examples demonstrating OpenTelemetry integration with aimatey.
 
 ## Prerequisites
 
@@ -122,7 +122,7 @@ docker run -d -p 9411:9411 openzipkin/zipkin
 
 ## Trace Attributes
 
-ai.matey automatically adds these attributes to traces:
+aimatey automatically adds these attributes to traces:
 
 | Attribute | Description |
 |-----------|-------------|
@@ -248,5 +248,5 @@ samplingRate: 0.01 // Sample 1% of requests
 
 **Questions?**
 
-- 🐛 [Report a bug](https://github.com/johnhenry/ai.matey/issues)
-- 💬 [Discussion](https://github.com/johnhenry/ai.matey/discussions)
+- 🐛 [Report a bug](https://github.com/johnhenry/aimatey/issues)
+- 💬 [Discussion](https://github.com/johnhenry/aimatey/discussions)

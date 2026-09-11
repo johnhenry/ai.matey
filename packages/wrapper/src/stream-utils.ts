@@ -1,12 +1,12 @@
 /**
  * Stream Utilities
  *
- * Re-exports stream utilities from ai.matey.utils.
+ * Re-exports stream utilities from aimatey-utils.
  *
  * @module
  */
 
-// Re-export stream utilities from ai.matey.utils
+// Re-export stream utilities from aimatey-utils
 export {
   // High-level utilities
   collectStreamFull as collectStream,

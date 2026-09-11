@@ -643,7 +643,7 @@ describe('buildSecurityHeaders', () => {
 
   it('maps poweredBy: false to an empty value meaning "remove"', () => {
     expect(buildSecurityHeaders({ poweredBy: false })['X-Powered-By']).toBe('');
-    expect(buildSecurityHeaders({ poweredBy: 'ai.matey' })['X-Powered-By']).toBe('ai.matey');
+    expect(buildSecurityHeaders({ poweredBy: 'aimatey' })['X-Powered-By']).toBe('aimatey');
   });
 
   it('merges customHeaders last', () => {

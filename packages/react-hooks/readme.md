@@ -1,10 +1,10 @@
 # @johnhenry/aimatey-react-hooks
 
-> **Note:** Previously published as `ai.matey.react.hooks@0.2.2`.
+> **Note:** Previously published as `aimatey-react.hooks@0.2.2`.
 
 Additional specialized React hooks for AI applications.
 
-Part of the [ai.matey](https://github.com/johnhenry/ai.matey) monorepo.
+Part of the [aimatey](https://github.com/johnhenry/aimatey) monorepo.
 
 ## Installation
 

@@ -20,43 +20,43 @@ const packagesDir = path.join(__dirname, '..', 'packages');
 
 const packageInfo = {
   // Core packages
-  'ai.matey': {
+  'aimatey': {
     category: 'core',
     title: '@johnhenry/aimatey',
-    description: 'Main umbrella package for the ai.matey monorepo',
+    description: 'Main umbrella package for the aimatey monorepo',
     exports: ['VERSION'],
   },
-  'ai.matey.core': {
+  'aimatey-core': {
     category: 'core',
     title: '@johnhenry/aimatey-core',
     description: 'Core Bridge, Router, and MiddlewareStack implementations',
     exports: ['Bridge', 'createBridge', 'Router', 'createRouter', 'MiddlewareStack', 'createMiddlewareContext'],
   },
-  'ai.matey.types': {
+  'aimatey-types': {
     category: 'core',
     title: '@johnhenry/aimatey-types',
-    description: 'TypeScript type definitions for the ai.matey ecosystem',
+    description: 'TypeScript type definitions for the aimatey ecosystem',
     exports: ['IRChatRequest', 'IRChatResponse', 'IRMessage', 'IRStreamChunk', 'FrontendAdapter', 'BackendAdapter', 'Middleware'],
   },
-  'ai.matey.errors': {
+  'aimatey-errors': {
     category: 'core',
     title: '@johnhenry/aimatey-errors',
     description: 'Error classes and error handling utilities',
     exports: ['AdapterError', 'AuthenticationError', 'RateLimitError', 'ValidationError', 'ProviderError', 'NetworkError', 'ErrorCode'],
   },
-  'ai.matey.utils': {
+  'aimatey-utils': {
     category: 'core',
     title: '@johnhenry/aimatey-utils',
     description: 'Shared utility functions for streaming, validation, and more',
     exports: ['asyncGeneratorToReadableStream', 'readableStreamToAsyncGenerator', 'collectStreamChunks'],
   },
-  'ai.matey.testing': {
+  'aimatey-testing': {
     category: 'core',
     title: '@johnhenry/aimatey-testing',
-    description: 'Testing utilities, mocks, and fixtures for ai.matey',
+    description: 'Testing utilities, mocks, and fixtures for aimatey',
     exports: ['MockBackendAdapter', 'createMockResponse', 'assertChatRequest'],
   },
-  'ai.matey.cli': {
+  'aimatey-cli': {
     category: 'core',
     title: '@johnhenry/aimatey-cli',
     description: 'Command-line interface and conversion utilities',
@@ -291,7 +291,7 @@ const packageInfo = {
   },
   'backend-chrome-ai': {
     category: 'backend',
-    title: 'ai.matey.backend.chrome-ai',
+    title: 'aimatey-backend.chrome-ai',
     provider: 'Chrome AI',
     description: 'Backend adapter for Chrome built-in AI (experimental)',
     exports: ['ChromeAIBackendAdapter'],
@@ -488,7 +488,7 @@ const packageInfo = {
   },
   'wrapper-anymethod': {
     category: 'wrapper',
-    title: 'ai.matey.wrapper.anymethod',
+    title: 'aimatey-wrapper.anymethod',
     description: 'Dynamic method wrapper for flexible API patterns',
     exports: ['AnyMethodWrapper'],
   },
@@ -556,7 +556,7 @@ function generateBackendDocs(pkgName, info) {
 
 ${info.description}
 
-Part of the [ai.matey](https://github.com/johnhenry/ai.matey) monorepo.
+Part of the [aimatey](https://github.com/johnhenry/aimatey) monorepo.
 
 ## Installation
 
@@ -689,7 +689,7 @@ function generateFrontendDocs(pkgName, info) {
 
 ${info.description}
 
-Part of the [ai.matey](https://github.com/johnhenry/ai.matey) monorepo.
+Part of the [aimatey](https://github.com/johnhenry/aimatey) monorepo.
 
 ## Installation
 
@@ -751,7 +751,7 @@ const bridge = new Bridge(
   new AnthropicBackendAdapter({ apiKey: process.env.ANTHROPIC_API_KEY })
 );
 
-// Client sends OpenAI format, ai.matey translates to Anthropic
+// Client sends OpenAI format, aimatey translates to Anthropic
 const response = await bridge.chat({
   model: 'gpt-4',  // Will be mapped to Claude
   messages: [{ role: 'user', content: 'Hello!' }],
@@ -774,7 +774,7 @@ function generateMiddlewareDocs(pkgName, info) {
 
 ${info.description}
 
-Part of the [ai.matey](https://github.com/johnhenry/ai.matey) monorepo.
+Part of the [aimatey](https://github.com/johnhenry/aimatey) monorepo.
 
 ## Installation
 
@@ -849,7 +849,7 @@ function generateHttpDocs(pkgName, info) {
 
 ${info.description}
 
-Part of the [ai.matey](https://github.com/johnhenry/ai.matey) monorepo.
+Part of the [aimatey](https://github.com/johnhenry/aimatey) monorepo.
 
 ## Installation
 
@@ -915,7 +915,7 @@ function generateWrapperDocs(pkgName, info) {
 
 ${info.description}
 
-Part of the [ai.matey](https://github.com/johnhenry/ai.matey) monorepo.
+Part of the [aimatey](https://github.com/johnhenry/aimatey) monorepo.
 
 ## Installation
 
@@ -959,7 +959,7 @@ ${exports.map(e => `- \`${e}\``).join('\n')}
 
 ### Migrate Existing Code
 
-Replace your existing SDK import with ai.matey wrapper:
+Replace your existing SDK import with aimatey wrapper:
 
 \`\`\`typescript
 // Before
@@ -988,7 +988,7 @@ function generateReactDocs(pkgName, info) {
 
 ${info.description}
 
-Part of the [ai.matey](https://github.com/johnhenry/ai.matey) monorepo.
+Part of the [aimatey](https://github.com/johnhenry/aimatey) monorepo.
 
 ## Installation
 
@@ -1045,7 +1045,7 @@ function generateCoreDocs(pkgName, info) {
 
 ${info.description}
 
-Part of the [ai.matey](https://github.com/johnhenry/ai.matey) monorepo.
+Part of the [aimatey](https://github.com/johnhenry/aimatey) monorepo.
 
 ## Installation
 
@@ -1081,7 +1081,7 @@ function generateNativeDocs(pkgName, info) {
 
 ${info.description}
 
-Part of the [ai.matey](https://github.com/johnhenry/ai.matey) monorepo.
+Part of the [aimatey](https://github.com/johnhenry/aimatey) monorepo.
 
 ## Installation
 
@@ -1236,7 +1236,7 @@ async function main() {
     if (!info) {
       // Try to find by package name pattern
       for (const [key, value] of Object.entries(packageInfo)) {
-        if (pkg === key || pkg.replace(/-/g, '.') === key.replace('ai.matey.', '')) {
+        if (pkg === key || pkg.replace(/-/g, '.') === key.replace('aimatey.', '')) {
           info = value;
           break;
         }

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * AI.Matey Proxy Server
+ * Aimatey Proxy Server
  *
  * HTTP proxy server that accepts provider-format requests (e.g., OpenAI)
  * and routes them through any ai-matey backend adapter.
@@ -326,7 +326,7 @@ function createHandler(backend: BackendAdapter, format: string, verbose: boolean
 
 function showHelp(): void {
   console.log(`
-AI.Matey Proxy Server
+Aimatey Proxy Server
 
 Start an HTTP proxy server that accepts provider-format requests
 and routes them through any ai-matey backend adapter.

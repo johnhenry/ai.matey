@@ -1,6 +1,6 @@
 /**
  * runMcpTools - composes mcpToolsToDefinitions with an injected `runTools`
- * function (e.g. `bridge.runTools`), without depending on ai.matey.core.
+ * function (e.g. `bridge.runTools`), without depending on aimatey-core.
  */
 
 import { describe, it, expect, vi } from 'vitest';

@@ -1,7 +1,7 @@
 {
   "name": "@johnhenry/aimatey-backend",
   "version": "0.3.1",
-  "description": "Backend provider adapters for AI Matey - Universal AI Adapter System",
+  "description": "Backend provider adapters for Aimatey - Universal AI Adapter System",
   "type": "module",
   "main": "./dist/cjs/index.js",
   "module": "./dist/esm/index.js",
@@ -370,15 +370,15 @@
     "ollama",
     "ai-matey"
   ],
-  "author": "AI Matey",
+  "author": "Aimatey",
   "license": "MIT",
-  "homepage": "https://github.com/johnhenry/ai.matey#readme",
+  "homepage": "https://github.com/johnhenry/aimatey#readme",
   "bugs": {
-    "url": "https://github.com/johnhenry/ai.matey/issues"
+    "url": "https://github.com/johnhenry/aimatey/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/johnhenry/ai.matey.git",
+    "url": "git+https://github.com/johnhenry/aimatey.git",
     "directory": "packages/backend"
   },
   "engines": {

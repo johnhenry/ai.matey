@@ -1,5 +1,5 @@
 /**
- * ai.matey.patterns tests
+ * aimatey-patterns tests
  *
  * Mock-backend tests for the five extracted patterns: complexity routing,
  * parallel aggregation, failover middleware, cost optimization, and batch

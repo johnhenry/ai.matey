@@ -12,7 +12,7 @@
  * - Message length/token limits
  * - Sanitization
  *
- * For **IR format validation** (structural correctness), use ai.matey.utils/validation.ts:
+ * For **IR format validation** (structural correctness), use aimatey-utils/validation.ts:
  * - Message structure and content validation
  * - Parameter type and range validation
  * - Request format validation
@@ -284,13 +284,13 @@ export interface ValidationConfig {
 
   /**
    * Perform IR format validation before security validation
-   * Uses ai.matey.utils/validation.ts for structural correctness
+   * Uses aimatey-utils/validation.ts for structural correctness
    * @default false
    */
   validateIRFormat?: boolean;
 
   /**
-   * Validate temperature parameter using ai.matey.utils
+   * Validate temperature parameter using aimatey-utils
    * @default false
    * @deprecated Use validateIRFormat instead for comprehensive parameter validation
    */
@@ -299,7 +299,7 @@ export interface ValidationConfig {
   /**
    * Temperature range (only used if validateTemperature is true)
    * @default [0, 2]
-   * @deprecated Temperature validation now uses ai.matey.utils range (0-2)
+   * @deprecated Temperature validation now uses aimatey-utils range (0-2)
    */
   temperatureRange?: [number, number];
 

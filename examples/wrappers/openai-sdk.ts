@@ -1,7 +1,7 @@
 /**
  * OpenAI SDK Wrapper Example
  *
- * Use ai.matey's OpenAI SDK wrapper to switch backends without changing code.
+ * Use aimatey's OpenAI SDK wrapper to switch backends without changing code.
  */
 
 import { OpenAI } from '@johnhenry/aimatey-wrapper/openai';

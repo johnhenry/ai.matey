@@ -78,7 +78,7 @@ const SUPPORTED_FORMATS = ['openai', 'anthropic', 'gemini', 'ollama', 'mistral']
 
 function printHelp(): void {
   console.log(`
-AI.Matey Response Converter
+Aimatey Response Converter
 Convert Universal IR responses to various frontend formats
 
 USAGE:

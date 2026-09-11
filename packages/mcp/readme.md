@@ -1,8 +1,8 @@
 # @johnhenry/aimatey-mcp
 
-> **Note:** Previously published as `ai.matey.mcp@0.1.0`.
+> **Note:** Previously published as `aimatey-mcp@0.1.0`.
 
-MCP (Model Context Protocol) tool-calling for the [ai.matey](https://github.com/johnhenry/ai.matey)
+MCP (Model Context Protocol) tool-calling for the [aimatey](https://github.com/johnhenry/aimatey)
 Universal AI Adapter System — translate an MCP server's tools into the agentic tool-execution
 loop `@johnhenry/aimatey-core`'s `Bridge` already ships (`bridge.runTools()`), via an injectable client.
 

@@ -255,7 +255,7 @@ export const SECURITY_HEADERS_METADATA_KEY = 'securityHeaders';
 /**
  * Build the HTTP response header policy described by a {@link SecurityConfig}.
  *
- * These are **response** headers for a browser. Nothing in ai.matey sends them
+ * These are **response** headers for a browser. Nothing in aimatey sends them
  * upstream to a provider - pass them to the HTTP layer instead:
  *
  * @example

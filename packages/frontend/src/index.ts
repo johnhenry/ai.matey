@@ -1,11 +1,11 @@
 /**
- * AI Matey Frontend Adapters
+ * Aimatey Frontend Adapters
  *
  * Consolidated package containing all frontend adapters.
  * Each frontend adapter handles converting provider-specific
  * request/response formats to Universal IR and vice versa.
  *
- * @module ai.matey.frontend
+ * @module aimatey-frontend
  */
 
 // Frontend adapters

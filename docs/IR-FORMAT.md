@@ -21,7 +21,7 @@
 
 ## Overview
 
-The **Intermediate Representation (IR)** is the universal format that sits between frontend and backend adapters in the ai.matey ecosystem. It represents chat requests, responses, and streams in a normalized, provider-agnostic way.
+The **Intermediate Representation (IR)** is the universal format that sits between frontend and backend adapters in the aimatey ecosystem. It represents chat requests, responses, and streams in a normalized, provider-agnostic way.
 
 ```
 Client (OpenAI format)
@@ -1238,11 +1238,11 @@ const followUpRequest: IRChatRequest = {
 
 ## TypeScript Definitions
 
-All IR types are defined in `packages/ai.matey.types/src/ir.ts`.
+All IR types are defined in `packages/aimatey-types/src/ir.ts`.
 
 For the complete, authoritative type definitions, refer to the source code:
-- [ir.ts](../packages/ai.matey.types/src/ir.ts) - Core IR types
-- [streaming.ts](../packages/ai.matey.types/src/streaming.ts) - Streaming configuration
+- [ir.ts](../packages/aimatey-types/src/ir.ts) - Core IR types
+- [streaming.ts](../packages/aimatey-types/src/streaming.ts) - Streaming configuration
 
 ---
 
@@ -1250,4 +1250,4 @@ For the complete, authoritative type definitions, refer to the source code:
 
 - [API Reference](./api.md) - Complete API documentation
 - [Architecture Guide](../readme.md#architecture) - System architecture overview
-- [Type Definitions](../packages/ai.matey.types/readme.md) - TypeScript types package
+- [Type Definitions](../packages/aimatey-types/readme.md) - TypeScript types package

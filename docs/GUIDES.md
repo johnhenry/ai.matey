@@ -1,6 +1,6 @@
 # Feature Guides
 
-Comprehensive guides for advanced ai.matey features.
+Comprehensive guides for advanced aimatey features.
 
 ## Table of Contents
 
@@ -484,7 +484,7 @@ console.log('Anthropic:', JSON.stringify(allFormats.anthropic, null, 2));
 
 ## CLI Tools
 
-ai.matey includes powerful command-line tools for various tasks.
+aimatey includes powerful command-line tools for various tasks.
 
 ### Ollama CLI Emulator
 
@@ -492,7 +492,7 @@ Run Ollama-compatible commands with any backend adapter.
 
 #### Overview
 
-The Ollama CLI interface mimics the original Ollama CLI exactly, accepting the same commands and flags, but routes requests through a pluggable backend. This enables drop-in replacement for Ollama while leveraging ai.matey's universal backend system.
+The Ollama CLI interface mimics the original Ollama CLI exactly, accepting the same commands and flags, but routes requests through a pluggable backend. This enables drop-in replacement for Ollama while leveraging aimatey's universal backend system.
 
 **Key Benefits:**
 - **Familiar Interface** - Users already know the commands

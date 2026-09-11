@@ -1,10 +1,10 @@
 /**
- * AI Matey HTTP Adapters
+ * Aimatey HTTP Adapters
  *
  * Consolidated package containing HTTP framework adapters.
  * Each adapter provides integration with a specific HTTP framework.
  *
- * @module ai.matey.http
+ * @module aimatey-http
  */
 
 // Express adapter

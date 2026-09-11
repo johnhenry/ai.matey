@@ -153,7 +153,7 @@ export function useTokenCount(options: UseTokenCountOptions = {}): UseTokenCount
  * Model-specific token limits (context windows).
  *
  * Static fallback for models the shared model registry does not know;
- * the registry in `ai.matey.utils` is consulted first, so registering a
+ * the registry in `aimatey-utils` is consulted first, so registering a
  * model there also fixes token counting here.
  */
 export const MODEL_TOKEN_LIMITS: Record<string, number> = {

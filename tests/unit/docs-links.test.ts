@@ -5,7 +5,7 @@
  * *APIs* exist; this one checks that documented *files* exist.
  *
  * This exists because the examples tree was renamed and the docs were not
- * updated with it, leaving 26 links to `packages/ai.matey.docs/examples/...`
+ * updated with it, leaving 26 links to `packages/aimatey-docs/examples/...`
  * returning 404 on the published site (see issue #32). Nothing failed: a
  * renamed example file breaks no build, no type-check and no test, so the
  * drift was only found by crawling the deployed HTML months later.
@@ -13,9 +13,9 @@
  * Three kinds of reference are resolved against the working tree:
  *
  * 1. **GitHub URLs into this repository** - `https://github.com/johnhenry/
- *    ai.matey/{tree,blob}/<ref>/<path>`. This is how the docs link to runnable
+ *    aimatey/{tree,blob}/<ref>/<path>`. This is how the docs link to runnable
  *    examples, and the exact form that broke in #32. Links to *other*
- *    repositories (`ai.matey.examples`, ...) are left alone; they are not ours
+ *    repositories (`aimatey-examples`, ...) are left alone; they are not ours
  *    to verify.
  *
  * 2. **Relative markdown links to files** - `[text](../foo/bar.md)`. Only
@@ -49,17 +49,17 @@ const PACKAGES_DIR = path.join(REPO_ROOT, 'packages');
 const DOC_ROOTS = [
   { dir: path.join(REPO_ROOT, 'docs'), exclude: [path.join(REPO_ROOT, 'docs', 'archive')] },
   {
-    dir: path.join(REPO_ROOT, 'packages', 'ai.matey.docs', 'src', 'content', 'docs'),
+    dir: path.join(REPO_ROOT, 'packages', 'aimatey-docs', 'src', 'content', 'docs'),
     // `reference/` is starlight-typedoc output, regenerated at build time and
     // gitignored.
     exclude: [
-      path.join(REPO_ROOT, 'packages', 'ai.matey.docs', 'src', 'content', 'docs', 'reference'),
+      path.join(REPO_ROOT, 'packages', 'aimatey-docs', 'src', 'content', 'docs', 'reference'),
     ],
   },
   // The readmes that index the examples tree. The API guard does not read these
   // - they are almost entirely links, which is precisely what this guard is for.
   { dir: path.join(REPO_ROOT, 'examples'), exclude: [] },
-  { dir: path.join(REPO_ROOT, 'packages', 'ai.matey.docs', 'examples'), exclude: [] },
+  { dir: path.join(REPO_ROOT, 'packages', 'aimatey-docs', 'examples'), exclude: [] },
 ];
 
 /** Single markdown files at the repo root that are also checked. */
@@ -153,8 +153,8 @@ interface Reference {
   readonly kind: 'github' | 'relative' | 'run';
 }
 
-/** `https://github.com/johnhenry/ai.matey/{tree,blob}/<ref>/<path>` - this repo only. */
-const GITHUB_LINK = /https?:\/\/github\.com\/johnhenry\/ai\.matey\/(?:tree|blob)\/[^/\s]+\/([^)\s"'>\]`]+)/g;
+/** `https://github.com/johnhenry/aimatey/{tree,blob}/<ref>/<path>` - this repo only. */
+const GITHUB_LINK = /https?:\/\/github\.com\/johnhenry\/aimatey\/(?:tree|blob)\/[^/\s]+\/([^)\s"'>\]`]+)/g;
 /** `[text](target)`, optionally followed by a title. */
 const MARKDOWN_LINK = /\[[^\]]*\]\(\s*([^)\s]+?)\s*(?:"[^"]*")?\)/g;
 /** `npx tsx path/to/file.ts`, `node scripts/x.js`, `bun run examples/y.ts`, ... */
@@ -276,7 +276,7 @@ describe('documentation links resolve to real files', () => {
     // if the docs stop linking to them this assertion should be revisited, not
     // deleted.
     const exampleLinks = ALL_REFERENCES.filter((r) =>
-      r.target.includes('packages/ai.matey.docs/examples/')
+      r.target.includes('packages/aimatey-docs/examples/')
     );
     expect(exampleLinks.length).toBeGreaterThan(20);
   });

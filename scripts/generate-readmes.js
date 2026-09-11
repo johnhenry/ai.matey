@@ -13,12 +13,12 @@ const packagesDir = path.join(__dirname, '..', 'packages');
 
 // Package categories and their descriptions
 const categories = {
-  'ai.matey': { type: 'umbrella', desc: 'Main umbrella package for ai.matey' },
-  'ai.matey.core': { type: 'core', desc: 'Core Bridge and Router implementations' },
-  'ai.matey.types': { type: 'core', desc: 'TypeScript type definitions' },
-  'ai.matey.errors': { type: 'core', desc: 'Error classes and utilities' },
-  'ai.matey.utils': { type: 'core', desc: 'Shared utility functions' },
-  'ai.matey.testing': { type: 'core', desc: 'Testing utilities and mocks' },
+  'aimatey': { type: 'umbrella', desc: 'Main umbrella package for aimatey' },
+  'aimatey-core': { type: 'core', desc: 'Core Bridge and Router implementations' },
+  'aimatey-types': { type: 'core', desc: 'TypeScript type definitions' },
+  'aimatey-errors': { type: 'core', desc: 'Error classes and utilities' },
+  'aimatey-utils': { type: 'core', desc: 'Shared utility functions' },
+  'aimatey-testing': { type: 'core', desc: 'Testing utilities and mocks' },
   'backend-': { type: 'backend', desc: 'Backend adapter for' },
   'frontend-': { type: 'frontend', desc: 'Frontend adapter for' },
   'middleware-': { type: 'middleware', desc: 'Middleware for' },
@@ -56,7 +56,7 @@ function generateReadme(pkgDir, pkgJson) {
 
 ${pkgJson.description || info.desc}
 
-Part of the [ai.matey](https://github.com/johnhenry/ai.matey) monorepo.
+Part of the [aimatey](https://github.com/johnhenry/aimatey) monorepo.
 
 ## Installation
 
@@ -83,7 +83,7 @@ import { AnthropicBackendAdapter } from '@johnhenry/aimatey-backend/anthropic';
 
 ## Available Packages
 
-See the [main documentation](https://github.com/johnhenry/ai.matey) for a full list of available packages.
+See the [main documentation](https://github.com/johnhenry/aimatey) for a full list of available packages.
 `;
       break;
 
@@ -94,7 +94,7 @@ See the [main documentation](https://github.com/johnhenry/ai.matey) for a full l
 import { /* exports */ } from '${pkgName}';
 \`\`\`
 
-See the [API documentation](https://github.com/johnhenry/ai.matey/tree/main/docs) for detailed usage.
+See the [API documentation](https://github.com/johnhenry/aimatey/tree/main/docs) for detailed usage.
 `;
       break;
 
@@ -187,7 +187,7 @@ const handler = create${providerName.replace(/[^a-zA-Z]/g, '')}Handler(bridge);
 import { /* hooks or components */ } from '${pkgName}';
 \`\`\`
 
-See the [React integration guide](https://github.com/johnhenry/ai.matey/tree/main/docs) for detailed usage.
+See the [React integration guide](https://github.com/johnhenry/aimatey/tree/main/docs) for detailed usage.
 `;
       break;
 
@@ -223,7 +223,7 @@ See \`ai-matey --help\` for available commands.
     default:
       content += `## Usage
 
-See the [documentation](https://github.com/johnhenry/ai.matey/tree/main/docs) for usage examples.
+See the [documentation](https://github.com/johnhenry/aimatey/tree/main/docs) for usage examples.
 `;
   }
 
@@ -235,7 +235,7 @@ MIT - see [LICENSE](./LICENSE) for details.
 
 ## Contributing
 
-See the [contributing guide](https://github.com/johnhenry/ai.matey/blob/main/CONTRIBUTING.md) in the main repository.
+See the [contributing guide](https://github.com/johnhenry/aimatey/blob/main/CONTRIBUTING.md) in the main repository.
 `;
 
   return content;

@@ -4,7 +4,7 @@
  * OmniRoute (https://github.com/diegosouzapw/OmniRoute) is a self-hosted AI
  * gateway fronting 290+ providers (90+ free) behind one OpenAI-compatible
  * endpoint, with its own quota-aware auto-fallback across subscription/
- * API-key/cheap/free provider tiers. Unlike ai.matey's other aggregators
+ * API-key/cheap/free provider tiers. Unlike aimatey's other aggregators
  * (OpenRouter, Fireworks), it's normally run locally with no API key
  * required - `auto` already works on a fresh install.
  */

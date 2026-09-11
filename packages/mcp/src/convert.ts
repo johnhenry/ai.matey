@@ -1,7 +1,7 @@
 /**
  * MCP <-> IR Translation
  *
- * Pure functions converting between MCP's tool/result shapes and ai.matey's
+ * Pure functions converting between MCP's tool/result shapes and aimatey's
  * IR types. No client, no I/O - just the mapping.
  *
  * @module

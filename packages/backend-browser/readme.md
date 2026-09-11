@@ -1,10 +1,10 @@
 # @johnhenry/aimatey-backend-browser
 
-> **Note:** Previously published as `ai.matey.backend.browser@0.5.1`.
+> **Note:** Previously published as `aimatey-backend.browser@0.5.1`.
 
-Browser-compatible backend adapters for AI Matey - Universal AI Adapter System.
+Browser-compatible backend adapters for Aimatey - Universal AI Adapter System.
 
-Part of the [ai.matey](https://github.com/johnhenry/ai.matey) monorepo.
+Part of the [aimatey](https://github.com/johnhenry/aimatey) monorepo.
 
 ## Installation
 

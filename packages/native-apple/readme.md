@@ -1,9 +1,9 @@
 # @johnhenry/aimatey-native-apple
 
-> **Note:** Previously published as `ai.matey.native.apple@0.2.1`.
+> **Note:** Previously published as `aimatey-native.apple@0.2.1`.
 
-Run AI Matey against Apple's on-device Foundation Models (Apple Intelligence) — no API key, no
-network, no cost. Part of the [ai.matey](https://github.com/johnhenry/ai.matey) monorepo.
+Run Aimatey against Apple's on-device Foundation Models (Apple Intelligence) — no API key, no
+network, no cost. Part of the [aimatey](https://github.com/johnhenry/aimatey) monorepo.
 
 ## Requirements
 

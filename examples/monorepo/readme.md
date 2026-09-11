@@ -6,18 +6,18 @@ is available as a separate npm package for optimal bundle sizes and dependency m
 ## Package Structure
 
 ```
-ai.matey                    # Umbrella package (backwards compatibility)
-├── ai.matey.core           # Core Bridge and Router
-├── ai.matey.types          # TypeScript type definitions
-├── ai.matey.errors         # Error classes and utilities
-├── ai.matey.utils          # Shared utilities
-├── ai.matey.testing        # Testing utilities and mocks
-├── ai.matey.frontend.*     # Frontend adapters (openai, anthropic, etc.)
-├── ai.matey.backend.*      # Backend adapters (openai, anthropic, gemini, etc.)
-├── ai.matey.middleware.*   # Middleware packages
-├── ai.matey.http.*         # HTTP framework integrations
-├── ai.matey.wrapper.*      # SDK wrapper packages
-└── ai.matey.react.*        # React hooks and components
+aimatey                    # Umbrella package (backwards compatibility)
+├── aimatey-core           # Core Bridge and Router
+├── aimatey-types          # TypeScript type definitions
+├── aimatey-errors         # Error classes and utilities
+├── aimatey-utils          # Shared utilities
+├── aimatey-testing        # Testing utilities and mocks
+├── aimatey-frontend.*     # Frontend adapters (openai, anthropic, etc.)
+├── aimatey-backend.*      # Backend adapters (openai, anthropic, gemini, etc.)
+├── aimatey-middleware.*   # Middleware packages
+├── aimatey-http.*         # HTTP framework integrations
+├── aimatey-wrapper.*      # SDK wrapper packages
+└── aimatey-react.*        # React hooks and components
 ```
 
 ## Examples

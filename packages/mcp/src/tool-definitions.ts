@@ -2,7 +2,7 @@
  * MCP Tools -> ToolDefinition
  *
  * Converts an injected MCP client's tools into the `ToolDefinition` shape
- * consumed by `ai.matey.core`'s `Bridge.runTools()` / `createRunTools()`
+ * consumed by `aimatey-core`'s `Bridge.runTools()` / `createRunTools()`
  * agentic loop - so MCP tool-calling reuses that loop's validation,
  * iteration, and parallel-execution logic rather than reimplementing it.
  *

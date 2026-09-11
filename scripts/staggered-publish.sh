@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Staggered Publish Script for ai.matey Monorepo
+# Staggered Publish Script for aimatey Monorepo
 #
 # Publishes all 23 packages to npm in dependency order with delays
 # to avoid rate limiting.
@@ -102,7 +102,7 @@ FAILED_PACKAGES=()
 
 echo ""
 echo "╔══════════════════════════════════════════════════════════════╗"
-echo "║       ai.matey Staggered Publish Script                      ║"
+echo "║       aimatey Staggered Publish Script                      ║"
 echo "║                                                              ║"
 echo "║  Publishing 23 packages in dependency order                  ║"
 echo "║  Delay between packages: ${DELAY_BETWEEN_PACKAGES}s                              ║"

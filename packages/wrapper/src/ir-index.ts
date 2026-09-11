@@ -1,7 +1,7 @@
 /**
- * ai.matey.wrapper/ir
+ * aimatey-wrapper/ir
  *
- * IR-native chat wrapper for the AI Matey universal adapter system.
+ * IR-native chat wrapper for the Aimatey universal adapter system.
  *
  * This package provides a chat client that works directly with the
  * IR (Intermediate Representation) format.

@@ -44,7 +44,7 @@
   Per the OpenTelemetry GenAI semantic conventions, `request.model` is "the name of the GenAI
   model a request is being made to" (`gpt-4`) and `response.model` is "the name of the model
   that generated the response" (`gpt-4-0613`). The two attributes exist in order to differ: a
-  provider may resolve an alias to a dated snapshot, and ai.matey's own router may substitute a
+  provider may resolve an alias to a dated snapshot, and aimatey's own router may substitute a
   model outright (the `model-substituted` warning category).
 
   That rules out filling it from the request's `parameters.model`, which would make
@@ -799,7 +799,7 @@ you, I was wrong"` is a genuine user and now matches, because catching `the prev
   - @johnhenry/aimatey-types@0.1.0
   - @johnhenry/aimatey-utils@0.1.0
 
-> Previously published as `ai.matey.middleware`, last unscoped version `0.3.1`.
+> Previously published as `aimatey-middleware`, last unscoped version `0.3.1`.
 
 ## 0.3.1
 
@@ -808,21 +808,21 @@ you, I was wrong"` is a genuine user and now matches, because catching `the prev
 - 73aa9f1: Fix broken CJS entry points across the whole package family. Every package declares
   `"type": "module"` for ESM subpath resolution, but shipped `dist/cjs/` builds with no nested
   override - Node walked up to the package root, saw `"type": "module"`, and misinterpreted the
-  compiled CommonJS as ESM, so `require("ai.matey.x")` failed with `Cannot find module './y.js'`
+  compiled CommonJS as ESM, so `require("aimatey-x")` failed with `Cannot find module './y.js'`
   on every package in the family (ESM `import` was unaffected). Each package's build now emits a
   `dist/cjs/package.json` containing `{"type":"commonjs"}` (via a new
   `scripts/fix-cjs-package-json.js` post-build step) to correctly scope the CJS build's module
   type. No source or `exports` map changes - verified via `npm pack` + fresh install against the
   exact repro in #23, both direct `require()` and the `require` export condition on subpaths (e.g.
-  `ai.matey.backend.browser/chrome-ai`).
+  `aimatey-backend.browser/chrome-ai`).
 
   (#23)
 
 - Updated dependencies [73aa9f1]
-  - ai.matey.core@0.3.3
-  - ai.matey.errors@0.2.1
-  - ai.matey.types@0.5.1
-  - ai.matey.utils@0.4.2
+  - aimatey-core@0.3.3
+  - aimatey-errors@0.2.1
+  - aimatey-types@0.5.1
+  - aimatey-utils@0.4.2
 
 ## 0.3.0
 
@@ -835,13 +835,13 @@ you, I was wrong"` is a genuine user and now matches, because catching `the prev
 
 ### Patch Changes
 
-- 2912b7d: Introduce a shared, data-driven model registry in `ai.matey.utils` as the single source of truth
+- 2912b7d: Introduce a shared, data-driven model registry in `aimatey-utils` as the single source of truth
   for model metadata (pricing, context windows, capabilities, quality/latency). The registry ships
   with a mid-2026 seed (GPT-5.x/o-series, Claude 4.x, Gemini 2.5/3, Grok, current Mistral/DeepSeek,
   plus embedding models) and is runtime-extensible via `registerModels()` / `overrideModelPricing()`,
   with alias and longest-prefix fallback so new dated snapshots of known families still resolve.
 
-  `ai.matey.core`'s model-pricing API is now a thin delegate over the registry (no API break; legacy
+  `aimatey-core`'s model-pricing API is now a thin delegate over the registry (no API break; legacy
   models keep their prices, marked `deprecated`). Capability inference recognizes current families.
   Cost-tracking middleware consults the registry before provider-level defaults. `useTokenCount`
   consults the registry for context windows. Backend default models updated:
@@ -857,6 +857,6 @@ you, I was wrong"` is a genuine user and now matches, because catching `the prev
 - Updated dependencies [78731bb]
 - Updated dependencies [b7e2312]
 - Updated dependencies [58ebc03]
-  - ai.matey.types@0.3.0
-  - ai.matey.utils@0.3.0
-  - ai.matey.core@0.3.0
+  - aimatey-types@0.3.0
+  - aimatey-utils@0.3.0
+  - aimatey-core@0.3.0

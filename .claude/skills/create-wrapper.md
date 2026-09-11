@@ -1,6 +1,6 @@
 # Wrapper Creator Skill
 
-Use this skill when the user asks to create a new wrapper for ai.matey. Wrappers provide familiar API surfaces (SDK-like, Proxy-based, Browser API) on top of backend adapters, enabling drop-in replacement or ergonomic interfaces.
+Use this skill when the user asks to create a new wrapper for aimatey. Wrappers provide familiar API surfaces (SDK-like, Proxy-based, Browser API) on top of backend adapters, enabling drop-in replacement or ergonomic interfaces.
 
 ## Wrapper Types
 
@@ -34,7 +34,7 @@ Mimics an official SDK to provide drop-in replacement functionality.
 /**
  * {SDK} Wrapper
  *
- * Drop-in replacement for the official {SDK} SDK using ai.matey backends.
+ * Drop-in replacement for the official {SDK} SDK using aimatey backends.
  *
  * @module
  */
@@ -368,7 +368,7 @@ Mimics a browser API (like Chrome AI) for compatibility.
 /**
  * {Browser API} Wrapper
  *
- * Mimics the {Browser API} interface using ai.matey backends.
+ * Mimics the {Browser API} interface using aimatey backends.
  *
  * @module
  */
@@ -691,7 +691,7 @@ Integration with specific frameworks (Vercel AI SDK, LangChain, etc.).
 /**
  * Vercel AI SDK Provider Wrapper
  *
- * Integrates ai.matey with Vercel AI SDK.
+ * Integrates aimatey with Vercel AI SDK.
  *
  * @module
  */

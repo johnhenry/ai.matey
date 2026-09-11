@@ -5,12 +5,12 @@ export default defineConfig({
   resolve: {
     alias: {
       // Core packages
-      '@johnhenry/aimatey-types': path.resolve(__dirname, 'packages/ai.matey.types/src'),
-      '@johnhenry/aimatey-errors': path.resolve(__dirname, 'packages/ai.matey.errors/src'),
-      '@johnhenry/aimatey-utils': path.resolve(__dirname, 'packages/ai.matey.utils/src'),
-      '@johnhenry/aimatey-core': path.resolve(__dirname, 'packages/ai.matey.core/src'),
-      '@johnhenry/aimatey-testing': path.resolve(__dirname, 'packages/ai.matey.testing/src'),
-      '@johnhenry/aimatey': path.resolve(__dirname, 'packages/ai.matey/src'),
+      '@johnhenry/aimatey-types': path.resolve(__dirname, 'packages/aimatey-types/src'),
+      '@johnhenry/aimatey-errors': path.resolve(__dirname, 'packages/aimatey-errors/src'),
+      '@johnhenry/aimatey-utils': path.resolve(__dirname, 'packages/aimatey-utils/src'),
+      '@johnhenry/aimatey-core': path.resolve(__dirname, 'packages/aimatey-core/src'),
+      '@johnhenry/aimatey-testing': path.resolve(__dirname, 'packages/aimatey-testing/src'),
+      '@johnhenry/aimatey': path.resolve(__dirname, 'packages/aimatey/src'),
 
       // Backend adapters (consolidated packages)
       '@johnhenry/aimatey-backend': path.resolve(__dirname, 'packages/backend/src'),

@@ -1,4 +1,4 @@
-# ai.matey — Development Guidelines
+# aimatey — Development Guidelines
 
 Universal AI Adapter System: a provider-agnostic interface for AI APIs.
 Frontend adapters translate client formats (OpenAI, Anthropic, Gemini, Mistral, Ollama, Chrome AI)
@@ -10,16 +10,16 @@ routing strategies, circuit breaking, and fallback; backend adapters execute the
 
 - **Monorepo**: npm workspaces (`packages/*`) + Turbo + Changesets. 22 published packages.
 - Key packages:
-  - `packages/ai.matey.types` — all type definitions, IR schema (`src/ir.ts`)
-  - `packages/ai.matey.core` — Bridge, Router, MiddlewareStack
-  - `packages/ai.matey.errors`, `packages/ai.matey.utils` — errors and shared utilities
+  - `packages/aimatey-types` — all type definitions, IR schema (`src/ir.ts`)
+  - `packages/aimatey-core` — Bridge, Router, MiddlewareStack
+  - `packages/aimatey-errors`, `packages/aimatey-utils` — errors and shared utilities
   - `packages/backend` (`@johnhenry/aimatey-backend`) — 24 backend provider adapters (subpath exports)
   - `packages/frontend` (`@johnhenry/aimatey-frontend`) — 7 frontend request-format adapters
   - `packages/middleware` — 10 middleware types (logging, caching, retry, cost tracking, …)
   - `packages/http.core` + `packages/http` — framework-agnostic HTTP handler + 6 framework adapters
   - `packages/react-core`, `react-hooks`, `react-nextjs`, `react-stream` — React integration
   - `packages/wrapper` — SDK-compatible wrappers; `packages/cli` — `ai-matey` CLI
-  - `packages/native-*` — local model backends; `packages/ai.matey.testing` — test utilities
+  - `packages/native-*` — local model backends; `packages/aimatey-testing` — test utilities
 - **Tests are centralized** in `/tests` (unit, core, http, integration suites via
   `vitest.workspace.ts`), not per-package.
 - Dependency layering: `types` → `errors`/`utils` → `backend`/`frontend`/`core` → everything else.

@@ -1,11 +1,11 @@
 /**
- * AI Matey Middleware
+ * Aimatey Middleware
  *
  * Consolidated package containing all middleware components.
  * Middleware provides cross-cutting concerns like caching, retry,
  * logging, and security for the AI adapter system.
  *
- * @module ai.matey.middleware
+ * @module aimatey-middleware
  */
 
 // Middleware components

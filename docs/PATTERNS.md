@@ -1,6 +1,6 @@
 # Integration Patterns
 
-Production-validated integration patterns for ai.matey, discovered and tested through comprehensive integration testing.
+Production-validated integration patterns for aimatey, discovered and tested through comprehensive integration testing.
 
 > **Validation Source**: 8 advanced test applications (14 total test apps, 50+ scenarios)
 > **Test Results**: 100% pass rate across all patterns
@@ -887,7 +887,7 @@ snippet across.
 
 ### Contributing Patterns
 
-Have a pattern to share? See [contributing guide](../packages/ai.matey.docs/src/content/docs/contributing/index.md) for guidelines on submitting patterns.
+Have a pattern to share? See [contributing guide](../packages/aimatey-docs/src/content/docs/contributing/index.md) for guidelines on submitting patterns.
 
 ---
 
@@ -895,4 +895,4 @@ Have a pattern to share? See [contributing guide](../packages/ai.matey.docs/src/
 - [Performance Benchmarks](./BENCHMARKS.md) - Performance data for these patterns
 - [Testing Guide](./TESTING.md) - How these patterns were validated
 - [API Reference](./api.md) - API documentation
-- [Examples Repository](https://github.com/johnhenry/ai.matey.examples) - Full test applications
+- [Examples Repository](https://github.com/johnhenry/aimatey-examples) - Full test applications

@@ -78,7 +78,7 @@ async function validateFile(filePath) {
   while ((match = importRegex.exec(content)) !== null) {
     const importPath = match[1];
 
-    // Check if it's an ai.matey import
+    // Check if it's an aimatey import
     if (importPath.startsWith('@johnhenry/aimatey')) {
       // Check if it's valid
       const isValid = VALID_IMPORTS.some(valid => importPath === valid || importPath.startsWith(valid + '/'));
@@ -115,7 +115,7 @@ async function validateFile(filePath) {
 
 async function main() {
   console.log(`${colors.blue}╔═══════════════════════════════════════════════════════════════╗${colors.reset}`);
-  console.log(`${colors.blue}║           AI.Matey Examples Import Validation                 ║${colors.reset}`);
+  console.log(`${colors.blue}║           Aimatey Examples Import Validation                 ║${colors.reset}`);
   console.log(`${colors.blue}╚═══════════════════════════════════════════════════════════════╝${colors.reset}\n`);
 
   // Check if dist exists

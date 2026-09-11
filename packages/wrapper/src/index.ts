@@ -1,10 +1,10 @@
 /**
- * AI Matey Wrappers
+ * Aimatey Wrappers
  *
  * Consolidated package containing SDK wrappers and IR utilities.
  * These wrappers allow using provider SDK patterns with any backend.
  *
- * @module ai.matey.wrapper
+ * @module aimatey-wrapper
  */
 
 // OpenAI SDK Wrapper - namespaced exports

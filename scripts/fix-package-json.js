@@ -33,14 +33,14 @@ async function main() {
 
     // Add homepage if missing
     if (!pkgJson.homepage) {
-      pkgJson.homepage = 'https://github.com/johnhenry/ai.matey#readme';
+      pkgJson.homepage = 'https://github.com/johnhenry/aimatey#readme';
       changed = true;
     }
 
     // Add bugs if missing
     if (!pkgJson.bugs) {
       pkgJson.bugs = {
-        url: 'https://github.com/johnhenry/ai.matey/issues'
+        url: 'https://github.com/johnhenry/aimatey/issues'
       };
       changed = true;
     }

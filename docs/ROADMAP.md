@@ -1,4 +1,4 @@
-# ai.matey Roadmap
+# aimatey Roadmap
 
 Development roadmap and strategic direction for the Universal AI Adapter System.
 
@@ -29,7 +29,7 @@ Development roadmap and strategic direction for the Universal AI Adapter System.
   OpenAI, Anthropic, Gemini, Mistral, Ollama, Chrome AI, Generic
 - ✅ **3 Browser Backends** in `@johnhenry/aimatey-backend-browser`:
   Chrome AI, Function-based, Mock provider
-- ✅ **Native adapters** in `ai.matey.native.*`:
+- ✅ **Native adapters** in `aimatey-native.*`:
   Apple Silicon (MLX), node-llamacpp, model-runner
 
 ### Middleware & Cross-Cutting Concerns
@@ -260,21 +260,21 @@ function ChatComponent() {
 
 | Package | Tests | Pass Rate | Status |
 |---------|-------|-----------|--------|
-| ai.matey.core | 4 integration | 100% | ✅ Production-ready |
-| ai.matey.backend | All providers | 100% | ✅ Production-ready |
-| ai.matey.frontend | 3 adapters | 100% | ✅ Production-ready |
-| ai.matey.middleware | All 10 types | 100% | ✅ Production-ready |
-| ai.matey.http | 6 tests (v0.2.2) | 100% | ✅ Production-ready |
-| ai.matey.wrapper | 28 tests | 100% | ✅ Production-ready |
-| ai.matey.cli | 9 tests | 100% | ✅ Production-ready |
-| ai.matey.react.hooks | Build + types | 100% | ✅ Production-ready |
-| ai.matey.utils | 50+ utilities | 100% | ✅ Production-ready |
+| aimatey-core | 4 integration | 100% | ✅ Production-ready |
+| aimatey-backend | All providers | 100% | ✅ Production-ready |
+| aimatey-frontend | 3 adapters | 100% | ✅ Production-ready |
+| aimatey-middleware | All 10 types | 100% | ✅ Production-ready |
+| aimatey-http | 6 tests (v0.2.2) | 100% | ✅ Production-ready |
+| aimatey-wrapper | 28 tests | 100% | ✅ Production-ready |
+| aimatey-cli | 9 tests | 100% | ✅ Production-ready |
+| aimatey-react.hooks | Build + types | 100% | ✅ Production-ready |
+| aimatey-utils | 50+ utilities | 100% | ✅ Production-ready |
 
 *Full test report: [FINAL-COMPREHENSIVE-TEST-REPORT.md](./archive/FINAL-COMPREHENSIVE-TEST-REPORT.md)*
 
 ## Market Position
 
-ai.matey occupies a unique position as a **provider-agnostic abstraction layer** with production-grade features.
+aimatey occupies a unique position as a **provider-agnostic abstraction layer** with production-grade features.
 
 ### Market Landscape
 
@@ -282,27 +282,27 @@ The AI tooling ecosystem has 6 distinct categories:
 
 **1. Orchestration Frameworks** (LangChain.js, LlamaIndex.TS, Mastra)
 - Focus: Complex AI workflows, agents, RAG systems
-- **ai.matey Position**: Can serve as provider abstraction layer underneath these frameworks
+- **aimatey Position**: Can serve as provider abstraction layer underneath these frameworks
 
 **2. UI/Frontend Frameworks** (Vercel AI SDK, AI SDK Foundations)
 - Focus: Building AI-powered user interfaces
-- **ai.matey Position**: Can power the backend APIs that these UIs consume
+- **aimatey Position**: Can power the backend APIs that these UIs consume
 
 **3. Provider Abstraction Libraries** (LiteLLM.js, llm.js, llm-bridge)
 - Focus: Normalizing LLM provider APIs
-- **ai.matey Position**: Direct competitor with superior routing, middleware, production features
+- **aimatey Position**: Direct competitor with superior routing, middleware, production features
 
 **4. Specialized Tools** (Instructor-JS, Portkey, ModelFusion, Token.js)
 - Focus: Specific capabilities (structured output, gateways, cost tracking)
-- **ai.matey Position**: Can integrate with or replace depending on use case
+- **aimatey Position**: Can integrate with or replace depending on use case
 
 **5. Local/Browser Solutions** (Ollama, WebLLM, Chrome AI, Node Llama.cpp)
 - Focus: Running models locally or in browsers
-- **ai.matey Position**: Supports these as backends (Ollama, Chrome AI adapters included)
+- **aimatey Position**: Supports these as backends (Ollama, Chrome AI adapters included)
 
 **6. Infrastructure & Gateways** (MCP, OpenAI Agents.js, any-llm)
 - Focus: Production deployment, routing, observability
-- **ai.matey Position**: Can complement MCP or replace simpler gateways
+- **aimatey Position**: Can complement MCP or replace simpler gateways
 
 ### Ecosystem Positioning
 
@@ -323,7 +323,7 @@ The AI tooling ecosystem has 6 distinct categories:
 └──────────────────┬──────────────────────┘
                    │
 ┌──────────────────▼──────────────────────┐
-│    ✨ ai.matey ✨                       │
+│    ✨ aimatey ✨                       │
 │  Provider Abstraction & Routing        │
 └──────────────────┬──────────────────────┘
                    │
@@ -337,7 +337,7 @@ The AI tooling ecosystem has 6 distinct categories:
    └──────────┘        └──────────┘
 ```
 
-**ai.matey sits at the provider abstraction layer**, enabling everything above it to be provider-agnostic.
+**aimatey sits at the provider abstraction layer**, enabling everything above it to be provider-agnostic.
 
 ### Strategic Focus
 - ✅ **Provider abstraction** (not orchestration like LangChain)
@@ -354,7 +354,7 @@ The AI tooling ecosystem has 6 distinct categories:
 
 **LangChain.js** - Orchestration Framework
 - ⭐ **Our Edge**: Simpler for provider switching
-- 🤝 **Complementary**: Use LangChain for orchestration, ai.matey for provider layer
+- 🤝 **Complementary**: Use LangChain for orchestration, aimatey for provider layer
 
 **Portkey** - Gateway Service
 - ⭐ **Our Edge**: Privacy-first (no external service), full control, zero service dependencies
@@ -373,7 +373,7 @@ The AI tooling ecosystem has 6 distinct categories:
 
 Legend: ⭐⭐ = Excellent (best-in-class), ⭐ = Good (competitive), ⚠️ = Limited (basic support), ❌ = Not available, N/A = Not applicable
 
-| Feature | ai.matey | LangChain | Vercel AI | LiteLLM.js | Portkey | **Roadmap to ⭐⭐** |
+| Feature | aimatey | LangChain | Vercel AI | LiteLLM.js | Portkey | **Roadmap to ⭐⭐** |
 |---------|----------|-----------|-----------|------------|---------|-----------------|
 | Provider abstraction | ⭐⭐ | ⚠️ | ⚠️ | ⭐ | ⭐ | ✅ Already excellent |
 | Advanced routing | ⭐⭐ | ❌ | ❌ | ❌ | ⭐ | ✅ Already excellent |
@@ -385,9 +385,9 @@ Legend: ⭐⭐ = Excellent (best-in-class), ⭐ = Good (competitive), ⚠️ = L
 | Self-hosted | ⭐⭐ | ⭐ | ⭐ | ⭐ | ❌ | ✅ Already excellent |
 | Structured output | ⭐⭐ | ⭐ | ⭐⭐ | ❌ | ⚠️ | ✅ Already excellent |
 
-### When to Choose ai.matey
+### When to Choose aimatey
 
-**✅ Choose ai.matey when:**
+**✅ Choose aimatey when:**
 - Provider independence is critical
 - You need production-grade routing and failover
 - You want cost/latency optimization
@@ -405,7 +405,7 @@ Legend: ⭐⭐ = Excellent (best-in-class), ⭐ = Good (competitive), ⚠️ = L
 
 ### Unique Strengths
 
-| Capability | ai.matey | Others |
+| Capability | aimatey | Others |
 |------------|----------|--------|
 | Zero runtime dependencies | ⭐⭐⭐⭐⭐ | ⭐⭐ |
 | Advanced routing (7 strategies) | ⭐⭐⭐⭐⭐ | ⭐ |
@@ -419,7 +419,7 @@ Legend: ⭐⭐ = Excellent (best-in-class), ⭐ = Good (competitive), ⚠️ = L
 
 Grounded in a July-2026 competitive analysis (Vercel AI SDK 7, LangChain/LangGraph 1.0, Mastra
 1.0, OpenAI Agents SDK, VoltAgent, LiteLLM/Portkey/Helicone gateways). Positioning decision:
-**ai.matey remains a pure self-hosted library** — gateway-style capabilities ship as
+**aimatey remains a pure self-hosted library** — gateway-style capabilities ship as
 self-hostable primitives, never a managed service.
 
 Ranked capability gaps this plan closes: (1) MCP client+server — the defining 2026 shift,
@@ -453,7 +453,7 @@ or a test fake) works with zero adapter code):
 
 **MCP server — not yet built.** The original plan below (`createMCPServer` on the SDK's
 low-level `Server`, v1 tools-only / v2 resources+prompts) is still the intended shape for
-exposing an ai.matey `Bridge` as an MCP server; tracked separately, not part of the client work
+exposing an aimatey `Bridge` as an MCP server; tracked separately, not part of the client work
 above.
 - Server: `createMCPServer({ name, tools, bridge? })` on the SDK's **low-level Server**
   (`setRequestHandler` with raw JSON Schema — avoids a zod dependency), reusing
@@ -510,8 +510,8 @@ only via a structural `EmbeddingProvider = { embed() }`):
 - **RAG**: chunking + retrieval pipeline over Wave-2 vector stores (pgvector/Qdrant/Pinecone/
   Chroma connectors as optional peers).
 - **Evals**: datasets + LLM-as-judge + rule-based metrics (relevance/faithfulness/toxicity),
-  running on ai.matey's own provider layer — the industry's evals gap (observability ~89% vs
-  evals ~52% adoption) is ai.matey's opening.
+  running on aimatey's own provider layer — the industry's evals gap (observability ~89% vs
+  evals ~52% adoption) is aimatey's opening.
 
 ### Wave 4: Reach & polish
 
@@ -548,7 +548,7 @@ competitors can speak Anthropic's or Gemini's wire format into the same core).
 
 **Future Consideration:**
 - Option to upload all package dist folders as artifacts for better build/test separation
-- Would require managing multiple artifact paths: `packages/ai.matey.core/dist/`, `packages/ai.matey.utils/dist/`, etc.
+- Would require managing multiple artifact paths: `packages/aimatey-core/dist/`, `packages/aimatey-utils/dist/`, etc.
 - Current approach prioritized simplicity and reliability over strict job separation
 
 ---
@@ -708,5 +708,5 @@ Our roadmap focuses on:
 - [Testing Guide](./TESTING.md) - Test coverage, strategy, and methodology
 
 **External Resources:**
-- [Test Report](https://github.com/johnhenry/ai.matey.examples/blob/main/FINAL-COMPREHENSIVE-TEST-REPORT.md) - Full validation results
-- [Examples Repository](https://github.com/johnhenry/ai.matey.examples) - 14 test applications with source code
+- [Test Report](https://github.com/johnhenry/aimatey-examples/blob/main/FINAL-COMPREHENSIVE-TEST-REPORT.md) - Full validation results
+- [Examples Repository](https://github.com/johnhenry/aimatey-examples) - 14 test applications with source code

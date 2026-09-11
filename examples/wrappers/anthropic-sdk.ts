@@ -1,7 +1,7 @@
 /**
  * Anthropic SDK Wrapper Example
  *
- * Use ai.matey's Anthropic SDK wrapper to switch backends.
+ * Use aimatey's Anthropic SDK wrapper to switch backends.
  */
 
 import { Anthropic } from '@johnhenry/aimatey-wrapper/anthropic';

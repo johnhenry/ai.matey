@@ -2,7 +2,7 @@
  * Testing Example - Using Testing Package
  *
  * Shows how to use the testing utilities package for
- * unit and integration testing with ai.matey.
+ * unit and integration testing with aimatey.
  */
 
 // Testing utilities

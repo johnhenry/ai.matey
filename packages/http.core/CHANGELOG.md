@@ -73,8 +73,8 @@
   whose sole caller is `createErrorFromHttpResponse` -- a mapper for responses _received from_
   a provider, the opposite direction from these two, which produce statuses the library
   _serves_. Every other retry decision (`Bridge`, the retry middleware, `Router`) reads the
-  `isRetryable` boolean on the error object. And even where the two could meet -- an ai.matey
-  server proxied by an ai.matey client -- 408 and 504 are both retryable anyway (408 is in
+  `isRetryable` boolean on the error object. And even where the two could meet -- an aimatey
+  server proxied by an aimatey client -- 408 and 504 are both retryable anyway (408 is in
   `RETRYABLE_CLIENT_STATUS_CODES`; 504 is `>= 500`). So there was no silent retry split.
 
   ## Why this is `minor`
@@ -249,7 +249,7 @@
   - @johnhenry/aimatey-errors@0.1.0
   - @johnhenry/aimatey-types@0.1.0
 
-> Previously published as `ai.matey.http.core`, last unscoped version `0.3.1`.
+> Previously published as `aimatey-http.core`, last unscoped version `0.3.1`.
 
 ## 0.3.1
 
@@ -258,20 +258,20 @@
 - 73aa9f1: Fix broken CJS entry points across the whole package family. Every package declares
   `"type": "module"` for ESM subpath resolution, but shipped `dist/cjs/` builds with no nested
   override - Node walked up to the package root, saw `"type": "module"`, and misinterpreted the
-  compiled CommonJS as ESM, so `require("ai.matey.x")` failed with `Cannot find module './y.js'`
+  compiled CommonJS as ESM, so `require("aimatey-x")` failed with `Cannot find module './y.js'`
   on every package in the family (ESM `import` was unaffected). Each package's build now emits a
   `dist/cjs/package.json` containing `{"type":"commonjs"}` (via a new
   `scripts/fix-cjs-package-json.js` post-build step) to correctly scope the CJS build's module
   type. No source or `exports` map changes - verified via `npm pack` + fresh install against the
   exact repro in #23, both direct `require()` and the `require` export condition on subpaths (e.g.
-  `ai.matey.backend.browser/chrome-ai`).
+  `aimatey-backend.browser/chrome-ai`).
 
   (#23)
 
 - Updated dependencies [73aa9f1]
-  - ai.matey.core@0.3.3
-  - ai.matey.errors@0.2.1
-  - ai.matey.types@0.5.1
+  - aimatey-core@0.3.3
+  - aimatey-errors@0.2.1
+  - aimatey-types@0.5.1
 
 ## 0.3.0
 
@@ -279,7 +279,7 @@
 
 - d3fd2e2: Production HTTP endpoints: built-in `/health` + `/health/ready` + `/health/live`, Prometheus
   `/metrics`, OpenAI-compatible `/v1/embeddings`, per-route rate limits via `RouteConfig.rateLimit`,
-  and a zero-dependency WebSocket streaming subpath (`ai.matey.http/websocket`).
+  and a zero-dependency WebSocket streaming subpath (`aimatey-http/websocket`).
 - 78731bb: Router emits `model-substituted` warnings (metadata + new `RouterConfig.onWarning` callback) when
   hybrid translation falls back to a backend default model. http.core gains a framework-agnostic
   `GenericRateLimiter`; `RouteMatcher.match()` accepts any structurally-compatible request.
@@ -293,5 +293,5 @@
 - Updated dependencies [aef9f4a]
 - Updated dependencies [78731bb]
 - Updated dependencies [b7e2312]
-  - ai.matey.types@0.3.0
-  - ai.matey.core@0.3.0
+  - aimatey-types@0.3.0
+  - aimatey-core@0.3.0

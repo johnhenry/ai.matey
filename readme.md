@@ -1,16 +1,16 @@
 <p align="center">
-  <img src="logo.png" alt="ai.matey logo" width="200" />
+  <img src="logo.png" alt="aimatey logo" width="200" />
 </p>
 
-# ai.matey - Universal AI Adapter System
+# aimatey - Universal AI Adapter System
 
 Provider-agnostic interface for AI APIs. Write once, run anywhere.
 
 > **Note:** All packages in this monorepo now publish under the `@johnhenry` npm scope
-> (e.g. `ai.matey.core` → `@johnhenry/aimatey-core`), restarting at version `0.0.0`. See each
+> (e.g. `aimatey-core` → `@johnhenry/aimatey-core`), restarting at version `0.0.0`. See each
 > package's readme.md for its prior unscoped name and last published version.
 
-## Why ai.matey?
+## Why aimatey?
 
 **Same code, any provider.** Switch between OpenAI, Anthropic, Gemini, Ollama, and 26 other providers (30 total) without changing your application code.
 
@@ -377,12 +377,12 @@ registerModels([
 
 | Package | Description | Documentation |
 |---------|-------------|---------------|
-| [`@johnhenry/aimatey`](./packages/ai.matey) | Main umbrella package | [README](./packages/ai.matey/readme.md) |
-| [`@johnhenry/aimatey-core`](./packages/ai.matey.core) | Bridge, Router, MiddlewareStack | [README](./packages/ai.matey.core/readme.md) |
-| [`@johnhenry/aimatey-types`](./packages/ai.matey.types) | TypeScript type definitions | [README](./packages/ai.matey.types/readme.md) |
-| [`@johnhenry/aimatey-errors`](./packages/ai.matey.errors) | Error classes and utilities | [README](./packages/ai.matey.errors/readme.md) |
-| [`@johnhenry/aimatey-utils`](./packages/ai.matey.utils) | Shared utility functions | [README](./packages/ai.matey.utils/readme.md) |
-| [`@johnhenry/aimatey-testing`](./packages/ai.matey.testing) | Testing utilities and mocks | [README](./packages/ai.matey.testing/readme.md) |
+| [`@johnhenry/aimatey`](./packages/aimatey) | Main umbrella package | [README](./packages/aimatey/readme.md) |
+| [`@johnhenry/aimatey-core`](./packages/aimatey-core) | Bridge, Router, MiddlewareStack | [README](./packages/aimatey-core/readme.md) |
+| [`@johnhenry/aimatey-types`](./packages/aimatey-types) | TypeScript type definitions | [README](./packages/aimatey-types/readme.md) |
+| [`@johnhenry/aimatey-errors`](./packages/aimatey-errors) | Error classes and utilities | [README](./packages/aimatey-errors/readme.md) |
+| [`@johnhenry/aimatey-utils`](./packages/aimatey-utils) | Shared utility functions | [README](./packages/aimatey-utils/readme.md) |
+| [`@johnhenry/aimatey-testing`](./packages/aimatey-testing) | Testing utilities and mocks | [README](./packages/aimatey-testing/readme.md) |
 | [`@johnhenry/aimatey-cli`](./packages/cli) | CLI and conversion utilities | [README](./packages/cli/readme.md) |
 | [`@johnhenry/aimatey-patterns`](./packages/patterns) | Production integration patterns | [README](./packages/patterns/readme.md) |
 

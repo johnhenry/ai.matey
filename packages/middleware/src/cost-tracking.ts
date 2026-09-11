@@ -260,7 +260,7 @@ export interface CostTrackingConfig {
  * Provider-level fallback pricing (USD per 1M tokens).
  *
  * Model-specific pricing comes from the shared model registry in
- * `ai.matey.utils` (see calculateCost); these entries only cover the case
+ * `aimatey-utils` (see calculateCost); these entries only cover the case
  * where the model itself is unknown, using a mid-tier model of each
  * provider as the representative rate. Model-keyed entries
  * (`provider:model`) remain supported for explicit overrides.

@@ -1,10 +1,10 @@
 # @johnhenry/aimatey-http-core
 
-> **Note:** Previously published as `ai.matey.http.core@0.3.1`.
+> **Note:** Previously published as `aimatey-http.core@0.3.1`.
 
 Core HTTP utilities shared across integrations
 
-Part of the [ai.matey](https://github.com/johnhenry/ai.matey) monorepo.
+Part of the [aimatey](https://github.com/johnhenry/aimatey) monorepo.
 
 ## Installation
 

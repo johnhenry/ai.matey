@@ -23,7 +23,7 @@
 
 ## Overview
 
-ai.matey's OpenTelemetry integration provides industry-standard distributed tracing and observability for your AI applications. Track requests across multiple providers, monitor performance, and gain deep insights into your AI infrastructure.
+aimatey's OpenTelemetry integration provides industry-standard distributed tracing and observability for your AI applications. Track requests across multiple providers, monitor performance, and gain deep insights into your AI infrastructure.
 
 **Key Benefits:**
 - 🔍 Distributed tracing across all AI providers
@@ -59,7 +59,7 @@ npm install @opentelemetry/api \
   @opentelemetry/semantic-conventions
 ```
 
-**Why optional?** ai.matey maintains **zero runtime dependencies** for most users. OpenTelemetry is only needed if you want distributed tracing.
+**Why optional?** aimatey maintains **zero runtime dependencies** for most users. OpenTelemetry is only needed if you want distributed tracing.
 
 ## Quick Start
 
@@ -222,7 +222,7 @@ docker run -d --name jaeger \
   jaegertracing/all-in-one:latest
 ```
 
-**2. Configure ai.matey:**
+**2. Configure aimatey:**
 
 ```typescript
 import { createOpenTelemetryMiddleware } from '@johnhenry/aimatey-middleware';
@@ -249,7 +249,7 @@ Open http://localhost:16686 in your browser.
 docker run -d -p 9411:9411 openzipkin/zipkin
 ```
 
-**2. Configure ai.matey:**
+**2. Configure aimatey:**
 
 ```typescript
 // Note: Zipkin uses a different endpoint format
@@ -276,7 +276,7 @@ Open http://localhost:9411 in your browser.
 
 Follow [Datadog's installation guide](https://docs.datadoghq.com/agent/).
 
-**2. Configure ai.matey:**
+**2. Configure aimatey:**
 
 ```typescript
 import { createOpenTelemetryMiddleware } from '@johnhenry/aimatey-middleware';
@@ -308,7 +308,7 @@ export DD_API_KEY=your_datadog_api_key
 
 Sign up at https://honeycomb.io and get your API key.
 
-**2. Configure ai.matey:**
+**2. Configure aimatey:**
 
 ```typescript
 import { createOpenTelemetryMiddleware } from '@johnhenry/aimatey-middleware';
@@ -336,7 +336,7 @@ bridge.use(otel);
 
 Get your New Relic license key from the dashboard.
 
-**2. Configure ai.matey:**
+**2. Configure aimatey:**
 
 ```typescript
 import { createOpenTelemetryMiddleware } from '@johnhenry/aimatey-middleware';
@@ -360,7 +360,7 @@ bridge.use(otel);
 
 ### Custom Span Attributes
 
-Access span attributes used by ai.matey:
+Access span attributes used by aimatey:
 
 ```typescript
 import { OpenTelemetryAttributes } from '@johnhenry/aimatey-middleware';
@@ -558,7 +558,7 @@ import { context, propagation, trace } from '@opentelemetry/api';
 // Extract trace context from incoming HTTP request
 const ctx = propagation.extract(context.active(), req.headers);
 
-// Your ai.matey code runs within this context...
+// Your aimatey code runs within this context...
 await context.with(ctx, async () => {
   const response = await bridge.chat({ ... });
 });
@@ -630,6 +630,6 @@ The actual overhead depends on:
 
 **Questions or Issues?**
 
-- 🐛 [Report a bug](https://github.com/johnhenry/ai.matey/issues)
-- 💬 [Discussion forum](https://github.com/johnhenry/ai.matey/discussions)
-- 📧 [Contact support](mailto:support@aimatey.dev)
+- 🐛 [Report a bug](https://github.com/johnhenry/aimatey/issues)
+- 💬 [Discussion forum](https://github.com/johnhenry/aimatey/discussions)
+- 📧 [Contact support](mailto:support@aimatey-dev)

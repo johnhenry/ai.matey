@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Structured/schema-constrained output: `responseFormat` on `IRChatRequest`, with native
   mapping for OpenAI/Anthropic/Gemini and best-effort prompt-injection fallback for every
   other backend
-- New package `ai.matey.mcp`: MCP (Model Context Protocol) tool-calling via an injectable
+- New package `aimatey-mcp`: MCP (Model Context Protocol) tool-calling via an injectable
   `McpClientLike` client (no hard dependency on any MCP SDK) - see `packages/mcp/readme.md`
 - Five new backend provider adapters: Inception Labs (Mercury), Moonshot AI (Kimi), SambaNova,
   GitHub Models (free via any GitHub account), and DashScope / Alibaba Cloud Model Studio (Qwen)
@@ -31,7 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   HTTP 400 if these sampling params are set to non-default values
 
 ### Changed
-- **BREAKING**: Renamed package `ai.matey.http-core` to `ai.matey.http.core` for naming consistency with other multi-word packages
+- **BREAKING**: Renamed package `aimatey-http-core` to `aimatey-http.core` for naming consistency with other multi-word packages
 - Removed deprecated root-level `src/` directory (all code now in `packages/`)
 - Added explicit `implements BackendAdapter` interface declarations to Groq, DeepSeek, LMStudio, and NVIDIA backend adapters for consistency
 
@@ -43,16 +43,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Migration Guide
 
-#### Package Rename: ai.matey.http-core → ai.matey.http.core
+#### Package Rename: aimatey-http-core → aimatey-http.core
 
 Update your imports:
 
 ```typescript
 // Before (WRONG):
-import { CoreHTTPHandler } from 'ai.matey.http-core';
+import { CoreHTTPHandler } from 'aimatey-http-core';
 
 // After (CORRECT):
-import { CoreHTTPHandler } from 'ai.matey.http.core';
+import { CoreHTTPHandler } from 'aimatey-http.core';
 ```
 
 If you have this package in your `package.json`, update the dependency name:
@@ -60,15 +60,15 @@ If you have this package in your `package.json`, update the dependency name:
 ```json
 {
   "dependencies": {
-    "ai.matey.http.core": "*"
+    "aimatey-http.core": "*"
   }
 }
 ```
 
 This change aligns with the naming convention used by other multi-word packages:
-- `ai.matey.react.core`
-- `ai.matey.react.hooks`
-- `ai.matey.native.model-runner`
+- `aimatey-react.core`
+- `aimatey-react.hooks`
+- `aimatey-native.model-runner`
 - etc.
 
 ### Internal Changes
@@ -88,5 +88,5 @@ This change aligns with the naming convention used by other multi-word packages:
 - CLI tools for proxying and format conversion
 - Universal IR (Intermediate Representation) format for provider-agnostic AI interactions
 
-[Unreleased]: https://github.com/johnhenry/ai.matey/compare/v1.0.0...HEAD
-[1.0.0]: https://github.com/johnhenry/ai.matey/releases/tag/v1.0.0
+[Unreleased]: https://github.com/johnhenry/aimatey/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/johnhenry/aimatey/releases/tag/v1.0.0

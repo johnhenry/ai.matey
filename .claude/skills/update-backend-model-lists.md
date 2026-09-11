@@ -334,7 +334,7 @@ async listModels(options?: ListModelsOptions): Promise<ListModelsResult> {
 - `packages/backend/src/providers/anthropic.ts` - Anthropic adapter
 - `packages/backend/src/providers/openai.ts` - OpenAI adapter
 - `packages/backend/src/shared.ts` - Shared utilities and constants
-- `packages/ai.matey.types/src/adapters.ts` - Type definitions
+- `packages/aimatey-types/src/adapters.ts` - Type definitions
 - `docs/ROADMAP.md` - Roadmap with maintenance tasks
 
 **Utilities:**
@@ -423,4 +423,4 @@ git commit -m "chore: add Claude 3.5 Opus to Anthropic model list"
 ---
 
 **Last Updated:** 2025-11-30
-**Maintainer:** ai.matey development team
+**Maintainer:** aimatey development team

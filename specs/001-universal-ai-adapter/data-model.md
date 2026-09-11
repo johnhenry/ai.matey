@@ -3565,8 +3565,8 @@ type Awaited<T> = T extends Promise<infer U> ? U : T;
 **Status**: Draft
 **Authors**: Claude Code
 **Related Documents**:
-- Feature Specification: `/Users/johnhenry/Projects/ai.matey.universal/specs/001-universal-ai-adapter/spec.md`
-- Research Document: `/Users/johnhenry/Projects/ai.matey.universal/specs/001-universal-ai-adapter/research.md`
+- Feature Specification: `/Users/johnhenry/Projects/aimatey-universal/specs/001-universal-ai-adapter/spec.md`
+- Research Document: `/Users/johnhenry/Projects/aimatey-universal/specs/001-universal-ai-adapter/research.md`
 
 **Change History**:
 - 2025-10-13: Initial version created

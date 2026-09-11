@@ -1,10 +1,10 @@
 # @johnhenry/aimatey-native-model-runner
 
-> **Note:** Previously published as `ai.matey.native.model-runner@0.2.1`.
+> **Note:** Previously published as `aimatey-native.model-runner@0.2.1`.
 
-Base class for wrapping **any local model CLI or binary** as an AI Matey backend — llama.cpp's
+Base class for wrapping **any local model CLI or binary** as an Aimatey backend — llama.cpp's
 `main`, whisper.cpp, MLX scripts, custom inference servers driven over stdio. Part of the
-[ai.matey](https://github.com/johnhenry/ai.matey) monorepo.
+[aimatey](https://github.com/johnhenry/aimatey) monorepo.
 
 > This package ships an abstract class, not a ready-made backend. If you want a turnkey local
 > backend, see [`@johnhenry/aimatey-native-node-llamacpp`](../native-node-llamacpp) or

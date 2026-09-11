@@ -15,7 +15,7 @@ if [ "$MIDDLEWARE" = "index" ] || [[ "$MIDDLEWARE" == *".d"* ]]; then
 fi
 
 PACKAGE_DIR="packages/middleware-$MIDDLEWARE"
-PACKAGE_NAME="ai.matey.middleware.$MIDDLEWARE"
+PACKAGE_NAME="aimatey-middleware.$MIDDLEWARE"
 
 echo "Creating package: $PACKAGE_NAME"
 
@@ -26,17 +26,17 @@ mkdir -p "$PACKAGE_DIR/src"
 cp "src/middleware/$MIDDLEWARE.ts" "$PACKAGE_DIR/src/index.ts"
 
 # Update imports in the copied file
-sed -i -E "s|from '\\.\\./types/[^']+\\.js'|from 'ai.matey.types'|g" "$PACKAGE_DIR/src/index.ts"
-sed -i -E "s|from '\\.\\./errors/[^']+\\.js'|from 'ai.matey.errors'|g" "$PACKAGE_DIR/src/index.ts"
-sed -i -E "s|from '\\.\\./utils/[^']+\\.js'|from 'ai.matey.utils'|g" "$PACKAGE_DIR/src/index.ts"
-sed -i -E "s|from '\\.\\./core/[^']+\\.js'|from 'ai.matey.core'|g" "$PACKAGE_DIR/src/index.ts"
+sed -i -E "s|from '\\.\\./types/[^']+\\.js'|from 'aimatey-types'|g" "$PACKAGE_DIR/src/index.ts"
+sed -i -E "s|from '\\.\\./errors/[^']+\\.js'|from 'aimatey-errors'|g" "$PACKAGE_DIR/src/index.ts"
+sed -i -E "s|from '\\.\\./utils/[^']+\\.js'|from 'aimatey-utils'|g" "$PACKAGE_DIR/src/index.ts"
+sed -i -E "s|from '\\.\\./core/[^']+\\.js'|from 'aimatey-core'|g" "$PACKAGE_DIR/src/index.ts"
 
 # Create package.json
 cat > "$PACKAGE_DIR/package.json" << EOF
 {
   "name": "$PACKAGE_NAME",
   "version": "1.0.0",
-  "description": "${MIDDLEWARE^} middleware for AI Matey",
+  "description": "${MIDDLEWARE^} middleware for Aimatey",
   "type": "module",
   "main": "./dist/cjs/index.js",
   "module": "./dist/esm/index.js",
@@ -67,22 +67,22 @@ cat > "$PACKAGE_DIR/package.json" << EOF
     "test:watch": "vitest"
   },
   "dependencies": {
-    "ai.matey.types": "*",
-    "ai.matey.errors": "*",
-    "ai.matey.utils": "*",
-    "ai.matey.core": "*"
+    "aimatey-types": "*",
+    "aimatey-errors": "*",
+    "aimatey-utils": "*",
+    "aimatey-core": "*"
   },
   "devDependencies": {
-    "ai.matey.testing": "*",
+    "aimatey-testing": "*",
     "typescript": "^5.9.3",
     "vitest": "^3.2.4"
   },
   "keywords": ["ai", "llm", "$MIDDLEWARE", "middleware", "ai-matey"],
-  "author": "AI Matey",
+  "author": "Aimatey",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/johnhenry/ai.matey.git",
+    "url": "git+https://github.com/johnhenry/aimatey.git",
     "directory": "$PACKAGE_DIR"
   },
   "engines": { "node": ">=18.0.0" }

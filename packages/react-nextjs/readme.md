@@ -1,10 +1,10 @@
 # @johnhenry/aimatey-react-nextjs
 
-> **Note:** Previously published as `ai.matey.react.nextjs@0.2.2`.
+> **Note:** Previously published as `aimatey-react.nextjs@0.2.2`.
 
 Next.js App Router integration for AI chat.
 
-Part of the [ai.matey](https://github.com/johnhenry/ai.matey) monorepo.
+Part of the [aimatey](https://github.com/johnhenry/aimatey) monorepo.
 
 ## Installation
 

@@ -551,7 +551,7 @@ OS: macOS Darwin 25.0.0
 Node.js: v24.9.0
 Package Manager: npm
 Test Date: December 1, 2025
-Repository: ai.matey.examples
+Repository: aimatey-examples
 ```
 
 ### Test Applications
@@ -571,7 +571,7 @@ Repository: ai.matey.examples
 
 ### Reproduction
 
-All test applications available in [`ai.matey.examples`](https://github.com/johnhenry/ai.matey.examples) repository with detailed README instructions.
+All test applications available in [`aimatey-examples`](https://github.com/johnhenry/aimatey-examples) repository with detailed README instructions.
 
 ---
 

@@ -1,6 +1,6 @@
 # Testing Guide
 
-Comprehensive testing strategy and coverage for ai.matey.
+Comprehensive testing strategy and coverage for aimatey.
 
 > **Last Updated**: December 1, 2025
 > **Test Suite**: 14 integration applications + unit tests
@@ -15,16 +15,16 @@ Comprehensive testing strategy and coverage for ai.matey.
 
 | Package | Unit Tests | Integration Tests | Pass Rate | Status |
 |---------|------------|-------------------|-----------|--------|
-| ai.matey.core | ✅ Yes | ✅ Yes (4/4) | 100% | Production-ready |
-| ai.matey.backend | ✅ Yes | ✅ Yes (24 providers) | 100% | Production-ready |
-| ai.matey.frontend | ✅ Yes | ✅ Yes (7 adapters) | 100% | Production-ready |
-| ai.matey.middleware | ✅ Yes | ✅ Yes (4/4 types) | 100% | Production-ready |
-| ai.matey.http | ✅ Yes | ✅ Yes (6/6 tests) | 100% | Production-ready |
-| ai.matey.wrapper | ✅ Yes | ✅ Yes (28/28) | 100% | Production-ready |
-| ai.matey.cli | ✅ Yes | ✅ Yes (9/9) | 100% | Production-ready |
-| ai.matey.react.hooks | ✅ Yes | ✅ Yes (build) | 100% | Production-ready |
-| ai.matey.utils | ✅ Yes | ✅ Yes (50+ utils) | 100% | Production-ready |
-| ai.matey.types | ✅ Yes | ✅ Yes | 100% | Production-ready |
+| aimatey-core | ✅ Yes | ✅ Yes (4/4) | 100% | Production-ready |
+| aimatey-backend | ✅ Yes | ✅ Yes (24 providers) | 100% | Production-ready |
+| aimatey-frontend | ✅ Yes | ✅ Yes (7 adapters) | 100% | Production-ready |
+| aimatey-middleware | ✅ Yes | ✅ Yes (4/4 types) | 100% | Production-ready |
+| aimatey-http | ✅ Yes | ✅ Yes (6/6 tests) | 100% | Production-ready |
+| aimatey-wrapper | ✅ Yes | ✅ Yes (28/28) | 100% | Production-ready |
+| aimatey-cli | ✅ Yes | ✅ Yes (9/9) | 100% | Production-ready |
+| aimatey-react.hooks | ✅ Yes | ✅ Yes (build) | 100% | Production-ready |
+| aimatey-utils | ✅ Yes | ✅ Yes (50+ utils) | 100% | Production-ready |
+| aimatey-types | ✅ Yes | ✅ Yes | 100% | Production-ready |
 
 **Overall**: All packages have comprehensive test coverage with 100% pass rates.
 
@@ -153,7 +153,7 @@ Comprehensive testing strategy and coverage for ai.matey.
 **Key Validations**:
 - ✅ Query complexity scoring (0-100)
 - ✅ Provider selection logic
-- ✅ Integration with Router from ai.matey.core
+- ✅ Integration with Router from aimatey-core
 
 See [PATTERNS.md](./PATTERNS.md#1-complexity-based-routing) for details.
 
@@ -305,7 +305,7 @@ See [PATTERNS.md](./PATTERNS.md#8-continuous-health-monitoring) for details.
 npm test
 
 # Run tests for specific package
-npm test -- --filter=ai.matey.core
+npm test -- --filter=aimatey-core
 
 # Run tests with coverage
 npm test -- --coverage
@@ -318,34 +318,34 @@ npm test -- --watch
 
 All packages include comprehensive unit tests:
 
-**ai.matey.core**:
+**aimatey-core**:
 - Bridge initialization and execution
 - Router strategies (7 types)
 - Middleware pipeline
 - Circuit breaker functionality
 - Fallback chains
 
-**ai.matey.backend**:
+**aimatey-backend**:
 - 24 backend adapters
 - IR conversion (to/from each provider format)
 - Streaming support
 - Error handling
 - Model listing
 
-**ai.matey.frontend**:
+**aimatey-frontend**:
 - 7 frontend adapters
 - Request transformation
 - Response normalization
 - Streaming conversion
 
-**ai.matey.middleware**:
+**aimatey-middleware**:
 - 10 middleware types
 - Caching logic
 - Retry mechanisms
 - Cost tracking calculations
 - Validation rules
 
-**ai.matey.utils**:
+**aimatey-utils**:
 - 50+ utility functions
 - Stream processing
 - Type guards
@@ -357,11 +357,11 @@ All packages include comprehensive unit tests:
 
 ### Running Integration Tests
 
-Integration test applications are in the separate `ai.matey.examples` repository:
+Integration test applications are in the separate `aimatey-examples` repository:
 
 ```bash
 # Clone examples repository
-git clone https://github.com/johnhenry/ai.matey.examples
+git clone https://github.com/johnhenry/aimatey-examples
 
 # Run specific test application
 cd test-core-backend-frontend
@@ -529,7 +529,7 @@ npm test -- --coverage
 Located in `packages/*/test/fixtures/`:
 
 ```
-packages/ai.matey.core/test/fixtures/
+packages/aimatey-core/test/fixtures/
 ├── openai-chat-response.json
 ├── anthropic-chat-response.json
 ├── streaming-chunks.json
@@ -538,7 +538,7 @@ packages/ai.matey.core/test/fixtures/
 
 ### Test Utilities
 
-Located in `packages/ai.matey.testing/`:
+Located in `packages/aimatey-testing/`:
 
 ```typescript
 import {
@@ -717,11 +717,11 @@ git push
 
 | Package | Current | Target |
 |---------|---------|--------|
-| ai.matey.core | 85%+ | 90% |
-| ai.matey.backend | 80%+ | 85% |
-| ai.matey.frontend | 80%+ | 85% |
-| ai.matey.middleware | 90%+ | 95% |
-| ai.matey.utils | 85%+ | 90% |
+| aimatey-core | 85%+ | 90% |
+| aimatey-backend | 80%+ | 85% |
+| aimatey-frontend | 80%+ | 85% |
+| aimatey-middleware | 90%+ | 95% |
+| aimatey-utils | 85%+ | 90% |
 | Overall | 83%+ | 88% |
 
 ### Quality Metrics
@@ -741,8 +741,8 @@ git push
 - [Roadmap](./ROADMAP.md) - Future testing plans
 
 **Repositories**:
-- [@johnhenry/aimatey](https://github.com/johnhenry/ai.matey) - Main monorepo
-- [ai.matey.examples](https://github.com/johnhenry/ai.matey.examples) - Integration test applications
+- [@johnhenry/aimatey](https://github.com/johnhenry/aimatey) - Main monorepo
+- [aimatey-examples](https://github.com/johnhenry/aimatey-examples) - Integration test applications
 
 **Test Reports**:
 - [Final Comprehensive Test Report](./archive/FINAL-COMPREHENSIVE-TEST-REPORT.md) - Full validation results

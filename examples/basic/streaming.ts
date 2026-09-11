@@ -1,7 +1,7 @@
 /**
  * Streaming Example
  *
- * Shows how to use streaming responses with ai.matey.
+ * Shows how to use streaming responses with aimatey.
  */
 
 import { Bridge } from '@johnhenry/aimatey-core';

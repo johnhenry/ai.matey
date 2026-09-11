@@ -1,10 +1,10 @@
 # @johnhenry/aimatey-backend
 
-> **Note:** Previously published as `ai.matey.backend@0.9.0`.
+> **Note:** Previously published as `aimatey-backend@0.9.0`.
 
-Server-side backend provider adapters for AI Matey - Universal AI Adapter System.
+Server-side backend provider adapters for Aimatey - Universal AI Adapter System.
 
-Part of the [ai.matey](https://github.com/johnhenry/ai.matey) monorepo.
+Part of the [aimatey](https://github.com/johnhenry/aimatey) monorepo.
 
 ## Installation
 

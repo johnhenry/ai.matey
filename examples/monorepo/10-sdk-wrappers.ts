@@ -119,7 +119,7 @@ async function migrationExample() {
   // Migration step 2: Switch backend (no other code changes needed!)
   // const openai = createOpenAICompatibleClient({ backend: new AnthropicBackendAdapter({ apiKey: '...' }) });
 
-  console.log('  1. Replace SDK import with ai.matey wrapper');
+  console.log('  1. Replace SDK import with aimatey wrapper');
   console.log('  2. Configure backend adapter');
   console.log('  3. Switch backends anytime without changing app code');
   console.log('  4. Add middleware, routing, caching as needed');

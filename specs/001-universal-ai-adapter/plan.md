@@ -107,7 +107,7 @@ The Universal AI Adapter System is a TypeScript library implementing the hybrid 
 ### 📋 Additional Considerations
 
 **NPM Package Requirements** (from user input):
-- Package name: `ai.matey-adapter` (or similar, check npm availability)
+- Package name: `aimatey-adapter` (or similar, check npm availability)
 - Exports: ESM + CommonJS via `exports` field
 - Type definitions: Bundled .d.ts files
 - Test scripts: `npm test` using Node.js test runner
@@ -144,7 +144,7 @@ specs/001-universal-ai-adapter/
 ### Source Code (repository root)
 
 ```
-ai.matey.universal/
+aimatey-universal/
 ├── package.json
 ├── tsconfig.json
 ├── tsconfig.build.json
@@ -288,7 +288,7 @@ ai.matey.universal/
 
 ```json
 {
-  "name": "ai.matey-adapter",
+  "name": "aimatey-adapter",
   "version": "0.1.0",
   "description": "Universal adapter system for AI provider APIs with hybrid architecture",
   "type": "module",

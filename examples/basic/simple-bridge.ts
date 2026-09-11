@@ -1,7 +1,7 @@
 /**
  * Simple Bridge Example
  *
- * Shows the most basic usage of ai.matey - connecting OpenAI frontend to Anthropic backend.
+ * Shows the most basic usage of aimatey - connecting OpenAI frontend to Anthropic backend.
  */
 
 import { Bridge } from '@johnhenry/aimatey-core';

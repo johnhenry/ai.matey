@@ -1,7 +1,7 @@
 /**
  * Express Server Example
  *
- * Create an HTTP server using Express and ai.matey.
+ * Create an HTTP server using Express and aimatey.
  */
 
 import express from 'express';
@@ -24,7 +24,7 @@ async function main() {
   // Add JSON body parser
   app.use(express.json());
 
-  // Add ai.matey middleware
+  // Add aimatey middleware
   app.use(
     '/v1/chat/completions',
     ExpressMiddleware(bridge, {

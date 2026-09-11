@@ -343,7 +343,7 @@ Key settings:
 
 Each package includes:
 ```
-packages/ai.matey.core/
+packages/aimatey-core/
 ├── src/              # Source TypeScript
 ├── dist/
 │   ├── esm/          # ES Modules build
@@ -526,9 +526,9 @@ cat > packages/my-new-package/package.json << 'EOF'
     "vitest": "^3.2.4"
   },
   "keywords": ["ai", "llm", "ai-matey"],
-  "author": "AI Matey",
+  "author": "Aimatey",
   "license": "MIT",
-  "homepage": "https://github.com/johnhenry/ai.matey#readme",
+  "homepage": "https://github.com/johnhenry/aimatey#readme",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/johnhenry/@johnhenry/aimatey-git",
@@ -1095,7 +1095,7 @@ cat > /tmp/verify-publish-complete.sh << 'EOF'
 #!/bin/bash
 set -e
 
-echo "🔍 AI Matey Publication Verification"
+echo "🔍 Aimatey Publication Verification"
 echo "===================================="
 echo ""
 

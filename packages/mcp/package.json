@@ -1,7 +1,7 @@
 {
   "name": "@johnhenry/aimatey-mcp",
   "version": "0.1.4",
-  "description": "MCP (Model Context Protocol) tool-calling for AI Matey - translate MCP tools into the IR tool-execution loop via an injectable client",
+  "description": "MCP (Model Context Protocol) tool-calling for Aimatey - translate MCP tools into the IR tool-execution loop via an injectable client",
   "type": "module",
   "main": "./dist/cjs/index.js",
   "module": "./dist/esm/index.js",
@@ -51,15 +51,15 @@
     "tool-calling",
     "ai-matey"
   ],
-  "author": "AI Matey",
+  "author": "Aimatey",
   "license": "MIT",
-  "homepage": "https://github.com/johnhenry/ai.matey#readme",
+  "homepage": "https://github.com/johnhenry/aimatey#readme",
   "bugs": {
-    "url": "https://github.com/johnhenry/ai.matey/issues"
+    "url": "https://github.com/johnhenry/aimatey/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/johnhenry/ai.matey.git",
+    "url": "git+https://github.com/johnhenry/aimatey.git",
     "directory": "packages/mcp"
   },
   "engines": {

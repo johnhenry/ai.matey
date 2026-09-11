@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * AI.Matey CLI Executable
+ * Aimatey CLI Executable
  *
  * Main entry point for the ai-matey command.
  */

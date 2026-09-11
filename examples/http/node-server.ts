@@ -1,7 +1,7 @@
 /**
  * Node.js Server Example
  *
- * Create a basic HTTP server using Node.js http module and ai.matey.
+ * Create a basic HTTP server using Node.js http module and aimatey.
  */
 
 import http from 'http';

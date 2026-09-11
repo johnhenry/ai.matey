@@ -25,7 +25,7 @@
  * compiles fine, passes CI, and then throws `ReferenceError: require is not
  * defined` in the ESM half -- while browser bundlers either fail outright or
  * externalize it into something equally broken. #59 was exactly that: a
- * `require('zod')` availability probe in `ai.matey.utils/src/structured-output.ts`
+ * `require('zod')` availability probe in `aimatey-utils/src/structured-output.ts`
  * whose `catch` turned the ReferenceError into a misleading "Zod is not
  * installed" error for every ESM consumer, installed or not.
  *
@@ -47,15 +47,15 @@ const PACKAGES_DIR = join(__dirname, '..', '..', 'packages');
  *
  * Deliberately excluded, because they are Node-only by design:
  * `backend` (server-side provider adapters, incl. AWS SigV4 signing),
- * `http` / `http.core`, `cli`, `native-*`, `ai.matey.testing` (fixture I/O),
+ * `http` / `http.core`, `cli`, `native-*`, `aimatey-testing` (fixture I/O),
  * and `react-nextjs` (its `server.ts` entry point is a Next.js route
  * handler; its browser surface is `client.ts`).
  */
 const BROWSER_FACING_PACKAGES = [
-  'ai.matey.types',
-  'ai.matey.errors',
-  'ai.matey.utils',
-  'ai.matey.core',
+  'aimatey-types',
+  'aimatey-errors',
+  'aimatey-utils',
+  'aimatey-core',
   'backend-browser',
   'frontend',
   'middleware',

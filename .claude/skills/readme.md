@@ -1,6 +1,6 @@
-# ai.matey Adapter & Wrapper Creation Skills
+# aimatey Adapter & Wrapper Creation Skills
 
-This directory contains detailed Claude skills for creating new adapters and wrappers for the ai.matey Universal AI Adapter System.
+This directory contains detailed Claude skills for creating new adapters and wrappers for the aimatey Universal AI Adapter System.
 
 ## Available Skills
 

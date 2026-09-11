@@ -1,6 +1,6 @@
-# ai.matey Examples
+# aimatey Examples
 
-Complete working examples demonstrating all features of ai.matey, the Universal AI Adapter System.
+Complete working examples demonstrating all features of aimatey, the Universal AI Adapter System.
 
 ## Table of Contents
 
@@ -1545,7 +1545,7 @@ async function main() {
   // Add JSON body parser
   app.use(express.json());
 
-  // Add ai.matey middleware
+  // Add aimatey middleware
   app.use(
     '/v1/chat/completions',
     ExpressMiddleware(bridge, {
@@ -1959,7 +1959,7 @@ import { OllamaBackendAdapter } from '@johnhenry/aimatey-backend/ollama';
 
 - **API Reference**: See [api.md](./docs/api.md)
 - **Guides**: See [GUIDES.md](./docs/GUIDES.md)
-- **Issues**: Report at [GitHub Issues](https://github.com/johnhenry/ai.matey/issues)
+- **Issues**: Report at [GitHub Issues](https://github.com/johnhenry/aimatey/issues)
 - **More Examples**: Check the [tests](./tests/) for additional usage patterns
 
 ---

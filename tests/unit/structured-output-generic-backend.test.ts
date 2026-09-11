@@ -3,7 +3,7 @@
  * frontend/backend combination, not just Anthropic.
  *
  * Previously `createGenerateObject`/`createStreamObject`
- * (packages/ai.matey.utils/src/structured-output.ts) called `bridge.chat()`/
+ * (packages/aimatey-utils/src/structured-output.ts) called `bridge.chat()`/
  * `bridge.chatStream()` with an Anthropic-native wire request
  * (`tool_choice: { type: 'tool', name }`) and parsed an Anthropic-native
  * response shape (`response.content.filter(c => c.type === 'tool_use')`,

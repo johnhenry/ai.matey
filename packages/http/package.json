@@ -1,7 +1,7 @@
 {
   "name": "@johnhenry/aimatey-http",
   "version": "0.1.4",
-  "description": "HTTP framework adapters for AI Matey - Universal AI Adapter System",
+  "description": "HTTP framework adapters for Aimatey - Universal AI Adapter System",
   "type": "module",
   "main": "./dist/cjs/index.js",
   "module": "./dist/esm/index.js",
@@ -153,15 +153,15 @@
     "adapter",
     "ai-matey"
   ],
-  "author": "AI Matey",
+  "author": "Aimatey",
   "license": "MIT",
-  "homepage": "https://github.com/johnhenry/ai.matey#readme",
+  "homepage": "https://github.com/johnhenry/aimatey#readme",
   "bugs": {
-    "url": "https://github.com/johnhenry/ai.matey/issues"
+    "url": "https://github.com/johnhenry/aimatey/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/johnhenry/ai.matey.git",
+    "url": "git+https://github.com/johnhenry/aimatey.git",
     "directory": "packages/http"
   },
   "engines": {

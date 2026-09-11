@@ -53,8 +53,8 @@ All wrapper modules have subpath exports:
 ## Import Path Fixes ✅
 
 ### Issue: Dot vs Slash Notation
-- ❌ OLD (broken): `ai.matey.backend.openai`
-- ✅ NEW (correct): `ai.matey.backend/openai`
+- ❌ OLD (broken): `aimatey-backend.openai`
+- ✅ NEW (correct): `aimatey-backend/openai`
 
 ### Files Fixed (32 files, 178+ imports)
 - ✅ `demo/demo.mjs` - 13 imports fixed
@@ -68,8 +68,8 @@ All wrapper modules have subpath exports:
 - ✅ `scripts/*.js` - 2 script files fixed
 
 ### Special Cases Fixed
-- ✅ Mock backend moved to correct import: `ai.matey.backend.browser/mock`
-- ✅ Wrapper SDK paths updated: `ai.matey.wrapper/openai` (not `.openai-sdk`)
+- ✅ Mock backend moved to correct import: `aimatey-backend.browser/mock`
+- ✅ Wrapper SDK paths updated: `aimatey-wrapper/openai` (not `.openai-sdk`)
 
 ## Build & Test Verification ✅
 
@@ -88,10 +88,10 @@ All wrapper modules have subpath exports:
 - ✅ **Demo**: `node demo/demo.mjs` runs without errors
 - ✅ **Imports**: Runtime import verification passed
   ```javascript
-  ✓ ai.matey.backend/openai
-  ✓ ai.matey.frontend/anthropic
-  ✓ ai.matey.http/express
-  ✓ ai.matey.wrapper/openai
+  ✓ aimatey-backend/openai
+  ✓ aimatey-frontend/anthropic
+  ✓ aimatey-http/express
+  ✓ aimatey-wrapper/openai
   ```
 
 ## Dependencies ✅
@@ -247,11 +247,11 @@ node demo/demo.mjs
 # Result: ✅ Runs without errors
 
 # Test imports
-node -e "import('ai.matey.backend/openai').then(() => console.log('✅'))"
+node -e "import('aimatey-backend/openai').then(() => console.log('✅'))"
 # Result: ✅
 
 # Test pack
-npm pack --dry-run --workspace=ai.matey.backend
+npm pack --dry-run --workspace=aimatey-backend
 # Result: ✅ Includes all necessary files
 ```
 
@@ -272,39 +272,39 @@ npm pack --dry-run --workspace=ai.matey.backend
 ## Recommended Publish Order 📦
 
 1. **Foundation packages first** (no dependencies):
-   - `ai.matey.types`
-   - `ai.matey.errors`
-   - `ai.matey.utils`
+   - `aimatey-types`
+   - `aimatey-errors`
+   - `aimatey-utils`
 
 2. **Core packages** (depend on foundation):
-   - `ai.matey.core`
-   - `ai.matey.testing`
+   - `aimatey-core`
+   - `aimatey-testing`
 
 3. **Provider packages** (depend on core):
-   - `ai.matey.backend`
-   - `ai.matey.backend.browser`
-   - `ai.matey.frontend`
+   - `aimatey-backend`
+   - `aimatey-backend.browser`
+   - `aimatey-frontend`
 
 4. **Infrastructure packages**:
-   - `ai.matey.middleware`
-   - `ai.matey.http.core`
-   - `ai.matey.http`
+   - `aimatey-middleware`
+   - `aimatey-http.core`
+   - `aimatey-http`
 
 5. **Integration packages**:
-   - `ai.matey.wrapper`
-   - `ai.matey.react.core`
-   - `ai.matey.react.hooks`
-   - `ai.matey.react.stream`
-   - `ai.matey.react.nextjs`
+   - `aimatey-wrapper`
+   - `aimatey-react.core`
+   - `aimatey-react.hooks`
+   - `aimatey-react.stream`
+   - `aimatey-react.nextjs`
 
 6. **Native packages**:
-   - `ai.matey.native.apple`
-   - `ai.matey.native.node-llamacpp`
-   - `ai.matey.native.model-runner`
+   - `aimatey-native.apple`
+   - `aimatey-native.node-llamacpp`
+   - `aimatey-native.model-runner`
 
 7. **Meta packages last**:
-   - `ai.matey.cli`
-   - `ai.matey` (umbrella package)
+   - `aimatey-cli`
+   - `aimatey` (umbrella package)
 
 ## Status: READY FOR PUBLISH ✅
 

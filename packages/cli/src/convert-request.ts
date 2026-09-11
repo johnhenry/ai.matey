@@ -83,7 +83,7 @@ const SUPPORTED_FORMATS = ['ir', 'openai', 'anthropic', 'gemini', 'ollama', 'mis
 
 function printHelp(): void {
   console.log(`
-AI.Matey Request Converter
+Aimatey Request Converter
 Convert between Universal IR requests and provider formats
 
 USAGE:

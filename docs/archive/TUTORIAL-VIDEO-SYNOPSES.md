@@ -1,4 +1,4 @@
-# ai.matey.universal Tutorial Video Synopses
+# aimatey-universal Tutorial Video Synopses
 
 **Date:** October 26, 2025
 **Purpose:** Detailed synopses for external video production
@@ -8,13 +8,13 @@
 
 ## Getting Started Series (5 videos)
 
-### 1. Introduction to ai.matey.universal
+### 1. Introduction to aimatey-universal
 **Duration:** 8-10 minutes
-**Target Audience:** Developers new to ai.matey
+**Target Audience:** Developers new to aimatey
 **Difficulty:** Beginner
 
 **Learning Objectives:**
-- Understand what ai.matey.universal is and why it exists
+- Understand what aimatey-universal is and why it exists
 - Learn the core value proposition (unified API, provider independence)
 - See the problem it solves (vendor lock-in, API fragmentation)
 
@@ -24,13 +24,13 @@
    - Each has different API formats, authentication, error handling
    - Switching providers = rewriting code
 
-2. "Enter ai.matey.universal" (3 min)
+2. "Enter aimatey-universal" (3 min)
    - Unified intermediate representation (IR)
    - Write once, run on any provider
    - Automatic fallbacks, cost optimization, routing
 
 3. Quick Demo (3 min)
-   - Install: `npm install ai.matey.universal`
+   - Install: `npm install aimatey-universal`
    - Simple example: Send same request to OpenAI and Anthropic
    - Show how easy it is to switch providers
 
@@ -40,17 +40,17 @@
 
 **Code Examples:**
 ```typescript
-// Before ai.matey (fragmented)
+// Before aimatey (fragmented)
 const openaiResponse = await openai.chat.completions.create({...});
 const anthropicResponse = await anthropic.messages.create({...});
 
-// After ai.matey (unified)
+// After aimatey (unified)
 const bridge = new Bridge(openaiAdapter, anthropicAdapter);
 const response = await bridge.execute(request);
 ```
 
 **Visual Aids:**
-- Animated diagram: Multiple AI providers → ai.matey → Your app
+- Animated diagram: Multiple AI providers → aimatey → Your app
 - Side-by-side code comparison
 - Architecture diagram showing IR at center
 
@@ -62,7 +62,7 @@ const response = await bridge.execute(request);
 **Difficulty:** Beginner
 
 **Learning Objectives:**
-- Install ai.matey.universal
+- Install aimatey-universal
 - Set up API keys securely
 - Create first Bridge
 - Run first AI request
@@ -93,11 +93,11 @@ const response = await bridge.execute(request);
 
 **Code Examples:**
 ```bash
-npm install ai.matey.universal dotenv
+npm install aimatey-universal dotenv
 ```
 
 ```typescript
-import { Bridge, OpenAIBackendAdapter, AnthropicBackendAdapter } from 'ai.matey.universal';
+import { Bridge, OpenAIBackendAdapter, AnthropicBackendAdapter } from 'aimatey-universal';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -594,7 +594,7 @@ console.log('Attempts:', response.metadata.custom?.attempts);
 
 **Code Examples:**
 ```typescript
-import type { Middleware, IRChatRequest, IRChatResponse } from 'ai.matey.universal';
+import type { Middleware, IRChatRequest, IRChatResponse } from 'aimatey-universal';
 
 class ContentFilterMiddleware implements Middleware {
   name = 'content-filter';
@@ -681,7 +681,7 @@ const bridge = new Bridge(frontend, backend, {
 
 **Code Examples:**
 ```typescript
-import { Router, CostTrackingMiddleware } from 'ai.matey.universal';
+import { Router, CostTrackingMiddleware } from 'aimatey-universal';
 
 const costTracker = new CostTrackingMiddleware({
   budget: {
@@ -1159,7 +1159,7 @@ for (const model of result.models) {
 
 **Code Examples:**
 ```typescript
-import type { BackendAdapter, IRChatRequest, IRChatResponse, IRStreamChunk } from 'ai.matey.universal';
+import type { BackendAdapter, IRChatRequest, IRChatResponse, IRStreamChunk } from 'aimatey-universal';
 
 export class CustomBackendAdapter implements BackendAdapter {
   name = 'custom-backend';
@@ -1266,13 +1266,13 @@ export class CustomBackendAdapter implements BackendAdapter {
 
 ## Advanced Topics Series (8 videos)
 
-### 16. Testing Strategies for ai.matey Applications
+### 16. Testing Strategies for aimatey Applications
 **Duration:** 15-18 minutes
 **Target Audience:** Developers writing tests
 **Difficulty:** Intermediate-Advanced
 
 **Learning Objectives:**
-- Test applications using ai.matey
+- Test applications using aimatey
 - Mock backends for testing
 - Use fixtures for deterministic tests
 - Test streaming responses
@@ -1323,7 +1323,7 @@ export class CustomBackendAdapter implements BackendAdapter {
 **Code Examples:**
 ```typescript
 import { describe, it, expect } from 'vitest';
-import { Bridge, MockBackendAdapter } from 'ai.matey.universal';
+import { Bridge, MockBackendAdapter } from 'aimatey-universal';
 
 describe('Chat Application', () => {
   it('should handle basic chat request', async () => {
@@ -1465,7 +1465,7 @@ describe('Chat Application', () => {
 
 **Code Examples:**
 ```typescript
-import { Router, LoggingMiddleware, CostTrackingMiddleware, createOpenTelemetryMiddleware } from 'ai.matey.universal';
+import { Router, LoggingMiddleware, CostTrackingMiddleware, createOpenTelemetryMiddleware } from 'aimatey-universal';
 
 // Production configuration
 const router = new Router({
@@ -1778,7 +1778,7 @@ console.log(result);
 
 **Code Examples:**
 ```typescript
-import { Router, CachingMiddleware } from 'ai.matey.universal';
+import { Router, CachingMiddleware } from 'aimatey-universal';
 import Redis from 'ioredis';
 
 // Redis cache backend
@@ -1893,7 +1893,7 @@ setInterval(() => {
 
 **Code Examples:**
 ```typescript
-import { Router, RateLimitMiddleware } from 'ai.matey.universal';
+import { Router, RateLimitMiddleware } from 'aimatey-universal';
 
 const rateLimiter = new RateLimitMiddleware({
   // Per-backend limits
@@ -2003,7 +2003,7 @@ app.get('/api/rate-limit-status', (req, res) => {
 
 **Code Examples:**
 ```typescript
-import { Router, ErrorHandlingMiddleware } from 'ai.matey.universal';
+import { Router, ErrorHandlingMiddleware } from 'aimatey-universal';
 
 const errorHandler = new ErrorHandlingMiddleware({
   // Retry config
@@ -2156,7 +2156,7 @@ app.post('/api/chat', async (req, res) => {
 
 **Code Examples:**
 ```typescript
-import { Router, ProfilerMiddleware } from 'ai.matey.universal';
+import { Router, ProfilerMiddleware } from 'aimatey-universal';
 
 const profiler = new ProfilerMiddleware({
   enabled: true,
@@ -2272,7 +2272,7 @@ const responses = await Promise.all(
 
 **Code Examples:**
 ```typescript
-import { Router, PIIFilterMiddleware, AuditLogMiddleware } from 'ai.matey.universal';
+import { Router, PIIFilterMiddleware, AuditLogMiddleware } from 'aimatey-universal';
 
 // PII filtering middleware
 const piiFilter = new PIIFilterMiddleware({
@@ -2343,7 +2343,7 @@ const anthropicKey = await getApiKey('prod/anthropic-api-key');
 **Difficulty:** Intermediate
 
 **Learning Objectives:**
-- Set up ai.matey in Next.js
+- Set up aimatey in Next.js
 - Create API routes
 - Build chat UI with streaming
 - Deploy to Vercel
@@ -2351,7 +2351,7 @@ const anthropicKey = await getApiKey('prod/anthropic-api-key');
 **Script Outline:**
 1. Project Setup (2 min)
    - Create Next.js app
-   - Install ai.matey.universal
+   - Install aimatey-universal
    - Configure environment variables
 
 2. API Routes (3 min)
@@ -2495,7 +2495,7 @@ Complete React chat application
 **Difficulty:** Intermediate
 
 **Learning Objectives:**
-- Use ai.matey from Python
+- Use aimatey from Python
 - Create FastAPI endpoints
 - Handle async requests
 - Type hints and validation
@@ -2506,7 +2506,7 @@ Complete React chat application
    - Leverage Python ecosystem
    - Unified AI interface
 
-2. Calling ai.matey from Python (3 min)
+2. Calling aimatey from Python (3 min)
    - HTTP API approach
    - Wrap Node.js module (optional)
    - Request/response formatting
@@ -2523,7 +2523,7 @@ Complete React chat application
    - SSE format
 
 5. Integration Example (2 min)
-   - Python ML model + ai.matey
+   - Python ML model + aimatey
    - Preprocessing → AI → Postprocessing
    - Complete pipeline
 
@@ -2589,7 +2589,7 @@ async def chat_stream(request: ChatRequest):
 ```
 
 **Visual Aids:**
-- Architecture diagram: Python ↔ ai.matey ↔ Providers
+- Architecture diagram: Python ↔ aimatey ↔ Providers
 - API documentation
 - Integration flowchart
 
@@ -2601,7 +2601,7 @@ async def chat_stream(request: ChatRequest):
 **Difficulty:** Intermediate
 
 **Learning Objectives:**
-- Build Discord bot with ai.matey
+- Build Discord bot with aimatey
 - Handle slash commands
 - Stream responses to Discord
 - Manage conversation context
@@ -2616,7 +2616,7 @@ async def chat_stream(request: ChatRequest):
 2. Basic Command Handler (3 min)
    - Slash command: /ask
    - Get user input
-   - Send to ai.matey
+   - Send to aimatey
    - Reply in Discord
 
 3. Streaming Responses (3 min)
@@ -2639,7 +2639,7 @@ async def chat_stream(request: ChatRequest):
 **Code Examples:**
 ```typescript
 import { Client, GatewayIntentBits, SlashCommandBuilder } from 'discord.js';
-import { Bridge, OpenAIBackendAdapter, AnthropicBackendAdapter } from 'ai.matey.universal';
+import { Bridge, OpenAIBackendAdapter, AnthropicBackendAdapter } from 'aimatey-universal';
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages] });
 const bridge = new Bridge(
@@ -2737,7 +2737,7 @@ client.login(process.env.DISCORD_BOT_TOKEN!);
 **Difficulty:** Intermediate
 
 **Learning Objectives:**
-- Build Slack bot with ai.matey
+- Build Slack bot with aimatey
 - Handle mentions and DMs
 - Thread conversations
 - Add buttons and actions
@@ -2860,7 +2860,7 @@ try {
    - Configure exporters
    - Sample rates
 
-3. ai.matey OTel Integration (3 min)
+3. aimatey OTel Integration (3 min)
    - Enable OTel middleware
    - Automatic span creation
    - Custom attributes
@@ -2910,8 +2910,8 @@ const sdk = new NodeSDK({
 
 sdk.start();
 
-// Use with ai.matey
-import { Router, createOpenTelemetryMiddleware } from 'ai.matey.universal';
+// Use with aimatey
+import { Router, createOpenTelemetryMiddleware } from 'aimatey-universal';
 
 const router = new Router({
   middleware: [
@@ -3088,7 +3088,7 @@ export default function () {
 
 **Code Examples:**
 ```typescript
-import { Router, CostTrackingMiddleware, CostAnalyzer } from 'ai.matey.universal';
+import { Router, CostTrackingMiddleware, CostAnalyzer } from 'aimatey-universal';
 
 const costTracker = new CostTrackingMiddleware({
   budget: {
@@ -3148,7 +3148,7 @@ console.log('Recommendations:', recommendations);
 
 ---
 
-### 34. Migration Guide (From OpenAI SDK to ai.matey)
+### 34. Migration Guide (From OpenAI SDK to aimatey)
 **Duration:** 10-12 minutes
 **Target Audience:** Developers migrating existing apps
 **Difficulty:** Beginner-Intermediate
@@ -3168,7 +3168,7 @@ console.log('Recommendations:', recommendations);
 
 2. Code Conversion (4 min)
    - Before: OpenAI SDK code
-   - After: ai.matey equivalent
+   - After: aimatey equivalent
    - Side-by-side comparison
    - Common patterns
 
@@ -3205,8 +3205,8 @@ const completion = await openai.chat.completions.create({
 
 console.log(completion.choices[0].message.content);
 
-// AFTER: ai.matey.universal
-import { Bridge, OpenAIBackendAdapter } from 'ai.matey.universal';
+// AFTER: aimatey-universal
+import { Bridge, OpenAIBackendAdapter } from 'aimatey-universal';
 
 const bridge = new Bridge(
   new OpenAIBackendAdapter({ apiKey: process.env.OPENAI_API_KEY })
@@ -3275,7 +3275,7 @@ console.log(response.message.content[0].text);
 
 ## Bonus: Behind the Scenes (2 videos)
 
-### 41. ai.matey.universal Architecture Deep Dive
+### 41. aimatey-universal Architecture Deep Dive
 **Duration:** 18-22 minutes
 **Target Audience:** Contributors, advanced developers
 **Difficulty:** Advanced
@@ -3357,4 +3357,4 @@ Each synopsis includes:
 - Code examples
 - Visual aids suggestions
 
-This comprehensive tutorial series will cover every aspect of ai.matey.universal from beginner basics to advanced production deployment patterns.
+This comprehensive tutorial series will cover every aspect of aimatey-universal from beginner basics to advanced production deployment patterns.

@@ -19,7 +19,7 @@
 **Purpose**: Project initialization and basic structure per plan.md
 
 - [ ] T001 Create directory structure: `src/{types,core,adapters/{frontend,backend},middleware,utils,errors}`, `dist/{esm,cjs,types}`
-- [ ] T002 Create `package.json` with name `ai.matey-adapter`, type: "module", exports field for ESM+CJS, scripts for build/test/typecheck
+- [ ] T002 Create `package.json` with name `aimatey-adapter`, type: "module", exports field for ESM+CJS, scripts for build/test/typecheck
 - [ ] T003 [P] Create `tsconfig.json` with strict mode, ES2020 target, ESNext modules, declaration: true
 - [ ] T004 [P] Create `tsconfig.build.json` extending base tsconfig for production builds
 - [ ] T005 [P] Create `.gitignore` with node_modules, dist, *.log, .env patterns
@@ -486,7 +486,7 @@
 
 - [P] prefix = Tasks that can run in parallel (work on different files or have no dependencies)
 - [US#] prefix = User story tag for traceability (US1=User Story 1, etc.)
-- File paths are absolute from repository root: `/Users/johnhenry/Projects/ai.matey.universal/`
+- File paths are absolute from repository root: `/Users/johnhenry/Projects/aimatey-universal/`
 - Each user story is independently testable and deliverable
 - Stop at any checkpoint to validate story independently before proceeding
 - Streaming (US2) depends on basic adapters from US1, so implement US1 fully first

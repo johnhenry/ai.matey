@@ -1,5 +1,5 @@
 /**
- * Tests for ai.matey.errors package
+ * Tests for aimatey-errors package
  *
  * Tests for all error classes and factory functions.
  */

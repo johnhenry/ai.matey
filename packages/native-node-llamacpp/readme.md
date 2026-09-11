@@ -1,10 +1,10 @@
 # @johnhenry/aimatey-native-node-llamacpp
 
-> **Note:** Previously published as `ai.matey.native.node-llamacpp@0.2.2`.
+> **Note:** Previously published as `aimatey-native.node-llamacpp@0.2.2`.
 
-Run AI Matey against local GGUF models via [node-llama-cpp](https://github.com/withcatai/node-llama-cpp) —
+Run Aimatey against local GGUF models via [node-llama-cpp](https://github.com/withcatai/node-llama-cpp) —
 fully offline, GPU-accelerated where available. Part of the
-[ai.matey](https://github.com/johnhenry/ai.matey) monorepo.
+[aimatey](https://github.com/johnhenry/aimatey) monorepo.
 
 ## Requirements
 

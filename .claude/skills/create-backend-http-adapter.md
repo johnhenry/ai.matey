@@ -1,6 +1,6 @@
 # Backend HTTP Adapter Creator Skill
 
-Use this skill when the user asks to create a new backend HTTP adapter for ai.matey. Backend adapters transform IR to provider API calls, execute HTTP requests, and convert responses back to IR.
+Use this skill when the user asks to create a new backend HTTP adapter for aimatey. Backend adapters transform IR to provider API calls, execute HTTP requests, and convert responses back to IR.
 
 ## Prerequisites
 

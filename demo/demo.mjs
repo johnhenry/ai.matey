@@ -1,7 +1,7 @@
 /**
- * AI.Matey Ultimate Kitchen-Sink Demo
+ * Aimatey Ultimate Kitchen-Sink Demo
  *
- * This comprehensive demo showcases ALL features of ai.matey in a single file:
+ * This comprehensive demo showcases ALL features of aimatey in a single file:
  *
  * PART 0: Setup & Configuration
  * PART 1: Backend Adapters - Basic Usage
@@ -78,9 +78,9 @@ try {
 // ============================================================================
 
 console.log('\n' + '='.repeat(80));
-console.log('🏴‍☠️ AI.MATEY - ULTIMATE KITCHEN-SINK DEMO');
+console.log('🏴‍☠️ AIMATEY - ULTIMATE KITCHEN-SINK DEMO');
 console.log('='.repeat(80));
-console.log('\nThis comprehensive demo showcases ALL ai.matey features:\n');
+console.log('\nThis comprehensive demo showcases ALL aimatey features:\n');
 console.log('  0. Setup & Configuration');
 console.log('  1. Backend Adapters (Basic Usage)');
 console.log('  2. Streaming Responses');
@@ -289,7 +289,7 @@ demo('PART 1: Backend Adapters - Basic Usage', async () => {
   console.log('\n' + '='.repeat(80));
   console.log('🏴‍☠️ PART 1: Backend Adapters - Basic Usage');
   console.log('='.repeat(80) + '\n');
-  console.log('📖 This shows the simplest way to use ai.matey:');
+  console.log('📖 This shows the simplest way to use aimatey:');
   console.log('   Direct backend adapter usage with execute()\n');
 
   const [name, { adapter, model }] = Object.entries(backends).find(([n]) => n !== 'mock') || [];
@@ -1030,6 +1030,6 @@ demo('PART 10: Summary', async () => {
   }
 
   console.log('='.repeat(80));
-  console.log('🏴‍☠️ AI.MATEY - Ready to sail!');
+  console.log('🏴‍☠️ AIMATEY - Ready to sail!');
   console.log('='.repeat(80) + '\n');
 });

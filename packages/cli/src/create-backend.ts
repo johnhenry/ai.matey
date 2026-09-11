@@ -390,7 +390,7 @@ async function runWizard(): Promise<void> {
 
   try {
     console.log('\n╔════════════════════════════════════════════════════════════╗');
-    console.log('║       AI.Matey Backend Generator Wizard                   ║');
+    console.log('║       Aimatey Backend Generator Wizard                   ║');
     console.log('╚════════════════════════════════════════════════════════════╝\n');
 
     // 1. Select backend type

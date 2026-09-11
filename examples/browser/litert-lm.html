@@ -10,18 +10,18 @@
 <html>
   <head>
     <meta charset="utf-8" />
-    <title>ai.matey × LiteRT-LM</title>
+    <title>aimatey × LiteRT-LM</title>
   </head>
   <body>
-    <h1>ai.matey × LiteRT-LM (on-device Gemma)</h1>
+    <h1>aimatey × LiteRT-LM (on-device Gemma)</h1>
     <input id="prompt" size="60" value="Write a haiku about tide pools." />
     <button id="send">Send</button>
     <pre id="out"></pre>
 
     <script type="module">
-      import { Bridge } from 'https://esm.sh/ai.matey.core';
-      import { OpenAIFrontendAdapter } from 'https://esm.sh/ai.matey.frontend';
-      import { LiteRtLmBackendAdapter } from 'https://esm.sh/ai.matey.backend.browser';
+      import { Bridge } from 'https://esm.sh/aimatey-core';
+      import { OpenAIFrontendAdapter } from 'https://esm.sh/aimatey-frontend';
+      import { LiteRtLmBackendAdapter } from 'https://esm.sh/aimatey-backend.browser';
 
       const backend = new LiteRtLmBackendAdapter({
         model:

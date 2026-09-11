@@ -513,7 +513,7 @@ positive float ``. So any `frequencyPenalty <= -1` produced a request the
   provider. `utils` is `minor` because it gains new public API.
 
   **The shared helper.** The transform lives in
-  `packages/ai.matey.utils/src/parameter-normalizer.ts` as
+  `packages/aimatey-utils/src/parameter-normalizer.ts` as
   `normalizeRepetitionPenalty()`, exercised directly by unit tests, rather than
   inline in the adapter. It has exactly one caller today and is not expected to
   gain many -- every other provider takes OpenAI-style additive
@@ -645,7 +645,7 @@ Err(ValidationError::Temperature) }` — "`temperature` must be strictly positiv
   - @johnhenry/aimatey-types@0.1.0
   - @johnhenry/aimatey-utils@0.1.0
 
-> Previously published as `ai.matey.backend`, last unscoped version `0.9.0`.
+> Previously published as `aimatey-backend`, last unscoped version `0.9.0`.
 
 ## 0.9.0
 
@@ -759,7 +759,7 @@ Err(ValidationError::Temperature) }` — "`temperature` must be strictly positiv
   - Together AI: `meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo` → `deepseek-ai/DeepSeek-V4-Pro`
     (confirmed listed on together.ai/models); `maxContextTokens` raised 128000 → 1000000 to match
 
-  **Registry additions** (`ai.matey.utils`'s `MODEL_REGISTRY_SEED`): `gpt-5.6-sol/terra/luna`
+  **Registry additions** (`aimatey-utils`'s `MODEL_REGISTRY_SEED`): `gpt-5.6-sol/terra/luna`
   (marking the deprecated dated GPT-5/o3 snapshots - `gpt-5`, `gpt-5-mini`, `gpt-5-nano`, `o3` -
   `deprecated: true`), `claude-opus-4-8`, `claude-fable-5`, `grok-4.5`, `gemini-3.6-flash`,
   `gemini-3.5-flash-lite`, and a new Moonshot AI section (`kimi-k3`, pricing confirmed via
@@ -767,19 +767,19 @@ Err(ValidationError::Temperature) }` — "`temperature` must be strictly positiv
   Flash/3.5 Flash-Lite, Grok 4.5, Fable 5, Opus 4.8) are estimates flagged in code comments, not
   independently confirmed - override via `registerModels()` if you have exact numbers.
 
-  **Capability inference** (`ai.matey.core`): adds a `moonshot` family (`kimi`/`moonshot` name
+  **Capability inference** (`aimatey-core`): adds a `moonshot` family (`kimi`/`moonshot` name
   matching) so Kimi K3 and future Moonshot models get sensible capability defaults instead of
   falling through to nothing.
 
   **Known gaps, not addressed by this refresh** (see the research thread for detail): whether any
-  new inference-speed/open-weight/regional LLM providers outside ai.matey's current 24 are worth
+  new inference-speed/open-weight/regional LLM providers outside aimatey's current 24 are worth
   adding, and the state of MCP/agent-interop/computer-use/prompt-caching/batch-API standardization
   across providers - both remain open follow-up research, not confirmed non-issues.
 
 ### Patch Changes
 
 - Updated dependencies [5b44733]
-  - ai.matey.utils@0.5.0
+  - aimatey-utils@0.5.0
 
 ## 0.7.2
 
@@ -788,20 +788,20 @@ Err(ValidationError::Temperature) }` — "`temperature` must be strictly positiv
 - 73aa9f1: Fix broken CJS entry points across the whole package family. Every package declares
   `"type": "module"` for ESM subpath resolution, but shipped `dist/cjs/` builds with no nested
   override - Node walked up to the package root, saw `"type": "module"`, and misinterpreted the
-  compiled CommonJS as ESM, so `require("ai.matey.x")` failed with `Cannot find module './y.js'`
+  compiled CommonJS as ESM, so `require("aimatey-x")` failed with `Cannot find module './y.js'`
   on every package in the family (ESM `import` was unaffected). Each package's build now emits a
   `dist/cjs/package.json` containing `{"type":"commonjs"}` (via a new
   `scripts/fix-cjs-package-json.js` post-build step) to correctly scope the CJS build's module
   type. No source or `exports` map changes - verified via `npm pack` + fresh install against the
   exact repro in #23, both direct `require()` and the `require` export condition on subpaths (e.g.
-  `ai.matey.backend.browser/chrome-ai`).
+  `aimatey-backend.browser/chrome-ai`).
 
   (#23)
 
 - Updated dependencies [73aa9f1]
-  - ai.matey.errors@0.2.1
-  - ai.matey.types@0.5.1
-  - ai.matey.utils@0.4.2
+  - aimatey-errors@0.2.1
+  - aimatey-types@0.5.1
+  - aimatey-utils@0.4.2
 
 ## 0.7.1
 
@@ -832,7 +832,7 @@ Err(ValidationError::Temperature) }` — "`temperature` must be strictly positiv
 ### Patch Changes
 
 - Updated dependencies [b69566f]
-  - ai.matey.types@0.5.0
+  - aimatey-types@0.5.0
 
 ## 0.6.0
 
@@ -848,7 +848,7 @@ Err(ValidationError::Temperature) }` — "`temperature` must be strictly positiv
 ### Patch Changes
 
 - Updated dependencies [7b80cb3]
-  - ai.matey.types@0.4.0
+  - aimatey-types@0.4.0
 
 ## 0.5.0
 
@@ -856,7 +856,7 @@ Err(ValidationError::Temperature) }` — "`temperature` must be strictly positiv
 
 - Three new backend adapters: Inception Labs (`InceptionBackendAdapter`), Moonshot AI
   (`MoonshotBackendAdapter`), and SambaNova (`SambaNovaBackendAdapter`), all OpenAI-compatible with
-  subpath exports (`ai.matey.backend/inception`, `/moonshot`, `/sambanova`). (#12) These adapters do
+  subpath exports (`aimatey-backend/inception`, `/moonshot`, `/sambanova`). (#12) These adapters do
   not advertise embeddings support (`capabilities.embeddings: false`) since their embeddings
   endpoints are absent or unverified.
 
@@ -875,7 +875,7 @@ Err(ValidationError::Temperature) }` — "`temperature` must be strictly positiv
 ### Patch Changes
 
 - Updated dependencies [d9e1489]
-  - ai.matey.utils@0.4.0
+  - aimatey-utils@0.4.0
 
 ## 0.3.0
 
@@ -908,13 +908,13 @@ Err(ValidationError::Temperature) }` — "`temperature` must be strictly positiv
 
 ### Patch Changes
 
-- 2912b7d: Introduce a shared, data-driven model registry in `ai.matey.utils` as the single source of truth
+- 2912b7d: Introduce a shared, data-driven model registry in `aimatey-utils` as the single source of truth
   for model metadata (pricing, context windows, capabilities, quality/latency). The registry ships
   with a mid-2026 seed (GPT-5.x/o-series, Claude 4.x, Gemini 2.5/3, Grok, current Mistral/DeepSeek,
   plus embedding models) and is runtime-extensible via `registerModels()` / `overrideModelPricing()`,
   with alias and longest-prefix fallback so new dated snapshots of known families still resolve.
 
-  `ai.matey.core`'s model-pricing API is now a thin delegate over the registry (no API break; legacy
+  `aimatey-core`'s model-pricing API is now a thin delegate over the registry (no API break; legacy
   models keep their prices, marked `deprecated`). Capability inference recognizes current families.
   Cost-tracking middleware consults the registry before provider-level defaults. `useTokenCount`
   consults the registry for context windows. Backend default models updated:
@@ -928,8 +928,8 @@ Err(ValidationError::Temperature) }` — "`temperature` must be strictly positiv
 - Updated dependencies [78731bb]
 - Updated dependencies [b7e2312]
 - Updated dependencies [58ebc03]
-  - ai.matey.types@0.3.0
-  - ai.matey.utils@0.3.0
+  - aimatey-types@0.3.0
+  - aimatey-utils@0.3.0
 
 ## 0.2.1
 

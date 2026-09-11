@@ -1,14 +1,14 @@
 /**
- * AI Matey Backend Adapters
+ * Aimatey Backend Adapters
  *
  * Consolidated package containing all server-side backend provider adapters.
  * Each provider adapter handles converting Universal IR to provider-specific
  * API calls and responses.
  *
  * Note: Browser-compatible adapters (chrome-ai, function, mock) are in the
- * separate ai.matey.backend.browser package for use in browser environments.
+ * separate aimatey-backend.browser package for use in browser environments.
  *
- * @module ai.matey.backend
+ * @module aimatey-backend
  */
 
 // Shared utilities
@@ -46,7 +46,7 @@ export * from './providers/github-models.js';
 export * from './providers/dashscope.js';
 export * from './providers/omniroute.js';
 
-// Note: The following adapters have been moved to ai.matey.backend.browser:
+// Note: The following adapters have been moved to aimatey-backend.browser:
 // - chrome-ai (Chrome's built-in AI)
 // - function (custom function-based backends)
 // - mock (testing/development mocks)

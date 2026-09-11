@@ -1,6 +1,6 @@
 # Backend Native Adapter Creator Skill
 
-Use this skill when the user asks to create a new backend native adapter for ai.matey. Native adapters execute inference locally using native bindings/frameworks instead of HTTP APIs.
+Use this skill when the user asks to create a new backend native adapter for aimatey. Native adapters execute inference locally using native bindings/frameworks instead of HTTP APIs.
 
 ## Prerequisites
 

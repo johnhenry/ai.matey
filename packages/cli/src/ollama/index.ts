@@ -68,7 +68,7 @@ function showHelp(): void {
   console.log(`
 Ollama CLI Emulator
 
-Emulate Ollama CLI interface using any AI.Matey backend adapter.
+Emulate Ollama CLI interface using any Aimatey backend adapter.
 
 Usage:
   ai-matey emulate-ollama --backend <path> <command> [options]

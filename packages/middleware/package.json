@@ -1,7 +1,7 @@
 {
   "name": "@johnhenry/aimatey-middleware",
   "version": "0.2.3",
-  "description": "Middleware components for AI Matey - Universal AI Adapter System",
+  "description": "Middleware components for Aimatey - Universal AI Adapter System",
   "type": "module",
   "main": "./dist/cjs/index.js",
   "module": "./dist/esm/index.js",
@@ -196,15 +196,15 @@
     "security",
     "ai-matey"
   ],
-  "author": "AI Matey",
+  "author": "Aimatey",
   "license": "MIT",
-  "homepage": "https://github.com/johnhenry/ai.matey#readme",
+  "homepage": "https://github.com/johnhenry/aimatey#readme",
   "bugs": {
-    "url": "https://github.com/johnhenry/ai.matey/issues"
+    "url": "https://github.com/johnhenry/aimatey/issues"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/johnhenry/ai.matey.git",
+    "url": "git+https://github.com/johnhenry/aimatey.git",
     "directory": "packages/middleware"
   },
   "engines": {
