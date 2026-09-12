@@ -390,10 +390,11 @@ describe('AnthropicBackendAdapter.listModels', () => {
     expect(modelIds).toContain('claude-sonnet-4.5-20250929');
   });
 
-  it('should include 9 models total', async () => {
+  it('should include 8 models total', async () => {
     const adapter = new AnthropicBackendAdapter({ apiKey: 'test-key' });
     const result = await adapter.listModels();
 
-    expect(result.models).toHaveLength(9); // Fable 5 + Opus 4.8 + Sonnet 5 + 4 + 3.5 models
+    // Fable 5.1 + Fable 5 + Opus 5 + Opus 4.8 + Sonnet 5 + Haiku 4.5 + Opus 4.5 + Sonnet 4.5
+    expect(result.models).toHaveLength(8);
   });
 });

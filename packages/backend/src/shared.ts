@@ -507,7 +507,7 @@ export function buildToolsUnsupportedWarning(backendName: string): IRWarning {
 
 /**
  * Default OpenAI models with capabilities.
- * Updated: 2026-07-23
+ * Updated: 2026-09-11
  */
 export const DEFAULT_OPENAI_MODELS: readonly AIModel[] = [
   {
@@ -553,57 +553,15 @@ export const DEFAULT_OPENAI_MODELS: readonly AIModel[] = [
     },
   },
   {
-    id: 'gpt-4o',
-    name: 'GPT-4o',
-    description: 'Most capable GPT-4 model with vision',
+    id: 'gpt-6-astra',
+    name: 'GPT-6 Astra',
+    description: "OpenAI's flagship model, superseding the GPT-5.6 family",
     ownedBy: 'openai',
     capabilities: {
-      maxTokens: 16384,
-      contextWindow: 128000,
+      maxTokens: 128000,
+      contextWindow: 1050000,
       supportsStreaming: true,
       supportsVision: true,
-      supportsTools: true,
-      supportsJSON: true,
-    },
-  },
-  {
-    id: 'gpt-4o-mini',
-    name: 'GPT-4o Mini',
-    description: 'Fast and affordable GPT-4 variant',
-    ownedBy: 'openai',
-    capabilities: {
-      maxTokens: 16384,
-      contextWindow: 128000,
-      supportsStreaming: true,
-      supportsVision: true,
-      supportsTools: true,
-      supportsJSON: true,
-    },
-  },
-  {
-    id: 'gpt-4-turbo',
-    name: 'GPT-4 Turbo',
-    description: 'GPT-4 with larger context and vision',
-    ownedBy: 'openai',
-    capabilities: {
-      maxTokens: 4096,
-      contextWindow: 128000,
-      supportsStreaming: true,
-      supportsVision: true,
-      supportsTools: true,
-      supportsJSON: true,
-    },
-  },
-  {
-    id: 'gpt-3.5-turbo',
-    name: 'GPT-3.5 Turbo',
-    description: 'Fast and efficient for simple tasks',
-    ownedBy: 'openai',
-    capabilities: {
-      maxTokens: 4096,
-      contextWindow: 16385,
-      supportsStreaming: true,
-      supportsVision: false,
       supportsTools: true,
       supportsJSON: true,
     },
@@ -612,13 +570,13 @@ export const DEFAULT_OPENAI_MODELS: readonly AIModel[] = [
 
 /**
  * Default Anthropic Claude models with capabilities.
- * Updated: 2025-11-30
+ * Updated: 2026-09-11
  */
 export const DEFAULT_ANTHROPIC_MODELS: readonly AIModel[] = [
   {
-    id: 'claude-fable-5',
-    name: 'Claude Fable 5',
-    description: "Anthropic's highest tier as of the 2026-07 refresh",
+    id: 'claude-fable-5-1',
+    name: 'Claude Fable 5.1',
+    description: "Anthropic's most capable widely-released model",
     ownedBy: 'anthropic',
     capabilities: {
       maxTokens: 128000,
@@ -630,9 +588,37 @@ export const DEFAULT_ANTHROPIC_MODELS: readonly AIModel[] = [
     },
   },
   {
+    id: 'claude-fable-5',
+    name: 'Claude Fable 5',
+    description: 'Predecessor to Fable 5.1, still served',
+    ownedBy: 'anthropic',
+    capabilities: {
+      maxTokens: 128000,
+      contextWindow: 1000000,
+      supportsStreaming: true,
+      supportsVision: true,
+      supportsTools: true,
+      supportsJSON: true,
+    },
+  },
+  {
+    id: 'claude-opus-5',
+    name: 'Claude Opus 5',
+    description: 'General-purpose flagship-tier default',
+    ownedBy: 'anthropic',
+    capabilities: {
+      maxTokens: 64000,
+      contextWindow: 200000,
+      supportsStreaming: true,
+      supportsVision: true,
+      supportsTools: true,
+      supportsJSON: true,
+    },
+  },
+  {
     id: 'claude-opus-4-8',
     name: 'Claude Opus 4.8',
-    description: 'Most capable Opus tier as of the 2026-07 refresh',
+    description: 'Most capable Opus 4.x tier',
     ownedBy: 'anthropic',
     capabilities: {
       maxTokens: 64000,
@@ -658,9 +644,23 @@ export const DEFAULT_ANTHROPIC_MODELS: readonly AIModel[] = [
     },
   },
   {
+    id: 'claude-haiku-4-5-20251001',
+    name: 'Claude Haiku 4.5',
+    description: 'Fastest and most affordable current-generation model',
+    ownedBy: 'anthropic',
+    capabilities: {
+      maxTokens: 64000,
+      contextWindow: 200000,
+      supportsStreaming: true,
+      supportsVision: true,
+      supportsTools: true,
+      supportsJSON: true,
+    },
+  },
+  {
     id: 'claude-opus-4.5-20251124',
     name: 'Claude Opus 4.5 (Nov 2025)',
-    description: 'Most capable Claude model',
+    description: 'Previous-generation Opus tier',
     ownedBy: 'anthropic',
     capabilities: {
       maxTokens: 8192,
@@ -674,7 +674,7 @@ export const DEFAULT_ANTHROPIC_MODELS: readonly AIModel[] = [
   {
     id: 'claude-sonnet-4.5-20250929',
     name: 'Claude Sonnet 4.5 (Sep 2025)',
-    description: 'Most capable for coding, agents, and computer use',
+    description: 'Previous-generation Sonnet tier',
     ownedBy: 'anthropic',
     capabilities: {
       maxTokens: 8192,
@@ -683,62 +683,6 @@ export const DEFAULT_ANTHROPIC_MODELS: readonly AIModel[] = [
       supportsVision: true,
       supportsTools: true,
       supportsJSON: true,
-    },
-  },
-  {
-    id: 'claude-opus-4.1-20250805',
-    name: 'Claude Opus 4.1 (Aug 2025)',
-    description: 'Advanced reasoning and intelligence',
-    ownedBy: 'anthropic',
-    capabilities: {
-      maxTokens: 8192,
-      contextWindow: 200000,
-      supportsStreaming: true,
-      supportsVision: true,
-      supportsTools: true,
-      supportsJSON: true,
-    },
-  },
-  {
-    id: 'claude-sonnet-4-20250522',
-    name: 'Claude Sonnet 4 (May 2025)',
-    description: 'Balanced performance and speed',
-    ownedBy: 'anthropic',
-    capabilities: {
-      maxTokens: 8192,
-      contextWindow: 200000,
-      supportsStreaming: true,
-      supportsVision: true,
-      supportsTools: true,
-      supportsJSON: true,
-    },
-  },
-  {
-    id: 'claude-3-5-sonnet-20241022',
-    name: 'Claude 3.5 Sonnet (Oct 2024)',
-    description: 'Previous generation flagship',
-    ownedBy: 'anthropic',
-    capabilities: {
-      maxTokens: 8192,
-      contextWindow: 200000,
-      supportsStreaming: true,
-      supportsVision: true,
-      supportsTools: true,
-      supportsJSON: false,
-    },
-  },
-  {
-    id: 'claude-3-5-haiku-20241022',
-    name: 'Claude 3.5 Haiku (Oct 2024)',
-    description: 'Fastest and most affordable',
-    ownedBy: 'anthropic',
-    capabilities: {
-      maxTokens: 8192,
-      contextWindow: 200000,
-      supportsStreaming: true,
-      supportsVision: false,
-      supportsTools: true,
-      supportsJSON: false,
     },
   },
 ] as const;
@@ -781,7 +725,7 @@ export const DEFAULT_AI21_MODELS: readonly AIModel[] = [
 
 /**
  * Default Gemini models with capabilities.
- * Updated: 2025-11-30
+ * Updated: 2026-09-11
  */
 export const DEFAULT_GEMINI_MODELS: readonly AIModel[] = [
   {
@@ -827,34 +771,6 @@ export const DEFAULT_GEMINI_MODELS: readonly AIModel[] = [
     },
   },
   {
-    id: 'gemini-2.0-flash',
-    name: 'Gemini 2.0 Flash',
-    description: 'Ultra-efficient and affordable multimodal model',
-    ownedBy: 'google',
-    capabilities: {
-      maxTokens: 8192,
-      contextWindow: 1000000,
-      supportsStreaming: true,
-      supportsVision: true,
-      supportsTools: true,
-      supportsJSON: true,
-    },
-  },
-  {
-    id: 'gemini-2.0-flash-lite',
-    name: 'Gemini 2.0 Flash-Lite',
-    description: 'Optimized for speed and cost',
-    ownedBy: 'google',
-    capabilities: {
-      maxTokens: 8192,
-      contextWindow: 1000000,
-      supportsStreaming: true,
-      supportsVision: true,
-      supportsTools: true,
-      supportsJSON: true,
-    },
-  },
-  {
     id: 'gemini-2.5-flash',
     name: 'Gemini 2.5 Flash',
     description: 'Best price-performance for large scale tasks',
@@ -883,8 +799,8 @@ export const DEFAULT_GEMINI_MODELS: readonly AIModel[] = [
     },
   },
   {
-    id: 'gemini-3-pro',
-    name: 'Gemini 3 Pro',
+    id: 'gemini-3.1-pro',
+    name: 'Gemini 3.1 Pro',
     description: 'Most powerful model for agentic workflows and coding',
     ownedBy: 'google',
     capabilities: {

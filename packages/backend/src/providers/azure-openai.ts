@@ -567,6 +567,12 @@ export class AzureOpenAIBackendAdapter implements BackendAdapter<
    */
   estimateCost(request: IRChatRequest): Promise<number | null> {
     const pricing: Record<string, { input: number; output: number }> = {
+      'gpt-6-astra': { input: 10.0, output: 50.0 },
+      'gpt-5.6-sol': { input: 5.0, output: 25.0 },
+      'gpt-5.6-terra': { input: 2.5, output: 10.0 },
+      'gpt-5.6-luna': { input: 0.5, output: 2.0 },
+      // Older deployments may still exist under these names for a while
+      // even after retirement from OpenAI's own API.
       'gpt-4o': { input: 2.5, output: 10.0 },
       'gpt-4o-mini': { input: 0.15, output: 0.6 },
       'gpt-4': { input: 30.0, output: 60.0 },

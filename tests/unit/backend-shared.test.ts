@@ -439,10 +439,10 @@ describe('DEFAULT_OPENAI_MODELS', () => {
   it('should contain expected models', () => {
     const ids = DEFAULT_OPENAI_MODELS.map(m => m.id);
 
-    expect(ids).toContain('gpt-4o');
-    expect(ids).toContain('gpt-4o-mini');
-    expect(ids).toContain('gpt-4-turbo');
-    expect(ids).toContain('gpt-3.5-turbo');
+    expect(ids).toContain('gpt-6-astra');
+    expect(ids).toContain('gpt-5.6-sol');
+    expect(ids).toContain('gpt-5.6-terra');
+    expect(ids).toContain('gpt-5.6-luna');
   });
 
   it('should have ownedBy set to openai', () => {
@@ -460,17 +460,15 @@ describe('DEFAULT_OPENAI_MODELS', () => {
   });
 
   it('should have correct vision support', () => {
-    const gpt4o = DEFAULT_OPENAI_MODELS.find(m => m.id === 'gpt-4o');
-    const gpt35 = DEFAULT_OPENAI_MODELS.find(m => m.id === 'gpt-3.5-turbo');
+    const astra = DEFAULT_OPENAI_MODELS.find(m => m.id === 'gpt-6-astra');
 
-    expect(gpt4o?.capabilities?.supportsVision).toBe(true);
-    expect(gpt35?.capabilities?.supportsVision).toBe(false);
+    expect(astra?.capabilities?.supportsVision).toBe(true);
   });
 
   it('should have context window info', () => {
-    const gpt4o = DEFAULT_OPENAI_MODELS.find(m => m.id === 'gpt-4o');
+    const astra = DEFAULT_OPENAI_MODELS.find(m => m.id === 'gpt-6-astra');
 
-    expect(gpt4o?.capabilities?.contextWindow).toBe(128000);
+    expect(astra?.capabilities?.contextWindow).toBe(1050000);
   });
 });
 
@@ -482,13 +480,15 @@ describe('DEFAULT_ANTHROPIC_MODELS', () => {
   it('should contain expected models', () => {
     const ids = DEFAULT_ANTHROPIC_MODELS.map(m => m.id);
 
-    // Claude 4 models (new)
+    // Current generation
+    expect(ids).toContain('claude-fable-5-1');
+    expect(ids).toContain('claude-opus-5');
+    expect(ids).toContain('claude-sonnet-5');
+    expect(ids).toContain('claude-haiku-4-5-20251001');
+
+    // Previous generation (still served)
     expect(ids).toContain('claude-opus-4.5-20251124');
     expect(ids).toContain('claude-sonnet-4.5-20250929');
-
-    // Claude 3.5 models (existing)
-    expect(ids).toContain('claude-3-5-sonnet-20241022');
-    expect(ids).toContain('claude-3-5-haiku-20241022');
   });
 
   it('should have ownedBy set to anthropic', () => {
@@ -506,11 +506,11 @@ describe('DEFAULT_ANTHROPIC_MODELS', () => {
   });
 
   it('should have correct vision support', () => {
-    const sonnet = DEFAULT_ANTHROPIC_MODELS.find(m => m.id === 'claude-3-5-sonnet-20241022');
-    const haiku = DEFAULT_ANTHROPIC_MODELS.find(m => m.id === 'claude-3-5-haiku-20241022');
+    const sonnet = DEFAULT_ANTHROPIC_MODELS.find(m => m.id === 'claude-sonnet-5');
+    const haiku = DEFAULT_ANTHROPIC_MODELS.find(m => m.id === 'claude-haiku-4-5-20251001');
 
     expect(sonnet?.capabilities?.supportsVision).toBe(true);
-    expect(haiku?.capabilities?.supportsVision).toBe(false);
+    expect(haiku?.capabilities?.supportsVision).toBe(true);
   });
 
   it('should have correct JSON mode support', () => {
